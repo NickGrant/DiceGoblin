@@ -1,7 +1,7 @@
 ---
 Title: "Dice Goblins vNext Game Overhaul"
 Status: Active Implementation Plan
-Last Updated: 2026-09-14
+Last Updated: 2026-09-15
 Owner: Product + Engineering
 Depends On:
   - documentation/07-development-path/README.md
@@ -38,9 +38,13 @@ Milestone 1 proved the real authenticated Angular -> persistent Phaser -> author
 
 All nine implementation/closure packages passed architectural review. Integrated closure at `c72c2611d7e14d1d3151f42c05f791e4f1405c2d` proved the fresh-database/authored-content/PHP/MySQL/Phaser Warband slice end to end, including lazy collections/detail, squad lifecycle, unit rename/loadout/exact-die configuration, authoritative client reconciliation, persistence after reload, cross-player security, responsive presentation, and narrow retirement of superseded Angular Warband surfaces. Manual user UAT passed on 2026-09-13 with no blocking findings.
 
-**Milestone 3 - Enter Farm: UAT corrections implemented; focused manual recheck pending.**
+**Milestone 3 - Enter Farm: Complete; manual UAT passed.**
 
-The seven implementation/closure packages passed architectural review, with integrated closure at `c456d983b1afaf36c0dc9e069b3e35cfcdf6957f`. Manual UAT then identified inconsistent clickable cursor affordances and reactive-only presentation of active-run Warband locks. Package 8 at `038a6ce081fa3b735f627095db372db24b39f79e` corrected both by adding shared actionable cursor presentation and proactive client lock hints while retaining backend authority and legal squad/unit naming. Only the user's focused recheck of those corrections remains before Milestone 3 closes and Milestone 4 may be promoted.
+The seven implementation/closure packages passed architectural review, with integrated closure at `c456d983b1afaf36c0dc9e069b3e35cfcdf6957f`. Manual UAT identified inconsistent clickable cursor affordances and reactive-only presentation of active-run Warband locks. Package 8 at `038a6ce081fa3b735f627095db372db24b39f79e` corrected both while retaining backend authority and legal squad/unit naming. The focused manual recheck passed and Milestone 3 was closed on 2026-09-15.
+
+**Milestone 4 - Combat: Active.**
+
+Milestone 4 makes combat authoritative, deterministic, persistent, reconnect-safe, and watchable. Package 1 first establishes canonical level-derived combat stats and initializes authoritative run HP; deterministic engine/content adaptation follows before battle persistence/API/Phaser contracts are built around it.
 
 ## Milestones
 | # | Milestone | Exit criterion |
@@ -48,8 +52,8 @@ The seven implementation/closure packages passed architectural review, with inte
 | 0 | Reconcile and clean vNext context | One coherent implementation plan and current-only documentation/agent context. **Complete.** |
 | 1 | Walking skeleton | Authenticated Angular `/game` -> Phaser boot -> safe content projection -> real PHP bootstrap/MySQL state -> minimal responsive Camp. **Complete; UAT passed.** |
 | 2 | Warband | Real units/dice/squads, lazy cache/detail queries, persistent squad and unit-loadout configuration. **Complete; UAT passed.** |
-| 3 | Enter Farm | Energy + region/run creation, persistent generated Farm run, `RunScene`, resume/abandon/map. **UAT corrections implemented; focused recheck pending.** |
-| 4 | Combat | Authoritative combat adaptation, run HP/state, persisted playback, `BattleScene`, reconnect-safe result. **Not promoted.** |
+| 3 | Enter Farm | Energy + region/run creation, persistent generated Farm run, `RunScene`, resume/abandon/map. **Complete; UAT passed.** |
+| 4 | Combat | Authoritative combat adaptation, run HP/state, persisted playback, `BattleScene`, reconnect-safe result. **Active.** |
 | 5 | Complete Farm | Event/reward pipeline, XP/progression, Mudking, terminal run flow, Mountains unlock; no claim/reroll/double-grant path. |
 | 6 | Prove region generalization | Mountains/kobolds operate through the same region/run architecture without Farm-specific duplication. |
 | 7 | Economy and inventory | Shop, Teeth, inventory/consumables, dice sale/salvage, recharge items and repeatable economy. |
@@ -62,6 +66,18 @@ The seven implementation/closure packages passed architectural review, with inte
 | 14 | Hardening and cutover | Remove obsolete implementation paths, cleanup/retention, security/content-exposure audit, device/performance/game-feel pass, canonical-doc migration. |
 
 Completing the overhaul does not require building Island through Savanna or The Library.
+
+## Milestone 4 Package Sequence
+1. Canonical combatant stats + authoritative run HP initialization.
+2. Farm combat authored content + deterministic engine adaptation.
+3. Battle persistence + playback boundary.
+4. Authoritative combat-node resolution + persisted run/battle state.
+5. Battle/result/playback query and reconnect contracts.
+6. Phaser `BattleScene` playback lifecycle.
+7. Battle result + authoritative return-to-run reconciliation.
+8. Combat integrated verification/closure, followed by manual UAT.
+
+The retained prototype combat implementation is behavioral evidence only. It currently couples PDO/catalog access, node effects, rewards/progression, combat simulation, and playback construction; vNext must preserve useful deterministic mechanics behind the accepted application/domain/repository/content boundaries rather than wrap that object as the new architecture.
 
 ## Persistent Quality Gates
 Every applicable milestone maintains:
@@ -76,7 +92,9 @@ Every applicable milestone maintains:
 - documentation/reference consistency.
 
 ## Deferred Until Needed
-Do not block the next gameplay milestone on final visual polish or on exact later-system details such as Rest/Chaos sub-route payloads, all battle-playback fields, later economy tuning, later kin recipes, or onboarding dialogue. Resolve them in the milestone that needs them and update the relevant accepted decision if the architecture changes.
+Do not block the next gameplay milestone on final visual polish or on exact later-system details such as Rest/Chaos sub-route payloads, later economy tuning, later kin recipes, or onboarding dialogue. Resolve them in the milestone that needs them and update the relevant accepted decision if the architecture changes.
+
+For Milestone 4 specifically, Package 1 establishes only canonical base level-stat resolution and run HP initialization. Damage/healing formulas, exact scheduling/targeting behavior, dice/material/aspect combat effects, statuses, playback event versioning, and stalemate policy are reconciled with the deterministic engine package rather than guessed ahead of it. Battle storage is introduced only after that engine result/playback boundary is concrete.
 
 The cross-cutting visual/UI overhaul is intentionally deferred until core gameplay surfaces and interaction patterns are established. Until then, visual work should support clarity, usability, responsive correctness, and basic cohesion rather than attempt final production fidelity screen by screen.
 
