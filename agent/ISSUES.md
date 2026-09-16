@@ -2,210 +2,340 @@
 
 ## Milestone 4 - Combat
 
-### Milestone 4 Package 3 - Battle persistence + playback boundary
+### Milestone 4 Package 4 - Authoritative combat-node resolution + persisted run/battle state
 
-**Status:** In Progress
+**Status:** Open
 **Priority:** High
 
 #### Problem
-Package 2 established the canonical first-Farm combat slice and an infrastructure-free deterministic combat kernel. The kernel consumes a strict normalized `CombatInput` and returns a versioned `CombatResult` containing terminal state plus ordered semantic playback events.
+Packages 1-3 now provide all lower-level prerequisites for real combat resolution:
+- canonical level-derived player stats and authoritative `run_unit_state.current_hp`;
+- canonical Farm enemy/encounter/ability content;
+- a deterministic infrastructure-free combat kernel;
+- one immutable finalized battle persistence record per run node.
 
-Before Package 4 can resolve a real run node transactionally, vNext needs a durable battle boundary that stores the exact finalized battle facts. A historical battle must remain reconnectable/explainable even if owned unit configuration or authored content changes later.
+What does not yet exist is the authoritative application mutation that takes one persisted available Farm combat node, assembles its complete player/enemy snapshot from server-owned state, executes combat exactly once, persists the finalized battle, applies player HP and node/run lifecycle changes transactionally, and survives retries without rerolling.
 
-This package is persistence only. Do not resolve run nodes, run the engine from an application command, update run HP/node state, add HTTP routes, or implement Phaser playback.
+This package owns that mutation and backend HTTP contract. It does **not** implement battle read/reconnect APIs or Phaser playback; those remain Packages 5-7.
 
-#### Persistence decision
-Extend the single fresh baseline `backend/migrations/vnext_baseline.sql`; do not create a migration chain or data backfill.
+#### HTTP contract
+Implement the accepted endpoint:
 
-Add the smallest concrete battle persistence needed by the Package 2 model. Prefer a single `battles` table rather than introducing a speculative `battle_playback` table: Package 2 playback is currently a one-to-one immutable part of the versioned result payload, so splitting or duplicating it provides no current benefit.
+`POST /api/v1/runs/:runId/nodes/:nodeId/resolve`
 
-A finalized battle record must durably retain:
-- battle identity;
-- owning run and exact run node relationship;
-- the exact normalized kernel input snapshot used for the battle;
-- a compact persistence/presentation participant manifest kept outside the kernel;
-- the exact versioned result/playback payload returned by the kernel;
-- ordinary persistence timestamp(s) outside the deterministic payload.
+For Package 4 it supports only ordinary combat nodes with a canonical `encounter_id`.
 
-Do not add reward, XP, objective, progression, claim, event-sourcing, turn, tick, or per-playback-event tables.
+Requirements:
+- authenticated session;
+- CSRF protection;
+- required `Idempotency-Key` using the same strict key rules as other retry-sensitive vNext commands;
+- no request body for this first combat-node command; path identity is the complete player intent;
+- positive canonical run/node IDs;
+- thin controller delegating one complete application intention.
 
-#### Required relational invariants
-The battle belongs to a concrete existing run node in the same run.
+Do not add a separate battle resolve endpoint. Combat resolution belongs to node resolution.
 
-Use a same-run relational constraint, not two unrelated foreign keys that would permit a battle row to pair run A with a node from run B. `run_nodes` already exposes unique `(run_id,id)` for this purpose.
+Do not support loot, rest, boss, exit, Chaos, hazards, rewards, or other node behavior in this package. A node type not owned by this package returns a narrow unsupported/not-resolvable domain error and performs no mutation.
 
-Enforce **at most one finalized battle per run node** with a real database uniqueness invariant. A completed combat node must never accumulate a second battle because of retries/reloads/concurrent requests. Package 4 will add application idempotency on top of this database safety net.
+#### Ownership and non-disclosure
+The authenticated user must own the run. The node must belong to that exact run.
 
-Deleting a run may cascade its battle history with the rest of run-owned state. Do not make battle deletion mutate or terminate a run.
+Missing/foreign run IDs and missing/foreign node IDs must use the established non-disclosing not-found behavior rather than revealing whether another player's run/node exists.
 
-A committed Package 3 battle is finalized; do not invent `pending`, `running`, `claimed`, playback-progress, or similar battle lifecycle states. Package 4 will execute combat synchronously inside the owning application transaction.
+Persisted cross-owner corruption or impossible relational/configuration state must fail as a non-disclosing integrity error and roll back.
 
-Do not duplicate `user_id` onto battles merely for ownership lookup; ownership is already authoritative through battle -> run -> user. Future read queries can join the run.
+Never accept squad ID, unit IDs, dice IDs, encounter IDs, seed, stats, HP, abilities, or enemy data from the request.
 
-#### Suggested concrete battle shape
-Exact column names may follow repository conventions, but the storage should stay close to:
-- `id` BIGINT UNSIGNED primary key;
-- `run_id` BIGINT UNSIGNED not null;
-- `run_node_id` BIGINT UNSIGNED not null;
-- `engine_version` positive small integer;
-- `playback_version` positive small integer;
-- `input_snapshot` JSON not null;
-- `participant_manifest` JSON not null;
-- `result_json` JSON not null;
-- `created_at` timestamp.
+#### Eligibility
+Before combat can execute, prove under the transaction that:
+- the owned run exists and is `active`;
+- the node belongs to that run;
+- the node status is `available`;
+- `node_type_id` is exactly the supported ordinary combat node type;
+- the node has a valid canonical encounter reference;
+- no finalized battle already exists for the run node unless the current request is an exact idempotent replay already finalized in `idempotency_requests`;
+- the run still has its participating squad and authoritative run-unit participation state;
+- participating Warband/content state is coherent enough to build a complete Package 2 `CombatInput`.
 
-The version columns deliberately duplicate the top-level result versions as small query/debug compatibility facts. Repository validation must reject a mismatch between the stored columns and the result payload rather than allowing them to drift.
+A different idempotency key against an already-resolved node must not execute or create another battle. Return a narrow already-resolved/conflict response.
 
-Do not add a duplicated outcome column, encounter catalog FK, user FK, content catalog FK, reward state, or other convenience columns unless an actual current Package 3 test/use case demonstrates the need.
+Locked/unavailable nodes must not resolve merely because the client knows their IDs.
 
-MySQL JSON validity is already enforced by the JSON type. Do not attempt to encode the complete Package 2 event schema as brittle SQL JSON path CHECK constraints. Structural validation belongs at the persistence boundary before insert/read.
+#### Transaction and lock order
+This command owns one database transaction for the whole mutation.
 
-#### Exact normalized input snapshot
-Persist the exact deterministic kernel snapshot that Package 2 receives, including its seed and normalized combatants/abilities/dice/status facts. This is an immutable historical input, not a pointer to mutable current Warband/content configuration.
+Follow the established user-scoped mutation ordering to avoid races with other vNext commands. At minimum:
+1. parse/validate path and idempotency key before mutation;
+2. begin transaction;
+3. lock the user's `user_state` first;
+4. inspect the user-scoped idempotency receipt;
+5. lock/load the owned run and target node;
+6. validate eligibility and existing-battle state;
+7. lock/load the participating squad, units, run HP, loadouts, bindings, and dice required to assemble one coherent combat snapshot;
+8. resolve all authored facts through the already-validated `ContentRegistry` outside the kernel;
+9. invoke the deterministic combat kernel once;
+10. construct/validate the Package 3 participant manifest and finalized battle value;
+11. insert the battle;
+12. persist terminal player run HP;
+13. resolve node/run lifecycle state;
+14. increment `player_revision` exactly once;
+15. finalize the idempotency receipt with the exact response;
+16. commit.
 
-Do not reconstruct a stored battle input later from:
-- current unit level/type;
-- current ability loadout/order;
-- current dice bindings/profile content;
-- current authored enemy/encounter definitions;
-- current `run_unit_state` HP after later nodes.
+Any failure rolls back all battle/node/run-unit/run/revision/receipt mutations together.
 
-JSON storage may normalize textual formatting/key order. Tests should compare decoded structures/deep equality rather than raw serialized bytes.
+Do not make `BattlePersistenceRepository` own the transaction.
 
-Do not add database IDs to `CombatInput` merely for persistence. The combat kernel remains unaware of repositories/database identity.
+#### Idempotency
+Use existing `idempotency_requests`; do not add another idempotency table.
+
+Use a dedicated operation identity such as `resolve_run_node` and a normalized request hash derived from the canonical run/node path identity. The no-body request means headers, CSRF token, timestamps, or presentation data must not affect the request hash.
+
+Required semantics:
+- exact same user/key/operation/request after successful commit returns the stored finalized response;
+- replay does not rerun combat, create another battle, rewrite HP/node timestamps, unlock nodes again, or increment revision;
+- same user/key with another operation or run/node identity conflicts;
+- another key after the node has already resolved does not reroll it;
+- transaction failure leaves no finalized receipt, so a legitimate retry can attempt the command again from unchanged authoritative state.
+
+Serializing user mutations through the locked `user_state` is the primary application race boundary; the Package 3 unique battle invariant remains the database backstop.
+
+#### Player combat snapshot assembly
+Create a focused server-side assembly boundary outside `CombatEngine`. Do not put PDO or `ContentRegistry` into the kernel.
+
+The assembled player side must come only from the active run's persisted/locked state and current validated authored definitions.
+
+For every participating `run_unit_state` row:
+- require the unit to be an owned active unit and member of the run's participating squad;
+- require the participating squad formation and run-unit set to agree exactly; do not silently add/drop units;
+- resolve current `unit_type_id` and level through Package 1's canonical base-level stat resolver;
+- use resolved max HP and the persisted run `current_hp`; reject current HP outside `0..resolved max HP` as integrity corruption;
+- preserve all five stats only: HP, Attack, Defense, Precision, Resolve; no Speed;
+- load the complete ordered equipped active-ability loadout with contiguous order;
+- require each equipped ability to be unlocked, authored, active, supported by the current Package 2 combat kernel, and fully bound to its authored die-slot count;
+- load exact owned active dice, sizes and profile IDs; normalize their current authored aspect effects through the existing combat content boundary;
+- require profile/size eligibility;
+- preserve the durable global invariant that one physical die is bound to only one slot across the Warband; additionally reject any duplicate die identity encountered in the assembled combat snapshot rather than relying on normalization to hide corruption;
+- include applicable unlocked current-unit passive abilities supported by the Package 2 slice; do not silently ignore an applicable unsupported combat passive/configuration.
+
+Do not persist derived stats/loadouts separately merely for this command: the exact normalized input will be persisted in `battles.input_snapshot`.
+
+#### Formation mapping
+Make the current nine-position squad mapping explicit and canonical for combat assembly.
+
+Positions are row-major `0..8` across the 3x3 formation:
+- `x = position % 3`;
+- `y = intdiv(position, 3)`;
+- x=2 is the front column and x=0 is the back column, matching the current combat/target rules.
+
+Use a small shared server/domain helper/value rather than scattering this math through SQL/application code. Update the canonical Warband/formation documentation so this mapping is no longer implicit.
+
+Player kernel combatant keys must be deterministic battle-local keys based on stable formation identity/order, not display names and not parsed database IDs. A form such as `player_p0` ... `player_p8` is appropriate. The Package 3 participant manifest is where each key maps to durable owned `unit_id`, current stable `unit_type_id`, historical display name, and historical art key.
+
+#### Enemy snapshot and manifest
+Use the persisted node's stable `encounter_id` and Package 2 `CombatSnapshotNormalizer`/ContentRegistry boundary to resolve the enemy side.
+
+Do not trust or reconstruct hidden encounter facts from the client or generated metadata.
+
+Enemy combatant keys/formation/stats/abilities/plain virtual d6s come from canonical server-only encounter/enemy content. Build manifest entries with the authored enemy type identity, display name, and art key.
+
+The full encounter roster/mechanics remain server-private until observable through finalized battle playback/presentation contracts. The resolve response itself must not dump the hidden normalized input merely because it has been persisted.
+
+#### Combat seed
+Use one deterministic server-owned seed derived from durable battle identity facts, not wall-clock time, random UUIDs, or client data. The goal is that the same unchanged run/node attempt cannot produce a different combat merely because an application retry reached the engine before a previous attempt rolled back.
+
+Use an explicit versioned derivation based on stable facts such as run ID, node ID, and encounter ID. Keep the derivation outside the combat kernel and document/test it. Persist the resulting exact seed only inside the normalized battle input.
+
+Do not expose the seed in the node-resolution response.
 
 #### Participant manifest
-Package 2 intentionally uses stable combatant keys inside the pure kernel rather than database/display identity. Persistence therefore needs a small manifest that lets later packages relate those keys back to authoritative run participants and present the historical combatants without parsing meaning out of key strings.
+Construct the Package 3 manifest from the same locked/validated facts used for the snapshot.
 
-Define a strict value/validation boundary for a participant manifest. It must contain exactly one entry for every combatant key in the stored input and no extras.
+For players capture:
+- kernel combatant key;
+- `side = player`;
+- durable owned unit ID;
+- current stable player `unit_type_id`;
+- historical current display name;
+- historical current unit-type art key.
 
-For this Milestone 4 slice, each manifest entry should contain only durable identity/presentation facts that are actually needed later:
-- `combatant_key`;
-- `side` (`player` or `enemy`);
-- player owned `unit_id` for player entries and null for enemies;
-- stable unit type identity (`unit_type_id` for players or `enemy_unit_type_id` for enemies), using a deliberately named field/model rather than an ambiguous numeric ID;
-- display name captured for the historical battle;
-- art key captured for the historical battle.
+For enemies capture:
+- authored encounter combatant key;
+- `side = enemy`;
+- null owned unit ID/player unit type;
+- stable `enemy_unit_type_id`;
+- authored display name;
+- authored art key.
 
-Do not duplicate position, stats, abilities, dice, HP, or statuses into the manifest; those are already in the immutable input/result snapshots. Do not include mutable rewards/progression.
+Let `BattleParticipantManifest` revalidate one-to-one correspondence before persistence.
 
-Validation must prove:
-- manifest keys are unique and exactly match input combatant keys;
-- manifest side matches the corresponding input side;
-- player entries have a positive owned unit ID and player type ID while enemy entries do not masquerade as owned units;
-- type IDs use the expected stable namespaces;
-- display/art identity is bounded/non-empty;
-- duplicate player `unit_id` entries are rejected.
+#### Running the kernel
+Pass only the fully normalized `CombatInput` into the Package 2 engine.
 
-Package 4 will own loading/ownership verification when constructing this manifest from the real run. Package 3 validates and persists the manifest but does not query player/content state to build it.
-
-#### Result/playback persistence
-Persist the exact Package 2 `CombatResult::toArray()`-equivalent payload, including:
-- `engine_version`;
-- `playback_version`;
-- outcome;
-- ending round/tick;
-- terminal combatants/statuses;
-- ordered semantic playback events.
-
-Do not split semantic events into rows or store a second duplicate copy of playback. Do not add timestamps/prose inside the deterministic result.
-
-Add a strict persistence codec/value boundary that validates/hydrates stored battle data rather than handing arbitrary decoded JSON around. It may reuse Package 2 validation/value objects where appropriate, but must not make the combat engine depend on PDO/repositories.
-
-At minimum, validate before insertion and when hydrating a row:
-- supported positive engine/playback versions;
-- stored version columns exactly match result versions;
-- outcome is `victory`, `defeat`, or `stalemate`;
-- result combatant keys exactly match input combatant keys and sides;
-- terminal HP stays within `0..max_hp` from the normalized input;
-- event sequence is contiguous from zero and each event has the expected version-1 event structure/facts;
-- result ending round/tick and battle-end event are coherent;
-- deterministic payload contains no wall-clock/reward fields prohibited by Package 2.
-
-Do not rerun combat in order to validate persistence. The stored result is finalized evidence; persistence validation checks structure/coherence, not whether a second simulation happens to reproduce it.
-
-#### Repository boundary
-Add a focused battle repository for persistence primitives only.
-
-Required capabilities are limited to what Packages 4-5 will concretely need, for example:
-- insert one finalized battle for `(run_id, run_node_id)` and return its ID;
-- fetch a finalized battle by battle ID;
-- fetch the finalized battle for a run node.
-
-The repository must not:
-- begin/commit/rollback transactions;
-- run combat;
-- assemble ContentRegistry/Warband snapshots;
-- update run HP or node status;
-- decide authorization;
+Do not let the kernel:
+- query SQL/content;
+- mutate run state;
 - issue rewards;
-- own idempotency behavior.
+- decide authorization/idempotency;
+- know HTTP identities.
 
-Package 4's application command will own the transaction around repository insertion plus run/node/HP state mutation.
+The engine must be invoked once on the non-replay success path. Persist its exact `CombatResult::toArray()` result through Package 3.
 
-Treat finalized battle payloads as immutable through the repository API. Do not add update methods for input/result/playback.
+If a tiny resolver interface/port around the existing Package 2 engine is useful for application-layer outcome/rollback tests, it may be introduced without changing combat semantics. Do not create a second combat implementation.
 
-#### Existing Warband invariant
-The durable Warband already enforces one physical die instance bound to only one ability slot via `unit_ability_dice`. Package 3 does not assemble player snapshots, so do not duplicate that logic here.
+#### Persist player run HP
+After the finalized result returns, update `run_unit_state.current_hp` for every and only player participant by using the Package 3 manifest key -> owned unit ID mapping and terminal combatant state.
 
-However, persistence validation must not normalize away duplicate combat die identity if it appears in an externally supplied snapshot. Preserve exact input. Package 4, which loads the real DB relationships, must continue enforcing the existing ownership/binding invariant before the engine runs.
+Requirements:
+- every run participant receives exactly one terminal player HP value;
+- no enemy HP is written to `run_unit_state`;
+- no unit outside the run is touched;
+- values remain within the already-resolved max HP bounds;
+- victory may leave some player units defeated at 0 HP; preserve that exact terminal HP;
+- no healing/reset-to-max occurs after combat.
 
-#### Current-run/bootstrap exposure
-Do not expose battles, input snapshots, encounter rosters, seeds, result/playback, or participant manifests through the existing bootstrap/current-run responses in this package.
+Do not write statuses to run storage in this package. Package 2 statuses are battle-scoped for the current slice; only HP currently survives between nodes.
 
-Package 5 owns battle read/reconnect API contracts and non-disclosure. Existing M1-M3 responses should remain unchanged except for unavoidable internal repository/type additions.
+#### Node and run lifecycle
+A combat node is finalized/resolved once regardless of battle outcome.
+
+On **victory**:
+- set the combat node status to `completed`;
+- set `completed_at` once;
+- leave the run `active`;
+- inspect persisted `run_edges` from the completed node and transition only directly outgoing nodes currently `locked` to `available`;
+- do not unlock grandchildren or reconstruct graph topology from authored Farm knowledge;
+- for the current Farm graph this makes Loot available while Rest/Boss/Exit remain locked.
+
+On **defeat** or **stalemate**:
+- set the combat node status to `completed` and `completed_at` once because its battle is finalized and cannot be rerolled;
+- do not unlock outgoing nodes;
+- transition the run from `active` to terminal `failed` and set `ended_at` once;
+- preserve the complete graph, battle and run-unit HP history;
+- Energy is unchanged and never refunded.
+
+Do not mark a run successful/complete in this package. Farm boss/exit success remains Milestone 5.
+
+The `failed` status is the concrete terminal loss state already anticipated by the accepted Energy/Warband models. Update current run/storage docs as needed so this lifecycle is explicit.
+
+#### Player revision
+A newly committed combat resolution changes durable player/run state and increments `player_revision` exactly once in the same transaction.
+
+Exact idempotent replay does not increment it again. Rejections and rolled-back attempts do not increment it.
+
+Do not materialize/regenerate Energy during combat resolution. Energy state and regeneration anchor remain untouched.
+
+#### Response contract
+Return a narrow authoritative mutation response suitable for Packages 5-7 without embedding private input or a giant playback payload.
+
+At minimum return:
+- battle reference/summary: battle ID, outcome, engine version, playback version, ending round/tick;
+- resolved node ID/status/completed timestamp;
+- direct node IDs newly made available, if victory;
+- terminal player run-unit HP values keyed by owned unit ID;
+- resulting run lifecycle status (`active` or `failed`) and terminal timestamp when applicable;
+- resulting `player_revision`.
+
+Do not return:
+- normalized input snapshot or seed;
+- hidden encounter roster/config as a pre-battle catalog;
+- rewards/XP/currency;
+- full bootstrap/profile/Warband state;
+- regenerated run topology;
+- full playback merely to avoid Package 5's read contract.
+
+Store this exact response in the idempotency receipt so retry returns the same committed facts.
+
+#### Errors
+Use narrow stable error codes/messages consistent with current vNext conventions. Cover at least:
+- malformed path/idempotency/body;
+- unauthenticated/CSRF failure through existing middleware;
+- non-disclosing run/node not found;
+- inactive/terminal run;
+- node locked/unavailable;
+- unsupported node type / missing invalid encounter;
+- already-resolved node under another attempt;
+- invalid/incomplete participating combat configuration;
+- persisted ownership/content/configuration integrity failure;
+- idempotency conflict.
+
+Do not leak whether a foreign unit/die/run/node exists through different error shapes.
 
 #### Tests / verification
-Add focused persistence/unit/integration coverage proving at minimum:
-- fresh MySQL 8 baseline provisions the battle table and no speculative battle/event/reward tables;
-- registration/fresh player state has zero battles;
-- battle row must reference a real run/node pair from the same run;
-- one run node cannot have two finalized battles at the database level;
-- distinct combat nodes may each have their own battle;
-- deleting a run cascades its battles consistently with run-owned state;
-- exact decoded normalized input round-trips through MySQL JSON;
-- participant manifest round-trips and must exactly cover input combatants with correct sides/identity rules;
-- duplicate/missing/extra manifest keys and duplicate player unit IDs are rejected;
-- exact decoded Package 2 result/playback round-trips with ordering/sequence intact;
-- stored engine/playback columns must match payload versions;
-- malformed outcome, ending facts, terminal HP/key mismatch, event sequence/schema mismatch, or prohibited deterministic fields are rejected;
-- repository insert/fetch does not mutate run nodes, run HP, player revision, Energy, rewards, or idempotency state;
-- repository performs no transaction management of its own;
-- no new HTTP routes/controllers or Phaser/client DTOs are added;
-- existing M1-M3, Package 1, and Package 2 backend/content/combat tests remain green.
+Add focused application/controller/integration coverage proving at minimum:
+- authentication, CSRF and required idempotency key;
+- strict no-body request contract and canonical positive run/node IDs;
+- foreign/missing run/node non-disclosure;
+- locked/unavailable and non-combat nodes cannot resolve;
+- the first available Farm combat node resolves against its persisted encounter reference;
+- player formation positions map exactly from squad positions `0..8` to `{x,y}` with x=2 front;
+- player combatant keys are stable battle-local keys and the manifest maps them to the exact owned unit IDs/type/display/art identity;
+- current persisted run HP becomes battle input `current_hp`; max HP/stats use the canonical level resolver;
+- active loadout order, full exact dice slots/profile/aspects, supported passives and global die uniqueness are validated;
+- incomplete/foreign/inactive/duplicate/configuration-corrupt ability/die/unit state rejects before combat and persists nothing;
+- hidden enemy encounter data is assembled server-side and is not accepted from/returned to the client;
+- deterministic seed derivation is stable for the same run/node/encounter and differs when durable identity differs;
+- a successful command persists one exact finalized battle whose input/manifest/result agree with the command assembly;
+- terminal player HP from the battle is written to the exact `run_unit_state` rows;
+- victory completes the node and unlocks only direct outgoing locked nodes, preserving later locked Farm nodes;
+- defeat completes the node, unlocks nothing, persists terminal HP/battle history, transitions run to `failed`, sets `ended_at`, and releases active-run configuration locks through the existing active-run semantics;
+- stalemate follows the same terminal `failed` lifecycle without pretending victory;
+- Energy value and regeneration anchor remain unchanged for victory/defeat/stalemate;
+- one successful resolution increments `player_revision` exactly once;
+- exact same-key replay returns the same battle ID/response without another engine execution, HP write, timestamp change, unlock, battle row, or revision increment;
+- same key with another run/node conflicts;
+- another key after finalized resolution cannot reroll/create another battle;
+- forced failure after engine execution but before commit rolls back battle, HP, node/run, revision and idempotency receipt together;
+- current-run read after victory reflects completed Combat, available Loot, unchanged later locked nodes, and authoritative post-battle HP without regeneration;
+- current-run read after terminal failure returns no active run under the existing query semantics while the persisted failed run/battle/history remains queryable internally for Package 5;
+- no rewards/XP/objectives/Teeth/Raw Chaos are granted or changed;
+- no new battle/read/Phaser implementation leaks into this package;
+- existing M1-M3 and Packages 1-3 backend/content/combat/persistence tests remain green.
 
-Use actual MySQL 8 for relational and JSON round-trip assertions. Do not represent absent GitHub CI or an unavailable host-only aggregate verification command as passed.
+Use actual MySQL 8 for the real transaction/idempotency/run-state tests. Include deterministic application tests for victory, defeat, and stalemate; a small injected combat-resolver port is acceptable for transaction outcome tests if necessary, while at least one real Farm integration path must invoke the actual Package 2 `CombatEngine`.
+
+Run the repository's supported backend/content/MySQL gates. Do not claim absent GitHub CI or an unavailable host-only aggregate passed.
 
 #### Documentation
-Update the current vNext storage/development documentation only if needed so battle persistence matches the implementation. Document the deliberate single-row immutable snapshot/result approach and why a separate `battle_playback` table is not currently needed.
+Update current canonical docs only where this package establishes new concrete behavior:
+- `documentation/02-systems/warband-and-formation.md`: explicit row-major 0..8 -> x/y combat mapping and front/back column meaning;
+- `documentation/02-systems/run-node-generation.md` or a more appropriate current run lifecycle doc: victory direct-child unlock and finalized combat-node behavior;
+- `documentation/07-development-path/vnext-storage-model.md`: concrete terminal `failed` run lifecycle if needed;
+- `documentation/07-development-path/vnext-endpoint-inventory.md`: narrow Package 4 combat-node request/response/idempotency behavior if the accepted inventory needs clarification.
 
-Do not restore legacy schema/combat docs. Git history remains recovery evidence.
+Do not restore legacy/prototype docs.
 
 #### Explicitly out of scope
 Do not implement or scaffold:
-- combat-node resolution application command/controller/route;
-- CSRF/idempotency behavior for node resolution;
-- invoking `CombatEngine` from a real run;
-- loading real Warband dice/abilities into `CombatInput`;
-- updates to `run_unit_state`, `run_nodes`, run lifecycle, or player revision after combat;
-- battle read HTTP APIs or authorization contracts;
-- Phaser `BattleScene`, playback timing, or client battle DTOs;
-- rewards, Teeth, XP, objectives, progression, unit/dice grants, or loot;
-- Mudking/boss combat, Farm completion, or Mountains unlock;
-- Rest/loot/Chaos node resolution;
-- `battle_playback`, per-event, event-sourcing, claim, tick, turn, or reward tables without a concrete current requirement;
+- `GET /api/v1/battles/:battleId/playback` or other battle read/reconnect endpoints;
+- bootstrap/current-run battle playback expansion beyond existing run-state consequences;
+- Phaser `BattleScene` or client battle DTO/playback;
+- client node-resolution button/navigation;
+- rewards, Teeth, Raw Chaos, XP, objectives, progression, unit/dice grants, loot, or reward claims;
+- Mudking/boss combat;
+- Farm successful completion/Exit or Mountains unlock;
+- Rest/Loot/Chaos/hazard node resolution;
+- persisted statuses/run modifiers;
+- battle update/pending/claim/progress lifecycle;
+- additional battle/event/playback/reward tables;
 - cleanup/rewrite of retained prototype combat source.
 
 #### Completion/reporting
-Leave this issue **In Progress** when implementation is ready for architectural review; do not promote Package 4 yourself.
+Leave this issue **In Progress** when implementation is ready for architectural review; do not promote Package 5 yourself.
 
 Report:
 - exact implementation commit SHA;
-- exact battle schema and invariants;
-- whether a separate playback table was avoided and why;
-- participant-manifest structure and validation;
-- input/result persistence codec/value boundaries;
-- repository methods and confirmation that they do not own transactions;
-- MySQL same-run/one-battle-per-node/cascade/JSON round-trip evidence;
-- malformed persistence validation evidence;
-- exact verification commands/pass counts and any environment-limited gates.
+- HTTP request/response/error contract;
+- application command and transaction/lock order;
+- idempotency operation/hash/replay semantics;
+- player formation mapping and combatant key scheme;
+- exact authoritative player snapshot assembly rules;
+- enemy/encounter assembly and exposure boundary;
+- deterministic seed derivation;
+- participant manifest construction;
+- victory/defeat/stalemate node/run lifecycle;
+- HP/revision/Energy behavior;
+- persisted battle evidence;
+- rollback/concurrency/retry evidence;
+- exact MySQL/application/controller regression commands and results;
+- any environment-limited gates or unresolved concern.
