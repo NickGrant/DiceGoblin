@@ -73,6 +73,8 @@ final class CurrentRunLifecycleControllerTest extends IntegrationTestCase
     foreach (['generated_metadata', 'run_generation_id', 'algorithm', 'local_key', 'encounter_id'] as $private) {
       $this->assertStringNotContainsString($private, $encoded);
     }
+    $this->assertStringNotContainsString('encounter.the_farm_mud_combat_1', $encoded);
+    $this->assertStringNotContainsString('Mudwrestler', $encoded);
     $this->assertSame($before, $after);
 
     $nodeIds = array_column($run['nodes'], 'id');

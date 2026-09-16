@@ -1,0 +1,28 @@
+{
+  "definitions": [
+    {
+      "id": "enemy_unit_type.mudwrestler",
+      "type": "enemy_unit_type",
+      "display_name": "Mudwrestler",
+      "description": "A mud-caked pig that grapples frontliners.",
+      "art_key": "enemy_mudwrestler",
+      "role": "frontline",
+      "stats": { "hp": 16, "attack": 3, "defense": 2, "precision": 5, "resolve": 5 },
+      "active_ability_ids": ["ability.basic_attack_melee", "ability.wrestle"],
+      "passive_ability_ids": [],
+      "virtual_ability_dice": { "sides": 6, "profile_id": "dice_profile.cardboard_plain" }
+    },
+    {
+      "id": "enemy_unit_type.mudslinger",
+      "type": "enemy_unit_type",
+      "display_name": "Mudslinger",
+      "description": "A backline pig that throws armor-cracking mud.",
+      "art_key": "enemy_mudslinger",
+      "role": "backline",
+      "stats": { "hp": 14, "attack": 4, "defense": 1, "precision": 6, "resolve": 4 },
+      "active_ability_ids": ["ability.basic_attack_ranged", "ability.mud_sling"],
+      "passive_ability_ids": [],
+      "virtual_ability_dice": { "sides": 6, "profile_id": "dice_profile.cardboard_plain" }
+    }
+  ]
+}

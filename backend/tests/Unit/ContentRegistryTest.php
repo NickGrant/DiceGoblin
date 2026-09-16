@@ -35,7 +35,9 @@ final class ContentRegistryTest extends TestCase
     ], $registry->definition('region.the_farm'));
     $this->assertCount(2, $registry->definitionsOfType('kin'));
     $this->assertCount(20, $registry->definitionsOfType('unit_type'));
-    $this->assertCount(29, $registry->definitionsOfType('ability'));
+    $this->assertCount(31, $registry->definitionsOfType('ability'));
+    $this->assertCount(2, $registry->definitionsOfType('enemy_unit_type'));
+    $this->assertCount(1, $registry->definitionsOfType('encounter'));
     $this->assertCount(5, $registry->definitionsOfType('dice_material'));
     $this->assertCount(6, $registry->definitionsOfType('dice_aspect'));
     $this->assertCount(11, $registry->definitionsOfType('dice_profile'));
@@ -195,7 +197,7 @@ final class ContentRegistryTest extends TestCase
   private function canonicalDefinitions(ContentRegistry $registry): array
   {
     $definitions = [];
-    foreach (['gameplay_config', 'region', 'kin', 'unit_type', 'ability', 'dice_material', 'dice_aspect', 'dice_profile', 'run_node_type', 'run_generation'] as $type) {
+    foreach (['gameplay_config', 'region', 'kin', 'unit_type', 'enemy_unit_type', 'encounter', 'ability', 'dice_material', 'dice_aspect', 'dice_profile', 'run_node_type', 'run_generation'] as $type) {
       foreach ($registry->definitionsOfType($type) as $definition) $definitions[] = $definition;
     }
     return $definitions;

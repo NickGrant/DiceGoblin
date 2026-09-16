@@ -1,0 +1,34 @@
+{
+  "definitions": [
+    {
+      "id": "ability.wrestle",
+      "type": "ability",
+      "kind": "active",
+      "server_only": true,
+      "display_name": "Wrestle",
+      "description": "Grapples a front enemy and redirects its next attack.",
+      "icon_key": "icon_ability_wrestle",
+      "dice_slot_count": 1,
+      "action_delay": 8,
+      "resolution_priority": 17,
+      "target_rule": "enemy_front_prefer",
+      "handler_id": "wrestle",
+      "handler_config": { "power_ratio": 1.05, "status_id": "wrestled", "duration_rounds": 2 }
+    },
+    {
+      "id": "ability.mud_sling",
+      "type": "ability",
+      "kind": "active",
+      "server_only": true,
+      "display_name": "Mud Sling",
+      "description": "Throws mud at a back enemy and cracks its armor.",
+      "icon_key": "icon_ability_mud_sling",
+      "dice_slot_count": 1,
+      "action_delay": 8,
+      "resolution_priority": 17,
+      "target_rule": "enemy_back_prefer",
+      "handler_id": "mud_sling",
+      "handler_config": { "power_ratio": 0.90, "status_id": "cracked_armor", "defense_reduction_flat": 2, "duration_rounds": 2 }
+    }
+  ]
+}

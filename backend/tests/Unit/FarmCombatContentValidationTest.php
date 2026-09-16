@@ -1,0 +1,119 @@
+<?php
+declare(strict_types=1);
+
+namespace DiceGoblins\Tests\Unit;
+
+use DiceGoblins\Content\ClientContentProjector;
+use DiceGoblins\Content\CombatSnapshotNormalizer;
+use DiceGoblins\Content\ContentRegistry;
+use DiceGoblins\Content\ContentValidationException;
+use DiceGoblins\Content\ContentValidator;
+use PHPUnit\Framework\TestCase;
+
+final class FarmCombatContentValidationTest extends TestCase
+{
+  public function testStandardFarmEnemiesAbilitiesEncounterAndSnapshotDice(): void
+  {
+    $content = $this->content();
+    $wrestler = $content->enemyUnitType('enemy_unit_type.mudwrestler');
+    $slinger = $content->enemyUnitType('enemy_unit_type.mudslinger');
+    $encounter = $content->encounter('encounter.the_farm_mud_combat_1');
+    $this->assertSame(['hp' => 16, 'attack' => 3, 'defense' => 2, 'precision' => 5, 'resolve' => 5], $wrestler['stats']);
+    $this->assertSame(['hp' => 14, 'attack' => 4, 'defense' => 1, 'precision' => 6, 'resolve' => 4], $slinger['stats']);
+    $this->assertSame(['ability.basic_attack_melee', 'ability.wrestle'], $wrestler['active_ability_ids']);
+    $this->assertSame(['ability.basic_attack_ranged', 'ability.mud_sling'], $slinger['active_ability_ids']);
+    $this->assertSame([['x' => 2, 'y' => 1], ['x' => 0, 'y' => 1]], array_column($encounter['combatants'], 'position'));
+    $this->assertSame(1, $encounter['difficulty']);
+    $this->assertSame('A pair of pigs lurches out of the muck, giving the warband its first real skirmish.', $encounter['description']);
+    $this->assertSame(['sides' => 6, 'profile_id' => 'dice_profile.cardboard_plain'], $wrestler['virtual_ability_dice']);
+    $this->assertSame(1.05, $content->ability('ability.wrestle')['handler_config']['power_ratio']);
+    $this->assertSame(0.9, $content->ability('ability.mud_sling')['handler_config']['power_ratio']);
+    $this->assertSame(2, $content->ability('ability.mud_sling')['handler_config']['defense_reduction_flat']);
+    $snapshotEnemies = (new CombatSnapshotNormalizer($content))->enemyCombatants($encounter['id']);
+    $this->assertSame(['mudwrestler', 'mudslinger'], array_column($snapshotEnemies, 'key'));
+    foreach ($snapshotEnemies as $enemy) {
+      foreach ($enemy['active_abilities'] as $ability) {
+        $this->assertCount($ability['dice_slot_count'], $ability['dice']);
+        foreach ($ability['dice'] as $die) {
+          $this->assertSame(6, $die['sides']);
+          $this->assertSame('dice_profile.cardboard_plain', $die['profile_id']);
+          $this->assertSame([], $die['effects']);
+        }
+      }
+    }
+  }
+
+  public function testHiddenEnemyMechanicsAndRosterNeverEnterClientProjection(): void
+  {
+    $projection = (new ClientContentProjector())->project($this->content());
+    $this->assertArrayNotHasKey('enemy_unit_types', $projection['content']);
+    $this->assertArrayNotHasKey('encounters', $projection['content']);
+    $this->assertArrayNotHasKey('ability.wrestle', $projection['content']['abilities']);
+    $this->assertArrayNotHasKey('ability.mud_sling', $projection['content']['abilities']);
+    $this->assertArrayHasKey('ability.basic_attack_melee', $projection['content']['abilities']);
+    $encoded = json_encode($projection, JSON_THROW_ON_ERROR);
+    foreach (['Mudwrestler', 'Mudslinger', 'the_farm_mud_combat_1', 'virtual_ability_dice', 'cracked_armor', 'wrestled'] as $secret) {
+      $this->assertStringNotContainsString($secret, $encoded);
+    }
+  }
+
+  /** @dataProvider malformedFarmContentProvider */
+  public function testMalformedEnemyEncounterAndReferencesFailValidation(string $id, callable $mutate, string $message): void
+  {
+    $definitions = $this->definitions();
+    foreach ($definitions as &$definition) {
+      if ($definition['id'] === $id) { $mutate($definition); break; }
+    }
+    unset($definition);
+    try {
+      (new ContentValidator())->validate([['path' => 'farm-fixture.json', 'document' => ['definitions' => $definitions]]]);
+      $this->fail('Expected malformed Farm content to fail.');
+    } catch (ContentValidationException $e) {
+      $this->assertStringContainsString($message, $e->getMessage());
+    }
+  }
+
+  public function malformedFarmContentProvider(): array
+  {
+    return [
+      'enemy missing stat' => ['enemy_unit_type.mudwrestler', static function (array &$d): void { unset($d['stats']['resolve']); }, 'exactly HP, Attack, Defense, Precision, and Resolve'],
+      'enemy zero HP' => ['enemy_unit_type.mudwrestler', static fn(array &$d) => $d['stats']['hp'] = 0, 'stats.hp'],
+      'enemy negative Attack' => ['enemy_unit_type.mudwrestler', static fn(array &$d) => $d['stats']['attack'] = -1, 'stats.attack'],
+      'enemy Speed' => ['enemy_unit_type.mudwrestler', static fn(array &$d) => $d['stats']['speed'] = 1, 'exactly HP, Attack, Defense, Precision, and Resolve'],
+      'missing active ability' => ['enemy_unit_type.mudwrestler', static fn(array &$d) => $d['active_ability_ids'][1] = 'ability.missing', 'references missing ability'],
+      'passive in active list' => ['enemy_unit_type.mudwrestler', static fn(array &$d) => $d['active_ability_ids'][1] = 'ability.thick_hide', 'requires active abilities'],
+      'wrong virtual sides' => ['enemy_unit_type.mudwrestler', static fn(array &$d) => $d['virtual_ability_dice']['sides'] = 8, 'sides'],
+      'missing virtual profile' => ['enemy_unit_type.mudwrestler', static fn(array &$d) => $d['virtual_ability_dice']['profile_id'] = 'dice_profile.missing', 'references missing dice_profile'],
+      'aspect virtual profile' => ['enemy_unit_type.mudwrestler', static fn(array &$d) => $d['virtual_ability_dice']['profile_id'] = 'dice_profile.cardboard_striking', 'eligible plain profile'],
+      'missing encounter region' => ['encounter.the_farm_mud_combat_1', static fn(array &$d) => $d['region_id'] = 'region.missing', 'references missing region'],
+      'missing encounter enemy' => ['encounter.the_farm_mud_combat_1', static fn(array &$d) => $d['combatants'][0]['enemy_unit_type_id'] = 'enemy_unit_type.missing', 'references missing enemy_unit_type'],
+      'empty encounter' => ['encounter.the_farm_mud_combat_1', static fn(array &$d) => $d['combatants'] = [], 'non-empty list'],
+      'duplicate combatant key' => ['encounter.the_farm_mud_combat_1', static fn(array &$d) => $d['combatants'][1]['key'] = 'mudwrestler', 'duplicate combatant key or occupied position'],
+      'occupied position' => ['encounter.the_farm_mud_combat_1', static fn(array &$d) => $d['combatants'][1]['position'] = ['x' => 2, 'y' => 1], 'duplicate combatant key or occupied position'],
+      'bad cell' => ['encounter.the_farm_mud_combat_1', static fn(array &$d) => $d['combatants'][0]['position']['x'] = 3, 'position'],
+      'bad difficulty' => ['encounter.the_farm_mud_combat_1', static fn(array &$d) => $d['difficulty'] = 0, 'difficulty'],
+      'empty description' => ['encounter.the_farm_mud_combat_1', static fn(array &$d) => $d['description'] = '', 'description'],
+      'missing run encounter' => ['run_generation.the_farm', static function (array &$d): void { unset($d['nodes'][0]['encounter_id']); }, 'first combat node'],
+      'wrong run encounter' => ['run_generation.the_farm', static fn(array &$d) => $d['nodes'][0]['encounter_id'] = 'encounter.missing', 'references missing encounter'],
+      'boss encounter too early' => ['run_generation.the_farm', static fn(array &$d) => $d['nodes'][3]['encounter_id'] = 'encounter.the_farm_mud_combat_1', 'only combat nodes may reference encounters'],
+      'server only nonboolean' => ['ability.wrestle', static fn(array &$d) => $d['server_only'] = 'yes', 'server_only'],
+      'wrestle missing ratio' => ['ability.wrestle', static function (array &$d): void { unset($d['handler_config']['power_ratio']); }, 'invalid current combat handler configuration'],
+      'mud sling invalid reduction' => ['ability.mud_sling', static fn(array &$d) => $d['handler_config']['defense_reduction_flat'] = -1, 'invalid current combat handler configuration'],
+      'enemy wrong target rule' => ['ability.wrestle', static fn(array &$d) => $d['target_rule'] = 'self', 'incompatible with its handler'],
+    ];
+  }
+
+  private function content(): ContentRegistry { return ContentRegistry::load(dirname(__DIR__, 2) . '/content'); }
+
+  /** @return list<array<string,mixed>> */
+  private function definitions(): array
+  {
+    $content = $this->content();
+    $definitions = [];
+    foreach (['gameplay_config', 'region', 'kin', 'unit_type', 'enemy_unit_type', 'encounter', 'ability',
+      'dice_material', 'dice_aspect', 'dice_profile', 'run_node_type', 'run_generation'] as $type) {
+      foreach ($content->definitionsOfType($type) as $definition) $definitions[] = $definition;
+    }
+    return $definitions;
+  }
+}

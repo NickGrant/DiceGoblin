@@ -47,6 +47,7 @@ final class ClientContentProjector
     $projected = [];
     $allowlist = array_flip($fields);
     foreach ($registry->definitionsOfType($type) as $id => $definition) {
+      if ($type === 'ability' && ($definition['server_only'] ?? false) === true) continue;
       $projected[$id] = array_intersect_key($definition, $allowlist);
     }
     ksort($projected, SORT_STRING);

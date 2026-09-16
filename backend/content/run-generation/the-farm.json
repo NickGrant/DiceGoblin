@@ -9,6 +9,7 @@
         {
           "key": "combat",
           "node_type_id": "run_node_type.combat",
+          "encounter_id": "encounter.the_farm_mud_combat_1",
           "position": { "column": 0, "row": 1 }
         },
         {

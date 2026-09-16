@@ -3,6 +3,9 @@ declare(strict_types=1);
 
 namespace DiceGoblins\Content;
 
+use DiceGoblins\Combat\Vnext\CombatRules;
+use InvalidArgumentException;
+
 final class ContentValidator
 {
   private const ID_PATTERN = '/^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$/';
@@ -64,6 +67,8 @@ final class ContentValidator
       'region' => $this->validateRegion($definition, $location),
       'kin' => $this->validateKin($definition, $location),
       'unit_type' => $this->validateUnitType($definition, $location),
+      'enemy_unit_type' => $this->validateEnemyUnitType($definition, $location),
+      'encounter' => $this->validateEncounter($definition, $location),
       'ability' => $this->validateAbility($definition, $location),
       'dice_material' => $this->validateDiceMaterial($definition, $location),
       'dice_aspect' => $this->validateDiceAspect($definition, $location),
@@ -97,6 +102,27 @@ final class ContentValidator
         }
       }
 
+      if (($definition['type'] ?? null) === 'enemy_unit_type') {
+        foreach (['active_ability_ids' => 'active', 'passive_ability_ids' => 'passive'] as $field => $kind) {
+          foreach ($definition[$field] as $abilityId) {
+            $ability = $this->requireReferenceType($definitions, $id, $field, $abilityId, 'ability');
+            if ($ability['kind'] !== $kind) throw new ContentValidationException("{$id} {$field} requires {$kind} abilities.");
+          }
+        }
+        $die = $definition['virtual_ability_dice'];
+        $profile = $this->requireReferenceType($definitions, $id, 'virtual_ability_dice.profile_id', $die['profile_id'], 'dice_profile');
+        if ($profile['aspect_ids'] !== [] || !in_array($die['sides'], $profile['allowed_sizes'], true)) {
+          throw new ContentValidationException("{$id} virtual_ability_dice must use an eligible plain profile.");
+        }
+      }
+
+      if (($definition['type'] ?? null) === 'encounter') {
+        $this->requireReferenceType($definitions, $id, 'region_id', $definition['region_id'], 'region');
+        foreach ($definition['combatants'] as $combatant) {
+          $this->requireReferenceType($definitions, $id, 'combatants.enemy_unit_type_id', $combatant['enemy_unit_type_id'], 'enemy_unit_type');
+        }
+      }
+
       if (($definition['type'] ?? null) === 'dice_profile') {
         $materialId = $definition['material_id'];
         $material = $this->requireReferenceType($definitions, $id, 'material_id', $materialId, 'dice_material');
@@ -110,6 +136,10 @@ final class ContentValidator
       if (($definition['type'] ?? null) === 'run_generation') {
         foreach ($definition['nodes'] as $node) {
           $this->requireReferenceType($definitions, $id, 'nodes.node_type_id', $node['node_type_id'], 'run_node_type');
+          if ($node['encounter_id'] ?? null) {
+            if ($node['node_type_id'] !== 'run_node_type.combat') throw new ContentValidationException("{$id} only combat nodes may reference encounters.");
+            $this->requireReferenceType($definitions, $id, 'nodes.encounter_id', $node['encounter_id'], 'encounter');
+          }
         }
         $this->validateRunGenerationConnectivity($id, $definition);
       }
@@ -236,10 +266,63 @@ final class ContentValidator
     $this->requireStableIdList($definition, 'ability_ids', 'ability.', false, $location);
   }
 
+  /** @param array<string,mixed> $definition */
+  private function validateEnemyUnitType(array $definition, string $location): void
+  {
+    $this->requireExactFieldSet($definition,
+      ['id', 'type', 'display_name', 'description', 'art_key', 'role', 'stats', 'active_ability_ids', 'passive_ability_ids', 'virtual_ability_dice'], [], $location);
+    $this->requireNamespace($definition, 'enemy_unit_type.', $location);
+    $this->requirePresentation($definition, $location);
+    $this->requireAllowedString($definition, 'role', ['frontline', 'backline', 'support', 'utility'], $location);
+    $this->requireStatBlock($definition, 'stats', 0, 1000000, $location, true);
+    $this->requireStableIdList($definition, 'active_ability_ids', 'ability.', false, $location);
+    $this->requireStableIdList($definition, 'passive_ability_ids', 'ability.', true, $location);
+    $die = $definition['virtual_ability_dice'] ?? null;
+    if (!is_array($die) || array_is_list($die)) throw new ContentValidationException("{$location} virtual_ability_dice must be an object.");
+    $this->requireExactFieldSet($die, ['sides', 'profile_id'], [], "{$location} virtual_ability_dice");
+    $this->requireIntegerInRange($die, 'sides', 6, 6, "{$location} virtual_ability_dice");
+    $this->requireStableIdWithNamespace($die, 'profile_id', 'dice_profile.', "{$location} virtual_ability_dice");
+  }
+
+  /** @param array<string,mixed> $definition */
+  private function validateEncounter(array $definition, string $location): void
+  {
+    $this->requireExactFieldSet($definition,
+      ['id', 'type', 'region_id', 'display_name', 'description', 'difficulty', 'combatants'], [], $location);
+    $this->requireNamespace($definition, 'encounter.', $location);
+    $this->requireStableIdWithNamespace($definition, 'region_id', 'region.', $location);
+    $this->requireBoundedNonEmptyString($definition, 'display_name', 128, $location);
+    $this->requireBoundedNonEmptyString($definition, 'description', 512, $location);
+    $this->requireIntegerInRange($definition, 'difficulty', 1, 100, $location);
+    $combatants = $definition['combatants'] ?? null;
+    if (!is_array($combatants) || !array_is_list($combatants) || $combatants === []) {
+      throw new ContentValidationException("{$location} combatants must be a non-empty list.");
+    }
+    $keys = $cells = [];
+    foreach ($combatants as $index => $combatant) {
+      $where = "{$location} combatants[{$index}]";
+      if (!is_array($combatant) || array_is_list($combatant)) throw new ContentValidationException("{$where} must be an object.");
+      $this->requireExactFieldSet($combatant, ['key', 'enemy_unit_type_id', 'position'], [], $where);
+      $key = $this->requireLocalNodeKey($combatant, 'key', $where);
+      $this->requireStableIdWithNamespace($combatant, 'enemy_unit_type_id', 'enemy_unit_type.', $where);
+      $position = $combatant['position'] ?? null;
+      if (!is_array($position) || array_is_list($position)) throw new ContentValidationException("{$where} position must be an object.");
+      $this->requireExactFieldSet($position, ['x', 'y'], [], "{$where} position");
+      $this->requireIntegerInRange($position, 'x', 0, 2, "{$where} position");
+      $this->requireIntegerInRange($position, 'y', 0, 2, "{$where} position");
+      $cell = $position['x'] . ':' . $position['y'];
+      if (isset($keys[$key]) || isset($cells[$cell])) throw new ContentValidationException("{$location} has duplicate combatant key or occupied position.");
+      $keys[$key] = $cells[$cell] = true;
+    }
+  }
+
   /** @param array<string, mixed> $definition */
   private function validateAbility(array $definition, string $location): void
   {
     $this->requireNamespace($definition, 'ability.', $location);
+    if (array_key_exists('server_only', $definition) && !is_bool($definition['server_only'])) {
+      throw new ContentValidationException("{$location} field 'server_only' must be a boolean.");
+    }
     $this->requireNonEmptyString($definition, 'display_name', $location);
     $this->requireNonEmptyString($definition, 'description', $location);
     $this->requireNonEmptyString($definition, 'icon_key', $location);
@@ -260,6 +343,17 @@ final class ContentValidator
       throw new ContentValidationException("{$location} field 'handler_id' must be a snake-case handler id.");
     }
     $this->requireConfigObject($definition, 'handler_config', $location);
+    try {
+      if ($kind === 'active' && in_array($handlerId, CombatRules::ACTIVE_HANDLERS, true)) {
+        CombatRules::validateTargetRule($handlerId, $definition['target_rule']);
+        CombatRules::validateAbilityConfig($handlerId, $definition['handler_config']);
+      }
+      if ($kind === 'passive' && in_array($handlerId, ['thick_hide', 'sharpshooter'], true)) {
+        CombatRules::validatePassive($handlerId, $definition['handler_config']);
+      }
+    } catch (InvalidArgumentException $e) {
+      throw new ContentValidationException("{$location} has invalid current combat handler configuration: {$e->getMessage()}", 0, $e);
+    }
   }
 
   /** @param array<string, mixed> $definition */
@@ -518,6 +612,12 @@ final class ContentValidator
     }
     if ((string)$definition['start_node_key'] !== (string)$nodes[0]['key']) {
       throw new ContentValidationException('region.the_farm generation must start at its combat node.');
+    }
+    if (($nodes[0]['encounter_id'] ?? null) !== 'encounter.the_farm_mud_combat_1') {
+      throw new ContentValidationException('region.the_farm first combat node must reference its standard mud encounter.');
+    }
+    if (($nodes[3]['encounter_id'] ?? null) !== null) {
+      throw new ContentValidationException('region.the_farm boss encounter is not authored yet.');
     }
 
     $expectedEdges = [];

@@ -22,7 +22,7 @@ final class FixedGraphRunGeneratorTest extends TestCase
 
     $this->assertSame($first, $second);
     $this->assertSame([
-      ['node_index' => 0, 'node_type_id' => 'run_node_type.combat', 'encounter_id' => null, 'status' => 'available', 'generated_metadata' => ['position' => ['column' => 0, 'row' => 1]]],
+      ['node_index' => 0, 'node_type_id' => 'run_node_type.combat', 'encounter_id' => 'encounter.the_farm_mud_combat_1', 'status' => 'available', 'generated_metadata' => ['position' => ['column' => 0, 'row' => 1]]],
       ['node_index' => 1, 'node_type_id' => 'run_node_type.loot', 'encounter_id' => null, 'status' => 'locked', 'generated_metadata' => ['position' => ['column' => 1, 'row' => 1]]],
       ['node_index' => 2, 'node_type_id' => 'run_node_type.rest', 'encounter_id' => null, 'status' => 'locked', 'generated_metadata' => ['position' => ['column' => 2, 'row' => 1]]],
       ['node_index' => 3, 'node_type_id' => 'run_node_type.boss', 'encounter_id' => null, 'status' => 'locked', 'generated_metadata' => ['position' => ['column' => 3, 'row' => 1]]],

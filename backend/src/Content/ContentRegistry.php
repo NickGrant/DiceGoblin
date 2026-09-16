@@ -108,6 +108,18 @@ final class ContentRegistry
     return $this->definitionOfType($id, 'unit_type');
   }
 
+  /** @return array<string,mixed> */
+  public function enemyUnitType(string $id): array
+  {
+    return $this->definitionOfType($id, 'enemy_unit_type');
+  }
+
+  /** @return array<string,mixed> */
+  public function encounter(string $id): array
+  {
+    return $this->definitionOfType($id, 'encounter');
+  }
+
   /** @return array<string, mixed> */
   public function ability(string $id): array
   {

@@ -23,6 +23,8 @@ final class RunContentValidationTest extends TestCase
       array_column($generation['nodes'], 'node_type_id'),
     );
     $this->assertCount(5, $registry->definitionsOfType('run_node_type'));
+    $this->assertSame('encounter.the_farm_mud_combat_1', $generation['nodes'][0]['encounter_id']);
+    $this->assertArrayNotHasKey('encounter_id', $generation['nodes'][3]);
     $this->assertSame('Combat', $registry->runNodeType('run_node_type.combat')['display_name']);
   }
 
@@ -47,6 +49,9 @@ final class RunContentValidationTest extends TestCase
     $this->assertStringNotContainsString('energy_normal_max', $encoded);
     $this->assertStringNotContainsString('energy_regeneration_per_hour', $encoded);
     $this->assertStringNotContainsString('starting_region_id', $encoded);
+    $this->assertStringNotContainsString('Mudwrestler', $encoded);
+    $this->assertStringNotContainsString('Mud Sling', $encoded);
+    $this->assertStringNotContainsString('encounter.the_farm_mud_combat_1', $encoded);
   }
 
   public function testPrivateGenerationChangesAffectTheGlobalRevisionWithoutLeakingTopology(): void
@@ -116,7 +121,7 @@ final class RunContentValidationTest extends TestCase
   {
     $registry = ContentRegistry::load($this->canonicalRoot());
     $definitions = [];
-    foreach (['gameplay_config', 'region', 'kin', 'unit_type', 'ability', 'dice_material', 'dice_aspect', 'dice_profile', 'run_node_type', 'run_generation'] as $type) {
+    foreach (['gameplay_config', 'region', 'kin', 'unit_type', 'enemy_unit_type', 'encounter', 'ability', 'dice_material', 'dice_aspect', 'dice_profile', 'run_node_type', 'run_generation'] as $type) {
       foreach ($registry->definitionsOfType($type) as $definition) $definitions[] = $definition;
     }
     return $definitions;

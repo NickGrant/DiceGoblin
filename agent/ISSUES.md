@@ -4,7 +4,7 @@
 
 ### Milestone 4 Package 2 - Farm combat authored content + deterministic engine adaptation
 
-**Status:** Open
+**Status:** In Progress
 **Priority:** High
 
 #### Problem

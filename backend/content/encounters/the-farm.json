@@ -1,0 +1,16 @@
+{
+  "definitions": [
+    {
+      "id": "encounter.the_farm_mud_combat_1",
+      "type": "encounter",
+      "region_id": "region.the_farm",
+      "display_name": "Mud Skirmish",
+      "description": "A pair of pigs lurches out of the muck, giving the warband its first real skirmish.",
+      "difficulty": 1,
+      "combatants": [
+        { "key": "mudwrestler", "enemy_unit_type_id": "enemy_unit_type.mudwrestler", "position": { "x": 2, "y": 1 } },
+        { "key": "mudslinger", "enemy_unit_type_id": "enemy_unit_type.mudslinger", "position": { "x": 0, "y": 1 } }
+      ]
+    }
+  ]
+}
