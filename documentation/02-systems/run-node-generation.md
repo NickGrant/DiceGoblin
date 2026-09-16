@@ -46,3 +46,6 @@ Specific Farm/Mountains topology and tuning are implemented in their milestones.
 `POST /api/v1/runs` now supplies that definition to the generator after locking the player's `user_state` and validating the server-selected active squad. The same transaction persists the run root, maps generated indexes to relational node IDs, persists edges and participating units, spends Energy, increments `player_revision` once, and finalizes the idempotency receipt.
 
 Only `run_node_type.*` presentation fields are projected to the browser. The generation definition, fixed topology, and region-to-generation relationship remain server-private even though they participate in the global content revision.
+
+## Combat Resolution Lifecycle
+An available ordinary Combat node is finalized once its authoritative battle is persisted, regardless of outcome. Victory marks the node completed and unlocks only directly outgoing persisted edges whose destination is still locked. The server does not reconstruct the Farm sequence or unlock later descendants. Defeat or stalemate also completes the node, unlocks nothing, and transitions the run to terminal `failed`; its battle, graph, and terminal run HP remain durable.

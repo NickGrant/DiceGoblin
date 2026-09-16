@@ -127,6 +127,7 @@ $router->delete('/api/v1/squads/:squadId', [$warband, 'deleteSquad']);
 $router->post('/api/v1/runs', [$runs, 'start']);
 $router->get('/api/v1/runs/current', [$runs, 'current']);
 $router->post('/api/v1/runs/:runId/abandon', [$runs, 'abandon']);
+$router->post('/api/v1/runs/:runId/nodes/:nodeId/resolve', [$runs, 'resolveNode']);
 $router->post('/api/v1/debug/fixtures/warband', [$warbandFixture, 'replace']);
 
 // Prototype gameplay controllers remain in source as migration evidence, but their

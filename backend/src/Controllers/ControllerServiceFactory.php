@@ -14,6 +14,8 @@ use DiceGoblins\Application\Commands\RenameUnitCommand;
 use DiceGoblins\Application\Commands\ReplaceUnitLoadoutCommand;
 use DiceGoblins\Application\Commands\RunParticipationValidator;
 use DiceGoblins\Application\Commands\StartRunCommand;
+use DiceGoblins\Application\Commands\ResolveCombatNodeCommand;
+use DiceGoblins\Application\Combat\CombatSnapshotAssembler;
 use DiceGoblins\Application\Commands\UnitConfigurationSupport;
 use DiceGoblins\Application\Commands\UpdateSquadCommand;
 use DiceGoblins\Application\Queries\ActiveSquadQuery;
@@ -28,9 +30,14 @@ use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Application\UnitSummaryAssembler;
 use DiceGoblins\Domain\Energy\EnergyCalculator;
 use DiceGoblins\Domain\Energy\EnergySpendCalculator;
+use DiceGoblins\Domain\Battles\CombatSeedDeriver;
+use DiceGoblins\Domain\CombatStats\BaseLevelStatResolver;
+use DiceGoblins\Combat\Vnext\CombatEngine;
 use DiceGoblins\Infrastructure\SystemClock;
 use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Repositories\RunPersistenceRepository;
+use DiceGoblins\Repositories\RunCombatRepository;
+use DiceGoblins\Repositories\BattlePersistenceRepository;
 use DiceGoblins\Repositories\IdempotencyRequestRepository;
 use DiceGoblins\Repositories\SquadRepository;
 use DiceGoblins\Repositories\UserRepository;
@@ -146,6 +153,24 @@ final class ControllerServiceFactory
         new FixedGraphRunGenerator(),
         new RunParticipationValidator($content, $unitConfigurationSupport),
         new EnergySpendCalculator(),
+        new SystemClock(),
+      ),
+      'resolveCombatNodeCommand' => new ResolveCombatNodeCommand(
+        $pdo,
+        $core['playerStateRepo'],
+        $runRepository,
+        new RunCombatRepository($pdo),
+        new BattlePersistenceRepository($pdo),
+        $idempotencyRepository,
+        new CombatSnapshotAssembler(
+          $content,
+          $squadRepository,
+          $unitDetailQuery,
+          $diceRepository,
+          new BaseLevelStatResolver(),
+        ),
+        new CombatEngine(),
+        new CombatSeedDeriver(),
         new SystemClock(),
       ),
       'provisionWarbandFixtureCommand' => new ProvisionWarbandFixtureCommand(

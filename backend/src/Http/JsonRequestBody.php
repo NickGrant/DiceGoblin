@@ -24,6 +24,12 @@ final class JsonRequestBody
     return is_array($decoded) ? $decoded : null;
   }
 
+  public static function isStrictlyEmpty(): bool
+  {
+    $raw = self::rawBody();
+    return is_string($raw) && trim($raw) === '';
+  }
+
   private static function rawBody(): ?string
   {
     $testOverride = $_SERVER['DICE_GOBLINS_TEST_RAW_BODY'] ?? null;

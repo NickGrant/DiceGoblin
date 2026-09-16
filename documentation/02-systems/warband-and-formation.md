@@ -30,7 +30,7 @@ When a run successfully begins, participating player-controlled combat configura
 The backend enforces the lock. Phaser disabling controls is presentation, not authority.
 
 ## Targeting
-Formation provides spatial input to automatic target resolution. Front/back semantics and other position-aware rules are authored combat behavior, not an unconditional formation rule.
+Formation provides spatial input to automatic target resolution. Squad positions are row-major `0..8` on the combat grid: `x = position % 3` and `y = intdiv(position, 3)`. Therefore `x=0` is the back column, `x=1` is the middle column, and `x=2` is the front column. Authoritative combat uses stable battle-local player keys `player_p0` through `player_p8`; durable unit identity remains in the battle participant manifest.
 
 ## Terminology
 New vNext API, persistence, UI, and documentation use **squad**, not the prototype `team` terminology.

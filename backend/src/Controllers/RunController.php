@@ -9,6 +9,9 @@ use DiceGoblins\Application\Commands\RunStartException;
 use DiceGoblins\Application\Commands\RunStartIntegrityException;
 use DiceGoblins\Application\Commands\RunNotFoundException;
 use DiceGoblins\Application\Commands\RunLifecycleConflictException;
+use DiceGoblins\Application\Commands\RunNodeResolutionException;
+use DiceGoblins\Application\Commands\CombatConfigurationException;
+use DiceGoblins\Application\Commands\CombatResolutionIntegrityException;
 use DiceGoblins\Application\Queries\CurrentRunIntegrityException;
 use DiceGoblins\Controllers\Concerns\RequiresCsrf;
 use DiceGoblins\Core\Db;
@@ -85,6 +88,44 @@ final class RunController
     }
   }
 
+  /** POST /api/v1/runs/:runId/nodes/:nodeId/resolve */
+  public function resolveNode(?string $runId, ?string $nodeId): void
+  {
+    $run = $this->positiveId($runId);
+    $node = $this->positiveId($nodeId);
+    if ($run === null || $node === null) {
+      $this->error('run_node_not_found', 'Run node is unavailable.', 404);
+      return;
+    }
+    $services = $this->mutationServices();
+    if ($services === null) return;
+    if (!JsonRequestBody::isStrictlyEmpty()) {
+      $this->error('invalid_node_request', 'Node resolution request must have no body.', 400);
+      return;
+    }
+    try {
+      $result = $services['resolveCombatNodeCommand']->execute(
+        $services['userId'],
+        $run,
+        $node,
+        is_string($_SERVER['HTTP_IDEMPOTENCY_KEY'] ?? null) ? $_SERVER['HTTP_IDEMPOTENCY_KEY'] : null,
+      );
+      Response::json(['ok' => true, 'data' => $result]);
+    } catch (IdempotencyKeyException) {
+      $this->error('idempotency_key_invalid', 'Idempotency-Key is invalid.', 400);
+    } catch (IdempotencyConflictException) {
+      $this->error('idempotency_conflict', 'Idempotency-Key conflicts with an earlier request.', 409);
+    } catch (RunNodeResolutionException $e) {
+      $this->error($e->errorCode, $e->publicMessage, $e->httpStatus);
+    } catch (CombatConfigurationException) {
+      $this->error('combat_configuration_invalid', 'Participating combat configuration is invalid.', 422);
+    } catch (CombatResolutionIntegrityException) {
+      $this->error('run_data_integrity_error', 'Run combat data is unavailable.', 500);
+    } catch (Throwable) {
+      $this->error('server_error', 'Unexpected error.', 500);
+    }
+  }
+
   /** @return array<string,mixed>|null */
   private function mutationServices(): ?array
   {
@@ -123,6 +164,14 @@ final class RunController
   {
     if ($value === null || !preg_match('/^[1-9][0-9]*$/D', $value) || (int)$value <= 0 || (string)(int)$value !== $value) {
       $this->notFound();
+      return null;
+    }
+    return (int)$value;
+  }
+
+  private function positiveId(?string $value): ?int
+  {
+    if ($value === null || !preg_match('/^[1-9][0-9]*$/D', $value) || (int)$value <= 0 || (string)(int)$value !== $value) {
       return null;
     }
     return (int)$value;

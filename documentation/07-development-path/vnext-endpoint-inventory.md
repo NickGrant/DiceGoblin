@@ -288,9 +288,11 @@ The run payload references authored IDs rather than duplicating static node/regi
   - Retrying an already-abandoned owned run succeeds without changing its terminal timestamp or revision. Missing and foreign run IDs share one non-disclosing not-found response.
 
 - `POST /api/v1/runs/:runId/nodes/:nodeId/resolve`
-  - Resolves a node that can be completed as one authoritative operation.
-  - May resolve combat, hazards, simple rewards, bosses, exit nodes, or other atomic node behavior.
-  - Response returns the authoritative node outcome plus affected run state, HP/modifier changes, finalized rewards, changed unlock/progression state, battle/playback reference when applicable, terminal run status if reached, and `player_revision`.
+  - Currently resolves only an available ordinary Combat node with a persisted canonical encounter reference.
+  - Requires authentication, CSRF, an `Idempotency-Key`, canonical positive path IDs, and no request body.
+  - The server assembles the complete combat snapshot and deterministic seed from locked run/Warband state plus private authored content. The client supplies no combat facts.
+  - Returns the finalized battle ID/summary, completed node timestamp, newly available direct child IDs, terminal player HP keyed by owned unit ID, run lifecycle facts, and `player_revision`.
+  - Does not return the normalized input, seed, hidden enemy configuration, rewards, or playback events. Exact retries return the persisted response without rerunning combat.
 
 Successful run exit is treated as normal node resolution rather than requiring a separate generic `/exit` command.
 

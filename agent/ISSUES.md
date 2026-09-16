@@ -4,7 +4,7 @@
 
 ### Milestone 4 Package 4 - Authoritative combat-node resolution + persisted run/battle state
 
-**Status:** Open
+**Status:** In Progress
 **Priority:** High
 
 #### Problem

@@ -398,6 +398,8 @@ Representative fields:
 
 Region definitions remain JSON-authored.
 
+Active combat runs use `active`. A finalized combat defeat or stalemate transitions the run to terminal `failed` and sets `ended_at`; finalized battle, graph, and run-unit HP records remain available internally even though the active-run query then returns no run. Combat victory leaves the run active for its newly available direct child.
+
 ### `run_nodes`
 
 Stores generated node instances and mutable node state.

@@ -6,7 +6,7 @@ namespace DiceGoblins\Combat\Vnext;
 use DiceGoblins\Support\DeterministicRandom;
 
 /** Deterministic vNext combat kernel over one already normalized snapshot. */
-final class CombatEngine
+final class CombatEngine implements CombatResolver
 {
   public const TICKS_PER_ROUND = 20;
   public const MAX_TICKS = 4000;
