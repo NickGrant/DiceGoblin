@@ -345,7 +345,7 @@ describe('GameStore Warband cache', () => {
     const first = store.loadCurrentRun(client, content()); const second = store.loadCurrentRun(client, content());
     expect(first).toBe(second); expect(store.currentRun.status).toBe('loading');
     resolve({ run: { id: '41', regionId: 'region.the_farm', squadId: '31', status: 'active', createdAt: '2026-09-13T12:00:00Z',
-      nodes: [{ id: '10', nodeIndex: 0, nodeTypeId: 'run_node_type.combat', status: 'available', completedAt: null, position: { column: 0, row: 1 } }],
+      nodes: [{ id: '10', nodeIndex: 0, nodeTypeId: 'run_node_type.combat', status: 'available', completedAt: null, battleId: null, position: { column: 0, row: 1 } }],
       edges: [], units: [{ unitId: '11', currentHp: null }] }, playerRevision: 7 });
     await first; await store.loadCurrentRun(client, content());
     expect(store.currentRun.status).toBe('fresh'); expect(store.currentRun.data?.id).toBe('41');
@@ -370,7 +370,7 @@ describe('GameStore Warband cache', () => {
     await store.loadWarbandDomains(client, registry);
     client.getCurrentRun.and.resolveTo({ run: { id: '41', regionId: 'region.the_farm', squadId: '31', status: 'active',
       createdAt: '2026-09-13T12:00:00Z', nodes: [{ id: '10', nodeIndex: 0, nodeTypeId: 'run_node_type.combat',
-        status: 'available', completedAt: null, position: { column: 0, row: 1 } }], edges: [],
+        status: 'available', completedAt: null, battleId: null, position: { column: 0, row: 1 } }], edges: [],
       units: [{ unitId: '11', currentHp: null }] }, playerRevision: 7 });
     await store.loadCurrentRun(client, registry);
     const energy = store.bootstrap!.player.energy;

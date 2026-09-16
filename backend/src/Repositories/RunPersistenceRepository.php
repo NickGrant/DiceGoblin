@@ -47,8 +47,11 @@ final class RunPersistenceRepository
   /** @return list<array<string,mixed>> */
   public function listNodes(int $runId): array
   {
-    $stmt = $this->pdo->prepare('SELECT `id`, `run_id`, `node_index`, `node_type_id`, `status`, `completed_at`,
-        `generated_metadata` FROM `run_nodes` WHERE `run_id` = ? ORDER BY `node_index` ASC, `id` ASC');
+    $stmt = $this->pdo->prepare('SELECT rn.`id`, rn.`run_id`, rn.`node_index`, rn.`node_type_id`, rn.`status`,
+        rn.`completed_at`, rn.`generated_metadata`, b.`id` AS `battle_id`
+      FROM `run_nodes` rn LEFT JOIN `battles` b
+        ON b.`run_id` = rn.`run_id` AND b.`run_node_id` = rn.`id`
+      WHERE rn.`run_id` = ? ORDER BY rn.`node_index` ASC, rn.`id` ASC');
     $stmt->execute([$runId]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
   }

@@ -80,7 +80,7 @@ final class CurrentRunQuery
         throw new CurrentRunIntegrityException('Active run node state is invalid.');
       }
       try {
-        $this->content->runNodeType((string)$row['node_type_id']);
+        $nodeType = $this->content->runNodeType((string)$row['node_type_id']);
         $metadata = json_decode((string)$row['generated_metadata'], true, 16, JSON_THROW_ON_ERROR);
       } catch (ContentValidationException|JsonException) {
         throw new CurrentRunIntegrityException('Active run node content is invalid.');
@@ -91,11 +91,18 @@ final class CurrentRunQuery
         || abs($metadata['position']['column']) > 9007199254740991 || abs($metadata['position']['row']) > 9007199254740991) {
         throw new CurrentRunIntegrityException('Active run node position is invalid.');
       }
+      $battleId = $row['battle_id'] === null ? null : (int)$row['battle_id'];
+      $isCombat = (string)$nodeType['id'] === 'run_node_type.combat';
+      if (($battleId !== null && ($battleId <= 0 || $status !== 'completed' || !$isCombat))
+        || ($isCombat && $status === 'completed' && $battleId === null)) {
+        throw new CurrentRunIntegrityException('Active run battle correspondence is invalid.');
+      }
       $ids[$id] = true;
       $mapped[] = [
         'id' => (string)$id, 'node_index' => $index, 'node_type_id' => (string)$row['node_type_id'],
         'status' => $status,
         'completed_at' => $row['completed_at'] !== null ? $this->utcTimestamp((string)$row['completed_at']) : null,
+        'battle_id' => $battleId === null ? null : (string)$battleId,
         'position' => ['column' => $metadata['position']['column'], 'row' => $metadata['position']['row']],
       ];
     }

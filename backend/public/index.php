@@ -15,6 +15,7 @@ use DiceGoblins\Controllers\GameBootstrapController;
 use DiceGoblins\Controllers\WarbandController;
 use DiceGoblins\Controllers\WarbandFixtureController;
 use DiceGoblins\Controllers\RunController;
+use DiceGoblins\Controllers\BattlePlaybackController;
 
 require_once __DIR__ . '/../src/Core/Autoloader.php';
 Autoloader::register(__DIR__ . '/../src');
@@ -100,6 +101,7 @@ $gameBootstrap = new GameBootstrapController();
 $warband = new WarbandController();
 $warbandFixture = new WarbandFixtureController();
 $runs = new RunController();
+$battlePlayback = new BattlePlaybackController();
 
 // Auth
 $router->get('/auth/discord/start', [$auth, 'discordStart']);
@@ -128,6 +130,7 @@ $router->post('/api/v1/runs', [$runs, 'start']);
 $router->get('/api/v1/runs/current', [$runs, 'current']);
 $router->post('/api/v1/runs/:runId/abandon', [$runs, 'abandon']);
 $router->post('/api/v1/runs/:runId/nodes/:nodeId/resolve', [$runs, 'resolveNode']);
+$router->get('/api/v1/battles/:battleId/playback', [$battlePlayback, 'playback']);
 $router->post('/api/v1/debug/fixtures/warband', [$warbandFixture, 'replace']);
 
 // Prototype gameplay controllers remain in source as migration evidence, but their

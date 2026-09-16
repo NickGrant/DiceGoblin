@@ -22,6 +22,7 @@ export interface CurrentRunNode {
   readonly nodeTypeId: string;
   readonly status: CurrentRunNodeStatus;
   readonly completedAt: string | null;
+  readonly battleId: string | null;
   readonly position: { readonly column: number; readonly row: number };
 }
 
@@ -165,7 +166,7 @@ export function parseCurrentRunEnvelope(value: unknown, content: ClientContentRe
   const nodeIds = new Set<string>();
   const nodes = raw['nodes'].map((candidate, expectedIndex): CurrentRunNode => {
     const node = record(candidate, 'Current run node');
-    exact(node, ['id', 'node_index', 'node_type_id', 'status', 'completed_at', 'position'], 'Current run node');
+    exact(node, ['id', 'node_index', 'node_type_id', 'status', 'completed_at', 'battle_id', 'position'], 'Current run node');
     const id = positiveId(node['id'], 'Node id');
     if (nodeIds.has(id) || node['node_index'] !== expectedIndex) throw new RunContractError('Run node identity/order is invalid.');
     nodeIds.add(id);
@@ -175,11 +176,16 @@ export function parseCurrentRunEnvelope(value: unknown, content: ClientContentRe
     if (!['locked', 'available', 'completed'].includes(node['status'] as string)) throw new RunContractError('Run node status is invalid.');
     const completedAt = nullableTimestamp(node['completed_at'], 'Node completed_at');
     if ((node['status'] === 'completed') !== (completedAt !== null)) throw new RunContractError('Run node completion state is incoherent.');
+    const battleId = node['battle_id'] === null ? null : positiveId(node['battle_id'], 'Node battle_id');
+    const isCombat = nodeTypeId === 'run_node_type.combat';
+    if ((battleId !== null && (node['status'] !== 'completed' || !isCombat))
+      || (isCombat && node['status'] === 'completed' && battleId === null))
+      throw new RunContractError('Run node battle correspondence is incoherent.');
     const position = record(node['position'], 'Run node position');
     exact(position, ['column', 'row'], 'Run node position');
     if (!Number.isSafeInteger(position['column']) || !Number.isSafeInteger(position['row'])) throw new RunContractError('Run node position is invalid.');
     return Object.freeze({ id, nodeIndex: expectedIndex, nodeTypeId, status: node['status'] as CurrentRunNodeStatus,
-      completedAt, position: Object.freeze({ column: position['column'] as number, row: position['row'] as number }) });
+      completedAt, battleId, position: Object.freeze({ column: position['column'] as number, row: position['row'] as number }) });
   });
 
   const seenEdges = new Set<string>();

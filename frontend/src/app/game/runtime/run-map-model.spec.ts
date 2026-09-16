@@ -68,9 +68,9 @@ function run(): CurrentRun {
   return Object.freeze({ id: '41', regionId: 'region.the_farm', squadId: '31', status: 'active',
     createdAt: '2026-09-13T12:00:00Z',
     nodes: Object.freeze([
-      Object.freeze({ id: '91', nodeIndex: 0, nodeTypeId: 'run_node_type.combat', status: 'completed', completedAt: '2026-09-13T12:02:00Z', position: Object.freeze({ column: -4, row: 3 }) }),
-      Object.freeze({ id: '77', nodeIndex: 1, nodeTypeId: 'run_node_type.loot', status: 'available', completedAt: null, position: Object.freeze({ column: 8, row: -2 }) }),
-      Object.freeze({ id: '92', nodeIndex: 2, nodeTypeId: 'run_node_type.exit', status: 'locked', completedAt: null, position: Object.freeze({ column: 8, row: 9 }) }),
+      Object.freeze({ id: '91', nodeIndex: 0, nodeTypeId: 'run_node_type.combat', status: 'completed', completedAt: '2026-09-13T12:02:00Z', battleId: '501', position: Object.freeze({ column: -4, row: 3 }) }),
+      Object.freeze({ id: '77', nodeIndex: 1, nodeTypeId: 'run_node_type.loot', status: 'available', completedAt: null, battleId: null, position: Object.freeze({ column: 8, row: -2 }) }),
+      Object.freeze({ id: '92', nodeIndex: 2, nodeTypeId: 'run_node_type.exit', status: 'locked', completedAt: null, battleId: null, position: Object.freeze({ column: 8, row: 9 }) }),
     ]),
     edges: Object.freeze([Object.freeze({ fromNodeId: '91', toNodeId: '77' }), Object.freeze({ fromNodeId: '91', toNodeId: '92' })]),
     units: Object.freeze([Object.freeze({ unitId: '11', currentHp: null })]),

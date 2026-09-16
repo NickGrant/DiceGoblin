@@ -57,6 +57,33 @@ describe('RuntimeApiClient', () => {
     }
   });
 
+  it('gets and strictly parses retained battle playback without CSRF', async () => {
+    const payload = { ok: true, data: { battle: { id: '81', run_id: '71', run_node_id: '72', engine_version: 1,
+      playback_version: 1, outcome: 'victory', ending_round: 1, ending_tick: 1, participants: [
+        { combatant_key: 'p', side: 'player', unit_id: '11', unit_type_id: 'unit_type.bruiser', enemy_unit_type_id: null,
+          display_name: 'Bash', art_key: 'unit.bruiser', position: { x: 1, y: 1 }, initial_hp: 5, max_hp: 5,
+          terminal_hp: 5, is_defeated: false, terminal_statuses: [] },
+        { combatant_key: 'e', side: 'enemy', unit_id: null, unit_type_id: null, enemy_unit_type_id: 'enemy_unit_type.mudwrestler',
+          display_name: 'Mudwrestler', art_key: 'enemy.mudwrestler', position: { x: 2, y: 1 }, initial_hp: 1, max_hp: 1,
+          terminal_hp: 0, is_defeated: true, terminal_statuses: [] },
+      ], events: [
+        { sequence: 0, type: 'battle_started', round: 0, tick: 0, facts: { combatant_keys: ['e', 'p'] } },
+        { sequence: 1, type: 'battle_ended', round: 1, tick: 1, facts: { outcome: 'victory' } },
+      ] }, player_revision: 4 } };
+    const fetchRequest = jasmine.createSpy<RuntimeFetch>('fetchRequest').and.resolveTo(
+      new Response(JSON.stringify(payload), { status: 200 }),
+    );
+    const result = await new RuntimeApiClient(fetchRequest, '/root').getBattlePlayback('81');
+    expect(result.battle.outcome).toBe('victory');
+    expect(fetchRequest).toHaveBeenCalledOnceWith('/root/api/v1/battles/81/playback', jasmine.objectContaining({
+      method: 'GET', credentials: 'include', headers: { Accept: 'application/json' },
+    }));
+    expect((fetchRequest.calls.mostRecent().args[1]?.headers as Record<string, string>)['X-CSRF-Token']).toBeUndefined();
+    await expectAsync(new RuntimeApiClient(fetchRequest, '').getBattlePlayback('01')).toBeRejectedWith(
+      jasmine.objectContaining({ kind: 'malformed-response' }),
+    );
+  });
+
   it('sends independent unit rename and complete loadout commands with strict authoritative parsing', async () => {
     const stat = { hp: 1, attack: 1, defense: 1, precision: 1, resolve: 1 };
     const content = new ClientContentRegistry({ revision: 'a'.repeat(64), content: { gameplay: { run_energy_cost: 10 },

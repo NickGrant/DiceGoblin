@@ -16,7 +16,9 @@ use DiceGoblins\Infrastructure\Clock;
 use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Repositories\RunPersistenceRepository;
 use DiceGoblins\Repositories\WarbandFixtureRepository;
+use DiceGoblins\Repositories\BattlePersistenceRepository;
 use DiceGoblins\Tests\Support\IntegrationTestCase;
+use DiceGoblins\Tests\Support\VnextBattleFixture;
 use PDO;
 
 final class CurrentRunLifecycleControllerTest extends IntegrationTestCase
@@ -80,10 +82,32 @@ final class CurrentRunLifecycleControllerTest extends IntegrationTestCase
     $nodeIds = array_column($run['nodes'], 'id');
     $this->pdo?->prepare("UPDATE `run_nodes` SET `status` = 'completed', `completed_at` = '2026-09-13 12:00:00' WHERE `run_id` = ? AND `node_index` = 0")
       ->execute([$runId]);
+    $battleId = (new BattlePersistenceRepository($this->pdo))->insertFinalized(
+      $runId, (int)$nodeIds[0], VnextBattleFixture::battle($bruiser),
+    );
     $mutable = $this->current($userId);
     $this->assertSame(200, $mutable['status']);
     $this->assertSame('completed', $mutable['body']['data']['run']['nodes'][0]['status'] ?? null);
+    $this->assertSame((string)$battleId, $mutable['body']['data']['run']['nodes'][0]['battle_id'] ?? null);
+    $this->assertSame([null, null, null, null], array_column(array_slice($mutable['body']['data']['run']['nodes'], 1), 'battle_id'));
+    $this->assertArrayNotHasKey('events', $mutable['body']['data']['run']['nodes'][0]);
     $this->assertSame($nodeIds, array_column($mutable['body']['data']['run']['nodes'], 'id'));
+  }
+
+  public function testCurrentRejectsImpossibleBattleNodeCorrespondence(): void
+  {
+    [$userId, $fixture] = $this->fixtureAccount('current-battle-corrupt');
+    $runId = $this->start($userId);
+    $node = $this->row('SELECT `id` FROM `run_nodes` WHERE `run_id` = ? AND `node_index` = 0', [$runId]);
+    (new BattlePersistenceRepository($this->pdo))->insertFinalized(
+      $runId, (int)$node['id'], VnextBattleFixture::battle((int)$fixture['unit_ids']['bruiser']),
+    );
+
+    $response = $this->current($userId);
+
+    $this->assertSame([500, 'run_data_integrity_error'], [
+      $response['status'], $response['body']['error']['code'] ?? null,
+    ]);
   }
 
   public function testCurrentAndBootstrapFailSafelyForObservableCorruption(): void
@@ -141,6 +165,7 @@ final class CurrentRunLifecycleControllerTest extends IntegrationTestCase
     $otherRunId = $this->start($otherId);
     $before = $this->row('SELECT `energy_current`, `energy_last_regen_at`, `player_revision` FROM `user_state` WHERE `user_id` = ?', [$userId]);
 
+    $_SESSION = [];
     $unauthorized = $this->invoke(fn() => (new RunController())->abandon((string)$runId));
     $this->assertSame(401, $unauthorized['status']);
     $_SESSION['user_id'] = $userId; $_SESSION['csrf_token'] = 'expected'; $_SERVER['HTTP_X_CSRF_TOKEN'] = 'wrong';

@@ -24,6 +24,7 @@ import {
   parseRunAbandonEnvelope,
   parseRunStartEnvelope,
 } from './run-contracts';
+import { BattlePlaybackContractError, BattlePlaybackResult, parseBattlePlaybackEnvelope } from './battle-playback-contracts';
 
 export type RuntimeFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
@@ -79,6 +80,17 @@ export class RuntimeApiClient {
       return parseCurrentRunEnvelope(value, content);
     } catch (error) {
       if (error instanceof RunContractError) throw new RuntimeApiError('malformed-response', 200);
+      throw error;
+    }
+  }
+
+  async getBattlePlayback(battleId: string): Promise<BattlePlaybackResult> {
+    if (!/^[1-9][0-9]*$/.test(battleId)) throw new RuntimeApiError('malformed-response');
+    const value = await this.get(`/api/v1/battles/${battleId}/playback`);
+    try {
+      return parseBattlePlaybackEnvelope(value);
+    } catch (error) {
+      if (error instanceof BattlePlaybackContractError) throw new RuntimeApiError('malformed-response', 200);
       throw error;
     }
   }

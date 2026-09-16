@@ -257,7 +257,8 @@ There is no generic dialogue-seen mutation. Important learned knowledge is repre
 
 - `GET /api/v1/runs/current`
   - Authenticated read returning `{ run: null, player_revision }` when no active run exists.
-  - Otherwise returns the persisted active run root plus ordered nodes, safe Farm positions, edges, participating unit IDs/nullable current HP, and `player_revision`.
+  - Otherwise returns the persisted active run root plus ordered nodes, safe Farm positions, edges, participating unit IDs/current HP, and `player_revision`.
+  - Every node includes `battle_id`, which is the finalized battle ID for a completed Combat node and `null` for unresolved nodes. Playback is not embedded.
   - Does not regenerate or repair topology, materialize Energy, increment revision, or expose private generation configuration/metadata.
 
 The currently implemented Farm run state includes:
@@ -309,14 +310,17 @@ Rule:
 ## Battles
 
 - `GET /api/v1/battles/:battleId/playback`
-  - Retrieves the already-resolved authoritative playback record for an active/incomplete run.
+  - Authenticated read of an owned, retained finalized battle through its owning run. Missing and foreign IDs are indistinguishable.
+  - Remains readable while retained whether the run is active, failed, abandoned, or otherwise terminal.
+  - Returns historical participant presentation, battle-start position/HP, terminal state, exact versioned semantic events, outcome, ending facts, and current `player_revision` from the immutable battle record.
+  - Does not expose the seed or normalized combat input and does not reconstruct history from current Warband, run HP, or authored content.
   - Used for replay recovery after reconnect/interruption.
 
 There is no normal battle-resolution command separate from node resolution. PHP resolves combat as part of the node command and Phaser animates the returned result.
 
 There is no battle `claim` endpoint. Battle/event rewards are finalized and applied during authoritative resolution before presentation.
 
-Battle playback logs are retained while the owning run is active and become eligible for scheduled cleanup after the run reaches a terminal success/failure/abandon state.
+Battle playback records remain readable until ordinary scheduled cleanup removes them. Reaching a terminal run state does not itself make retained playback unreadable.
 
 ## Reward and Mutation Response Model
 

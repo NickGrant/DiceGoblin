@@ -20,6 +20,7 @@ use DiceGoblins\Application\Commands\UnitConfigurationSupport;
 use DiceGoblins\Application\Commands\UpdateSquadCommand;
 use DiceGoblins\Application\Queries\ActiveSquadQuery;
 use DiceGoblins\Application\Queries\ActiveRunSummaryQuery;
+use DiceGoblins\Application\Queries\BattlePlaybackQuery;
 use DiceGoblins\Application\Queries\CurrentRunQuery;
 use DiceGoblins\Application\Queries\DiceCollectionQuery;
 use DiceGoblins\Application\Queries\GameBootstrapQuery;
@@ -79,6 +80,18 @@ final class ControllerServiceFactory
       'sessionService' => $sessionService,
       'passwordResetService' => $passwordResetService,
     ];
+  }
+
+  /** @param array<string,mixed>|null $core @return array<string,mixed> */
+  public static function buildBattleRead(PDO $pdo, ?array $core = null): array
+  {
+    $core ??= self::buildCore($pdo);
+    return array_merge($core, [
+      'battlePlaybackQuery' => new BattlePlaybackQuery(
+        new BattlePersistenceRepository($pdo),
+        $core['playerStateRepo'],
+      ),
+    ]);
   }
 
   /**

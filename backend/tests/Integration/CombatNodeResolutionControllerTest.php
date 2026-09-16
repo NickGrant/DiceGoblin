@@ -226,6 +226,23 @@ final class CombatNodeResolutionControllerTest extends IntegrationTestCase
     $this->assertSame($before, $this->stateSnapshot($userId, $runId));
   }
 
+  public function testMalformedAndMissingPersistedEncounterReferencesAreIntegrityFailuresWithoutMutation(): void
+  {
+    foreach (['bad encounter', 'encounter.missing'] as $encounterId) {
+      [$userId] = $this->fixtureAccount('combat-encounter-integrity');
+      [$runId, $nodes] = $this->startRun($userId, 'encounter-start-' . bin2hex(random_bytes(3)));
+      $this->pdo?->prepare('UPDATE `run_nodes` SET `encounter_id` = ? WHERE `id` = ?')->execute([$encounterId, $nodes[0]]);
+      $before = $this->stateSnapshot($userId, $runId);
+
+      $response = $this->httpResolve($userId, $runId, $nodes[0], 'encounter-resolve-' . bin2hex(random_bytes(3)));
+
+      $this->assertSame([500, 'run_data_integrity_error'], [
+        $response['status'], $response['body']['error']['code'] ?? null,
+      ], $encounterId . ':' . json_encode($response['body']));
+      $this->assertSame($before, $this->stateSnapshot($userId, $runId));
+    }
+  }
+
   /** @return array{0:int,1:array<string,mixed>} */
   private function fixtureAccount(string $prefix): array
   {

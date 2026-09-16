@@ -156,7 +156,7 @@ function content(): ClientContentRegistry {
 function currentRun() {
   return { id: '41', regionId: 'region.the_farm', squadId: '31', status: 'active' as const,
     createdAt: '2026-09-13T12:00:00Z', nodes: [{ id: '10', nodeIndex: 0, nodeTypeId: 'run_node_type.combat',
-      status: 'available' as const, completedAt: null, position: { column: 0, row: 1 } }], edges: [],
+      status: 'available' as const, completedAt: null, battleId: null, position: { column: 0, row: 1 } }], edges: [],
     units: [{ unitId: '11', currentHp: null }] };
 }
 

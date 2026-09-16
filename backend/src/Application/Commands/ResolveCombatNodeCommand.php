@@ -89,6 +89,9 @@ final class ResolveCombatNodeCommand
       if (!is_string($encounterId) || $encounterId === '') {
         throw new RunNodeResolutionException('run_node_encounter_invalid', 'Combat encounter is unavailable.', 422);
       }
+      if (preg_match('/^encounter\.[a-z0-9][a-z0-9_.-]*$/', $encounterId) !== 1) {
+        throw new CombatResolutionIntegrityException('Persisted combat encounter identity is invalid.');
+      }
 
       $seed = $this->seeds->derive($runId, $nodeId, $encounterId);
       $assembled = $this->assembler->assemble(

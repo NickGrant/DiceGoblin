@@ -4,7 +4,7 @@
 
 ### Milestone 4 Package 5 - Battle/result/playback query and reconnect contracts
 
-**Status:** Open
+**Status:** In Progress
 **Priority:** High
 
 #### Problem
