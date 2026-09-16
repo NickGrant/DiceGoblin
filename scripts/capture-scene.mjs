@@ -230,16 +230,19 @@ async function installGameFixtureRoutes(page, options) {
     const outcome = defeat ? 'defeat' : 'victory';
     const participants = [
       { combatant_key: 'ashback', side: 'player', unit_id: '101', unit_type_id: 'unit_type.bruiser', enemy_unit_type_id: null,
-        display_name: 'Ashback', art_key: 'unit.bruiser', position: { x: 1, y: 1 }, initial_hp: 24, max_hp: 24,
+        display_name: 'Ashback', art_key: 'goblin_bruiser', position: { x: 1, y: 1 }, initial_hp: 24, max_hp: 24,
         terminal_hp: defeat ? 0 : 13, is_defeated: defeat, terminal_statuses: [] },
       { combatant_key: 'mudwrestler', side: 'enemy', unit_id: null, unit_type_id: null, enemy_unit_type_id: 'enemy_unit_type.mudwrestler',
-        display_name: 'Mudwrestler', art_key: 'enemy.mudwrestler', position: { x: 2, y: 1 }, initial_hp: 18, max_hp: 18,
+        display_name: 'Mudwrestler', art_key: 'enemy_mudwrestler', position: { x: 2, y: 1 }, initial_hp: 18, max_hp: 18,
         terminal_hp: defeat ? 7 : 0, is_defeated: !defeat, terminal_statuses: [] },
+      { combatant_key: 'mudslinger', side: 'enemy', unit_id: null, unit_type_id: null, enemy_unit_type_id: 'enemy_unit_type.mudslinger',
+        display_name: 'Mudslinger', art_key: 'enemy_mudslinger', position: { x: 0, y: 1 }, initial_hp: 12, max_hp: 12,
+        terminal_hp: defeat ? 8 : 0, is_defeated: !defeat, terminal_statuses: [] },
     ];
     const actor = defeat ? 'mudwrestler' : 'ashback'; const target = defeat ? 'ashback' : 'mudwrestler';
     const hpBefore = defeat ? 24 : 18; const hpAfter = defeat ? 0 : 0;
     const events = [
-      { sequence: 0, type: 'battle_started', round: 0, tick: 0, facts: { combatant_keys: ['ashback', 'mudwrestler'] } },
+      { sequence: 0, type: 'battle_started', round: 0, tick: 0, facts: { combatant_keys: ['ashback', 'mudslinger', 'mudwrestler'] } },
       { sequence: 1, type: 'round_started', round: 1, tick: 1, facts: {} },
       { sequence: 2, type: 'action_started', round: 1, tick: 1, facts: { actor_key: actor, ability_id: defeat ? 'ability.wrestle' : 'ability.heavy_strike', target_key: target, target_reason: 'front_preference' } },
       { sequence: 3, type: 'dice_rolled', round: 1, tick: 1, facts: { actor_key: actor, ability_id: defeat ? 'ability.wrestle' : 'ability.heavy_strike', slot: 0, die_key: 'die_0', sides: 6, initial_roll: 6, extra_roll: null, roll_total: 6 } },

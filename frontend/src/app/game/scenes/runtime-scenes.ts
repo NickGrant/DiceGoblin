@@ -18,6 +18,7 @@ import { Bounds } from '../runtime/runtime-viewport';
 import { CombatResolutionAttempt, CombatResolutionAttemptState } from '../runtime/combat-resolution-attempt';
 import { BattlePlaybackController } from '../runtime/battle-playback-controller';
 import { BattlePlaybackResult } from '../runtime/battle-playback-contracts';
+import { battleArtTextureKey, battleColumnX, supportedBattleArtAssets } from '../runtime/battle-presentation-layout';
 
 export const BOOT_SCENE_KEY = 'BootScene';
 export const GAME_SCENE_KEY = 'GameScene';
@@ -693,7 +694,7 @@ export function runShellLayout(snapshot: RuntimeViewportSnapshot): { x: number; 
 export class BattleScene extends RuntimeScene {
   private root: Phaser.GameObjects.Container | null = null;
   private controller: BattlePlaybackController | null = null;
-  private loadState: 'loading' | 'retryable' | 'integrity-error' | 'playing' | 'complete' = 'loading';
+  private loadState: 'loading' | 'retryable' | 'integrity-error' | 'invalid-marker' | 'playing' | 'complete' = 'loading';
   private message = 'Loading retained playback…';
   private timer: Phaser.Time.TimerEvent | null = null;
   private unsubscribeViewport: (() => void) | null = null;
@@ -703,6 +704,13 @@ export class BattleScene extends RuntimeScene {
     runtimeViewport: RuntimeViewport,
   ) {
     super(BATTLE_SCENE_KEY, runtimeState, runtimeStartup, runtimeViewport);
+  }
+
+  preload(): void {
+    for (const asset of supportedBattleArtAssets()) {
+      const textureKey = battleArtTextureKey(asset.artKey);
+      if (!this.textures.exists(textureKey)) this.load.image(textureKey, asset.path);
+    }
   }
 
   create(): void {
@@ -734,6 +742,11 @@ export class BattleScene extends RuntimeScene {
 
   retryPlayback(): void { if (this.loadState === 'retryable' || this.loadState === 'integrity-error') void this.loadPlayback(); }
 
+  recoverFromInvalidMarker(): void {
+    if (this.loadState !== 'invalid-marker') return;
+    this.scene.start(this.runtimeStartup.store.bootstrap?.active_run ? RUN_SCENE_KEY : GAME_SCENE_KEY);
+  }
+
   private async loadPlayback(): Promise<void> {
     const marker = this.runtimeStartup.battlePresentation.marker;
     if (!marker) return;
@@ -741,7 +754,12 @@ export class BattleScene extends RuntimeScene {
     let playback: BattlePlaybackResult;
     try { playback = await this.runtimeStartup.apiClient.getBattlePlayback(marker.battleId); }
     catch (error) {
-      if (error instanceof RuntimeApiError && error.kind === 'http' && error.status === 404) this.runtimeStartup.battlePresentation.clear();
+      const markerInvalid = error instanceof RuntimeApiError && error.kind === 'http' && error.status === 404;
+      if (markerInvalid) this.runtimeStartup.battlePresentation.clear();
+      if (markerInvalid) {
+        this.loadState = 'invalid-marker'; this.message = 'This retained battle is unavailable. Return safely to continue.';
+        this.render(); return;
+      }
       this.loadState = error instanceof RuntimeApiError && (error.kind === 'network' || (error.kind === 'http' && (error.status ?? 0) >= 500))
         ? 'retryable' : 'integrity-error';
       this.message = this.loadState === 'retryable' ? 'Playback could not be reached. Retry the retained battle.'
@@ -749,8 +767,8 @@ export class BattleScene extends RuntimeScene {
       this.render(); return;
     }
     if (playback.battle.id !== marker.battleId || playback.battle.runId !== marker.runId || playback.battle.runNodeId !== marker.runNodeId) {
-      this.runtimeStartup.battlePresentation.clear(); this.loadState = 'integrity-error';
-      this.message = 'Retained playback identity did not match this presentation.'; this.render(); return;
+      this.runtimeStartup.battlePresentation.clear(); this.loadState = 'invalid-marker';
+      this.message = 'Retained playback identity did not match. Return safely to continue.'; this.render(); return;
     }
     this.controller = new BattlePlaybackController(playback); this.loadState = 'playing'; this.render(); this.scheduleNext();
   }
@@ -777,12 +795,14 @@ export class BattleScene extends RuntimeScene {
       const detail = this.add.text(safe.x + safe.width / 2, safe.y + safe.height / 2, this.message,
         { color: '#e6d4ad', fontFamily: 'system-ui, sans-serif', fontSize: compact ? '28px' : '21px', align: 'center', wordWrap: { width: safe.width - 140 } }).setOrigin(0.5); root.add(detail);
       if (this.loadState === 'retryable' || this.loadState === 'integrity-error') this.addBattleButton(root, safe.x + safe.width / 2, safe.bottom - 80, 'RETRY PLAYBACK', () => this.retryPlayback());
+      if (this.loadState === 'invalid-marker') this.addBattleButton(root, safe.x + safe.width / 2, safe.bottom - 80,
+        this.runtimeStartup.store.bootstrap?.active_run ? 'RETURN TO RUN' : 'RETURN TO CAMP', () => this.recoverFromInvalidMarker());
       return;
     }
     const state = this.controller.snapshot; const laneTop = safe.y + (compact ? 125 : 135); const laneHeight = safe.height - (compact ? 300 : 315);
     for (const participant of state.participants) {
       const sideCenter = participant.side === 'player' ? safe.x + safe.width * 0.27 : safe.x + safe.width * 0.73;
-      const x = sideCenter + (participant.position.x - 1) * (compact ? 145 : 175);
+      const x = battleColumnX(participant.side, participant.position.x, sideCenter, compact ? 145 : 175);
       const y = laneTop + (participant.position.y + 0.5) * laneHeight / 3;
       const width = compact ? 205 : 225, height = compact ? 112 : 126;
       const card = this.add.graphics(); card.fillStyle(participant.defeated ? 0x3b3b3b : participant.side === 'player' ? 0x244f55 : 0x642f37, 0.96);
@@ -790,6 +810,10 @@ export class BattleScene extends RuntimeScene {
       card.lineStyle(state.actorKey === participant.combatantKey || state.targetKey === participant.combatantKey ? 6 : 3,
         state.actorKey === participant.combatantKey ? 0xf4c542 : state.targetKey === participant.combatantKey ? 0xf06a5e : 0xbda96e, 1);
       card.strokeRoundedRect(x - width / 2, y - height / 2, width, height, 14);
+      const artTexture = battleArtTextureKey(participant.artKey);
+      const art = this.textures.exists(artTexture)
+        ? this.add.image(x, y - (compact ? 102 : 112), artTexture).setDisplaySize(compact ? 92 : 108, compact ? 76 : 88)
+        : null;
       const name = this.add.text(x, y - 31, participant.displayName, { color: '#fff2cf', fontFamily: 'system-ui, sans-serif',
         fontSize: compact ? '22px' : '20px', fontStyle: 'bold' }).setOrigin(0.5);
       const hp = this.add.text(x, y + 2, `HP ${participant.currentHp} / ${participant.maxHp}`, { color: '#d8f0d8', fontFamily: 'system-ui, sans-serif', fontSize: compact ? '20px' : '17px' }).setOrigin(0.5);
@@ -799,7 +823,7 @@ export class BattleScene extends RuntimeScene {
         hpBar.fillRoundedRect(x - barWidth / 2, barY, barWidth * participant.currentHp / participant.maxHp, 7, 3); }
       const status = this.add.text(x, y + 39, participant.defeated ? 'DEFEATED' : [...participant.statuses].map((id) => id.replaceAll('_', ' ')).join(' · '),
         { color: participant.defeated ? '#ff9c91' : '#c8bdf3', fontFamily: 'system-ui, sans-serif', fontSize: compact ? '17px' : '14px' }).setOrigin(0.5);
-      root.add([card, name, hp, hpBar, status]);
+      root.add(art ? [card, art, name, hp, hpBar, status] : [card, name, hp, hpBar, status]);
     }
     const captionY = safe.bottom - (compact ? 120 : 125);
     const caption = this.add.text(safe.x + safe.width / 2, captionY, state.caption,
