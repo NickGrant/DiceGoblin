@@ -1,7 +1,7 @@
 ---
 Title: "Dice Goblins vNext Game Overhaul"
 Status: Active Implementation Plan
-Last Updated: 2026-09-15
+Last Updated: 2026-09-16
 Owner: Product + Engineering
 Depends On:
   - documentation/07-development-path/README.md
@@ -42,9 +42,9 @@ All nine implementation/closure packages passed architectural review. Integrated
 
 The seven implementation/closure packages passed architectural review, with integrated closure at `c456d983b1afaf36c0dc9e069b3e35cfcdf6957f`. Manual UAT identified inconsistent clickable cursor affordances and reactive-only presentation of active-run Warband locks. Package 8 at `038a6ce081fa3b735f627095db372db24b39f79e` corrected both while retaining backend authority and legal squad/unit naming. The focused manual recheck passed and Milestone 3 was closed on 2026-09-15.
 
-**Milestone 4 - Combat: Active.**
+**Milestone 4 - Combat: Active; Packages 1-6 architecturally approved.**
 
-Milestone 4 makes combat authoritative, deterministic, persistent, reconnect-safe, and watchable. Package 1 first establishes canonical level-derived combat stats and initializes authoritative run HP; deterministic engine/content adaptation follows before battle persistence/API/Phaser contracts are built around it.
+Milestone 4 now has the authoritative PHP combat mutation, deterministic kernel, immutable battle persistence/read contracts, and real persistent Phaser `BattleScene` playback lifecycle. Package 6 was approved after focused formation/recovery correction at `cb04896d5a01d04694cb15101038c75b90ff24b4`. Package 7 owns the explicit result/Continue boundary and must reconcile `GET /api/v1/runs/current` before leaving battle presentation; Package 8 then closes the integrated slice before manual UAT.
 
 ## Milestones
 | # | Milestone | Exit criterion |
@@ -68,13 +68,13 @@ Milestone 4 makes combat authoritative, deterministic, persistent, reconnect-saf
 Completing the overhaul does not require building Island through Savanna or The Library.
 
 ## Milestone 4 Package Sequence
-1. Canonical combatant stats + authoritative run HP initialization.
-2. Farm combat authored content + deterministic engine adaptation.
-3. Battle persistence + playback boundary.
-4. Authoritative combat-node resolution + persisted run/battle state.
-5. Battle/result/playback query and reconnect contracts.
-6. Phaser `BattleScene` playback lifecycle.
-7. Battle result + authoritative return-to-run reconciliation.
+1. Canonical combatant stats + authoritative run HP initialization. **Approved.**
+2. Farm combat authored content + deterministic engine adaptation. **Approved.**
+3. Battle persistence + playback boundary. **Approved.**
+4. Authoritative combat-node resolution + persisted run/battle state. **Approved.**
+5. Battle/result/playback query and reconnect contracts. **Approved.**
+6. Phaser `BattleScene` playback lifecycle. **Approved after focused correction.**
+7. Battle result + authoritative return-to-run reconciliation. **Current.**
 8. Combat integrated verification/closure, followed by manual UAT.
 
 The retained prototype combat implementation is behavioral evidence only. It currently couples PDO/catalog access, node effects, rewards/progression, combat simulation, and playback construction; vNext must preserve useful deterministic mechanics behind the accepted application/domain/repository/content boundaries rather than wrap that object as the new architecture.
@@ -94,7 +94,7 @@ Every applicable milestone maintains:
 ## Deferred Until Needed
 Do not block the next gameplay milestone on final visual polish or on exact later-system details such as Rest/Chaos sub-route payloads, later economy tuning, later kin recipes, or onboarding dialogue. Resolve them in the milestone that needs them and update the relevant accepted decision if the architecture changes.
 
-For Milestone 4 specifically, Package 1 establishes only canonical base level-stat resolution and run HP initialization. Damage/healing formulas, exact scheduling/targeting behavior, dice/material/aspect combat effects, statuses, playback event versioning, and stalemate policy are reconciled with the deterministic engine package rather than guessed ahead of it. Battle storage is introduced only after that engine result/playback boundary is concrete.
+For Milestone 4, Packages 1-6 have now established canonical stats/run HP, deterministic combat rules/content, immutable battle persistence, atomic node resolution, ownership-safe playback reads, and the reload-safe Phaser presentation lifecycle. Package 7 must reconcile the authoritative current-run aggregate before leaving completed playback; no rewards/progression/claim semantics are added merely to produce a result screen. Package 8 owns integrated closure.
 
 The cross-cutting visual/UI overhaul is intentionally deferred until core gameplay surfaces and interaction patterns are established. Until then, visual work should support clarity, usability, responsive correctness, and basic cohesion rather than attempt final production fidelity screen by screen.
 
