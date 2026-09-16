@@ -343,7 +343,7 @@ final class WarbandReadControllerTest extends IntegrationTestCase
       VALUES (?, ?, ?, \'abandoned\', CURRENT_TIMESTAMP)')
       ->execute([$userId, 'region.the_farm', (int)$first['active_squad_id']]);
     $runId = (int)$this->pdo?->lastInsertId();
-    $this->pdo?->prepare('INSERT INTO `run_unit_state` (`run_id`, `unit_id`, `current_hp`) VALUES (?, ?, NULL)')
+    $this->pdo?->prepare('INSERT INTO `run_unit_state` (`run_id`, `unit_id`, `current_hp`) VALUES (?, ?, 22)')
       ->execute([$runId, (int)$first['unit_ids']['bruiser']]);
 
     $second = $command->execute($userId, seedOnly: true);

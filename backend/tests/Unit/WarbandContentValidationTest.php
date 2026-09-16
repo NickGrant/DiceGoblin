@@ -46,6 +46,28 @@ final class WarbandContentValidationTest extends TestCase
     $this->assertInvalid([...$this->baseDefinitions(), $this->aspect(['effect_config' => 'not-an-object'])], "field 'effect_config' must be an object");
   }
 
+  /** @dataProvider malformedUnitStatProvider */
+  public function testMalformedUnitStatsFailBeforeRuntime(string $field, array $stats, string $message): void
+  {
+    $this->assertInvalid([...$this->baseDefinitions(), $this->ability(), $this->unitType([$field => $stats])], $message);
+  }
+
+  public function malformedUnitStatProvider(): array
+  {
+    $base = ['hp' => 10, 'attack' => 2, 'defense' => 2, 'precision' => 4, 'resolve' => 4];
+    $growth = ['hp' => 1, 'attack' => 1, 'defense' => 1, 'precision' => 1, 'resolve' => 1];
+    return [
+      'missing base HP' => ['base_stats', array_diff_key($base, ['hp' => true]), 'exactly HP, Attack, Defense, Precision, and Resolve'],
+      'missing growth Resolve' => ['growth_per_level', array_diff_key($growth, ['resolve' => true]), 'exactly HP, Attack, Defense, Precision, and Resolve'],
+      'string base Attack' => ['base_stats', array_replace($base, ['attack' => '2']), 'base_stats.attack'],
+      'float growth Precision' => ['growth_per_level', array_replace($growth, ['precision' => 1.5]), 'growth_per_level.precision'],
+      'zero base HP' => ['base_stats', array_replace($base, ['hp' => 0]), 'base_stats.hp'],
+      'negative base Defense' => ['base_stats', array_replace($base, ['defense' => -1]), 'base_stats.defense'],
+      'negative growth HP' => ['growth_per_level', array_replace($growth, ['hp' => -1]), 'growth_per_level.hp'],
+      'unexpected Speed' => ['base_stats', array_replace($base, ['speed' => 1]), 'exactly HP, Attack, Defense, Precision, and Resolve'],
+    ];
+  }
+
   public function testUnitAbilityReferencesMustExist(): void
   {
     $this->assertInvalid([...$this->baseDefinitions(), $this->unitType()], "references missing ability 'ability.example'");

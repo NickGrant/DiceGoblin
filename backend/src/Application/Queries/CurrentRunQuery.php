@@ -141,11 +141,11 @@ final class CurrentRunQuery
       $hp = $row['current_hp'];
       if ((int)$row['run_id'] !== $runId || $unitId <= 0 || isset($seen[$unitId])
         || $row['unit_user_id'] === null || (int)$row['unit_user_id'] !== $userId
-        || ($hp !== null && (int)$hp < 0)) {
+        || $hp === null || (int)$hp < 0) {
         throw new CurrentRunIntegrityException('Active run participation is invalid.');
       }
       $seen[$unitId] = true;
-      $mapped[] = ['unit_id' => (string)$unitId, 'current_hp' => $hp !== null ? (int)$hp : null];
+      $mapped[] = ['unit_id' => (string)$unitId, 'current_hp' => (int)$hp];
     }
     return $mapped;
   }

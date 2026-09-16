@@ -7,7 +7,7 @@ Read this for sequencing/planning or when closing/promoting an execution package
 **Status:** Active
 
 ### Related Issues
-- Establish canonical combatant stats and initialize authoritative run HP
+- Milestone 4 Package 1 - Canonical combatant stats + authoritative run HP initialization
 
 Milestone 1 - Walking Skeleton is complete and passed manual user UAT.
 

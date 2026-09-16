@@ -1,18 +1,20 @@
 # Active Execution Issue
 
-## Milestone 4 Package 1 - Canonical combatant stats + authoritative run HP initialization
+## Milestone 4 - Combat
 
-**Status:** Open
+### Milestone 4 Package 1 - Canonical combatant stats + authoritative run HP initialization
+
+**Status:** In Progress
 **Priority:** High
 
-### Purpose
+#### Problem
 Milestone 3 passed manual UAT on 2026-09-15. Milestone 4 begins by closing the deliberate M3 combat-state gap before adapting the combat engine.
 
 `run_unit_state.current_hp` was intentionally left nullable because vNext had not yet established canonical unit stat math. The current authored unit types now provide `base_stats` and `growth_per_level`, and the retained prototype `UnitProgressionService` confirms the useful level-scaling behavior to preserve. Establish that behavior as a small vNext domain rule and make newly-created runs begin with authoritative full HP.
 
 This package is **not** the combat engine package. Do not invent damage, healing, targeting, statuses, dice combat effects, battle events, or battle persistence here.
 
-### Canonical stat rule
+#### Canonical stat rule
 For each of the five current combat stats:
 
 `resolved_stat = base_stat + growth_per_level * (level - 1)`
@@ -37,14 +39,14 @@ Rules:
 
 Do not recover or introduce an XP curve/max-level policy in this package. XP/progression remains later work.
 
-### Required implementation boundary
+#### Required implementation boundary
 Create a small infrastructure-free domain value/result + resolver for the five resolved stats. It may consume a normalized authored unit-type stat definition plus level, but it must not own PDO, repositories, HTTP, or `ContentRegistry` traversal.
 
 Application/integration code may use `ContentRegistry` to obtain the unit type definition and then invoke the pure resolver.
 
 Do not reuse `backend/src/Services/UnitProgressionService.php` as the vNext domain boundary. It is retained prototype evidence and uses old `max_hp`/separate-growth inputs. Preserve only the level-scaling behavior needed here.
 
-### Authored-content validation
+#### Authored-content validation
 The canonical checked-in `unit_type` definitions must be sufficient for the resolver. Extend structural/semantic content validation as needed so every vNext `unit_type` fails validation before runtime if:
 - any of the five `base_stats` keys is absent or not an integer;
 - any of the five `growth_per_level` keys is absent or not an integer;
@@ -54,7 +56,7 @@ The canonical checked-in `unit_type` definitions must be sufficient for the reso
 
 Do not add SQL unit/stat catalogs. Do not copy resolved stats into authored generated bundles beyond the existing exposure model merely for convenience.
 
-### Authoritative run HP initialization
+#### Authoritative run HP initialization
 Update new-run creation so every participating `run_unit_state` row is inserted with `current_hp = resolved max HP` for that owned unit at its persisted level.
 
 Requirements:
@@ -70,12 +72,12 @@ Because vNext has no player/runtime data migration obligation, tighten the fresh
 
 Do **not** persist max HP, Attack, Defense, Precision, Resolve, or a combat-stat snapshot in `run_unit_state` in this package. `current_hp` is mutable run state; base combat stats remain derived from canonical content + unit level until a later requirement proves another durable snapshot is necessary.
 
-### Documentation
+#### Documentation
 Update `documentation/02-systems/unit-stat-advancement.md` so the level-stat rule above is canonical rather than unresolved. Keep XP curves/max-level progression explicitly unresolved/later if they are not required here.
 
 Only adjust other current docs if necessary to remove a direct contradiction created by this package. Do not write speculative combat-engine documentation ahead of Package 2.
 
-### Tests / verification
+#### Tests / verification
 Add focused automated coverage proving at minimum:
 - level 1 returns authored base values for all five stats;
 - multiple higher levels use exactly `base + growth * (level - 1)` for all five stats;
@@ -91,7 +93,7 @@ Add focused automated coverage proving at minimum:
 
 Run the repository's supported backend/content/MySQL verification gates. Use actual MySQL 8 for persistence/integration assertions; do not represent an unavailable host-only aggregate as passed.
 
-### Explicitly out of scope
+#### Explicitly out of scope
 Do not implement or scaffold:
 - damage or healing formulas;
 - target-resolution algorithms;
@@ -106,7 +108,7 @@ Do not implement or scaffold:
 - Phaser `BattleScene` behavior;
 - cleanup/rewrite of the large prototype `DeterministicRunNodeResolver` beyond an unavoidable compile/test correction.
 
-### Completion/reporting
+#### Completion/reporting
 Leave this issue **In Progress** when implementation is ready for architectural review; do not promote Package 2 yourself.
 
 Report:

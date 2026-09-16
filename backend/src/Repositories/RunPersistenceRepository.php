@@ -124,11 +124,11 @@ final class RunPersistenceRepository
     }
   }
 
-  /** @param list<int> $unitIds */
-  public function insertParticipatingUnits(int $runId, array $unitIds): void
+  /** @param list<array{unit_id:int,current_hp:int}> $units */
+  public function insertParticipatingUnits(int $runId, array $units): void
   {
-    $stmt = $this->pdo->prepare('INSERT INTO `run_unit_state` (`run_id`, `unit_id`, `current_hp`) VALUES (?, ?, NULL)');
-    foreach ($unitIds as $unitId) $stmt->execute([$runId, $unitId]);
+    $stmt = $this->pdo->prepare('INSERT INTO `run_unit_state` (`run_id`, `unit_id`, `current_hp`) VALUES (?, ?, ?)');
+    foreach ($units as $unit) $stmt->execute([$runId, $unit['unit_id'], $unit['current_hp']]);
   }
 
   private function encodeMetadata(mixed $metadata): ?string

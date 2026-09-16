@@ -7,6 +7,7 @@ use DateTimeImmutable;
 use DateTimeZone;
 use DiceGoblins\Application\Commands\AbandonRunCommand;
 use DiceGoblins\Application\Commands\ProvisionWarbandFixtureCommand;
+use DiceGoblins\Application\Queries\CurrentRunQuery;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Controllers\ControllerServiceFactory;
 use DiceGoblins\Controllers\GameBootstrapController;
@@ -37,8 +38,12 @@ final class CurrentRunLifecycleControllerTest extends IntegrationTestCase
 
   public function testCurrentReturnsPersistedSafeAggregateWithoutMutatingIt(): void
   {
-    [$userId] = $this->fixtureAccount('current-aggregate');
+    [$userId, $fixture] = $this->fixtureAccount('current-aggregate');
+    $bruiser = (int)$fixture['unit_ids']['bruiser'];
+    $this->pdo?->prepare('UPDATE `unit_instances` SET `level` = 3 WHERE `id` = ?')->execute([$bruiser]);
     $runId = $this->start($userId);
+    $this->pdo?->prepare('UPDATE `run_unit_state` SET `current_hp` = 9 WHERE `run_id` = ? AND `unit_id` = ?')
+      ->execute([$runId, $bruiser]);
     $before = $this->snapshot($userId, $runId);
     $response = $this->current($userId);
     $after = $this->snapshot($userId, $runId);
@@ -52,6 +57,15 @@ final class CurrentRunLifecycleControllerTest extends IntegrationTestCase
     $this->assertCount(5, $run['nodes'] ?? []);
     $this->assertCount(4, $run['edges'] ?? []);
     $this->assertCount(5, $run['units'] ?? []);
+    $bruiserState = array_values(array_filter($run['units'], static fn(array $unit): bool => $unit['unit_id'] === (string)$bruiser));
+    $this->assertSame([['unit_id' => (string)$bruiser, 'current_hp' => 9]], $bruiserState);
+    $reloadedPdo = new PDO((string)getenv('TEST_DB_DSN'), (string)getenv('TEST_DB_USER'), (string)getenv('TEST_DB_PASS'),
+      [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+    $reloaded = (new CurrentRunQuery(new RunPersistenceRepository($reloadedPdo),
+      new PlayerStateRepository($reloadedPdo), $this->content()))->execute($userId);
+    $reloadedBruiser = array_values(array_filter($reloaded['run']['units'] ?? [],
+      static fn(array $unit): bool => $unit['unit_id'] === (string)$bruiser));
+    $this->assertSame([['unit_id' => (string)$bruiser, 'current_hp' => 9]], $reloadedBruiser);
     $this->assertSame([0, 1, 2, 3, 4], array_column($run['nodes'], 'node_index'));
     $this->assertSame([0, 1, 2, 3, 4], array_column(array_column($run['nodes'], 'position'), 'column'));
     $this->assertSame([1, 1, 1, 1, 1], array_column(array_column($run['nodes'], 'position'), 'row'));

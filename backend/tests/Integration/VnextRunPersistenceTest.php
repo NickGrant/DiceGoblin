@@ -119,20 +119,23 @@ final class VnextRunPersistenceTest extends IntegrationTestCase
     $this->assertSame(['controlPoints' => [[1, 2]]], json_decode($edgeMetadata, true));
   }
 
-  public function testRunUnitStateIsUniqueNullableAndProtectsParticipatingUnits(): void
+  public function testRunUnitStateRequiresNonNegativeHpAndProtectsParticipatingUnits(): void
   {
     $userId = $this->createUser('Unit state owner');
     $squadId = $this->createSquad($userId, 'Unit state squad');
     $runId = $this->createRun($userId, $squadId, 'region.farm');
     $unitId = $this->createUnit($userId);
 
-    $this->pdo?->prepare('INSERT INTO `run_unit_state` (`run_id`, `unit_id`) VALUES (?, ?)')->execute([$runId, $unitId]);
-    $this->assertNull($this->fetchOne('SELECT `current_hp` FROM `run_unit_state` WHERE `run_id` = ? AND `unit_id` = ?', [$runId, $unitId])['current_hp'] ?? null);
+    $this->assertConstraintViolation(fn() => $this->pdo?->prepare('INSERT INTO `run_unit_state` (`run_id`, `unit_id`) VALUES (?, ?)')->execute([$runId, $unitId]));
+    $this->assertConstraintViolation(fn() => $this->pdo?->prepare('INSERT INTO `run_unit_state` (`run_id`, `unit_id`, `current_hp`) VALUES (?, ?, NULL)')->execute([$runId, $unitId]));
+    $this->assertConstraintViolation(fn() => $this->pdo?->prepare('INSERT INTO `run_unit_state` (`run_id`, `unit_id`, `current_hp`) VALUES (?, ?, -1)')->execute([$runId, $unitId]));
+    $this->pdo?->prepare('INSERT INTO `run_unit_state` (`run_id`, `unit_id`, `current_hp`) VALUES (?, ?, 0)')->execute([$runId, $unitId]);
+    $this->assertSame('0', (string)$this->scalar('SELECT `current_hp` FROM `run_unit_state` WHERE `run_id` = ? AND `unit_id` = ?', [$runId, $unitId]));
     $this->assertConstraintViolation(
       fn() => $this->pdo?->prepare('INSERT INTO `run_unit_state` (`run_id`, `unit_id`, `current_hp`) VALUES (?, ?, ?)')->execute([$runId, $unitId, 10]),
     );
     $this->assertConstraintViolation(
-      fn() => $this->pdo?->prepare('INSERT INTO `run_unit_state` (`run_id`, `unit_id`) VALUES (?, ?)')->execute([$runId, 999999999]),
+      fn() => $this->pdo?->prepare('INSERT INTO `run_unit_state` (`run_id`, `unit_id`, `current_hp`) VALUES (?, ?, 1)')->execute([$runId, 999999999]),
     );
     $this->assertConstraintViolation(fn() => $this->pdo?->prepare('DELETE FROM `unit_instances` WHERE `id` = ?')->execute([$unitId]));
 
@@ -155,7 +158,7 @@ final class VnextRunPersistenceTest extends IntegrationTestCase
     $from = $this->createNode($runId, 0, 'node_type.combat');
     $to = $this->createNode($runId, 1, 'node_type.exit');
     $this->createEdge($runId, $from, $to);
-    $this->pdo?->prepare('INSERT INTO `run_unit_state` (`run_id`, `unit_id`, `current_hp`) VALUES (?, ?, ?)')->execute([$runId, $unitId, null]);
+    $this->pdo?->prepare('INSERT INTO `run_unit_state` (`run_id`, `unit_id`, `current_hp`) VALUES (?, ?, ?)')->execute([$runId, $unitId, 12]);
 
     $this->pdo?->prepare('DELETE FROM `runs` WHERE `id` = ?')->execute([$runId]);
 
@@ -251,7 +254,7 @@ final class VnextRunPersistenceTest extends IntegrationTestCase
       $operation();
       $this->fail('Expected the database constraint to reject the operation.');
     } catch (PDOException $e) {
-      $this->assertContains((string)$e->getCode(), ['23000', 'HY000']);
+      $this->assertContains((string)$e->getCode(), ['23000', 'HY000', '22003']);
     }
   }
 }

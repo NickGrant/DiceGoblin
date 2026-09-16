@@ -16,6 +16,7 @@ use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Controllers\ControllerServiceFactory;
 use DiceGoblins\Controllers\RunController;
 use DiceGoblins\Domain\Energy\EnergySpendCalculator;
+use DiceGoblins\Domain\CombatStats\BaseLevelStatResolver;
 use DiceGoblins\Infrastructure\Clock;
 use DiceGoblins\Repositories\IdempotencyRequestRepository;
 use DiceGoblins\Repositories\PlayerStateRepository;
@@ -105,6 +106,10 @@ final class RunStartControllerTest extends IntegrationTestCase
   public function testSuccessfulFarmStartPersistsAuthoritativeAggregateAndResponse(): void
   {
     [$userId, $fixture] = $this->fixtureAccount('run-success@example.test');
+    $this->pdo?->prepare('UPDATE `unit_instances` SET `level` = 4 WHERE `id` = ?')
+      ->execute([(int)$fixture['unit_ids']['bruiser']]);
+    $this->pdo?->prepare('UPDATE `unit_instances` SET `level` = 1 WHERE `id` = ?')
+      ->execute([(int)$fixture['unit_ids']['guardian']]);
     $this->setPlayerState($userId, 50, '2026-09-13 12:00:00');
     $result = $this->commandAt($userId, '2026-09-13 13:00:00')->execute(
       $userId,
@@ -155,7 +160,19 @@ final class RunStartControllerTest extends IntegrationTestCase
     $expectedUnits = array_map('intval', [$fixture['unit_ids']['bruiser'], $fixture['unit_ids']['guardian'], $fixture['unit_ids']['marksman'], $fixture['unit_ids']['bannerbearer'], $fixture['unit_ids']['saboteur']]);
     sort($expectedUnits, SORT_NUMERIC);
     $this->assertSame($expectedUnits, array_map('intval', array_column($participants, 'unit_id')));
-    $this->assertSame(array_fill(0, 5, null), array_column($participants, 'current_hp'));
+    $persisted = $this->rows('SELECT rus.`unit_id`, rus.`current_hp`, ui.`unit_type_id`, ui.`level`
+      FROM `run_unit_state` rus JOIN `unit_instances` ui ON ui.`id` = rus.`unit_id`
+      WHERE rus.`run_id` = ? ORDER BY rus.`unit_id`', [$runId]);
+    $stats = new BaseLevelStatResolver();
+    foreach ($persisted as $unit) {
+      $type = $this->content()->unitType((string)$unit['unit_type_id']);
+      $expectedHp = $stats->resolve($type['base_stats'], $type['growth_per_level'], (int)$unit['level'])->hp;
+      $this->assertSame($expectedHp, (int)$unit['current_hp']);
+    }
+    $this->assertSame(28, (int)$this->scalar('SELECT `current_hp` FROM `run_unit_state` WHERE `run_id` = ? AND `unit_id` = ?',
+      [$runId, (int)$fixture['unit_ids']['bruiser']]));
+    $this->assertSame(24, (int)$this->scalar('SELECT `current_hp` FROM `run_unit_state` WHERE `run_id` = ? AND `unit_id` = ?',
+      [$runId, (int)$fixture['unit_ids']['guardian']]));
 
     $encoded = json_encode($result, JSON_THROW_ON_ERROR);
     foreach (['nodes', 'edges', 'algorithm', 'start_node_key', 'run_generation'] as $privateField) {
@@ -304,11 +321,18 @@ final class RunStartControllerTest extends IntegrationTestCase
 
   public function testIdempotencyReplayConflictAndUserScoping(): void
   {
-    [$userId] = $this->fixtureAccount('run-replay@example.test');
+    [$userId, $fixture] = $this->fixtureAccount('run-replay@example.test');
     $command = $this->commandAt($userId, '2026-09-13 13:00:00');
     $first = $command->execute($userId, ['region_id' => 'region.the_farm'], 'shared-run-key');
+    $runId = (int)$first['run']['id'];
+    $bruiser = (int)$fixture['unit_ids']['bruiser'];
+    $this->pdo?->prepare('UPDATE `run_unit_state` SET `current_hp` = 7 WHERE `run_id` = ? AND `unit_id` = ?')
+      ->execute([$runId, $bruiser]);
+    $this->pdo?->prepare('UPDATE `unit_instances` SET `level` = 4 WHERE `id` = ?')->execute([$bruiser]);
     $replay = $command->execute($userId, ['region_id' => 'region.the_farm'], 'shared-run-key');
     $this->assertSame($first, $replay);
+    $this->assertSame('7', (string)$this->scalar('SELECT `current_hp` FROM `run_unit_state` WHERE `run_id` = ? AND `unit_id` = ?', [$runId, $bruiser]));
+    $this->assertSame(5, (int)$this->scalar('SELECT COUNT(*) FROM `run_unit_state` WHERE `run_id` = ?', [$runId]));
     $this->assertSame(1, $this->runCount($userId));
     $this->assertSame(40, (int)$this->scalar('SELECT `energy_current` FROM `user_state` WHERE `user_id` = ?', [$userId]));
     $this->assertSame(3, $this->revision($userId));
@@ -382,6 +406,25 @@ final class RunStartControllerTest extends IntegrationTestCase
       $this->assertSame(0, $this->runCount($userId));
       $this->assertSame(0, $this->receiptCount($userId));
     }
+  }
+
+  public function testUnresolvableParticipatingHpRollsBackWithoutEnergySpend(): void
+  {
+    [$userId, $fixture] = $this->fixtureAccount('run-stat-rollback@example.test');
+    $this->setPlayerState($userId, 40, '2026-09-13 12:00:00');
+    $this->pdo?->prepare('UPDATE `unit_instances` SET `level` = 4294967295 WHERE `id` = ?')
+      ->execute([(int)$fixture['unit_ids']['bruiser']]);
+    $before = $this->stateSnapshot($userId);
+    try {
+      $this->commandAt($userId, '2026-09-13 12:27:00')->execute($userId, ['region_id' => 'region.the_farm'], 'stat-rollback-key');
+      $this->fail('Expected participating HP resolution to fail.');
+    } catch (\DiceGoblins\Application\Commands\RunStartIntegrityException) {
+      $this->addToAssertionCount(1);
+    }
+    $this->assertSame($before, $this->stateSnapshot($userId));
+    $this->assertSame(0, $this->runCount($userId));
+    $this->assertSame(0, $this->receiptCount($userId));
+    $this->assertSame('0', (string)$this->scalar('SELECT COUNT(*) FROM `run_unit_state` rus JOIN `runs` r ON r.`id` = rus.`run_id` WHERE r.`user_id` = ?', [$userId]));
   }
 
   private function applyCorruption(string $corruption, int $unitId, int $otherUserId): void
