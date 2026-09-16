@@ -84,6 +84,32 @@ describe('RuntimeApiClient', () => {
     );
   });
 
+  it('resolves a run node with the exact authenticated bodyless mutation contract', async () => {
+    const payload = { ok: true, data: {
+      battle: { id: '81', outcome: 'victory', engine_version: 1, playback_version: 1, ending_round: 3, ending_tick: 41 },
+      node: { id: '10', status: 'completed', completed_at: '2026-09-16T12:00:00Z' },
+      newly_available_node_ids: ['11'], terminal_player_hp: { '21': 12 },
+      run: { id: '41', status: 'active', ended_at: null }, player_revision: 8,
+    } };
+    const fetchRequest = jasmine.createSpy<RuntimeFetch>('fetchRequest').and.resolveTo(
+      new Response(JSON.stringify(payload), { status: 200 }),
+    );
+
+    const result = await new RuntimeApiClient(fetchRequest, '/root').resolveRunNode(
+      '41', '10', 'csrf-token', 'combat-node:fixed-attempt',
+    );
+
+    expect(result.battle.id).toBe('81');
+    expect(fetchRequest).toHaveBeenCalledOnceWith('/root/api/v1/runs/41/nodes/10/resolve', {
+      method: 'POST', credentials: 'include', headers: {
+        Accept: 'application/json', 'X-CSRF-Token': 'csrf-token', 'Idempotency-Key': 'combat-node:fixed-attempt',
+      },
+    });
+    expect(fetchRequest.calls.mostRecent().args[1]?.body).toBeUndefined();
+    await expectAsync(new RuntimeApiClient(fetchRequest, '').resolveRunNode('041', '10', 'csrf', 'attempt'))
+      .toBeRejectedWith(jasmine.objectContaining({ kind: 'malformed-response' }));
+  });
+
   it('sends independent unit rename and complete loadout commands with strict authoritative parsing', async () => {
     const stat = { hp: 1, attack: 1, defense: 1, precision: 1, resolve: 1 };
     const content = new ClientContentRegistry({ revision: 'a'.repeat(64), content: { gameplay: { run_energy_cost: 10 },

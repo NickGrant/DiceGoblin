@@ -5,6 +5,8 @@ import { Bounds, RuntimeViewportSnapshot } from './runtime-viewport';
 export interface RunMapNodePresentation {
   readonly id: string;
   readonly nodeIndex: number;
+  readonly nodeTypeId: string;
+  readonly battleId: string | null;
   readonly name: string;
   readonly description: string;
   readonly iconKey: string;
@@ -43,6 +45,7 @@ export interface RunMapLayout {
   readonly edges: readonly RunMapLayoutEdge[];
   readonly returnButton: Bounds;
   readonly abandonButton: Bounds;
+  readonly combatButton: Bounds;
   readonly confirmation: Bounds;
   readonly titleY: number;
   readonly identityY: number;
@@ -70,6 +73,8 @@ export function createRunMapPresentation(run: CurrentRun, content: ClientContent
     return Object.freeze({
       id: node.id,
       nodeIndex: node.nodeIndex,
+      nodeTypeId: node.nodeTypeId,
+      battleId: node.battleId,
       name: authored.display_name,
       description: authored.description,
       iconKey: authored.icon_key,
@@ -135,6 +140,7 @@ export function createRunMapLayout(
   return Object.freeze({ panel, map, nodes: Object.freeze(nodes), edges: Object.freeze(edges),
     returnButton: bounds(panel.x + 38, buttonY, buttonWidth, buttonHeight),
     abandonButton: bounds(panel.right - buttonWidth - 38, buttonY, buttonWidth, buttonHeight),
+    combatButton: bounds(panel.x + (panel.width - buttonWidth) / 2, buttonY, buttonWidth, buttonHeight),
     confirmation: bounds(panel.x + (panel.width - Math.min(760, panel.width - 100)) / 2,
       panel.y + (panel.height - Math.min(390, panel.height - 80)) / 2,
       Math.min(760, panel.width - 100), Math.min(390, panel.height - 80)),

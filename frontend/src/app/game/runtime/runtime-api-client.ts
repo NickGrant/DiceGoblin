@@ -25,6 +25,7 @@ import {
   parseRunStartEnvelope,
 } from './run-contracts';
 import { BattlePlaybackContractError, BattlePlaybackResult, parseBattlePlaybackEnvelope } from './battle-playback-contracts';
+import { RunNodeResolutionContractError, RunNodeResolutionResult, parseRunNodeResolutionEnvelope } from './run-node-resolution-contracts';
 
 export type RuntimeFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
@@ -93,6 +94,13 @@ export class RuntimeApiClient {
       if (error instanceof BattlePlaybackContractError) throw new RuntimeApiError('malformed-response', 200);
       throw error;
     }
+  }
+
+  async resolveRunNode(runId: string, nodeId: string, csrfToken: string, idempotencyKey: string): Promise<RunNodeResolutionResult> {
+    if (!/^[1-9][0-9]*$/.test(runId) || !/^[1-9][0-9]*$/.test(nodeId) || idempotencyKey.trim() === '')
+      throw new RuntimeApiError('malformed-response');
+    return this.mutate(`/api/v1/runs/${runId}/nodes/${nodeId}/resolve`, 'POST', csrfToken, undefined, idempotencyKey,
+      parseRunNodeResolutionEnvelope);
   }
 
   async startRun(
@@ -221,7 +229,8 @@ export class RuntimeApiClient {
     try {
       return parse(value);
     } catch (error) {
-      if (error instanceof WarbandContractError || error instanceof UnitDetailContractError || error instanceof RunContractError) {
+      if (error instanceof WarbandContractError || error instanceof UnitDetailContractError || error instanceof RunContractError
+        || error instanceof RunNodeResolutionContractError) {
         throw new RuntimeApiError('malformed-response', response.status);
       }
       throw error;

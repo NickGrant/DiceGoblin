@@ -3,7 +3,8 @@ import { ClientContentLoader, ClientContentRegistry } from '../runtime/client-co
 import { RuntimeApiClient, RuntimeApiError } from '../runtime/runtime-api-client';
 import { RuntimeStartup } from '../runtime/runtime-startup';
 import { RuntimeViewport, calculateRuntimeViewport } from '../runtime/runtime-viewport';
-import { GAME_SCENE_KEY, RUN_SCENE_KEY, RunScene, RuntimeLifecycleState, nextSceneForStartup, runShellLayout } from './runtime-scenes';
+import { CombatResolutionAttempt } from '../runtime/combat-resolution-attempt';
+import { BATTLE_SCENE_KEY, GAME_SCENE_KEY, RUN_SCENE_KEY, RunScene, RuntimeLifecycleState, nextSceneForStartup, runShellLayout } from './runtime-scenes';
 
 describe('RunScene lifecycle shell', () => {
   it('routes startup by the compact active-run summary', () => {
@@ -45,6 +46,48 @@ describe('RunScene lifecycle shell', () => {
     expect(startup.store.currentRun.data).toBe(current);
     expect(api.abandonRun).not.toHaveBeenCalled();
     expect(sceneStart).not.toHaveBeenCalled();
+  });
+
+  it('records the retained battle before navigation and only marks the current-run cache stale', async () => {
+    const { scene, startup, api, sceneStart } = await readyHarness();
+    spyOn<any>(scene, 'render').and.stub();
+    const priorRun = startup.store.currentRun.data;
+    api.resolveRunNode.and.resolveTo(resolutionSuccess());
+    scene.selectNode('10');
+
+    await scene.activateSelectedCombat();
+
+    expect(api.resolveRunNode).toHaveBeenCalledOnceWith('41', '10', 'csrf', 'combat-node:fixed');
+    expect(startup.battlePresentation.marker).toEqual(jasmine.objectContaining({ battleId: '81', runId: '41', runNodeId: '10' }));
+    expect(startup.store.currentRun).toEqual(jasmine.objectContaining({ status: 'stale', data: priorRun }));
+    expect(startup.store.currentRun.data?.nodes[0].status).toBe('available');
+    expect(startup.store.currentRun.data?.nodes[0].battleId).toBeNull();
+    expect(sceneStart).toHaveBeenCalledOnceWith(BATTLE_SCENE_KEY);
+  });
+
+  it('prevents simultaneous Fight submissions without changing cached run facts', async () => {
+    const { scene, startup, api } = await readyHarness();
+    spyOn<any>(scene, 'render').and.stub(); scene.selectNode('10');
+    const before = startup.store.currentRun.data;
+    let complete!: (result: ReturnType<typeof resolutionSuccess>) => void;
+    api.resolveRunNode.and.returnValue(new Promise((resolve) => { complete = resolve; }));
+    const first = scene.activateSelectedCombat(); const duplicate = scene.activateSelectedCombat();
+    expect(api.resolveRunNode).toHaveBeenCalledTimes(1);
+    expect(startup.store.currentRun.data).toBe(before);
+    complete(resolutionSuccess()); await Promise.all([first, duplicate]);
+  });
+
+  it('replays an already-completed combat directly without a resolution POST', async () => {
+    const completed: any = currentRun();
+    completed.nodes[0] = { ...completed.nodes[0], status: 'completed', completedAt: '2026-09-16T12:00:00Z', battleId: '81' };
+    const { scene, startup, api, sceneStart } = await readyHarness(completed);
+    spyOn<any>(scene, 'render').and.stub(); scene.selectNode('10');
+
+    await scene.activateSelectedCombat();
+
+    expect(api.resolveRunNode).not.toHaveBeenCalled();
+    expect(startup.battlePresentation.marker?.battleId).toBe('81');
+    expect(sceneStart).toHaveBeenCalledOnceWith(BATTLE_SCENE_KEY);
   });
 
   it('opens and cancels explicit abandon confirmation without mutating authority', async () => {
@@ -129,20 +172,27 @@ function abandonSuccess(): abandonResult {
     endedAt: '2026-09-13T12:04:00Z' }, activeRun: null, playerRevision: 8 };
 }
 
-async function readyHarness() {
-  const api = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getCurrentRun', 'abandonRun']);
+async function readyHarness(run = currentRun()) {
+  const api = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getCurrentRun', 'abandonRun', 'resolveRunNode']);
   const startup = new RuntimeStartup(api, {} as ClientContentLoader);
   const registry = content();
   startup.store.hydrateBootstrap(activeBootstrap());
   (startup as unknown as { activeContentRegistry: ClientContentRegistry }).activeContentRegistry = registry;
   (startup as unknown as { currentState: { status: 'ready' } }).currentState = { status: 'ready' };
-  api.getCurrentRun.and.resolveTo({ run: currentRun(), playerRevision: 7 });
+  api.getCurrentRun.and.resolveTo({ run, playerRevision: 7 });
   await startup.store.loadCurrentRun(api, registry);
   const viewport = new RuntimeViewport();
-  const scene = new RunScene(new RuntimeLifecycleState(), startup, viewport);
+  const scene = new RunScene(new RuntimeLifecycleState(), startup, viewport, new CombatResolutionAttempt(() => 'combat-node:fixed'));
   const sceneStart = jasmine.createSpy('start');
   (scene as unknown as { scene: { start: jasmine.Spy } }).scene = { start: sceneStart };
   return { scene, startup, api, viewport, sceneStart };
+}
+
+function resolutionSuccess() {
+  return { battle: { id: '81', outcome: 'victory' as const, engineVersion: 1 as const, playbackVersion: 1 as const,
+    endingRound: 3, endingTick: 41 }, node: { id: '10', status: 'completed' as const,
+    completedAt: '2026-09-16T12:00:00Z' }, newlyAvailableNodeIds: ['11'], terminalPlayerHp: { '11': 7 },
+    run: { id: '41', status: 'active' as const, endedAt: null }, playerRevision: 8 };
 }
 
 function content(): ClientContentRegistry {

@@ -373,7 +373,9 @@ Battle playback consumes an already-authoritative battle result/playback model.
 
 Battle presentation does not award XP, apply rewards, determine damage, or mutate authoritative gameplay state. Those changes are resolved by PHP before or as part of the API response that launches playback.
 
-When playback finishes, Phaser returns to the appropriate run presentation using state already updated from the authoritative response.
+An available Combat node is resolved once through the run-node command. The client keeps one idempotency key for ambiguous retries, records the returned battle/run/node identity in session-scoped presentation storage, marks its current-run cache stale, and enters `BattleScene`. A completed Combat node with `battle_id` enters the same presentation path without another resolve command.
+
+`BattleScene` reads the retained playback projection and consumes semantic events in their persisted order. It uses recorded HP, dice, hit, status, death, outcome, and terminal facts only for presentation. A presentation marker scoped to the bootstrapped account allows reload to restart the immutable playback, including after defeat or stalemate leaves no active run. Portrait gating pauses event advancement. Playback completion remains local presentation state until the explicit result/reconciliation flow handles the destination.
 
 ## Visual Testing
 

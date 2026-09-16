@@ -15,6 +15,9 @@ import { RuntimeViewportSnapshot } from '../runtime/runtime-viewport';
 import { RuntimeApiError } from '../runtime/runtime-api-client';
 import { createRunMapLayout, createRunMapPresentation, runNodeColors } from '../runtime/run-map-model';
 import { Bounds } from '../runtime/runtime-viewport';
+import { CombatResolutionAttempt, CombatResolutionAttemptState } from '../runtime/combat-resolution-attempt';
+import { BattlePlaybackController } from '../runtime/battle-playback-controller';
+import { BattlePlaybackResult } from '../runtime/battle-playback-contracts';
 
 export const BOOT_SCENE_KEY = 'BootScene';
 export const GAME_SCENE_KEY = 'GameScene';
@@ -118,7 +121,8 @@ export class BootScene extends Phaser.Scene {
     const state = await this.runtimeStartup.start();
     if (!this.scene.isActive(BOOT_SCENE_KEY)) return;
 
-    const next = nextSceneForStartup(state, this.runtimeStartup.store.bootstrap?.active_run !== null);
+    const next = nextSceneForStartup(state, this.runtimeStartup.store.bootstrap?.active_run !== null,
+      this.runtimeStartup.battlePresentation.marker !== null);
     if (next) {
       const preview = (readDebugCaptureRequest()?.scene ?? window.__DG_DEBUG__?.requestedScene ?? '').toLowerCase();
       // Capture-only navigation can inspect Warband lock presentation while real startup still routes to RunScene.
@@ -338,10 +342,12 @@ export class RunScene extends RuntimeScene {
   private abandonState: 'idle' | 'confirming' | 'submitting' | 'retryable' | 'rejected' | 'recovery-required' = 'idle';
   private abandonRunId: string | null = null;
   private abandonMessage = '';
+  private combatMessage = '';
   constructor(
     runtimeState: RuntimeLifecycleState,
     runtimeStartup: RuntimeStartup,
     runtimeViewport: RuntimeViewport,
+    private readonly combatAttempt: CombatResolutionAttempt = new CombatResolutionAttempt(),
   ) {
     super(RUN_SCENE_KEY, runtimeState, runtimeStartup, runtimeViewport);
   }
@@ -381,6 +387,7 @@ export class RunScene extends RuntimeScene {
   get selectedMapNodeId(): string | null { return this.selectedNodeId; }
 
   get abandonActionState(): string { return this.abandonState; }
+  get combatActionState(): CombatResolutionAttemptState { return this.combatAttempt.state; }
 
   reflow(): void { this.render(); }
 
@@ -388,6 +395,46 @@ export class RunScene extends RuntimeScene {
     if (this.abandonState !== 'idle' || !this.runtimeStartup.store.currentRun.data?.nodes.some((node) => node.id === nodeId)) return;
     this.selectedNodeId = nodeId;
     this.render();
+  }
+
+  async activateSelectedCombat(): Promise<void> {
+    const run = this.runtimeStartup.store.currentRun.data;
+    const node = run?.nodes.find((candidate) => candidate.id === this.selectedNodeId);
+    const bootstrap = this.runtimeStartup.store.bootstrap;
+    if (!run || !node || !bootstrap || node.nodeTypeId !== 'run_node_type.combat') return;
+    if (node.status === 'completed' && node.battleId) {
+      this.presentBattle(bootstrap.account.id, node.battleId, run.id, node.id); return;
+    }
+    if (node.status !== 'available' || node.battleId !== null || this.combatAttempt.state === 'submitting') return;
+    this.combatAttempt.begin(run.id, node.id); this.combatMessage = 'Resolving combat authoritatively…'; this.render();
+    const outcome = await this.combatAttempt.submit(this.runtimeStartup.apiClient, bootstrap.session.csrf_token);
+    if (outcome.kind === 'success') {
+      const result = outcome.result;
+      if (result.run.id !== run.id || result.node.id !== node.id) {
+        this.combatMessage = 'The response did not match this combat. Reload to recover.'; this.render(); return;
+      }
+      this.runtimeStartup.battlePresentation.retainResolution(result);
+      this.runtimeStartup.store.markCurrentRunStale();
+      this.presentBattle(bootstrap.account.id, result.battle.id, result.run.id, result.node.id);
+      return;
+    }
+    if (outcome.kind === 'already-resolved') {
+      const content = this.runtimeStartup.contentRegistry;
+      if (content) await this.runtimeStartup.store.retryCurrentRun(this.runtimeStartup.apiClient, content);
+      const recovered = this.runtimeStartup.store.currentRun.data?.nodes.find((candidate) => candidate.id === node.id);
+      if (recovered?.battleId) this.presentBattle(bootstrap.account.id, recovered.battleId, run.id, node.id);
+      else { this.combatMessage = 'Combat was already resolved. Reload to recover its battle.'; this.render(); }
+      return;
+    }
+    this.combatMessage = outcome.kind === 'ambiguous'
+      ? 'The result is uncertain. Retry with the same combat attempt.'
+      : 'Combat could not be entered. The run cache was not changed.';
+    this.render();
+  }
+
+  private presentBattle(accountId: string, battleId: string, runId: string, nodeId: string): void {
+    this.runtimeStartup.battlePresentation.establish(accountId, battleId, runId, nodeId);
+    this.scene.start(BATTLE_SCENE_KEY);
   }
 
   returnToCamp(): void {
@@ -561,6 +608,19 @@ export class RunScene extends RuntimeScene {
         align: 'center', wordWrap: { width: layout.panel.width - 160 },
       }).setOrigin(0.5);
     root.add(detail);
+    if (selected?.nodeTypeId === 'run_node_type.combat') {
+      const canFight = selected.status === 'available' && selected.battleId === null;
+      const canWatch = selected.status === 'completed' && selected.battleId !== null;
+      const submitting = this.combatAttempt.state === 'submitting';
+      if (canFight || canWatch) this.addButton(root, layout.combatButton,
+        canWatch ? 'WATCH / REPLAY BATTLE' : submitting ? 'RESOLVING…' : this.combatAttempt.state === 'retryable' ? 'RETRY FIGHT' : 'ENTER COMBAT',
+        () => void this.activateSelectedCombat(), canWatch ? 0x315d68 : 0x8a5424, !submitting);
+    }
+    if (this.combatMessage) {
+      const message = this.add.text(layout.panel.x + layout.panel.width / 2, layout.combatButton.y - 18, this.combatMessage,
+        { color: '#f0c982', fontFamily: 'system-ui, sans-serif', fontSize: compact ? '22px' : '14px' }).setOrigin(0.5, 1);
+      root.add(message);
+    }
     this.addButton(root, layout.returnButton, 'RETURN TO CAMP', () => this.returnToCamp(), 0x244b3d, this.abandonState === 'idle');
     this.addButton(root, layout.abandonButton, 'ABANDON RUN', () => this.openAbandonConfirmation(), 0x7a302b, this.abandonState === 'idle');
   }
@@ -631,6 +691,12 @@ export function runShellLayout(snapshot: RuntimeViewportSnapshot): { x: number; 
 }
 
 export class BattleScene extends RuntimeScene {
+  private root: Phaser.GameObjects.Container | null = null;
+  private controller: BattlePlaybackController | null = null;
+  private loadState: 'loading' | 'retryable' | 'integrity-error' | 'playing' | 'complete' = 'loading';
+  private message = 'Loading retained playback…';
+  private timer: Phaser.Time.TimerEvent | null = null;
+  private unsubscribeViewport: (() => void) | null = null;
   constructor(
     runtimeState: RuntimeLifecycleState,
     runtimeStartup: RuntimeStartup,
@@ -640,15 +706,123 @@ export class BattleScene extends RuntimeScene {
   }
 
   create(): void {
-    this.renderPlaceholder('Battle', 'BattleScene lifecycle placeholder');
+    const bootstrap = this.runtimeStartup.store.bootstrap;
+    const marker = this.runtimeStartup.battlePresentation.marker;
+    if (this.runtimeStartup.state.status !== 'ready' || !bootstrap || !marker || marker.accountId !== bootstrap.account.id) {
+      this.runtimeStartup.battlePresentation.clear();
+      this.scene.start(bootstrap?.active_run ? RUN_SCENE_KEY : GAME_SCENE_KEY); return;
+    }
+    this.host()?.setAttribute('data-game-screen', 'battle');
+    this.unsubscribeViewport = this.runtimeViewport.subscribe((snapshot) => {
+      if (snapshot.portraitGateActive) { this.controller?.pause(); if (this.timer) this.timer.paused = true; }
+      else {
+        this.controller?.resume();
+        if (this.timer) this.timer.paused = false;
+        else if (this.controller?.snapshot.state === 'playing' && this.loadState === 'playing') this.scheduleNext();
+      }
+      this.render();
+    });
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.unsubscribeViewport?.(); this.unsubscribeViewport = null; this.timer?.destroy(); this.timer = null;
+      this.root?.destroy(true); this.root = null;
+    });
+    this.render(); void this.loadPlayback();
   }
+
+  get playbackState(): string { return this.controller?.snapshot.state ?? this.loadState; }
+  get playbackController(): BattlePlaybackController | null { return this.controller; }
+
+  retryPlayback(): void { if (this.loadState === 'retryable' || this.loadState === 'integrity-error') void this.loadPlayback(); }
+
+  private async loadPlayback(): Promise<void> {
+    const marker = this.runtimeStartup.battlePresentation.marker;
+    if (!marker) return;
+    this.loadState = 'loading'; this.message = 'Loading retained playback…'; this.render();
+    let playback: BattlePlaybackResult;
+    try { playback = await this.runtimeStartup.apiClient.getBattlePlayback(marker.battleId); }
+    catch (error) {
+      if (error instanceof RuntimeApiError && error.kind === 'http' && error.status === 404) this.runtimeStartup.battlePresentation.clear();
+      this.loadState = error instanceof RuntimeApiError && (error.kind === 'network' || (error.kind === 'http' && (error.status ?? 0) >= 500))
+        ? 'retryable' : 'integrity-error';
+      this.message = this.loadState === 'retryable' ? 'Playback could not be reached. Retry the retained battle.'
+        : 'Playback could not be verified safely. Combat will not be rerun.';
+      this.render(); return;
+    }
+    if (playback.battle.id !== marker.battleId || playback.battle.runId !== marker.runId || playback.battle.runNodeId !== marker.runNodeId) {
+      this.runtimeStartup.battlePresentation.clear(); this.loadState = 'integrity-error';
+      this.message = 'Retained playback identity did not match this presentation.'; this.render(); return;
+    }
+    this.controller = new BattlePlaybackController(playback); this.loadState = 'playing'; this.render(); this.scheduleNext();
+  }
+
+  private scheduleNext(): void {
+    if (!this.controller || this.controller.snapshot.state !== 'playing') return;
+    if (this.runtimeViewport.snapshot.portraitGateActive) { this.controller.pause(); return; }
+    const event = this.controller.advance(); this.render();
+    if (!event) return;
+    const state: string = this.controller.snapshot.state;
+    if (state === 'complete') { this.loadState = 'complete'; this.host()?.setAttribute('data-battle-playback', 'complete'); return; }
+    this.timer = this.time.delayedCall(this.controller.durationFor(event), () => { this.timer = null; this.scheduleNext(); });
+    if (this.runtimeViewport.snapshot.portraitGateActive) { this.controller.pause(); this.timer.paused = true; }
+  }
+
+  private render(): void {
+    this.root?.destroy(true); const snapshot = this.runtimeViewport.snapshot; const root = this.add.container(0, 0).setScale(snapshot.gameScale); this.root = root;
+    const background = this.add.graphics(); background.fillGradientStyle(0x071219, 0x183041, 0x120d18, 0x301824, 1);
+    background.fillRect(0, 0, snapshot.logicalWidth, snapshot.logicalHeight); root.add(background);
+    const safe = snapshot.safeBounds; const compact = snapshot.layoutClass === 'compact';
+    const title = this.add.text(safe.x + safe.width / 2, safe.y + (compact ? 48 : 55), 'BATTLE PLAYBACK',
+      { color: '#f5e8c8', fontFamily: 'Georgia, serif', fontSize: compact ? '42px' : '38px', fontStyle: 'bold' }).setOrigin(0.5); root.add(title);
+    if (!this.controller) {
+      const detail = this.add.text(safe.x + safe.width / 2, safe.y + safe.height / 2, this.message,
+        { color: '#e6d4ad', fontFamily: 'system-ui, sans-serif', fontSize: compact ? '28px' : '21px', align: 'center', wordWrap: { width: safe.width - 140 } }).setOrigin(0.5); root.add(detail);
+      if (this.loadState === 'retryable' || this.loadState === 'integrity-error') this.addBattleButton(root, safe.x + safe.width / 2, safe.bottom - 80, 'RETRY PLAYBACK', () => this.retryPlayback());
+      return;
+    }
+    const state = this.controller.snapshot; const laneTop = safe.y + (compact ? 125 : 135); const laneHeight = safe.height - (compact ? 300 : 315);
+    for (const participant of state.participants) {
+      const sideCenter = participant.side === 'player' ? safe.x + safe.width * 0.27 : safe.x + safe.width * 0.73;
+      const x = sideCenter + (participant.position.x - 1) * (compact ? 145 : 175);
+      const y = laneTop + (participant.position.y + 0.5) * laneHeight / 3;
+      const width = compact ? 205 : 225, height = compact ? 112 : 126;
+      const card = this.add.graphics(); card.fillStyle(participant.defeated ? 0x3b3b3b : participant.side === 'player' ? 0x244f55 : 0x642f37, 0.96);
+      card.fillRoundedRect(x - width / 2, y - height / 2, width, height, 14);
+      card.lineStyle(state.actorKey === participant.combatantKey || state.targetKey === participant.combatantKey ? 6 : 3,
+        state.actorKey === participant.combatantKey ? 0xf4c542 : state.targetKey === participant.combatantKey ? 0xf06a5e : 0xbda96e, 1);
+      card.strokeRoundedRect(x - width / 2, y - height / 2, width, height, 14);
+      const name = this.add.text(x, y - 31, participant.displayName, { color: '#fff2cf', fontFamily: 'system-ui, sans-serif',
+        fontSize: compact ? '22px' : '20px', fontStyle: 'bold' }).setOrigin(0.5);
+      const hp = this.add.text(x, y + 2, `HP ${participant.currentHp} / ${participant.maxHp}`, { color: '#d8f0d8', fontFamily: 'system-ui, sans-serif', fontSize: compact ? '20px' : '17px' }).setOrigin(0.5);
+      const hpBar = this.add.graphics(); const barWidth = width - 42, barY = y + 20;
+      hpBar.fillStyle(0x111820, 1); hpBar.fillRoundedRect(x - barWidth / 2, barY, barWidth, 7, 3);
+      if (participant.currentHp > 0) { hpBar.fillStyle(participant.currentHp / participant.maxHp > 0.3 ? 0x79c979 : 0xe56a5f, 1);
+        hpBar.fillRoundedRect(x - barWidth / 2, barY, barWidth * participant.currentHp / participant.maxHp, 7, 3); }
+      const status = this.add.text(x, y + 39, participant.defeated ? 'DEFEATED' : [...participant.statuses].map((id) => id.replaceAll('_', ' ')).join(' · '),
+        { color: participant.defeated ? '#ff9c91' : '#c8bdf3', fontFamily: 'system-ui, sans-serif', fontSize: compact ? '17px' : '14px' }).setOrigin(0.5);
+      root.add([card, name, hp, hpBar, status]);
+    }
+    const captionY = safe.bottom - (compact ? 120 : 125);
+    const caption = this.add.text(safe.x + safe.width / 2, captionY, state.caption,
+      { color: '#fff1bd', fontFamily: 'Georgia, serif', fontSize: compact ? '29px' : '25px', fontStyle: 'bold', align: 'center' }).setOrigin(0.5); root.add(caption);
+    const facts = [state.dice, state.hit, state.state === 'complete' ? 'PLAYBACK COMPLETE' : `EVENT ${state.nextSequence}`].filter(Boolean).join('   ·   ');
+    const factText = this.add.text(safe.x + safe.width / 2, captionY + (compact ? 42 : 38), facts,
+      { color: '#d1c7ac', fontFamily: 'system-ui, sans-serif', fontSize: compact ? '20px' : '16px' }).setOrigin(0.5); root.add(factText);
+    this.host()?.setAttribute('data-battle-playback', state.state);
+  }
+
+  private addBattleButton(root: Phaser.GameObjects.Container, x: number, y: number, label: string, action: () => void): void {
+    const button = this.add.rectangle(x, y, 300, 58, 0x315d68).setStrokeStyle(3, 0xc9972b).setInteractive().on('pointerup', action); actionCursor(button);
+    const text = this.add.text(x, y, label, { color: '#fff2cf', fontFamily: 'system-ui, sans-serif', fontSize: '18px', fontStyle: 'bold' }).setOrigin(0.5); root.add([button, text]);
+  }
+  private host(): HTMLElement | null { return (this.sys as Phaser.Scenes.Systems & { game?: Phaser.Game }).game?.canvas.parentElement ?? null; }
 }
 
 export function nextSceneForStartup(
   state: RuntimeStartupSnapshot,
   hasActiveRun = false,
-): typeof GAME_SCENE_KEY | typeof RUN_SCENE_KEY | null {
-  return state.status === 'ready' ? (hasActiveRun ? RUN_SCENE_KEY : GAME_SCENE_KEY) : null;
+  hasBattlePresentation = false,
+): typeof GAME_SCENE_KEY | typeof RUN_SCENE_KEY | typeof BATTLE_SCENE_KEY | null {
+  return state.status === 'ready' ? (hasBattlePresentation ? BATTLE_SCENE_KEY : hasActiveRun ? RUN_SCENE_KEY : GAME_SCENE_KEY) : null;
 }
 
 export function startupMessage(state: RuntimeStartupSnapshot): string {

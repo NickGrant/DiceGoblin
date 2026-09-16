@@ -6,6 +6,7 @@ import {
 } from './client-content-registry';
 import { BootstrapContractError, GameStore, parseGameBootstrapEnvelope } from './game-store';
 import { RuntimeApiClient, RuntimeApiError } from './runtime-api-client';
+import { BattlePresentationState } from './battle-presentation';
 
 export type RuntimeStartupFailureReason =
   | 'client-content-request'
@@ -38,6 +39,7 @@ export class RuntimeStartup {
     readonly apiClient: RuntimeApiClient = new RuntimeApiClient(),
     readonly contentLoader: ClientContentLoader = new ClientContentLoader(),
     store: GameStore = new GameStore(),
+    readonly battlePresentation: BattlePresentationState = new BattlePresentationState(),
   ) {
     this.store = store;
   }
@@ -120,6 +122,7 @@ export class RuntimeStartup {
     if (this.disposed) return this.currentState;
     this.activeContentRegistry = registry;
     this.store.hydrateBootstrap(bootstrap);
+    this.battlePresentation.restoreForAccount(bootstrap.account.id);
     this.currentState = { status: 'ready' };
     return this.currentState;
   }

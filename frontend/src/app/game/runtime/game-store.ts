@@ -336,6 +336,10 @@ export class GameStore {
     return () => this.runListeners.delete(listener);
   }
 
+  markCurrentRunStale(): void {
+    this.setCurrentRun({ status: 'stale', data: this.currentRunState.data, error: null });
+  }
+
   reconcileRunStart(result: RunStartResult): void {
     const bootstrap = this.cachedBootstrap;
     if (!bootstrap || result.playerRevision < bootstrap.player.player_revision)

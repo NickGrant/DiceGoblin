@@ -4,7 +4,7 @@
 
 ### Milestone 4 Package 6 - Phaser BattleScene playback lifecycle
 
-**Status:** Open
+**Status:** In Progress
 **Priority:** High
 
 #### Problem
