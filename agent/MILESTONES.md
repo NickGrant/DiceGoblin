@@ -7,7 +7,7 @@ Read this for sequencing/planning or when closing/promoting an execution package
 **Status:** Active
 
 ### Related Issues
-- Milestone 4 Package 4 - Authoritative combat-node resolution + persisted run/battle state
+- Milestone 4 Package 5 - Battle/result/playback query and reconnect contracts
 
 Milestone 1 - Walking Skeleton is complete and passed manual user UAT.
 
@@ -33,8 +33,8 @@ Rewards, XP/progression grants, boss/run completion, Mountains unlock, and the c
 - During a run, `run_unit_state.current_hp` is authoritative. Package 1 initializes new-run participants at their resolved max HP and enforces concrete non-null run HP in the fresh baseline.
 - Package 2 established the canonical first-Farm combat content and the infrastructure-free deterministic vNext combat kernel. Its versioned normalized input and semantic result/playback are the combat contract.
 - Package 3 established a single immutable finalized `battles` record per run node containing the exact normalized input, participant identity/presentation manifest, and exact versioned result/playback. Historical playback must never be reconstructed from later Warband/content state.
-- Battle storage remains subordinate to the run node. The database enforces same-run node ownership and at most one finalized battle per node; Package 4 adds the owning application transaction/idempotency/state-transition semantics.
-- Run loss is a real terminal state. The accepted Energy and Warband models already refer to terminal failure/loss; Package 4 owns the first concrete `failed` lifecycle transition when combat ends in defeat or stalemate. A combat node is resolved once regardless of battle outcome; only victory unlocks outgoing nodes.
+- Package 4 established the authoritative node-resolution transaction. It serializes through `user_state`, assembles combat from locked run/Warband state, invokes the kernel once, persists battle + terminal player HP + node/run lifecycle + revision + idempotency receipt atomically, and never spends/refunds Energy.
+- Run loss is a real terminal state. A combat node is resolved once regardless of battle outcome; only victory unlocks direct outgoing nodes. Defeat/stalemate complete the node and terminate the run as `failed`.
 
 ### Exit Criteria
 - Unit combat stats resolve deterministically from canonical authored type data and unit level without prototype SQL catalogs or a persistent Speed stat.
@@ -54,17 +54,18 @@ Rewards, XP/progression grants, boss/run completion, Mountains unlock, and the c
 1. ~~Canonical combatant stats + authoritative run HP initialization.~~ Complete and architecturally approved at `dcb78d61672b5b4e739d16c3757f8d7bbc817d07`.
 2. ~~Farm combat authored content + deterministic engine adaptation.~~ Complete and architecturally approved at `2c1d9e9f4863da95a2cb0021d4b16d066fb5b7a7`.
 3. ~~Battle persistence + playback boundary.~~ Complete and architecturally approved at `833bd7dda53ffc1dbe88b085f55e42922280f979`.
-4. **Authoritative combat-node resolution + persisted run/battle state.** Current.
-5. Battle/result/playback query and reconnect contracts.
+4. ~~Authoritative combat-node resolution + persisted run/battle state.~~ Complete and architecturally approved at `8b87ca535c3c9c8dee58516898b28cdc081e4cda`.
+5. **Battle/result/playback query and reconnect contracts.** Current.
 6. Phaser `BattleScene` playback lifecycle.
 7. Battle result + authoritative return-to-run reconciliation.
 8. Combat integrated verification/closure.
 
 ### Sequencing Notes
-- Packages 1-3 established the canonical combat math/content/kernel and the immutable persistence format. Do not reopen those boundaries while adding the application command unless a proven blocker requires it.
-- Package 4 owns the first real combat mutation: authenticate/authorize, validate one available owned Farm combat node, assemble the exact player/enemy snapshot from authoritative locked state, execute the deterministic kernel once, persist the finalized battle, write terminal player HP, resolve node/run lifecycle, increment revision once, and finalize the idempotency receipt in one transaction.
-- Package 4 must preserve the existing one-physical-die/one-slot Warband invariant while assembling player combatants. Player combatant keys remain kernel-local stable keys; durable unit identity belongs in the manifest.
-- On victory, the resolved combat node completes and only its direct outgoing locked nodes become available; the run remains active. On defeat or stalemate, the combat node still becomes resolved/completed, no outgoing node unlock occurs, and the run becomes terminal `failed` with `ended_at` set. Energy is never refunded.
-- Package 5 exposes persisted battle/result/playback with ownership/non-disclosure and reconnect contracts. It must support reconnecting to the finalized battle even when Package 4 made the owning run terminal failure; historical data comes from the stored battle, not current Warband/content.
-- Packages 6-7 make the persisted result watchable and reconcile Phaser back to authoritative run state; Phaser never becomes combat authority.
+- Packages 1-4 now establish the complete backend write path: canonical stats/content/kernel, immutable battle persistence, and the atomic combat-node mutation. Later packages must consume these persisted facts rather than simulate or reconstruct them client-side.
+- Package 4's exact replay is checked after the player lock and before ordinary run/node lifecycle rejection. A different key cannot reroll a completed combat node. Victory unlocks direct persisted graph children only; defeat/stalemate complete the combat node and terminate the run as `failed` without Energy mutation.
+- A minor Package 4 hardening item remains for the next backend package: a manually corrupted non-empty encounter ID that fails the `encounter.*` stable-ID syntax currently falls to generic `server_error`; Package 5 should normalize this persisted-corruption case to the existing non-disclosing run/battle integrity error while touching the backend read boundary.
+- Package 5 exposes only presentation-safe persisted battle/result/playback facts. It must validate ownership through battle -> run -> user and must not reconstruct a historical battle from current ContentRegistry/Warband state. The read must remain available for an owned retained battle even when its run became terminal `failed` or was later abandoned; otherwise defeat playback/reconnect would be impossible.
+- For an active run, current-run state should expose only the minimal finalized-battle reference needed to rediscover playback for a completed combat node; do not embed the playback itself in the run aggregate.
+- Package 6 owns Phaser playback and any ephemeral client presentation-resume marker required across browser reload. Do not add server-side playback-progress/claim state merely to remember animation progress.
+- Package 7 reconciles the watched result back into authoritative RunScene/Camp behavior; Phaser never becomes combat authority.
 - Package 8 is technical closure. Manual UAT follows; do not begin Milestone 5 until it passes.
