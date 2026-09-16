@@ -4,7 +4,7 @@
 
 ### Milestone 4 Package 8 - Combat integrated verification/closure
 
-**Status:** Open
+**Status:** In Progress
 **Priority:** High
 
 #### Problem

@@ -28,7 +28,8 @@ try {
   await page.route('**/runtime-config.js', (route) => route.fulfill({ status: 200, contentType: 'application/javascript',
     body: `window.__DICE_GOBLIN_CONFIG__={apiBaseUrl:'${API_URL}',enableDevPanel:true};` }));
   page.on('request', (request) => { const url = new URL(request.url()); requests.push({ method: request.method(), path: url.pathname,
-    probe: request.headers()['x-combat-probe'] === '1', key: request.headers()['idempotency-key'] ?? null }); });
+    probe: request.headers()['x-combat-probe'] === '1', key: request.headers()['idempotency-key'] ?? null,
+    body: request.postData() }); });
   const appRequests = () => requests.filter((request) => !request.probe);
   const count = (method, path) => appRequests().filter((request) => request.method === method && request.path === path).length;
 
@@ -64,6 +65,11 @@ try {
     const request = response.request(); const path = new URL(response.url()).pathname;
     return request.method() === 'POST' && path.startsWith(resolvePath) && path.endsWith('/resolve');
   });
+  const firstPlaybackResponse = page.waitForResponse((candidate) => {
+    const request = candidate.request();
+    return request.method() === 'GET' && new URL(candidate.url()).pathname.startsWith('/api/v1/battles/')
+      && new URL(candidate.url()).pathname.endsWith('/playback') && request.headers()['x-combat-probe'] !== '1';
+  });
   await click(page, 800, 799);
   const response = await resolveResponse; assert.equal(response.status(), 200);
   const resolved = (await response.json()).data; const battleId = resolved.battle.id;
@@ -71,10 +77,17 @@ try {
   const exactResolvePath = `/api/v1/runs/${started.run.id}/nodes/${resolved.node.id}/resolve`;
   await page.waitForSelector('.game-host__mount[data-game-screen="battle"]');
   await page.waitForSelector('.game-host__mount[data-battle-playback="complete"]', { timeout: TIMEOUT });
+  const firstPlayback = await firstPlaybackResponse; assert.equal(firstPlayback.status(), 200);
+  const firstPlaybackBattle = (await firstPlayback.json()).data.battle;
+  assert.equal(firstPlaybackBattle.id, battleId);
+  assert.equal(firstPlaybackBattle.run_id, started.run.id);
+  assert.equal(firstPlaybackBattle.run_node_id, resolved.node.id);
   console.log(JSON.stringify({ stage: 'playback-complete' }));
   assert.equal(count('POST', exactResolvePath), 1);
   assert.equal(count('GET', `/api/v1/battles/${battleId}/playback`), 1);
-  assert.match(appRequests().find((request) => request.method === 'POST' && request.path === exactResolvePath)?.key ?? '', /^combat-node:/);
+  const authoritativeResolveRequest = appRequests().find((request) => request.method === 'POST' && request.path === exactResolvePath);
+  assert.match(authoritativeResolveRequest?.key ?? '', /^combat-node:/);
+  assert.equal(authoritativeResolveRequest?.body, null, 'combat resolution POST must not contain a request body');
   const resolveIndex = appRequests().findIndex((request) => request.method === 'POST' && request.path === exactResolvePath);
   assert.deepEqual(appRequests().slice(resolveIndex + 1).filter((request) => request.path.startsWith('/api/'))
     .map((request) => `${request.method} ${request.path}`), [`GET /api/v1/battles/${battleId}/playback`]);
@@ -132,7 +145,8 @@ try {
   assert.equal(count('GET', `/api/v1/battles/${battleId}/playback`), playbackBeforeContinue);
   console.log(JSON.stringify({ result: 'passed', runId: started.run.id, nodeId: resolved.node.id, battleId,
     outcome: resolved.battle.outcome, resolvePosts: 1, playbackGets: 2, continueCurrentRunGets: 1,
-    markerCleared: true, continueScene: 'RunScene', reloadScene: 'RunScene' }));
+    resolveRequestBody: 'none', persistedIdentityMatched: true, markerCleared: true,
+    continueScene: 'RunScene', reloadScene: 'RunScene' }));
   await context.close();
 } finally {
   await browser.close();

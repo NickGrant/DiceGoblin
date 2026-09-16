@@ -161,8 +161,9 @@ Options:
 async function installGameFixtureRoutes(page, options) {
   const scene = options.scene.trim().toLowerCase();
   const battleScenes = ['battle-early', 'battle-mid', 'battle-complete', 'battle-compact', 'battle-wide', 'battle-portrait', 'battle-defeat',
-    'battle-result-victory', 'battle-result-defeat', 'battle-result-compact', 'battle-result-wide', 'battle-result-error', 'battle-result-portrait'];
-  if (!['camp', 'camp-portrait', 'warband', 'squad-editor', 'unit-configuration', 'run', 'run-abandon', 'run-portrait', ...battleScenes].includes(scene)) return;
+    'battle-result-victory', 'battle-result-defeat', 'battle-result-stalemate', 'battle-result-compact', 'battle-result-wide', 'battle-result-error', 'battle-result-portrait'];
+  const runScenes = ['run', 'run-abandon', 'run-portrait', 'run-combat-available'];
+  if (!['camp', 'camp-portrait', 'warband', 'squad-editor', 'unit-configuration', ...runScenes, ...battleScenes].includes(scene)) return;
 
   if (battleScenes.includes(scene)) {
     await page.addInitScript(({ accountId }) => sessionStorage.setItem('dice-goblins:battle-presentation:v1', JSON.stringify({
@@ -219,8 +220,8 @@ async function installGameFixtureRoutes(page, options) {
           id: '301', name: 'Bogbreakers', is_active: true, formation: activeFormation,
           units: unitRows.filter((unit) => activeFormation.includes(unit.id)),
         },
-        active_run: options.activeRun || ['run', 'run-abandon', 'run-portrait'].includes(scene)
-          || (battleScenes.includes(scene) && !['battle-defeat', 'battle-result-defeat'].includes(scene))
+        active_run: options.activeRun || runScenes.includes(scene)
+          || (battleScenes.includes(scene) && !['battle-defeat', 'battle-result-defeat', 'battle-result-stalemate'].includes(scene))
           ? { id: '401', region_id: 'region.the_farm', squad_id: '301', status: 'active' }
           : null,
       },
@@ -228,21 +229,22 @@ async function installGameFixtureRoutes(page, options) {
   }));
   if (battleScenes.includes(scene)) {
     const defeat = ['battle-defeat', 'battle-result-defeat'].includes(scene);
-    const outcome = defeat ? 'defeat' : 'victory';
+    const stalemate = scene === 'battle-result-stalemate';
+    const outcome = defeat ? 'defeat' : stalemate ? 'stalemate' : 'victory';
     const participants = [
       { combatant_key: 'ashback', side: 'player', unit_id: '101', unit_type_id: 'unit_type.bruiser', enemy_unit_type_id: null,
         display_name: 'Ashback', art_key: 'goblin_bruiser', position: { x: 1, y: 1 }, initial_hp: 24, max_hp: 24,
-        terminal_hp: defeat ? 0 : 13, is_defeated: defeat, terminal_statuses: [] },
+        terminal_hp: defeat ? 0 : stalemate ? 6 : 13, is_defeated: defeat, terminal_statuses: [] },
       { combatant_key: 'mudwrestler', side: 'enemy', unit_id: null, unit_type_id: null, enemy_unit_type_id: 'enemy_unit_type.mudwrestler',
         display_name: 'Mudwrestler', art_key: 'enemy_mudwrestler', position: { x: 2, y: 1 }, initial_hp: 18, max_hp: 18,
-        terminal_hp: defeat ? 7 : 0, is_defeated: !defeat, terminal_statuses: [] },
+        terminal_hp: defeat ? 7 : stalemate ? 4 : 0, is_defeated: !defeat && !stalemate, terminal_statuses: [] },
       { combatant_key: 'mudslinger', side: 'enemy', unit_id: null, unit_type_id: null, enemy_unit_type_id: 'enemy_unit_type.mudslinger',
         display_name: 'Mudslinger', art_key: 'enemy_mudslinger', position: { x: 0, y: 1 }, initial_hp: 12, max_hp: 12,
-        terminal_hp: defeat ? 8 : 0, is_defeated: !defeat, terminal_statuses: [] },
+        terminal_hp: defeat ? 8 : stalemate ? 3 : 0, is_defeated: !defeat && !stalemate, terminal_statuses: [] },
     ];
     const actor = defeat ? 'mudwrestler' : 'ashback'; const target = defeat ? 'ashback' : 'mudwrestler';
     const hpBefore = defeat ? 24 : 18; const hpAfter = defeat ? 0 : 0;
-    const events = [
+    const decisiveEvents = [
       { sequence: 0, type: 'battle_started', round: 0, tick: 0, facts: { combatant_keys: ['ashback', 'mudslinger', 'mudwrestler'] } },
       { sequence: 1, type: 'round_started', round: 1, tick: 1, facts: {} },
       { sequence: 2, type: 'action_started', round: 1, tick: 1, facts: { actor_key: actor, ability_id: defeat ? 'ability.wrestle' : 'ability.heavy_strike', target_key: target, target_reason: 'front_preference' } },
@@ -252,22 +254,27 @@ async function installGameFixtureRoutes(page, options) {
       { sequence: 6, type: 'death', round: 1, tick: 1, facts: { combatant_key: target } },
       { sequence: 7, type: 'battle_ended', round: 1, tick: 1, facts: { outcome } },
     ];
+    const events = stalemate ? [
+      { sequence: 0, type: 'battle_started', round: 0, tick: 0, facts: { combatant_keys: ['ashback', 'mudslinger', 'mudwrestler'] } },
+      { sequence: 1, type: 'round_started', round: 100, tick: 100, facts: {} },
+      { sequence: 2, type: 'battle_ended', round: 100, tick: 100, facts: { outcome } },
+    ] : decisiveEvents;
     await page.route('**/api/v1/battles/601/playback', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
       ok: true, data: { battle: { id: '601', run_id: '401', run_node_id: '501', engine_version: 1, playback_version: 1,
-        outcome, ending_round: 1, ending_tick: 1, participants, events }, player_revision: 4 },
+        outcome, ending_round: stalemate ? 100 : 1, ending_tick: stalemate ? 100 : 1, participants, events }, player_revision: 4 },
     }) }));
     if (scene === 'battle-result-error') await page.route('**/api/v1/runs/current', (route) => route.fulfill({
       status: 503, contentType: 'application/json', body: JSON.stringify({ ok: false, error: { code: 'server_error' } }),
     }));
     return;
   }
-  if (['run', 'run-abandon', 'run-portrait'].includes(scene)) {
+  if (runScenes.includes(scene)) {
     await page.route('**/api/v1/runs/current', (route) => route.fulfill({
       status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, data: {
         run: { id: '401', region_id: 'region.the_farm', squad_id: '301', status: 'active', created_at: '2026-09-13T12:00:00Z',
           nodes: [
-            { id: '501', node_index: 0, node_type_id: 'run_node_type.combat', status: 'completed', completed_at: '2026-09-13T12:02:00Z', battle_id: '601', position: { column: 0, row: 1 } },
-            { id: '502', node_index: 1, node_type_id: 'run_node_type.loot', status: 'available', completed_at: null, battle_id: null, position: { column: 1, row: 1 } },
+            { id: '501', node_index: 0, node_type_id: 'run_node_type.combat', status: scene === 'run-combat-available' ? 'available' : 'completed', completed_at: scene === 'run-combat-available' ? null : '2026-09-13T12:02:00Z', battle_id: scene === 'run-combat-available' ? null : '601', position: { column: 0, row: 1 } },
+            { id: '502', node_index: 1, node_type_id: 'run_node_type.loot', status: scene === 'run-combat-available' ? 'locked' : 'available', completed_at: null, battle_id: null, position: { column: 1, row: 1 } },
             { id: '503', node_index: 2, node_type_id: 'run_node_type.rest', status: 'locked', completed_at: null, battle_id: null, position: { column: 2, row: 1 } },
             { id: '504', node_index: 3, node_type_id: 'run_node_type.boss', status: 'locked', completed_at: null, battle_id: null, position: { column: 3, row: 1 } },
             { id: '505', node_index: 4, node_type_id: 'run_node_type.exit', status: 'locked', completed_at: null, battle_id: null, position: { column: 4, row: 1 } },
@@ -497,14 +504,14 @@ async function captureScene(options) {
             { timeout: options.timeoutMs },
           );
         }
-        if (['camp', 'camp-portrait', 'warband', 'squad-editor', 'unit-configuration', 'run', 'run-abandon', 'run-portrait',
+        if (['camp', 'camp-portrait', 'warband', 'squad-editor', 'unit-configuration', 'run', 'run-abandon', 'run-portrait', 'run-combat-available',
           'battle-early', 'battle-mid', 'battle-complete', 'battle-compact', 'battle-wide', 'battle-portrait', 'battle-defeat',
-          'battle-result-victory', 'battle-result-defeat', 'battle-result-compact', 'battle-result-wide', 'battle-result-error', 'battle-result-portrait'].includes(options.scene.trim().toLowerCase())) {
+          'battle-result-victory', 'battle-result-defeat', 'battle-result-stalemate', 'battle-result-compact', 'battle-result-wide', 'battle-result-error', 'battle-result-portrait'].includes(options.scene.trim().toLowerCase())) {
           await page.waitForSelector('.game-host__mount canvas', { timeout: options.timeoutMs });
           const requestedGameScreen = options.scene.trim().toLowerCase();
           const gameScreen = ['warband', 'squad-editor', 'unit-configuration'].includes(requestedGameScreen)
             ? requestedGameScreen : requestedGameScreen.startsWith('battle-') ? 'battle'
-              : ['run', 'run-abandon', 'run-portrait'].includes(requestedGameScreen) ? 'run' : 'camp';
+              : ['run', 'run-abandon', 'run-portrait', 'run-combat-available'].includes(requestedGameScreen) ? 'run' : 'camp';
           await page.waitForSelector(`[data-game-screen="${gameScreen}"]`, { timeout: options.timeoutMs });
           if (gameScreen === 'warband') {
             await page.waitForSelector('[data-warband-ready="true"]', { timeout: options.timeoutMs });
@@ -518,7 +525,7 @@ async function captureScene(options) {
           if (gameScreen === 'run') {
             await page.waitForSelector('[data-run-map-ready="true"]', { state: 'attached', timeout: options.timeoutMs });
           }
-          if (gameScreen === 'battle' && ['battle-complete', 'battle-defeat', 'battle-result-victory', 'battle-result-defeat',
+          if (gameScreen === 'battle' && ['battle-complete', 'battle-defeat', 'battle-result-victory', 'battle-result-defeat', 'battle-result-stalemate',
             'battle-result-compact', 'battle-result-wide', 'battle-result-error', 'battle-result-portrait'].includes(requestedGameScreen)) {
             await page.waitForSelector('[data-battle-playback="complete"]', { timeout: options.timeoutMs });
           }
@@ -534,6 +541,11 @@ async function captureScene(options) {
           }
           if (requestedGameScreen === 'run-abandon') {
             await page.waitForSelector('[data-run-abandon-confirmation="true"]', { state: 'attached', timeout: options.timeoutMs });
+          }
+          if (requestedGameScreen === 'run-combat-available') {
+            const canvas = page.locator('.game-host__mount canvas'); const box = await canvas.boundingBox();
+            if (!box) throw new Error('Run canvas was unavailable.');
+            await canvas.click({ position: { x: box.width * 225 / 1600, y: box.height * 418 / 900 }, force: true });
           }
           const runtimeMetrics = await page.evaluate(() => {
             const host = document.querySelector('.game-host__mount');
