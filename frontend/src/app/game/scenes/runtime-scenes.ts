@@ -695,6 +695,8 @@ export class BattleScene extends RuntimeScene {
   private root: Phaser.GameObjects.Container | null = null;
   private controller: BattlePlaybackController | null = null;
   private loadState: 'loading' | 'retryable' | 'integrity-error' | 'invalid-marker' | 'playing' | 'complete' = 'loading';
+  private continueState: 'idle' | 'submitting' | 'error' = 'idle';
+  private continueMessage = '';
   private message = 'Loading retained playback…';
   private timer: Phaser.Time.TimerEvent | null = null;
   private unsubscribeViewport: (() => void) | null = null;
@@ -739,12 +741,38 @@ export class BattleScene extends RuntimeScene {
 
   get playbackState(): string { return this.controller?.snapshot.state ?? this.loadState; }
   get playbackController(): BattlePlaybackController | null { return this.controller; }
+  get battleContinueState(): string { return this.continueState; }
 
   retryPlayback(): void { if (this.loadState === 'retryable' || this.loadState === 'integrity-error') void this.loadPlayback(); }
 
   recoverFromInvalidMarker(): void {
     if (this.loadState !== 'invalid-marker') return;
     this.scene.start(this.runtimeStartup.store.bootstrap?.active_run ? RUN_SCENE_KEY : GAME_SCENE_KEY);
+  }
+
+  async continueAfterBattle(): Promise<void> {
+    if (this.controller?.snapshot.state !== 'complete' || this.continueState === 'submitting'
+      || this.runtimeViewport.snapshot.portraitGateActive) return;
+    const marker = this.runtimeStartup.battlePresentation.marker;
+    const content = this.runtimeStartup.contentRegistry;
+    if (!marker || !content) {
+      this.continueState = 'error';
+      this.continueMessage = 'Return synchronization could not start safely. Reload to recover the retained battle.';
+      this.render(); return;
+    }
+    this.continueState = 'submitting'; this.continueMessage = 'Synchronizing the authoritative run state…'; this.render();
+    try {
+      const result = await this.runtimeStartup.apiClient.getCurrentRun(content);
+      const minimumPlayerRevision = Math.max(this.controller.result.playerRevision,
+        this.runtimeStartup.battlePresentation.resolution?.playerRevision ?? 0);
+      const currentRun = this.runtimeStartup.store.reconcileBattleReturn(result, { ...marker, minimumPlayerRevision });
+      this.runtimeStartup.battlePresentation.clear();
+      this.scene.start(currentRun ? RUN_SCENE_KEY : GAME_SCENE_KEY);
+    } catch {
+      this.continueState = 'error';
+      this.continueMessage = 'The battle is finalized, but return synchronization failed. Retry Continue.';
+      this.render();
+    }
   }
 
   private async loadPlayback(): Promise<void> {
@@ -789,7 +817,8 @@ export class BattleScene extends RuntimeScene {
     const background = this.add.graphics(); background.fillGradientStyle(0x071219, 0x183041, 0x120d18, 0x301824, 1);
     background.fillRect(0, 0, snapshot.logicalWidth, snapshot.logicalHeight); root.add(background);
     const safe = snapshot.safeBounds; const compact = snapshot.layoutClass === 'compact';
-    const title = this.add.text(safe.x + safe.width / 2, safe.y + (compact ? 48 : 55), 'BATTLE PLAYBACK',
+    const completed = this.controller?.snapshot.state === 'complete';
+    const title = this.add.text(safe.x + safe.width / 2, safe.y + (compact ? 48 : 55), completed ? 'BATTLE RESULT' : 'BATTLE PLAYBACK',
       { color: '#f5e8c8', fontFamily: 'Georgia, serif', fontSize: compact ? '42px' : '38px', fontStyle: 'bold' }).setOrigin(0.5); root.add(title);
     if (!this.controller) {
       const detail = this.add.text(safe.x + safe.width / 2, safe.y + safe.height / 2, this.message,
@@ -825,17 +854,31 @@ export class BattleScene extends RuntimeScene {
         { color: participant.defeated ? '#ff9c91' : '#c8bdf3', fontFamily: 'system-ui, sans-serif', fontSize: compact ? '17px' : '14px' }).setOrigin(0.5);
       root.add(art ? [card, art, name, hp, hpBar, status] : [card, name, hp, hpBar, status]);
     }
-    const captionY = safe.bottom - (compact ? 120 : 125);
-    const caption = this.add.text(safe.x + safe.width / 2, captionY, state.caption,
+    const captionY = safe.bottom - (completed ? (compact ? 205 : 210) : (compact ? 120 : 125));
+    const caption = this.add.text(safe.x + safe.width / 2, captionY, completed ? String(state.outcome).toUpperCase() : state.caption,
       { color: '#fff1bd', fontFamily: 'Georgia, serif', fontSize: compact ? '29px' : '25px', fontStyle: 'bold', align: 'center' }).setOrigin(0.5); root.add(caption);
-    const facts = [state.dice, state.hit, state.state === 'complete' ? 'PLAYBACK COMPLETE' : `EVENT ${state.nextSequence}`].filter(Boolean).join('   ·   ');
+    const playerResult = completed ? state.participants.filter((participant) => participant.side === 'player')
+      .map((participant) => `${participant.displayName}: ${participant.currentHp}/${participant.maxHp} HP${participant.defeated ? ' · DEFEATED' : ''}`).join('   ·   ') : null;
+    const facts = completed ? (playerResult ?? '') : [state.dice, state.hit, `EVENT ${state.nextSequence}`].filter(Boolean).join('   ·   ');
     const factText = this.add.text(safe.x + safe.width / 2, captionY + (compact ? 42 : 38), facts,
       { color: '#d1c7ac', fontFamily: 'system-ui, sans-serif', fontSize: compact ? '20px' : '16px' }).setOrigin(0.5); root.add(factText);
+    if (completed) {
+      const feedback = this.add.text(safe.x + safe.width / 2, safe.bottom - (compact ? 105 : 108), this.continueMessage,
+        { color: this.continueState === 'error' ? '#ffb0a7' : '#d1c7ac', fontFamily: 'system-ui, sans-serif',
+          fontSize: compact ? '18px' : '15px', align: 'center', wordWrap: { width: Math.min(760, safe.width - 100) } }).setOrigin(0.5); root.add(feedback);
+      const enabled = this.continueState !== 'submitting' && !snapshot.portraitGateActive;
+      this.addBattleButton(root, safe.x + safe.width / 2, safe.bottom - 55,
+        this.continueState === 'submitting' ? 'SYNCHRONIZING…' : this.continueState === 'error' ? 'RETRY CONTINUE' : 'CONTINUE',
+        () => void this.continueAfterBattle(), enabled);
+      this.host()?.setAttribute('data-battle-result', String(state.outcome));
+      this.host()?.setAttribute('data-battle-continue', this.continueState);
+    }
     this.host()?.setAttribute('data-battle-playback', state.state);
   }
 
-  private addBattleButton(root: Phaser.GameObjects.Container, x: number, y: number, label: string, action: () => void): void {
-    const button = this.add.rectangle(x, y, 300, 58, 0x315d68).setStrokeStyle(3, 0xc9972b).setInteractive().on('pointerup', action); actionCursor(button);
+  private addBattleButton(root: Phaser.GameObjects.Container, x: number, y: number, label: string, action: () => void, enabled = true): void {
+    const button = this.add.rectangle(x, y, 300, 58, enabled ? 0x315d68 : 0x3b4145).setStrokeStyle(3, enabled ? 0xc9972b : 0x777777);
+    if (enabled) { button.setInteractive().on('pointerup', action); actionCursor(button); }
     const text = this.add.text(x, y, label, { color: '#fff2cf', fontFamily: 'system-ui, sans-serif', fontSize: '18px', fontStyle: 'bold' }).setOrigin(0.5); root.add([button, text]);
   }
   private host(): HTMLElement | null { return (this.sys as Phaser.Scenes.Systems & { game?: Phaser.Game }).game?.canvas.parentElement ?? null; }

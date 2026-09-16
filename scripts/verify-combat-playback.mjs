@@ -92,8 +92,47 @@ try {
   await page.waitForSelector('.game-host__mount[data-battle-playback="complete"]', { timeout: TIMEOUT });
   assert.equal(count('POST', exactResolvePath), 1);
   assert.equal(count('GET', `/api/v1/battles/${battleId}/playback`), 2);
+  const playbackBeforeContinue = count('GET', `/api/v1/battles/${battleId}/playback`);
+  const currentRunBeforeContinue = count('GET', '/api/v1/runs/current');
+  const bootstrapBeforeContinue = count('GET', '/api/v1/game/bootstrap');
+  const warbandBeforeContinue = ['/api/v1/units', '/api/v1/dice', '/api/v1/squads']
+    .map((path) => count('GET', path));
+  await page.evaluate(() => { window.__combatCanvas = document.querySelector('.game-host__mount canvas'); });
+  const continueResponse = page.waitForResponse((candidate) => {
+    const request = candidate.request();
+    return request.method() === 'GET' && new URL(candidate.url()).pathname === '/api/v1/runs/current'
+      && request.headers()['x-combat-probe'] !== '1';
+  });
+  await click(page, 800, 845);
+  const reconciledResponse = await continueResponse; assert.equal(reconciledResponse.status(), 200);
+  const reconciled = (await reconciledResponse.json()).data;
+  await page.waitForSelector('.game-host__mount[data-game-screen="run"]');
+  await page.waitForSelector('.game-host__mount[data-run-map-ready="true"]', { state: 'attached' });
+  assert(reconciled.run, 'victory Continue must retain an active current run');
+  const reconciledNode = reconciled.run.nodes.find((candidate) => candidate.id === resolved.node.id);
+  assert.equal(reconciledNode.status, 'completed'); assert.equal(reconciledNode.battle_id, battleId);
+  const availableLoot = reconciled.run.nodes.find((candidate) => candidate.node_type_id === 'run_node_type.loot');
+  assert.equal(availableLoot?.status, 'available');
+  for (const node of reconciled.run.nodes.filter((candidate) => ['run_node_type.rest', 'run_node_type.boss', 'run_node_type.exit'].includes(candidate.node_type_id)))
+    assert.equal(node.status, 'locked');
+  for (const [unitId, terminalHp] of Object.entries(resolved.terminal_player_hp))
+    assert.equal(reconciled.run.units.find((candidate) => candidate.unit_id === unitId)?.current_hp, terminalHp);
+  assert.equal(count('GET', '/api/v1/runs/current'), currentRunBeforeContinue + 1);
+  assert.equal(count('GET', `/api/v1/battles/${battleId}/playback`), playbackBeforeContinue);
+  assert.equal(count('POST', exactResolvePath), 1); assert.equal(count('GET', '/api/v1/game/bootstrap'), bootstrapBeforeContinue);
+  assert.deepEqual(['/api/v1/units', '/api/v1/dice', '/api/v1/squads'].map((path) => count('GET', path)), warbandBeforeContinue);
+  assert.equal(await page.evaluate(() => sessionStorage.getItem('dice-goblins:battle-presentation:v1')), null);
+  assert.equal(await page.evaluate(() => window.__combatCanvas === document.querySelector('.game-host__mount canvas')), true);
+  console.log(JSON.stringify({ stage: 'continue-reconciled', currentRunGets: 1, scene: 'RunScene' }));
+
+  await page.reload({ waitUntil: 'load' });
+  await page.waitForSelector('.game-host__mount[data-game-screen="run"]');
+  await page.waitForSelector('.game-host__mount[data-run-map-ready="true"]', { state: 'attached' });
+  assert.equal(count('POST', exactResolvePath), 1);
+  assert.equal(count('GET', `/api/v1/battles/${battleId}/playback`), playbackBeforeContinue);
   console.log(JSON.stringify({ result: 'passed', runId: started.run.id, nodeId: resolved.node.id, battleId,
-    outcome: resolved.battle.outcome, resolvePosts: 1, playbackGets: 2, reloadScene: 'BattleScene' }));
+    outcome: resolved.battle.outcome, resolvePosts: 1, playbackGets: 2, continueCurrentRunGets: 1,
+    markerCleared: true, continueScene: 'RunScene', reloadScene: 'RunScene' }));
   await context.close();
 } finally {
   await browser.close();

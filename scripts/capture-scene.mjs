@@ -160,7 +160,8 @@ Options:
 
 async function installGameFixtureRoutes(page, options) {
   const scene = options.scene.trim().toLowerCase();
-  const battleScenes = ['battle-early', 'battle-mid', 'battle-complete', 'battle-compact', 'battle-wide', 'battle-portrait', 'battle-defeat'];
+  const battleScenes = ['battle-early', 'battle-mid', 'battle-complete', 'battle-compact', 'battle-wide', 'battle-portrait', 'battle-defeat',
+    'battle-result-victory', 'battle-result-defeat', 'battle-result-compact', 'battle-result-wide', 'battle-result-error', 'battle-result-portrait'];
   if (!['camp', 'camp-portrait', 'warband', 'squad-editor', 'unit-configuration', 'run', 'run-abandon', 'run-portrait', ...battleScenes].includes(scene)) return;
 
   if (battleScenes.includes(scene)) {
@@ -219,14 +220,14 @@ async function installGameFixtureRoutes(page, options) {
           units: unitRows.filter((unit) => activeFormation.includes(unit.id)),
         },
         active_run: options.activeRun || ['run', 'run-abandon', 'run-portrait'].includes(scene)
-          || (battleScenes.includes(scene) && scene !== 'battle-defeat')
+          || (battleScenes.includes(scene) && !['battle-defeat', 'battle-result-defeat'].includes(scene))
           ? { id: '401', region_id: 'region.the_farm', squad_id: '301', status: 'active' }
           : null,
       },
     }),
   }));
   if (battleScenes.includes(scene)) {
-    const defeat = scene === 'battle-defeat';
+    const defeat = ['battle-defeat', 'battle-result-defeat'].includes(scene);
     const outcome = defeat ? 'defeat' : 'victory';
     const participants = [
       { combatant_key: 'ashback', side: 'player', unit_id: '101', unit_type_id: 'unit_type.bruiser', enemy_unit_type_id: null,
@@ -255,6 +256,9 @@ async function installGameFixtureRoutes(page, options) {
       ok: true, data: { battle: { id: '601', run_id: '401', run_node_id: '501', engine_version: 1, playback_version: 1,
         outcome, ending_round: 1, ending_tick: 1, participants, events }, player_revision: 4 },
     }) }));
+    if (scene === 'battle-result-error') await page.route('**/api/v1/runs/current', (route) => route.fulfill({
+      status: 503, contentType: 'application/json', body: JSON.stringify({ ok: false, error: { code: 'server_error' } }),
+    }));
     return;
   }
   if (['run', 'run-abandon', 'run-portrait'].includes(scene)) {
@@ -436,8 +440,9 @@ async function captureScene(options) {
 
     const browser = await chromium.launch();
     try {
+      const portraitResult = options.scene.trim().toLowerCase() === 'battle-result-portrait';
       const context = await browser.newContext({
-        viewport: { width: options.width, height: options.height },
+        viewport: portraitResult ? { width: 844, height: 390 } : { width: options.width, height: options.height },
         isMobile: options.mobile,
         hasTouch: options.mobile,
       });
@@ -493,7 +498,8 @@ async function captureScene(options) {
           );
         }
         if (['camp', 'camp-portrait', 'warband', 'squad-editor', 'unit-configuration', 'run', 'run-abandon', 'run-portrait',
-          'battle-early', 'battle-mid', 'battle-complete', 'battle-compact', 'battle-wide', 'battle-portrait', 'battle-defeat'].includes(options.scene.trim().toLowerCase())) {
+          'battle-early', 'battle-mid', 'battle-complete', 'battle-compact', 'battle-wide', 'battle-portrait', 'battle-defeat',
+          'battle-result-victory', 'battle-result-defeat', 'battle-result-compact', 'battle-result-wide', 'battle-result-error', 'battle-result-portrait'].includes(options.scene.trim().toLowerCase())) {
           await page.waitForSelector('.game-host__mount canvas', { timeout: options.timeoutMs });
           const requestedGameScreen = options.scene.trim().toLowerCase();
           const gameScreen = ['warband', 'squad-editor', 'unit-configuration'].includes(requestedGameScreen)
@@ -512,8 +518,19 @@ async function captureScene(options) {
           if (gameScreen === 'run') {
             await page.waitForSelector('[data-run-map-ready="true"]', { state: 'attached', timeout: options.timeoutMs });
           }
-          if (gameScreen === 'battle' && ['battle-complete', 'battle-defeat'].includes(requestedGameScreen)) {
+          if (gameScreen === 'battle' && ['battle-complete', 'battle-defeat', 'battle-result-victory', 'battle-result-defeat',
+            'battle-result-compact', 'battle-result-wide', 'battle-result-error', 'battle-result-portrait'].includes(requestedGameScreen)) {
             await page.waitForSelector('[data-battle-playback="complete"]', { timeout: options.timeoutMs });
+          }
+          if (requestedGameScreen === 'battle-result-error') {
+            const canvas = page.locator('.game-host__mount canvas'); const box = await canvas.boundingBox();
+            if (!box) throw new Error('Battle result canvas was unavailable.');
+            await canvas.click({ position: { x: box.width / 2, y: box.height * 845 / 900 }, force: true });
+            await page.waitForSelector('[data-battle-continue="error"]', { timeout: options.timeoutMs });
+          }
+          if (requestedGameScreen === 'battle-result-portrait') {
+            await page.setViewportSize({ width: options.width, height: options.height });
+            await page.waitForSelector('[data-game-orientation-gate="active"]', { timeout: options.timeoutMs });
           }
           if (requestedGameScreen === 'run-abandon') {
             await page.waitForSelector('[data-run-abandon-confirmation="true"]', { state: 'attached', timeout: options.timeoutMs });

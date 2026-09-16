@@ -364,6 +364,50 @@ describe('GameStore Warband cache', () => {
     expect(store.currentRun).toEqual({ status: 'fresh', data: null, error: null });
   });
 
+  it('reconciles a retained battle against the authoritative current run without patching its facts', () => {
+    const active = { ...bootstrap(), active_run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active' as const } };
+    const store = new GameStore(); store.hydrateBootstrap(active);
+    const run = { id: '41', regionId: 'region.the_farm', squadId: '31', status: 'active' as const,
+      createdAt: '2026-09-13T12:00:00Z', nodes: [{ id: '10', nodeIndex: 0, nodeTypeId: 'run_node_type.combat',
+        status: 'completed' as const, completedAt: '2026-09-13T12:02:00Z', battleId: '81', position: { column: 0, row: 1 } }],
+      edges: [], units: [{ unitId: '11', currentHp: 7 }] };
+
+    expect(store.reconcileBattleReturn({ run, playerRevision: 8 },
+      { battleId: '81', runId: '41', runNodeId: '10', minimumPlayerRevision: 8 })).toBe(run);
+    expect(store.currentRun).toEqual({ status: 'fresh', data: run, error: null });
+    expect(store.currentRun.data?.units[0].currentHp).toBe(7);
+    expect(store.playerRevision).toBe(8);
+  });
+
+  it('clears terminal run authority and its Warband lock while preserving Energy and loaded Warband caches', async () => {
+    const active = { ...bootstrap(), active_run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active' as const } };
+    const store = new GameStore(); store.hydrateBootstrap(active); await store.loadWarbandDomains(api(), content());
+    const energy = store.bootstrap!.player.energy; const warband = store.warband;
+    expect(store.activeRunLock).not.toBeNull();
+
+    expect(store.reconcileBattleReturn({ run: null, playerRevision: 8 },
+      { battleId: '81', runId: '41', runNodeId: '10', minimumPlayerRevision: 8 })).toBeNull();
+
+    expect(store.currentRun).toEqual({ status: 'fresh', data: null, error: null });
+    expect(store.bootstrap?.active_run).toBeNull(); expect(store.activeRunLock).toBeNull();
+    expect(store.playerRevision).toBe(8); expect(store.bootstrap?.player.energy).toBe(energy); expect(store.warband).toBe(warband);
+  });
+
+  it('rejects a regressed or contradictory retained-battle reconciliation without committing authority', () => {
+    const active = { ...bootstrap(), active_run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active' as const } };
+    const store = new GameStore(); store.hydrateBootstrap(active); const before = store.bootstrap;
+    const run = { id: '41', regionId: 'region.the_farm', squadId: '31', status: 'active' as const,
+      createdAt: '2026-09-13T12:00:00Z', nodes: [{ id: '10', nodeIndex: 0, nodeTypeId: 'run_node_type.combat',
+        status: 'completed' as const, completedAt: '2026-09-13T12:02:00Z', battleId: '82', position: { column: 0, row: 1 } }],
+      edges: [], units: [{ unitId: '11', currentHp: 7 }] };
+    const marker = { battleId: '81', runId: '41', runNodeId: '10', minimumPlayerRevision: 8 };
+
+    expect(() => store.reconcileBattleReturn({ run, playerRevision: 8 }, marker)).toThrowError();
+    expect(store.bootstrap).toBe(before); expect(store.currentRun.error).toBe('integrity');
+    expect(() => store.reconcileBattleReturn({ run: null, playerRevision: 6 }, marker)).toThrowError();
+    expect(store.bootstrap).toBe(before); expect(store.playerRevision).toBe(7);
+  });
+
   it('reconciles abandon without refunding Energy or disturbing Warband and active-squad caches', async () => {
     const active = { ...bootstrap(), active_run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active' as const } };
     const store = new GameStore(); store.hydrateBootstrap(active); const client = api(); const registry = content();

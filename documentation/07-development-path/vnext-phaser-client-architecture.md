@@ -1,7 +1,7 @@
 ---
 Title: "vNext Phaser Client Architecture"
 Status: Accepted
-Last Updated: 2026-09-10
+Last Updated: 2026-09-16
 Owner: Product + Engineering
 Depends On:
   - documentation/07-development-path/vnext-game-overhaul.md
@@ -121,7 +121,10 @@ RunScene -> BattleScene
 - a resolved node produces battle playback
 
 BattleScene -> RunScene
-- playback completes or is recovered/skipped
+- the player continues from a completed result and the authoritative current-run query returns an active run
+
+BattleScene -> GameScene
+- the player continues from a completed result and the authoritative current-run query returns no active run
 
 RunScene -> GameScene
 - run reaches a terminal state and the player returns to Camp
@@ -375,7 +378,9 @@ Battle presentation does not award XP, apply rewards, determine damage, or mutat
 
 An available Combat node is resolved once through the run-node command. The client keeps one idempotency key for ambiguous retries, records the returned battle/run/node identity in session-scoped presentation storage, marks its current-run cache stale, and enters `BattleScene`. A completed Combat node with `battle_id` enters the same presentation path without another resolve command.
 
-`BattleScene` reads the retained playback projection and consumes semantic events in their persisted order. It uses recorded HP, dice, hit, status, death, outcome, and terminal facts only for presentation. A presentation marker scoped to the bootstrapped account allows reload to restart the immutable playback, including after defeat or stalemate leaves no active run. Portrait gating pauses event advancement. Playback completion remains local presentation state until the explicit result/reconciliation flow handles the destination.
+`BattleScene` reads the retained playback projection and consumes semantic events in their persisted order. It uses recorded HP, dice, hit, status, death, outcome, and terminal facts only for presentation. A presentation marker scoped to the bootstrapped account allows reload to restart the immutable playback, including after defeat or stalemate leaves no active run. Portrait gating pauses event advancement.
+
+Playback completion produces an explicit local result and waits for the player to Continue. Continue always performs a fresh current-run query and reconciles that response through the runtime store before leaving battle. An active returned run leads to `RunScene`; a null returned run leads to Camp in `GameScene`. The retained marker is cleared only after successful reconciliation, so a failed return synchronization remains retryable and reload can still recover the finalized playback. Continue does not reconstruct HP or graph changes from playback and does not rerun combat, bootstrap, or Warband loading.
 
 ## Visual Testing
 

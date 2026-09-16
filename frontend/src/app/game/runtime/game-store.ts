@@ -98,6 +98,13 @@ export interface CurrentRunState {
   readonly error: WarbandDomainErrorKind | null;
 }
 
+export interface BattleReturnIdentity {
+  readonly battleId: string;
+  readonly runId: string;
+  readonly runNodeId: string;
+  readonly minimumPlayerRevision: number;
+}
+
 type WarbandCollectionItem = WarbandUnitSummary | WarbandDieSummary | WarbandSquadSummary;
 
 function emptyDomain<T>(): WarbandDomainState<T> {
@@ -398,6 +405,25 @@ export class GameStore {
 
   retryCurrentRun(api: RuntimeApiClient, content: ClientContentRegistry): Promise<void> {
     return this.loadCurrentRun(api, content, true);
+  }
+
+  reconcileBattleReturn(result: CurrentRunResult, battle: BattleReturnIdentity): CurrentRun | null {
+    const prior = this.currentRunState;
+    try {
+      if (result.playerRevision < battle.minimumPlayerRevision)
+        throw new RunContractError('Authoritative player revision regressed behind the retained battle.');
+      if (result.run?.id === battle.runId) {
+        const node = result.run.nodes.find((candidate) => candidate.id === battle.runNodeId);
+        if (!node || node.nodeTypeId !== 'run_node_type.combat' || node.status !== 'completed'
+          || node.battleId !== battle.battleId)
+          throw new RunContractError('Current run contradicts the retained battle relationship.');
+      }
+      this.reconcileCurrentRun(result);
+      return this.currentRunState.data;
+    } catch (error) {
+      this.setCurrentRun({ status: 'error', data: prior.data, error: runErrorKind(error) });
+      throw error;
+    }
   }
 
   loadWarbandDomains(api: RuntimeApiClient, content: ClientContentRegistry): Promise<void[]> {

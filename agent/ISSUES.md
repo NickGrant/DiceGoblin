@@ -4,7 +4,7 @@
 
 ### Milestone 4 Package 7 - Battle result + authoritative return-to-run reconciliation
 
-**Status:** Open
+**Status:** In Progress
 **Priority:** High
 
 #### Problem
