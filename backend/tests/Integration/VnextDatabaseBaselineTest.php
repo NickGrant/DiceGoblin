@@ -24,6 +24,7 @@ final class VnextDatabaseBaselineTest extends IntegrationTestCase
   {
     $tables = $this->pdo?->query('SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() ORDER BY TABLE_NAME')->fetchAll(\PDO::FETCH_COLUMN);
     $this->assertSame([
+      'battles',
       'dice_instances',
       'idempotency_requests',
       'password_reset_tokens',
@@ -53,6 +54,15 @@ final class VnextDatabaseBaselineTest extends IntegrationTestCase
     $this->assertSame('0', (string)$roleChecks);
     $dieBindingUniqueness = $this->scalar("SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'unit_ability_dice' AND INDEX_NAME = 'uq_unit_ability_dice_die' AND NON_UNIQUE = 0", []);
     $this->assertSame('1', (string)$dieBindingUniqueness);
+
+    $battleColumns = $this->pdo?->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'battles' ORDER BY ORDINAL_POSITION")->fetchAll(\PDO::FETCH_COLUMN);
+    $this->assertSame(['id', 'run_id', 'run_node_id', 'engine_version', 'playback_version', 'input_snapshot',
+      'participant_manifest', 'result_json', 'created_at'], $battleColumns);
+    $this->assertSame('2', (string)$this->scalar("SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'battles' AND INDEX_NAME = 'uq_battles_run_node' AND NON_UNIQUE = 0", []));
+    $this->assertSame('1', (string)$this->scalar("SELECT COUNT(*) FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS
+      WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'battles' AND CONSTRAINT_NAME = 'fk_battles_run_node'
+        AND DELETE_RULE = 'CASCADE'", []));
   }
 
   public function testActiveCoreCompositionExcludesDormantPrototypeServices(): void
@@ -94,7 +104,7 @@ final class VnextDatabaseBaselineTest extends IntegrationTestCase
     foreach (['unit_instances', 'dice_instances', 'squads', 'runs'] as $table) {
       $this->assertSame('0', (string)$this->scalar("SELECT COUNT(*) FROM `$table` WHERE `user_id` = ?", [$userId]));
     }
-    foreach (['run_nodes', 'run_edges', 'run_unit_state'] as $table) {
+    foreach (['run_nodes', 'run_edges', 'run_unit_state', 'battles'] as $table) {
       $this->assertSame('0', (string)$this->scalar("SELECT COUNT(*) FROM `$table`", []));
     }
   }

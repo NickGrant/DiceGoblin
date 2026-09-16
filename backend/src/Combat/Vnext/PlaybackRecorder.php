@@ -28,7 +28,21 @@ final class PlaybackRecorder
   /** @param array<string,mixed> $facts */
   public function add(string $type, int $round, int $tick, array $facts): void
   {
-    if (!isset(self::FACTS[$type])) throw new InvalidArgumentException('Unsupported playback event type.');
+    $event = ['sequence' => count($this->events), 'type' => $type, 'round' => $round, 'tick' => $tick, 'facts' => $facts];
+    self::validateEvent($event);
+    $this->events[] = $event;
+  }
+
+  /** @param array<string,mixed> $event */
+  public static function validateEvent(array $event): void
+  {
+    CombatInput::keys($event, ['sequence', 'type', 'round', 'tick', 'facts']);
+    CombatInput::integer($event['sequence'], 0, 1000000, 'event sequence');
+    $type = $event['type'];
+    $round = $event['round'];
+    $tick = $event['tick'];
+    $facts = $event['facts'];
+    if (!is_string($type) || !isset(self::FACTS[$type])) throw new InvalidArgumentException('Unsupported playback event type.');
     CombatInput::keys($facts, self::FACTS[$type]);
     CombatInput::integer($round, 0, 200, 'event round');
     CombatInput::integer($tick, 0, 4000, 'event tick');
@@ -64,7 +78,6 @@ final class PlaybackRecorder
     if (isset($facts['result']) && !in_array($facts['result'], ['hit', 'miss', 'critical'], true)) {
       throw new InvalidArgumentException('Playback hit result is invalid.');
     }
-    $this->events[] = ['sequence' => count($this->events), 'type' => $type, 'round' => $round, 'tick' => $tick, 'facts' => $facts];
   }
 
   /** @return list<array<string,mixed>> */

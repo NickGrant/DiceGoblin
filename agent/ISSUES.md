@@ -4,7 +4,7 @@
 
 ### Milestone 4 Package 3 - Battle persistence + playback boundary
 
-**Status:** Open
+**Status:** In Progress
 **Priority:** High
 
 #### Problem

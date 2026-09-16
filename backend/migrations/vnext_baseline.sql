@@ -232,6 +232,24 @@ CREATE TABLE `run_edges` (
     FOREIGN KEY (`run_id`, `to_node_id`) REFERENCES `run_nodes` (`run_id`, `id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE `battles` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `run_id` BIGINT UNSIGNED NOT NULL,
+  `run_node_id` BIGINT UNSIGNED NOT NULL,
+  `engine_version` SMALLINT UNSIGNED NOT NULL,
+  `playback_version` SMALLINT UNSIGNED NOT NULL,
+  `input_snapshot` JSON NOT NULL,
+  `participant_manifest` JSON NOT NULL,
+  `result_json` JSON NOT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_battles_run_node` (`run_id`, `run_node_id`),
+  CONSTRAINT `chk_battles_engine_version` CHECK (`engine_version` > 0),
+  CONSTRAINT `chk_battles_playback_version` CHECK (`playback_version` > 0),
+  CONSTRAINT `fk_battles_run_node`
+    FOREIGN KEY (`run_id`, `run_node_id`) REFERENCES `run_nodes` (`run_id`, `id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE `run_unit_state` (
   `run_id` BIGINT UNSIGNED NOT NULL,
   `unit_id` BIGINT UNSIGNED NOT NULL,

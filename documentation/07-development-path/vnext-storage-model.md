@@ -460,26 +460,25 @@ Modifiers that eventually require multiple independently mutable values should r
 
 ### `battles`
 
-Stores authoritative battle lifecycle/result metadata associated with a run/node.
+Stores one immutable finalized battle associated with a run node. The row contains the exact normalized deterministic input, a compact participant identity/presentation manifest, and the exact versioned result with its ordered playback events. This keeps historical playback independent of later changes to Warband or authored content.
 
 Representative fields:
 
 - `id`
 - `run_id`
 - `run_node_id`
-- `status`
-- result/summary fields required by authoritative run resolution
-- lifecycle timestamps
+- `engine_version`
+- `playback_version`
+- normalized input snapshot JSON
+- participant manifest JSON
+- result/playback JSON
+- `created_at`
 
-### `battle_playback`
+The same-run composite foreign key binds each battle to its owning run node, and a unique `(run_id, run_node_id)` key permits at most one finalized battle per node. The versions also remain in ordinary columns for compatibility inspection and must match the result payload.
 
-Stores the authoritative playback/log payload required for Phaser to reproduce resolved combat, including reconnect/retry scenarios.
+There is no separate `battle_playback` table in the current model. Playback is a one-to-one immutable part of the versioned result, so splitting it would fragment the authoritative record or duplicate the event stream without a current query or lifecycle need.
 
-The exact physical representation may be a structured JSON payload rather than relational event rows; that is an implementation detail as long as playback is deterministic and immutable after finalization.
-
-Playback logs are retained for the lifetime of the active run. Once the run reaches terminal success or failure, its playback logs become eligible for scheduled cleanup.
-
-Battle metadata may be retained longer if operational/debugging needs justify it; long-term player-visible battle history is not a current requirement.
+Finalized battle records are retained for the lifetime of the active run. Once the run reaches terminal success or failure, they become eligible for scheduled cleanup. Long-term player-visible battle history is not a current requirement.
 
 ## Reward and Transaction Safety
 
@@ -592,7 +591,6 @@ RUNS
 
 COMBAT
   battles
-  battle_playback
 
 TRANSACTION SAFETY
   resolved_events
@@ -644,7 +642,6 @@ The following do not block schema design and are intentionally deferred until im
 - exact SQL data types and index choices
 - exact lifecycle-status vocabulary
 - cleanup retention durations
-- whether battle playback is one JSON payload or another immutable storage shape
 - optional support/debugging provenance fields
 - session persistence if later required by the authentication implementation
 - additional objective progress shapes beyond numeric `current / needed`
