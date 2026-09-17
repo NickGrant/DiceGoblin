@@ -42,7 +42,10 @@ final class ContentRegistryTest extends TestCase
     $this->assertCount(6, $registry->definitionsOfType('dice_aspect'));
     $this->assertCount(11, $registry->definitionsOfType('dice_profile'));
     $this->assertCount(5, $registry->definitionsOfType('run_node_type'));
+    $this->assertCount(2, $registry->definitionsOfType('region'));
     $this->assertCount(1, $registry->definitionsOfType('run_generation'));
+    $this->assertCount(1, $registry->definitionsOfType('unlock'));
+    $this->assertSame('region.mountains', $registry->unlock('unlock.region.mountains')['target_id']);
     $this->assertSame('Pig Kin', $registry->kin('kin.pig')['display_name']);
     $this->assertSame(2, $registry->ability('ability.sleep_dart')['dice_slot_count']);
     $this->assertSame('dice_material.cardboard', $registry->diceProfile('dice_profile.cardboard_plain')['material_id']);
@@ -197,7 +200,7 @@ final class ContentRegistryTest extends TestCase
   private function canonicalDefinitions(ContentRegistry $registry): array
   {
     $definitions = [];
-    foreach (['gameplay_config', 'region', 'kin', 'unit_type', 'enemy_unit_type', 'encounter', 'ability', 'dice_material', 'dice_aspect', 'dice_profile', 'run_node_type', 'run_generation'] as $type) {
+    foreach (['gameplay_config', 'region', 'kin', 'unit_type', 'enemy_unit_type', 'encounter', 'ability', 'dice_material', 'dice_aspect', 'dice_profile', 'run_node_type', 'run_generation', 'unlock', 'event', 'reward_definition'] as $type) {
       foreach ($registry->definitionsOfType($type) as $definition) $definitions[] = $definition;
     }
     return $definitions;

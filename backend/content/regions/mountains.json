@@ -1,0 +1,10 @@
+{
+  "definitions": [
+    {
+      "id": "region.mountains",
+      "type": "region",
+      "display_name": "Mountains",
+      "art_key": "mountains"
+    }
+  ]
+}

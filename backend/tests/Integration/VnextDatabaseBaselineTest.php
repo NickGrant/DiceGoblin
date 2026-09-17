@@ -28,6 +28,7 @@ final class VnextDatabaseBaselineTest extends IntegrationTestCase
       'dice_instances',
       'idempotency_requests',
       'password_reset_tokens',
+      'resolved_events',
       'run_edges',
       'run_nodes',
       'run_unit_state',
@@ -42,6 +43,7 @@ final class VnextDatabaseBaselineTest extends IntegrationTestCase
       'user_external_identities',
       'user_local_credentials',
       'user_state',
+      'user_unlocks',
       'users',
     ], $tables);
 
@@ -63,6 +65,14 @@ final class VnextDatabaseBaselineTest extends IntegrationTestCase
     $this->assertSame('1', (string)$this->scalar("SELECT COUNT(*) FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS
       WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'battles' AND CONSTRAINT_NAME = 'fk_battles_run_node'
         AND DELETE_RULE = 'CASCADE'", []));
+
+    $unlockColumns = $this->pdo?->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user_unlocks' ORDER BY ORDINAL_POSITION")->fetchAll(\PDO::FETCH_COLUMN);
+    $this->assertSame(['user_id', 'unlock_id', 'granted_at'], $unlockColumns);
+    $resolvedEventColumns = $this->pdo?->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'resolved_events' ORDER BY ORDINAL_POSITION")->fetchAll(\PDO::FETCH_COLUMN);
+    $this->assertSame(['id', 'user_id', 'event_id', 'source_type', 'source_id', 'result_json', 'status', 'resolved_at', 'applied_at'], $resolvedEventColumns);
+    foreach (['reward_claims', 'reward_entries', 'event_history', 'player_events'] as $rejectedTable) {
+      $this->assertNotContains($rejectedTable, $tables);
+    }
   }
 
   public function testActiveCoreCompositionExcludesDormantPrototypeServices(): void

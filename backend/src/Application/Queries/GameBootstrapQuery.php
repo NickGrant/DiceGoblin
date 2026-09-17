@@ -8,6 +8,7 @@ use DateTimeZone;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Domain\Energy\EnergyCalculator;
 use DiceGoblins\Repositories\PlayerStateRepository;
+use DiceGoblins\Repositories\UserUnlockRepository;
 use DiceGoblins\Repositories\UserRepository;
 use DiceGoblins\Services\CsrfService;
 
@@ -16,6 +17,7 @@ final class GameBootstrapQuery
   public function __construct(
     private readonly UserRepository $users,
     private readonly PlayerStateRepository $playerState,
+    private readonly UserUnlockRepository $unlocks,
     private readonly ContentRegistry $content,
     private readonly CsrfService $csrf,
     private readonly EnergyCalculator $energyCalculator,
@@ -67,7 +69,7 @@ final class GameBootstrapQuery
       'server_time' => $now->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d\TH:i:s\Z'),
       'content_revision' => $this->content->revision(),
       'progression' => [
-        'unlock_ids' => [],
+        'unlock_ids' => $this->unlocks->listIdsForUser($userId),
       ],
       'active_squad' => $this->activeSquad->execute(
         $userId,

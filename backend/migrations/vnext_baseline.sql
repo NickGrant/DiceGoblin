@@ -64,6 +64,15 @@ CREATE TABLE `user_state` (
   CONSTRAINT `fk_user_state_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE `user_unlocks` (
+  `user_id` BIGINT UNSIGNED NOT NULL,
+  `unlock_id` VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `granted_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`user_id`, `unlock_id`),
+  CONSTRAINT `chk_user_unlocks_id` CHECK (CHAR_LENGTH(`unlock_id`) > 0),
+  CONSTRAINT `fk_user_unlocks_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE `idempotency_requests` (
   `user_id` BIGINT UNSIGNED NOT NULL,
   `idempotency_key` VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
@@ -74,6 +83,30 @@ CREATE TABLE `idempotency_requests` (
   PRIMARY KEY (`user_id`, `idempotency_key`),
   KEY `ix_idempotency_requests_created` (`created_at`),
   CONSTRAINT `fk_idempotency_requests_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `resolved_events` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` BIGINT UNSIGNED NOT NULL,
+  `event_id` VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `source_type` VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `source_id` VARCHAR(191) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `result_json` JSON NOT NULL,
+  `status` VARCHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'finalized',
+  `resolved_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `applied_at` TIMESTAMP NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_resolved_events_source` (`user_id`, `event_id`, `source_type`, `source_id`),
+  KEY `ix_resolved_events_user_status` (`user_id`, `status`, `resolved_at`),
+  CONSTRAINT `chk_resolved_events_identity` CHECK (
+    CHAR_LENGTH(`event_id`) > 0 AND CHAR_LENGTH(`source_type`) > 0 AND CHAR_LENGTH(`source_id`) > 0
+  ),
+  CONSTRAINT `chk_resolved_events_status` CHECK (`status` IN ('finalized', 'applied')),
+  CONSTRAINT `chk_resolved_events_lifecycle` CHECK (
+    (`status` = 'finalized' AND `applied_at` IS NULL)
+    OR (`status` = 'applied' AND `applied_at` IS NOT NULL AND `applied_at` >= `resolved_at`)
+  ),
+  CONSTRAINT `fk_resolved_events_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `unit_instances` (

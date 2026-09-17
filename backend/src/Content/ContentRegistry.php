@@ -151,6 +151,24 @@ final class ContentRegistry
   }
 
   /** @return array<string, mixed> */
+  public function unlock(string $id): array
+  {
+    return $this->definitionOfType($id, 'unlock');
+  }
+
+  /** @return array<string, mixed> */
+  public function event(string $id): array
+  {
+    return $this->definitionOfType($id, 'event');
+  }
+
+  /** @return array<string, mixed> */
+  public function rewardDefinition(string $id): array
+  {
+    return $this->definitionOfType($id, 'reward_definition');
+  }
+
+  /** @return array<string, mixed> */
   public function runNodeType(string $id): array
   {
     return $this->definitionOfType($id, 'run_node_type');
@@ -166,6 +184,9 @@ final class ContentRegistry
   public function runGenerationForRegion(string $regionId): array
   {
     $region = $this->region($regionId);
+    if (!isset($region['run_generation_id'])) {
+      throw new ContentValidationException("Authored region '{$regionId}' has no run generation definition.");
+    }
     return $this->runGeneration((string)$region['run_generation_id']);
   }
 

@@ -4,7 +4,7 @@
 
 ### Milestone 5 Package 1 - Reward/event authored model + persistence foundation
 
-**Status:** Open
+**Status:** In Progress
 **Priority:** High
 
 #### Problem

@@ -75,6 +75,9 @@ final class ContentValidator
       'dice_profile' => $this->validateDiceProfile($definition, $location),
       'run_node_type' => $this->validateRunNodeType($definition, $location),
       'run_generation' => $this->validateRunGeneration($definition, $location),
+      'unlock' => $this->validateUnlock($definition, $location),
+      'event' => $this->validateEvent($definition, $location),
+      'reward_definition' => $this->validateRewardDefinition($definition, $location),
       default => throw new ContentValidationException("{$location} has unsupported type '{$type}'."),
     };
   }
@@ -93,7 +96,25 @@ final class ContentValidator
 
     foreach ($definitions as $id => $definition) {
       if (($definition['type'] ?? null) === 'region') {
-        $this->requireReferenceType($definitions, $id, 'run_generation_id', $definition['run_generation_id'], 'run_generation');
+        if (isset($definition['run_generation_id'])) {
+          $this->requireReferenceType($definitions, $id, 'run_generation_id', $definition['run_generation_id'], 'run_generation');
+        }
+      }
+
+      if (($definition['type'] ?? null) === 'unlock') {
+        $this->requireReferenceType($definitions, $id, 'target_id', $definition['target_id'], 'region');
+      }
+
+      if (($definition['type'] ?? null) === 'event') {
+        $this->requireReferenceType($definitions, $id, 'reward_definition_id', $definition['reward_definition_id'], 'reward_definition');
+      }
+
+      if (($definition['type'] ?? null) === 'reward_definition') {
+        foreach ($definition['entries'] as $entry) {
+          if ($entry['reward_type'] === 'unlock') {
+            $this->requireReferenceType($definitions, $id, 'entries.config.unlock_id', $entry['config']['unlock_id'], 'unlock');
+          }
+        }
       }
 
       if (($definition['type'] ?? null) === 'unit_type') {
@@ -165,10 +186,74 @@ final class ContentValidator
   /** @param array<string, mixed> $definition */
   private function validateRegion(array $definition, string $location): void
   {
+    $this->requireExactFieldSet($definition, ['id', 'type', 'display_name', 'art_key'], ['run_generation_id'], $location);
     $this->requireNamespace($definition, 'region.', $location);
     $this->requireNonEmptyString($definition, 'display_name', $location);
     $this->requireNonEmptyString($definition, 'art_key', $location);
-    $this->requireStableIdWithNamespace($definition, 'run_generation_id', 'run_generation.', $location);
+    if (isset($definition['run_generation_id'])) {
+      $this->requireStableIdWithNamespace($definition, 'run_generation_id', 'run_generation.', $location);
+    }
+  }
+
+  /** @param array<string, mixed> $definition */
+  private function validateUnlock(array $definition, string $location): void
+  {
+    $this->requireExactFieldSet($definition, ['id', 'type', 'target_type', 'target_id'], [], $location);
+    $this->requireNamespace($definition, 'unlock.', $location);
+    $this->requireAllowedString($definition, 'target_type', ['region'], $location);
+    $this->requireStableIdWithNamespace($definition, 'target_id', 'region.', $location);
+  }
+
+  /** @param array<string, mixed> $definition */
+  private function validateEvent(array $definition, string $location): void
+  {
+    $this->requireExactFieldSet($definition, ['id', 'type', 'reward_definition_id'], [], $location);
+    $this->requireNamespace($definition, 'event.', $location);
+    $this->requireStableIdWithNamespace($definition, 'reward_definition_id', 'reward_definition.', $location);
+  }
+
+  /** @param array<string, mixed> $definition */
+  private function validateRewardDefinition(array $definition, string $location): void
+  {
+    $this->requireExactFieldSet($definition, ['id', 'type', 'entries'], [], $location);
+    $this->requireNamespace($definition, 'reward_definition.', $location);
+    $entries = $definition['entries'] ?? null;
+    if (!is_array($entries) || !array_is_list($entries) || $entries === []) {
+      throw new ContentValidationException("{$location} field 'entries' must be a non-empty ordered list.");
+    }
+
+    $keys = [];
+    foreach ($entries as $offset => $entry) {
+      $entryLocation = "{$location} field 'entries[{$offset}]'";
+      if (!is_array($entry) || array_is_list($entry)) {
+        throw new ContentValidationException("{$entryLocation} must be an object.");
+      }
+      $this->requireExactFieldSet($entry, ['key', 'probability_basis_points', 'reward_type', 'config'], [], $entryLocation);
+      $key = $this->requireLocalNodeKey($entry, 'key', $entryLocation);
+      if (isset($keys[$key])) {
+        throw new ContentValidationException("{$location} contains duplicate reward entry key '{$key}'.");
+      }
+      $keys[$key] = true;
+      $this->requireIntegerInRange($entry, 'probability_basis_points', 1, 10000, $entryLocation);
+      $rewardType = $this->requireAllowedString($entry, 'reward_type', ['currency', 'unit_xp', 'unlock'], $entryLocation);
+      $config = $entry['config'] ?? null;
+      if (!is_array($config) || array_is_list($config)) {
+        throw new ContentValidationException("{$entryLocation} field 'config' must be an object.");
+      }
+      $configLocation = "{$entryLocation} field 'config'";
+      if ($rewardType === 'currency') {
+        $this->requireExactFieldSet($config, ['currency_id', 'amount'], [], $configLocation);
+        $this->requireAllowedString($config, 'currency_id', ['teeth', 'raw_chaos'], $configLocation);
+        $this->requireIntegerInRange($config, 'amount', 1, PHP_INT_MAX, $configLocation);
+      } elseif ($rewardType === 'unit_xp') {
+        $this->requireExactFieldSet($config, ['target_scope', 'amount'], [], $configLocation);
+        $this->requireAllowedString($config, 'target_scope', ['participating_units'], $configLocation);
+        $this->requireIntegerInRange($config, 'amount', 1, PHP_INT_MAX, $configLocation);
+      } else {
+        $this->requireExactFieldSet($config, ['unlock_id'], [], $configLocation);
+        $this->requireStableIdWithNamespace($config, 'unlock_id', 'unlock.', $configLocation);
+      }
+    }
   }
 
   /** @param array<string, mixed> $definition */

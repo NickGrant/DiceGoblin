@@ -1,7 +1,7 @@
 ---
 Title: "vNext Authored Content Model"
 Status: Accepted
-Last Updated: 2026-09-09
+Last Updated: 2026-09-17
 Owner: Product + Engineering
 Depends On:
   - documentation/07-development-path/vnext-game-overhaul.md
@@ -102,6 +102,8 @@ aspect.sharp
 ```
 
 The stable ID is the durable identity. Display names and presentation text may change freely without changing identity.
+
+A region identity may be authored before its run-generation content exists so another definition can safely reference that durable identity. Regions without a `run_generation_id` are server-only and are not playable or included in the browser content projection. Adding the generator later is the boundary that makes the region eligible for normal client presentation; command validation still controls actual availability.
 
 Renaming a durable ID after persisted player/runtime state references it should be treated as a compatibility change requiring an intentional mapping or migration strategy.
 

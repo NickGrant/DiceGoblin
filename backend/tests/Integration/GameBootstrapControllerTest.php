@@ -81,6 +81,32 @@ final class GameBootstrapControllerTest extends IntegrationTestCase
     $this->assertSame($before, $this->playerStateRow($userId));
   }
 
+  public function testBootstrapReadsSortedOwnedUnlocksWithoutCrossUserLeakageOrWrites(): void
+  {
+    $userId = $this->createAccount('owned-unlocks@example.test', 'Owned Unlocks');
+    $otherUserId = $this->createAccount('other-unlocks@example.test', 'Other Unlocks');
+    $this->pdo?->prepare('INSERT INTO `user_unlocks` (`user_id`, `unlock_id`, `granted_at`) VALUES (?, ?, ?), (?, ?, ?), (?, ?, ?)')
+      ->execute([
+        $userId, 'unlock.region.zz_test', '2026-09-17 09:00:00',
+        $userId, 'unlock.region.mountains', '2026-09-17 08:00:00',
+        $otherUserId, 'unlock.region.other_user', '2026-09-17 07:00:00',
+      ]);
+    $beforeState = $this->playerStateRow($userId);
+    $beforeUnlocks = $this->unlockRows($userId);
+    $_SESSION['user_id'] = $userId;
+
+    $response = $this->invoke(fn() => (new GameBootstrapController())->bootstrap());
+
+    $this->assertSame(200, $response['status'], json_encode($response['body']));
+    $this->assertSame(
+      ['unlock.region.mountains', 'unlock.region.zz_test'],
+      $response['body']['data']['progression']['unlock_ids'] ?? null,
+    );
+    $this->assertSame($beforeState, $this->playerStateRow($userId));
+    $this->assertSame($beforeUnlocks, $this->unlockRows($userId));
+    $this->assertSame('1', (string)$this->scalar('SELECT COUNT(*) FROM `user_unlocks` WHERE `user_id` = ?', [$otherUserId]));
+  }
+
   public function testMissingPlayerStateReturnsControlledIntegrityFailureWithoutProvisioning(): void
   {
     $core = ControllerServiceFactory::buildCore($this->pdo);
@@ -138,6 +164,14 @@ final class GameBootstrapControllerTest extends IntegrationTestCase
     return is_array($row) ? $row : [];
   }
 
+  /** @return list<array<string,string>> */
+  private function unlockRows(int $userId): array
+  {
+    $stmt = $this->pdo?->prepare('SELECT `unlock_id`, `granted_at` FROM `user_unlocks` WHERE `user_id` = ? ORDER BY `unlock_id`');
+    $stmt?->execute([$userId]);
+    return $stmt?->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+  }
+
   private function contentRegistry(int $normalMaximum = 50, float $regenerationPerHour = 12.0): ContentRegistry
   {
     if ($normalMaximum === 50 && $regenerationPerHour === 12.0) {
@@ -155,14 +189,14 @@ final class GameBootstrapControllerTest extends IntegrationTestCase
           'energy_normal_max' => $normalMaximum,
           'energy_regeneration_per_hour' => $regenerationPerHour,
           'run_energy_cost' => 10,
-          'starting_region_id' => 'region.the_farm',
+          'starting_region_id' => 'region.test',
         ],
         [
-          'id' => 'region.the_farm',
+          'id' => 'region.test',
           'type' => 'region',
           'display_name' => 'The Farm',
           'art_key' => 'farm',
-          'run_generation_id' => 'run_generation.the_farm',
+          'run_generation_id' => 'run_generation.test',
         ],
         ['id' => 'run_node_type.combat', 'type' => 'run_node_type', 'display_name' => 'Combat', 'description' => 'Fight.', 'icon_key' => 'combat'],
         ['id' => 'run_node_type.loot', 'type' => 'run_node_type', 'display_name' => 'Loot', 'description' => 'Loot.', 'icon_key' => 'loot'],
@@ -170,7 +204,7 @@ final class GameBootstrapControllerTest extends IntegrationTestCase
         ['id' => 'run_node_type.boss', 'type' => 'run_node_type', 'display_name' => 'Boss', 'description' => 'Boss.', 'icon_key' => 'boss'],
         ['id' => 'run_node_type.exit', 'type' => 'run_node_type', 'display_name' => 'Exit', 'description' => 'Exit.', 'icon_key' => 'exit'],
         [
-          'id' => 'run_generation.the_farm', 'type' => 'run_generation', 'algorithm' => 'fixed_graph_v1', 'start_node_key' => 'combat',
+          'id' => 'run_generation.test', 'type' => 'run_generation', 'algorithm' => 'fixed_graph_v1', 'start_node_key' => 'combat',
           'nodes' => [
             ['key' => 'combat', 'node_type_id' => 'run_node_type.combat', 'position' => ['column' => 0, 'row' => 1]],
             ['key' => 'loot', 'node_type_id' => 'run_node_type.loot', 'position' => ['column' => 1, 'row' => 1]],

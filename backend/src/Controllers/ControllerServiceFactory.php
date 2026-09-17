@@ -42,6 +42,7 @@ use DiceGoblins\Repositories\BattlePersistenceRepository;
 use DiceGoblins\Repositories\IdempotencyRequestRepository;
 use DiceGoblins\Repositories\SquadRepository;
 use DiceGoblins\Repositories\UserRepository;
+use DiceGoblins\Repositories\UserUnlockRepository;
 use DiceGoblins\Repositories\WarbandDiceRepository;
 use DiceGoblins\Repositories\WarbandFixtureRepository;
 use DiceGoblins\Repositories\WarbandUnitRepository;
@@ -122,12 +123,14 @@ final class ControllerServiceFactory
     $runRepository = new RunPersistenceRepository($pdo);
     $activeRunPolicy = new ActiveRunConfigurationPolicy($runRepository);
     $activeRunSummary = new ActiveRunSummaryQuery($runRepository, $content);
+    $unlockRepository = new UserUnlockRepository($pdo);
 
     return array_merge($core, [
       'contentRegistry' => $content,
       'warbandUnitRepository' => $unitRepository,
       'warbandDiceRepository' => $diceRepository,
       'squadRepository' => $squadRepository,
+      'userUnlockRepository' => $unlockRepository,
       'accountCreationService' => new AccountCreationService(
         $pdo,
         $core['userRepo'],
@@ -137,6 +140,7 @@ final class ControllerServiceFactory
       'gameBootstrapQuery' => new GameBootstrapQuery(
         $core['userRepo'],
         $core['playerStateRepo'],
+        $unlockRepository,
         $content,
         $core['csrfService'],
         new EnergyCalculator(),
