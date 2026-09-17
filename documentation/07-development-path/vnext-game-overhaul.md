@@ -42,9 +42,13 @@ All nine implementation/closure packages passed architectural review. Integrated
 
 The seven implementation/closure packages passed architectural review, with integrated closure at `c456d983b1afaf36c0dc9e069b3e35cfcdf6957f`. Manual UAT identified inconsistent clickable cursor affordances and reactive-only presentation of active-run Warband locks. Package 8 at `038a6ce081fa3b735f627095db372db24b39f79e` corrected both while retaining backend authority and legal squad/unit naming. The focused manual recheck passed and Milestone 3 was closed on 2026-09-15.
 
-**Milestone 4 - Combat: Technical closure complete; manual UAT pending.**
+**Milestone 4 - Combat: Complete; manual UAT passed.**
 
-All eight implementation/closure packages have passed architectural review. Integrated technical closure at `16288bff6223cdddee56b5cbf359e607c07dc81e` proved the accepted combat slice through fresh MySQL state, deterministic server combat, immutable battle history, atomic/idempotent combat resolution, retained Phaser playback/reload, explicit results, and authoritative Continue reconciliation. Manual user UAT is the remaining gate before Milestone 4 can close and Milestone 5 may be promoted.
+All eight implementation/closure packages passed architectural review. Integrated technical closure at `16288bff6223cdddee56b5cbf359e607c07dc81e` proved the accepted combat slice. Manual UAT identified one persistent BattleScene Replay return-state defect; the focused correction at `dcca26823ca035d3d53df77024fb5393e611307f` passed the focused recheck, and Milestone 4 closed on 2026-09-17.
+
+**Milestone 5 - Complete Farm: Active.**
+
+Milestone 5 completes the persisted Farm path through Loot, Rest, Mudking, Exit, successful run termination, XP/rewards, and the Mountains unlock. It begins with the shared authored event/reward and persistence foundation rather than adding one-off boss grant logic.
 
 ## Milestones
 | # | Milestone | Exit criterion |
@@ -53,8 +57,8 @@ All eight implementation/closure packages have passed architectural review. Inte
 | 1 | Walking skeleton | Authenticated Angular `/game` -> Phaser boot -> safe content projection -> real PHP bootstrap/MySQL state -> minimal responsive Camp. **Complete; UAT passed.** |
 | 2 | Warband | Real units/dice/squads, lazy cache/detail queries, persistent squad and unit-loadout configuration. **Complete; UAT passed.** |
 | 3 | Enter Farm | Energy + region/run creation, persistent generated Farm run, `RunScene`, resume/abandon/map. **Complete; UAT passed.** |
-| 4 | Combat | Authoritative combat adaptation, run HP/state, persisted playback, `BattleScene`, reconnect-safe result. **Technical closure complete; UAT pending.** |
-| 5 | Complete Farm | Event/reward pipeline, XP/progression, Mudking, terminal run flow, Mountains unlock; no claim/reroll/double-grant path. |
+| 4 | Combat | Authoritative combat adaptation, run HP/state, persisted playback, `BattleScene`, reconnect-safe result. **Complete; UAT passed.** |
+| 5 | Complete Farm | Event/reward pipeline, XP/progression, Mudking, terminal run flow, Mountains unlock; no claim/reroll/double-grant path. **Active.** |
 | 6 | Prove region generalization | Mountains/kobolds operate through the same region/run architecture without Farm-specific duplication. |
 | 7 | Economy and inventory | Shop, Teeth, inventory/consumables, dice sale/salvage, recharge items and repeatable economy. |
 | 8 | Permanent progression | Academy, Raw Chaos capability upgrades, promotion/ability progression, derived upgrades such as Energy max. |
@@ -77,7 +81,17 @@ Completing the overhaul does not require building Island through Savanna or The 
 7. Battle result + authoritative return-to-run reconciliation. **Approved.**
 8. Combat integrated verification/closure. **Approved at `16288bff6223cdddee56b5cbf359e607c07dc81e`.**
 
-Manual Milestone 4 combat UAT is now the only remaining Milestone 4 gate.
+Manual Milestone 4 combat UAT passed on 2026-09-17 after focused Replay correction `dcca26823ca035d3d53df77024fb5393e611307f`.
+
+## Milestone 5 Package Sequence
+1. Reward/event authored model + persistence foundation. **Current.**
+2. Deterministic reward finalization + initial Farm grant application (Teeth, unit XP, permanent unlock), including exact XP/level semantics.
+3. Farm Loot + Rest authoritative node resolution and RunScene interaction/result flow.
+4. Mudking authored boss content + deterministic boss-combat adaptation.
+5. Boss-node authoritative resolution + finalized Farm boss rewards/XP + Mountains unlock.
+6. Exit-node resolution + successful run termination + authoritative Camp/RunScene/unlock reconciliation.
+7. Complete-Farm integrated verification/closure.
+8. Focused manual UAT before Milestone 6 promotion.
 
 The retained prototype combat implementation is behavioral evidence only. It currently couples PDO/catalog access, node effects, rewards/progression, combat simulation, and playback construction; vNext preserves useful deterministic mechanics behind the accepted application/domain/repository/content boundaries rather than wrapping that object as the new architecture.
 
@@ -96,7 +110,9 @@ Every applicable milestone maintains:
 ## Deferred Until Needed
 Do not block the next gameplay milestone on final visual polish or on exact later-system details such as Rest/Chaos sub-route payloads, later economy tuning, later kin recipes, or onboarding dialogue. Resolve them in the milestone that needs them and update the relevant accepted decision if the architecture changes.
 
-For Milestone 4, Packages 1-8 have established and technically closed canonical stats/run HP, deterministic combat rules/content, immutable battle persistence, atomic resolution, ownership-safe playback, reload-safe Phaser presentation, authoritative post-battle reconciliation, and integrated real-stack verification. Manual UAT now validates the player-visible slice. No rewards/progression/claim semantics are added merely to close Combat.
+For Milestone 4, Packages 1-8 established and closed canonical stats/run HP, deterministic combat, immutable battle persistence, atomic resolution, ownership-safe playback, reload-safe Phaser presentation, authoritative reconciliation, and integrated verification. Manual UAT passed on 2026-09-17.
+
+Milestone 5 now owns rewards/XP/unlocks and the remaining Farm nodes. Its first package establishes authored event/reward/unlock contracts plus the minimal `user_unlocks` and `resolved_events` persistence foundation. Later packages finalize/apply rewards, resolve Loot/Rest, adapt Mudking, resolve Boss rewards/Mountains unlock, and terminate the run through Exit. Mountains gameplay itself remains Milestone 6.
 
 The cross-cutting visual/UI overhaul is intentionally deferred until core gameplay surfaces and interaction patterns are established. Until then, visual work should support clarity, usability, responsive correctness, and basic cohesion rather than attempt final production fidelity screen by screen.
 
