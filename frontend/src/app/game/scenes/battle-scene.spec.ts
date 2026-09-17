@@ -98,6 +98,23 @@ describe('BattleScene retained playback lifecycle', () => {
     expect(startup.battlePresentation.marker).toBeNull(); expect(sceneStart).toHaveBeenCalledOnceWith('RunScene');
   });
 
+  it('allows Continue again when the same BattleScene instance is reused for Replay', async () => {
+    const { scene, startup, api, sceneStart } = await harness(true);
+    api.getCurrentRun.and.resolveTo({ run: victoryRun(), playerRevision: 8 });
+    await completePlayback(scene); await scene.continueAfterBattle();
+    expect(scene.battleContinueState).toBe('idle');
+
+    startup.battlePresentation.establish('1', '81', '41', '10');
+    (scene as any).resetForActivation();
+    await completePlayback(scene); await scene.continueAfterBattle();
+
+    expect(api.getCurrentRun).toHaveBeenCalledTimes(2);
+    expect(api.getBattlePlayback).toHaveBeenCalledTimes(2);
+    expect(api.resolveRunNode).not.toHaveBeenCalled();
+    expect(startup.battlePresentation.marker).toBeNull();
+    expect(sceneStart.calls.allArgs()).toEqual([['RunScene'], ['RunScene']]);
+  });
+
   it('reconciles an immediate defeat from stale active-run bootstrap truth and removes its Warband lock', async () => {
     const { scene, startup, api, sceneStart } = await harness(true, 'defeat');
     const energy = startup.store.bootstrap!.player.energy;

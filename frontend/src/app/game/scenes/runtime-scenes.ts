@@ -716,6 +716,7 @@ export class BattleScene extends RuntimeScene {
   }
 
   create(): void {
+    this.resetForActivation();
     const bootstrap = this.runtimeStartup.store.bootstrap;
     const marker = this.runtimeStartup.battlePresentation.marker;
     if (this.runtimeStartup.state.status !== 'ready' || !bootstrap || !marker || marker.accountId !== bootstrap.account.id) {
@@ -767,12 +768,22 @@ export class BattleScene extends RuntimeScene {
         this.runtimeStartup.battlePresentation.resolution?.playerRevision ?? 0);
       const currentRun = this.runtimeStartup.store.reconcileBattleReturn(result, { ...marker, minimumPlayerRevision });
       this.runtimeStartup.battlePresentation.clear();
+      this.continueState = 'idle'; this.continueMessage = '';
       this.scene.start(currentRun ? RUN_SCENE_KEY : GAME_SCENE_KEY);
     } catch {
       this.continueState = 'error';
       this.continueMessage = 'The battle is finalized, but return synchronization failed. Retry Continue.';
       this.render();
     }
+  }
+
+  private resetForActivation(): void {
+    this.timer?.destroy(); this.timer = null;
+    this.controller = null;
+    this.loadState = 'loading';
+    this.continueState = 'idle';
+    this.continueMessage = '';
+    this.message = 'Loading retained playback…';
   }
 
   private async loadPlayback(): Promise<void> {
