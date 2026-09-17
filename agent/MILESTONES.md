@@ -2,86 +2,67 @@
 
 Read this for sequencing/planning or when closing/promoting an execution package. Normal implementation should use `agent/ISSUES.md` instead.
 
-## Milestone 4 - Combat
+## Milestone 5 - Complete Farm
 
-**Status:** Technical closure complete; manual UAT pending
+**Status:** Active
 
 ### Related Issues
-- Milestone 4 manual combat UAT
+- Milestone 5 Package 1 - Reward/event authored model + persistence foundation
 
 Milestone 1 - Walking Skeleton is complete and passed manual user UAT.
 
 Milestone 2 - Warband is complete and passed manual user UAT on 2026-09-13.
 
-Milestone 3 - Enter Farm is complete and passed manual user UAT on 2026-09-15. Integrated technical closure was approved at `c456d983b1afaf36c0dc9e069b3e35cfcdf6957f`; the focused UAT correction package was approved at `038a6ce081fa3b735f627095db372db24b39f79e`.
+Milestone 3 - Enter Farm is complete and passed manual user UAT on 2026-09-15.
 
-The major game-wide visual/UI overhaul remains intentionally deferred. Milestone 4 makes combat authoritative, deterministic, persistent, reconnect-safe, and watchable before final presentation fidelity.
+Milestone 4 - Combat is complete and passed manual user UAT on 2026-09-17. Integrated technical closure was approved at `16288bff6223cdddee56b5cbf359e607c07dc81e`. Manual UAT exposed one persistent-scene Replay return-state defect; the focused correction at `dcca26823ca035d3d53df77024fb5393e611307f` resets ephemeral BattleScene activation state and preserves zero-reroll Replay behavior. The focused recheck passed.
+
+The major game-wide visual/UI overhaul remains intentionally deferred. Milestone 5 completes the Farm gameplay loop before final presentation fidelity.
 
 ### Outcome
-Allow a persisted Farm combat node to resolve through authoritative PHP combat, preserve resulting run HP and battle history, and replay the persisted battle in Phaser without client-side simulation:
+Complete the currently persisted Farm path as a coherent authoritative run:
 
-`RunScene combat node -> authoritative resolve -> persisted battle/result/playback + run HP -> BattleScene playback -> result -> authoritative reconciliation -> RunScene/Camp`
+`Combat -> Loot -> Rest -> Mudking Boss -> Exit -> successful terminal run`
 
-Rewards, XP/progression grants, boss/run completion, Mountains unlock, and the complete Farm terminal flow remain Milestone 5.
+Milestone 5 also establishes the reusable event/reward path required by that flow:
+- reward-bearing gameplay facts resolve once into immutable finalized event results;
+- grants apply transactionally with no ordinary claim step;
+- participating units can receive XP through the reward model;
+- permanent region access is a unique unlock reward;
+- Mudking completion awards the Mountains unlock directly rather than creating a separate generic Farm-completed flag;
+- Exit is normal node resolution and owns successful run termination after the boss path has been cleared.
+
+Mountains gameplay itself remains Milestone 6. Milestone 5 may expose that Mountains is unlocked, but it does not need to implement a Mountains run.
 
 ### Architectural Direction
-- PHP remains the sole combat authority; Phaser consumes playback and never simulates authoritative rolls, targets, damage, statuses, deaths, or outcomes.
-- Combat receives a complete authoritative input snapshot and returns deterministic result/playback data. It does not own HTTP, PDO, repositories, player wallets, or parent transactions.
-- Authored combat content remains canonical Git JSON exposed through `ContentRegistry`; no SQL gameplay catalogs return.
-- Existing prototype combat source is behavioral evidence only. `DeterministicRunNodeResolver` is not a vNext application or domain boundary.
-- Package 1 established the canonical base level-stat rule as `base + growth_per_level * (level - 1)` for HP, Attack, Defense, Precision, and Resolve. Speed is not introduced.
-- During a run, `run_unit_state.current_hp` is authoritative. New-run participants begin at resolved max HP.
-- Package 2 established canonical first-Farm combat content and the infrastructure-free deterministic combat kernel.
-- Package 3 established one immutable finalized `battles` record per run node containing exact normalized input, historical participant manifest, and exact versioned result/playback.
-- Package 4 established the atomic/idempotent authoritative combat-node transaction and persists terminal run HP without Energy mutation.
-- Package 5 established ownership-safe historical playback reads that remain readable after run failure/abandonment.
-- Package 6 established the browser Fight/Replay/playback bridge and persistent `BattleScene`; Phaser consumes only persisted semantic facts.
-- Package 7 established explicit results and authoritative Continue reconciliation through a fresh current-run read before navigation.
-- Run loss is a real terminal state. Only victory unlocks direct outgoing nodes; defeat/stalemate complete Combat and terminate the run as `failed`.
-
-### Exit Criteria
-- Unit combat stats resolve deterministically from canonical authored type data and unit level without prototype SQL catalogs or Speed.
-- New run participants begin with authoritative max HP; run-start retry behavior remains correct.
-- Farm combat content is canonical authored JSON and semantically validated with deliberate exposure rules.
-- The combat engine is deterministic and infrastructure-free and produces authoritative versioned playback.
-- Targeting, scheduling, dice/aspects/passives, damage/status behavior, death, victory/defeat/stalemate have deterministic coverage.
-- Battle persistence contains only storage required by this slice; no reward/event-sourcing/claim schema is added.
-- Combat-node resolution is authenticated, owned, idempotent, atomic, and cannot reroll by retry/reload.
-- Historical playback enforces ownership/non-disclosure and does not reconstruct from mutable Warband/content state.
-- `BattleScene` replays server-produced facts without client combat simulation.
-- Returning from battle reconciles GameStore/current-run from authoritative persisted state.
-- M1-M3 regressions and responsive/touch behavior remain usable.
-- Integrated technical closure passed architectural review at `16288bff6223cdddee56b5cbf359e607c07dc81e` after the required supported closure gates passed.
-- **Remaining milestone gate:** manual user UAT must pass before Milestone 5 is promoted.
+- Authored events and reward definitions live in Git JSON and use stable IDs.
+- An event records a successful gameplay fact. Attempting a UI action does not itself create rewards.
+- Reward probability is authored and finalized exactly once. Reconnect/retry/replay never rerolls rewards.
+- Finalized reward/event records are operational correctness records, not a general event-sourcing architecture.
+- Reward grants are additive ownership/progression: currencies, XP, owned assets/collections, and permanent unlocks. Damage, healing, node state, run lifecycle, and other mutations remain effects/domain transitions.
+- Ordinary finalized rewards are applied in the same authoritative transaction as their owning gameplay command. There is no battle/reward claim endpoint.
+- Unique rewards such as Mountains access resolve to no additional grant if already owned; they are not rerolled or substituted.
+- Permanent region access is represented by `user_unlocks`, not by a second region-completion history table.
+- Unit XP remains on `unit_instances.xp`; exact XP/level advancement semantics must be reconciled before the package that applies XP, rather than guessed in the persistence foundation.
+- PHP remains authoritative. Phaser presents finalized effects/rewards and reconciles server state; it does not roll rewards or apply progression locally.
+- Fresh-baseline rules remain in force: update `vnext_baseline.sql`, do not create a migration chain for current prototype/runtime data.
 
 ### Package Queue
-1. ~~Canonical combatant stats + authoritative run HP initialization.~~ Approved at `dcb78d61672b5b4e739d16c3757f8d7bbc817d07`.
-2. ~~Farm combat authored content + deterministic engine adaptation.~~ Approved at `2c1d9e9f4863da95a2cb0021d4b16d066fb5b7a7`.
-3. ~~Battle persistence + playback boundary.~~ Approved at `833bd7dda53ffc1dbe88b085f55e42922280f979`.
-4. ~~Authoritative combat-node resolution + persisted run/battle state.~~ Approved at `8b87ca535c3c9c8dee58516898b28cdc081e4cda`.
-5. ~~Battle/result/playback query and reconnect contracts.~~ Approved at `a447f71c625009c5b54779f7cc28211527553e26`.
-6. ~~Phaser `BattleScene` playback lifecycle.~~ Approved after focused correction at `cb04896d5a01d04694cb15101038c75b90ff24b4`.
-7. ~~Battle result + authoritative return-to-run reconciliation.~~ Approved at `45f68eed6a7b6527568d61856e299019091264e5`.
-8. ~~Combat integrated verification/closure.~~ Approved at `16288bff6223cdddee56b5cbf359e607c07dc81e`.
-
-### Technical Closure Evidence
-Package 8 reported:
-- fresh MySQL 8.4.8 baseline reset passed with 19 expected runtime tables and the accepted battle/run-HP constraints;
-- deterministic engine tests: 23 tests / 96 assertions;
-- focused combat-resolution/playback/current-run MySQL tests: 20 tests / 264 assertions;
-- backend Docker suite: 481 tests / 1,931 assertions / 143 fixture-or-environment-gated skips, exit 0;
-- focused frontend combat lifecycle: 38 tests;
-- full frontend suite: 434 tests;
-- production frontend build and bundle check passed; largest bundle 339.09 KiB;
-- content validation passed twice with stable revision `fd4b4a0c72970a44fcac55ce2540a0171f6fca7ad6508c3c3f08699e2f436d19`;
-- `llm:check`, `docs:lint`, and `git diff --check` passed;
-- real-stack victory flow passed with one bodyless resolve POST, two playback GETs across reload, one Continue current-run GET, matched persisted identity, marker clearing, and RunScene destinations before/after final reload;
-- deterministic captures passed for available Combat, early/mid playback, victory, defeat, stalemate, Compact, Wide, and portrait gating.
-
-`verify:full` did not complete because host PHP is unavailable on `PATH`; the corresponding supported Docker content/backend gates and frontend constituents passed. No GitHub workflow/status was attached to the closure commit. This is an environment limitation, not a reported gate pass.
+1. **Reward/event authored model + persistence foundation.** Current.
+2. Deterministic reward finalization + initial Farm grant application (Teeth, unit XP, permanent unlock), including exact XP/level semantics.
+3. Farm Loot + Rest authoritative node resolution and RunScene interaction/result flow.
+4. Mudking authored boss content + deterministic boss-combat adaptation.
+5. Boss-node authoritative resolution + finalized Farm boss rewards/XP + Mountains unlock.
+6. Exit-node resolution + successful run termination + authoritative Camp/RunScene/unlock reconciliation.
+7. Complete-Farm integrated verification/closure.
+8. Focused manual UAT; Milestone 6 is not promoted until it passes.
 
 ### Sequencing Notes
-- Technical implementation is closed pending manual UAT. Do not add more Milestone 4 implementation unless UAT identifies a concrete defect.
-- Manual UAT should concentrate on player-visible Fight, playback, reload, Replay, result, Continue, responsive/orientation, and return-to-run behavior rather than repeating automated internal checks.
-- Final visual/art/animation polish remains deferred and is not by itself a Milestone 4 UAT blocker unless it makes gameplay unclear or unusable.
-- Milestone 5 must not begin until the focused manual UAT passes and this milestone is formally closed.
+- Package 1 establishes only the shared authored/persistence substrate. It must not invent Farm reward amounts, XP curves, Mudking mechanics, or node endpoints.
+- Package 2 owns the exact versioned finalized reward-result model and grant semantics after Package 1 has established stable content/storage boundaries. It must deliberately reconcile unit XP/level advancement before applying XP.
+- Package 3 uses the reward/effect infrastructure for the existing Loot and Rest nodes. Rest healing is an effect, not a reward.
+- Package 4 adapts the existing Mudking behavioral evidence/art into current authored combat content and the deterministic vNext kernel without yet making the boss node mutate a run.
+- Package 5 extends authoritative node resolution to Boss and attaches the finalized boss-completion event/rewards transactionally. Boss victory unlocks only its persisted direct child (Exit) while also granting the Mountains unlock through the reward pipeline.
+- Package 6 resolves Exit as a normal node, terminates the run successfully, clears active-run locks through authoritative reconciliation, and presents the resulting progression without inventing a claim lifecycle.
+- Package 7 is technical closure. Manual UAT follows.
+- Do not begin Mountains implementation, economy breadth, Academy, Wrong Machine, objectives, or general visual-overhaul work inside Milestone 5.
