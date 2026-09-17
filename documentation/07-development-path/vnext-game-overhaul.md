@@ -84,8 +84,8 @@ Completing the overhaul does not require building Island through Savanna or The 
 Manual Milestone 4 combat UAT passed on 2026-09-17 after focused Replay correction `dcca26823ca035d3d53df77024fb5393e611307f`.
 
 ## Milestone 5 Package Sequence
-1. Reward/event authored model + persistence foundation. **Current.**
-2. Deterministic reward finalization + initial Farm grant application (Teeth, unit XP, permanent unlock), including exact XP/level semantics.
+1. Reward/event authored model + persistence foundation. **Approved at `a7392f9f54820704feaaeec6cfddad5f6ae440ed`.**
+2. Finalized reward results + transactional grant application (currency, unit XP, permanent unlock). **Current.**
 3. Farm Loot + Rest authoritative node resolution and RunScene interaction/result flow.
 4. Mudking authored boss content + deterministic boss-combat adaptation.
 5. Boss-node authoritative resolution + finalized Farm boss rewards/XP + Mountains unlock.
@@ -112,7 +112,7 @@ Do not block the next gameplay milestone on final visual polish or on exact late
 
 For Milestone 4, Packages 1-8 established and closed canonical stats/run HP, deterministic combat, immutable battle persistence, atomic resolution, ownership-safe playback, reload-safe Phaser presentation, authoritative reconciliation, and integrated verification. Manual UAT passed on 2026-09-17.
 
-Milestone 5 now owns rewards/XP/unlocks and the remaining Farm nodes. Its first package establishes authored event/reward/unlock contracts plus the minimal `user_unlocks` and `resolved_events` persistence foundation. Later packages finalize/apply rewards, resolve Loot/Rest, adapt Mudking, resolve Boss rewards/Mountains unlock, and terminate the run through Exit. Mountains gameplay itself remains Milestone 6.
+Milestone 5 now owns rewards/XP/unlocks and the remaining Farm nodes. Package 1 established authored event/reward/unlock contracts plus minimal `user_unlocks`/`resolved_events` persistence and real bootstrap unlock reads. Package 2 now establishes the exact immutable reward result and grant application boundary. Unit XP is progress within the current level; level `L` costs `100 × L` XP to advance, excess carries across levels, tier/type does not change the curve, and level-up does not heal current run HP. Later packages resolve Loot/Rest, adapt Mudking, resolve Boss rewards/Mountains unlock, and terminate the run through Exit. Mountains gameplay itself remains Milestone 6.
 
 The cross-cutting visual/UI overhaul is intentionally deferred until core gameplay surfaces and interaction patterns are established. Until then, visual work should support clarity, usability, responsive correctness, and basic cohesion rather than attempt final production fidelity screen by screen.
 
