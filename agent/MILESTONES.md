@@ -43,13 +43,13 @@ Mountains gameplay itself remains Milestone 6. Milestone 5 may expose that Mount
 - Ordinary finalized rewards are applied in the same authoritative transaction as their owning gameplay command. There is no battle/reward claim endpoint.
 - Unique rewards such as Mountains access resolve to no additional grant if already owned; they are not rerolled or substituted.
 - Permanent region access is represented by `user_unlocks`, not by a second region-completion history table.
-- Unit XP remains on `unit_instances.xp`; exact XP/level advancement semantics must be reconciled before the package that applies XP, rather than guessed in the persistence foundation.
+- Unit XP remains on `unit_instances.xp`. Package 2 establishes XP as progress within the current level: advancing from level `L` to `L+1` costs `100 × L` XP; excess carries through multiple levels; unit tier/type does not change the curve; promotion does not reset level/XP; level-up does not heal current run HP; no separate max-level cap is enforced by the Milestone 5 resolver.
 - PHP remains authoritative. Phaser presents finalized effects/rewards and reconciles server state; it does not roll rewards or apply progression locally.
 - Fresh-baseline rules remain in force: update `vnext_baseline.sql`, do not create a migration chain for current prototype/runtime data.
 
 ### Package Queue
-1. **Reward/event authored model + persistence foundation.** Current.
-2. Deterministic reward finalization + initial Farm grant application (Teeth, unit XP, permanent unlock), including exact XP/level semantics.
+1. ~~Reward/event authored model + persistence foundation.~~ Complete and architecturally approved at `a7392f9f54820704feaaeec6cfddad5f6ae440ed`.
+2. **Finalized reward results + transactional grant application (currency, unit XP, permanent unlock).** Current.
 3. Farm Loot + Rest authoritative node resolution and RunScene interaction/result flow.
 4. Mudking authored boss content + deterministic boss-combat adaptation.
 5. Boss-node authoritative resolution + finalized Farm boss rewards/XP + Mountains unlock.
@@ -58,8 +58,8 @@ Mountains gameplay itself remains Milestone 6. Milestone 5 may expose that Mount
 8. Focused manual UAT; Milestone 6 is not promoted until it passes.
 
 ### Sequencing Notes
-- Package 1 establishes only the shared authored/persistence substrate. It must not invent Farm reward amounts, XP curves, Mudking mechanics, or node endpoints.
-- Package 2 owns the exact versioned finalized reward-result model and grant semantics after Package 1 has established stable content/storage boundaries. It must deliberately reconcile unit XP/level advancement before applying XP.
+- Package 1 established the server-only `unlock`/`event`/`reward_definition` authored contracts, `unlock.region.mountains`, minimal `user_unlocks`/`resolved_events` storage, real bootstrap unlock reads, and an authored-but-unplayable `region.mountains` identity. It did not grant Mountains or add Mountains run generation.
+- Package 2 owns the exact versioned finalized reward-result model and transactionless-within-parent-transaction grant service. One authoritative event source is finalized once; persisted applied results replay without RNG or grants. Currency/XP/unlock results contain exact application facts. Package 2 does not attach rewards to a live Farm node yet.
 - Package 3 uses the reward/effect infrastructure for the existing Loot and Rest nodes. Rest healing is an effect, not a reward.
 - Package 4 adapts the existing Mudking behavioral evidence/art into current authored combat content and the deterministic vNext kernel without yet making the boss node mutate a run.
 - Package 5 extends authoritative node resolution to Boss and attaches the finalized boss-completion event/rewards transactionally. Boss victory unlocks only its persisted direct child (Exit) while also granting the Mountains unlock through the reward pipeline.
