@@ -42,9 +42,9 @@ All nine implementation/closure packages passed architectural review. Integrated
 
 The seven implementation/closure packages passed architectural review, with integrated closure at `c456d983b1afaf36c0dc9e069b3e35cfcdf6957f`. Manual UAT identified inconsistent clickable cursor affordances and reactive-only presentation of active-run Warband locks. Package 8 at `038a6ce081fa3b735f627095db372db24b39f79e` corrected both while retaining backend authority and legal squad/unit naming. The focused manual recheck passed and Milestone 3 was closed on 2026-09-15.
 
-**Milestone 4 - Combat: Active; technical closure in progress.**
+**Milestone 4 - Combat: Technical closure complete; manual UAT pending.**
 
-Packages 1-7 have passed architectural review and now provide the complete combat capability: canonical run HP/stats, authored Farm combat, deterministic server combat, immutable battle persistence, atomic/idempotent node resolution, ownership-safe playback, reload-safe Phaser `BattleScene` presentation, and explicit result/Continue reconciliation back to authoritative current-run truth. Package 8 is integrated technical closure; manual UAT follows before Milestone 5 may be promoted.
+All eight implementation/closure packages have passed architectural review. Integrated technical closure at `16288bff6223cdddee56b5cbf359e607c07dc81e` proved the accepted combat slice through fresh MySQL state, deterministic server combat, immutable battle history, atomic/idempotent combat resolution, retained Phaser playback/reload, explicit results, and authoritative Continue reconciliation. Manual user UAT is the remaining gate before Milestone 4 can close and Milestone 5 may be promoted.
 
 ## Milestones
 | # | Milestone | Exit criterion |
@@ -53,7 +53,7 @@ Packages 1-7 have passed architectural review and now provide the complete comba
 | 1 | Walking skeleton | Authenticated Angular `/game` -> Phaser boot -> safe content projection -> real PHP bootstrap/MySQL state -> minimal responsive Camp. **Complete; UAT passed.** |
 | 2 | Warband | Real units/dice/squads, lazy cache/detail queries, persistent squad and unit-loadout configuration. **Complete; UAT passed.** |
 | 3 | Enter Farm | Energy + region/run creation, persistent generated Farm run, `RunScene`, resume/abandon/map. **Complete; UAT passed.** |
-| 4 | Combat | Authoritative combat adaptation, run HP/state, persisted playback, `BattleScene`, reconnect-safe result. **Active; technical closure in progress.** |
+| 4 | Combat | Authoritative combat adaptation, run HP/state, persisted playback, `BattleScene`, reconnect-safe result. **Technical closure complete; UAT pending.** |
 | 5 | Complete Farm | Event/reward pipeline, XP/progression, Mudking, terminal run flow, Mountains unlock; no claim/reroll/double-grant path. |
 | 6 | Prove region generalization | Mountains/kobolds operate through the same region/run architecture without Farm-specific duplication. |
 | 7 | Economy and inventory | Shop, Teeth, inventory/consumables, dice sale/salvage, recharge items and repeatable economy. |
@@ -75,9 +75,11 @@ Completing the overhaul does not require building Island through Savanna or The 
 5. Battle/result/playback query and reconnect contracts. **Approved.**
 6. Phaser `BattleScene` playback lifecycle. **Approved after focused correction.**
 7. Battle result + authoritative return-to-run reconciliation. **Approved.**
-8. Combat integrated verification/closure. **Current; manual UAT follows.**
+8. Combat integrated verification/closure. **Approved at `16288bff6223cdddee56b5cbf359e607c07dc81e`.**
 
-The retained prototype combat implementation is behavioral evidence only. It currently couples PDO/catalog access, node effects, rewards/progression, combat simulation, and playback construction; vNext must preserve useful deterministic mechanics behind the accepted application/domain/repository/content boundaries rather than wrap that object as the new architecture.
+Manual Milestone 4 combat UAT is now the only remaining Milestone 4 gate.
+
+The retained prototype combat implementation is behavioral evidence only. It currently couples PDO/catalog access, node effects, rewards/progression, combat simulation, and playback construction; vNext preserves useful deterministic mechanics behind the accepted application/domain/repository/content boundaries rather than wrapping that object as the new architecture.
 
 ## Persistent Quality Gates
 Every applicable milestone maintains:
@@ -94,7 +96,7 @@ Every applicable milestone maintains:
 ## Deferred Until Needed
 Do not block the next gameplay milestone on final visual polish or on exact later-system details such as Rest/Chaos sub-route payloads, later economy tuning, later kin recipes, or onboarding dialogue. Resolve them in the milestone that needs them and update the relevant accepted decision if the architecture changes.
 
-For Milestone 4, Packages 1-7 have now established canonical stats/run HP, deterministic combat rules/content, immutable battle persistence, atomic node resolution, ownership-safe playback reads, reload-safe Phaser presentation, and authoritative post-battle reconciliation. Package 8 verifies those accepted boundaries together and corrects only concrete closure defects; no rewards/progression/claim semantics are added merely to close Combat.
+For Milestone 4, Packages 1-8 have established and technically closed canonical stats/run HP, deterministic combat rules/content, immutable battle persistence, atomic resolution, ownership-safe playback, reload-safe Phaser presentation, authoritative post-battle reconciliation, and integrated real-stack verification. Manual UAT now validates the player-visible slice. No rewards/progression/claim semantics are added merely to close Combat.
 
 The cross-cutting visual/UI overhaul is intentionally deferred until core gameplay surfaces and interaction patterns are established. Until then, visual work should support clarity, usability, responsive correctness, and basic cohesion rather than attempt final production fidelity screen by screen.
 
