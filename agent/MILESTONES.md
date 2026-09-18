@@ -49,8 +49,8 @@ Mountains gameplay itself remains Milestone 6. Milestone 5 may expose that Mount
 
 ### Package Queue
 1. ~~Reward/event authored model + persistence foundation.~~ Complete and architecturally approved at `a7392f9f54820704feaaeec6cfddad5f6ae440ed`.
-2. **Finalized reward results + transactional grant application (currency, unit XP, permanent unlock).** Current.
-3. Farm Loot + Rest authoritative node resolution and RunScene interaction/result flow.
+2. ~~Finalized reward results + transactional grant application (currency, unit XP, permanent unlock).~~ Complete and architecturally approved at `0b41c7337ff490315826f9211d5a3f7486ae8be3`.
+3. **Farm Loot + Rest authoritative node resolution and RunScene interaction/result flow.** Current.
 4. Mudking authored boss content + deterministic boss-combat adaptation.
 5. Boss-node authoritative resolution + finalized Farm boss rewards/XP + Mountains unlock.
 6. Exit-node resolution + successful run termination + authoritative Camp/RunScene/unlock reconciliation.
@@ -59,8 +59,8 @@ Mountains gameplay itself remains Milestone 6. Milestone 5 may expose that Mount
 
 ### Sequencing Notes
 - Package 1 established the server-only `unlock`/`event`/`reward_definition` authored contracts, `unlock.region.mountains`, minimal `user_unlocks`/`resolved_events` storage, real bootstrap unlock reads, and an authored-but-unplayable `region.mountains` identity. It did not grant Mountains or add Mountains run generation.
-- Package 2 owns the exact versioned finalized reward-result model and transactionless-within-parent-transaction grant service. One authoritative event source is finalized once; persisted applied results replay without RNG or grants. Currency/XP/unlock results contain exact application facts. Package 2 does not attach rewards to a live Farm node yet.
-- Package 3 uses the reward/effect infrastructure for the existing Loot and Rest nodes. Rest healing is an effect, not a reward.
+- Package 2 established version-1 immutable finalized reward results, cryptographic production rolls, exact currency/XP/unlock application inside a caller-owned transaction, replay without RNG/regrant, and the canonical `100 × current level` XP curve. It did not attach rewards to a live Farm node.
+- Package 3 makes the shared bodyless node-resolution endpoint support the current Farm Loot and Rest nodes without changing combat semantics. The current Loot node emits `event.farm_loot_completed` for a deterministic 8 Teeth grant. Rest is a direct full-recovery effect to each participating unit's current level-derived max HP and is not a reward.
 - Package 4 adapts the existing Mudking behavioral evidence/art into current authored combat content and the deterministic vNext kernel without yet making the boss node mutate a run.
 - Package 5 extends authoritative node resolution to Boss and attaches the finalized boss-completion event/rewards transactionally. Boss victory unlocks only its persisted direct child (Exit) while also granting the Mountains unlock through the reward pipeline.
 - Package 6 resolves Exit as a normal node, terminates the run successfully, clears active-run locks through authoritative reconciliation, and presents the resulting progression without inventing a claim lifecycle.
