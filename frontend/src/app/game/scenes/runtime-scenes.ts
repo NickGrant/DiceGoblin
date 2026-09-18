@@ -414,7 +414,8 @@ export class RunScene extends RuntimeScene {
     }
     if (node.status !== 'available' || node.battleId !== null || this.nodeAttempt.state === 'submitting') return;
     this.nodeAttempt.begin(run.id, node.id); this.nodeMessage = 'Resolving combat authoritatively…'; this.render();
-    const outcome = await this.nodeAttempt.submit(this.runtimeStartup.apiClient, bootstrap.session.csrf_token);
+    const outcome = await this.nodeAttempt.submit(this.runtimeStartup.apiClient, bootstrap.session.csrf_token,
+      (result) => result.resolutionType === 'combat' && result.run.id === run.id && result.node.id === node.id);
     if (outcome.kind === 'success') {
       const result = outcome.result;
       if (result.resolutionType !== 'combat' || result.run.id !== run.id || result.node.id !== node.id) {
@@ -452,10 +453,11 @@ export class RunScene extends RuntimeScene {
     this.nodeAttempt.begin(run.id, node.id);
     this.nodeMessage = node.nodeTypeId === 'run_node_type.loot' ? 'Collecting loot authoritatively…' : 'Resting authoritatively…';
     this.render();
-    const outcome = await this.nodeAttempt.submit(this.runtimeStartup.apiClient, bootstrap.session.csrf_token);
+    const expectedType = node.nodeTypeId === 'run_node_type.loot' ? 'loot' : 'rest';
+    const outcome = await this.nodeAttempt.submit(this.runtimeStartup.apiClient, bootstrap.session.csrf_token,
+      (result) => result.resolutionType === expectedType && result.run.id === run.id && result.node.id === node.id);
     if (outcome.kind === 'success') {
       const result = outcome.result;
-      const expectedType = node.nodeTypeId === 'run_node_type.loot' ? 'loot' : 'rest';
       if (result.resolutionType !== expectedType || result.run.id !== run.id || result.node.id !== node.id) {
         this.nodeMessage = 'The response did not match this location. Reload to recover.'; this.render(); return;
       }

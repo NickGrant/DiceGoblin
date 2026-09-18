@@ -19,11 +19,15 @@ export class RunNodeResolutionAttempt {
     this.currentState = 'idle';
   }
 
-  async submit(api: RuntimeApiClient, csrfToken: string): Promise<RunNodeResolutionAttemptOutcome> {
+  async submit(api: RuntimeApiClient, csrfToken: string,
+    acceptsResult: (result: RunNodeResolutionResult) => boolean): Promise<RunNodeResolutionAttemptOutcome> {
     if (!this.attempt || this.currentState === 'submitting' || this.currentState === 'succeeded') return { kind: 'ignored' };
     this.currentState = 'submitting';
     try {
       const result = await api.resolveRunNode(this.attempt.runId, this.attempt.nodeId, csrfToken, this.attempt.key);
+      if (!acceptsResult(result)) {
+        this.currentState = 'retryable'; return { kind: 'ambiguous' };
+      }
       this.currentState = 'succeeded'; return { kind: 'success', result };
     } catch (error) {
       if (error instanceof RuntimeApiError && error.kind === 'http' && error.status === 409 && error.code === 'run_node_already_resolved') {

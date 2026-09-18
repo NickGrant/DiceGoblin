@@ -78,6 +78,23 @@ describe('RunScene lifecycle shell', () => {
     complete(resolutionSuccess()); await Promise.all([first, duplicate]);
   });
 
+  it('retries a Combat semantic mismatch with the exact original attempt identity', async () => {
+    const createKey = jasmine.createSpy('createKey').and.returnValues('run-node:first', 'run-node:second');
+    const { scene, startup, api, sceneStart } = await readyHarness(currentRun(), createKey);
+    spyOn<any>(scene, 'render').and.stub(); scene.selectNode('10');
+    api.resolveRunNode.and.returnValues(Promise.resolve(lootResolutionSuccess()), Promise.resolve(resolutionSuccess()));
+
+    await scene.activateSelectedCombat();
+    expect(scene.combatActionState).toBe('retryable');
+    expect(startup.battlePresentation.marker).toBeNull();
+    expect(sceneStart).not.toHaveBeenCalled();
+    await scene.activateSelectedCombat();
+
+    expect(createKey).toHaveBeenCalledTimes(1);
+    expect(api.resolveRunNode.calls.allArgs().map((args) => args[3])).toEqual(['run-node:first', 'run-node:first']);
+    expect(sceneStart).toHaveBeenCalledOnceWith(BATTLE_SCENE_KEY);
+  });
+
   it('replays an already-completed combat directly without a resolution POST', async () => {
     const completed: any = currentRun();
     completed.nodes[0] = { ...completed.nodes[0], status: 'completed', completedAt: '2026-09-16T12:00:00Z', battleId: '81' };
@@ -104,6 +121,35 @@ describe('RunScene lifecycle shell', () => {
     expect(api.getCurrentRun).toHaveBeenCalledTimes(2);
     expect(startup.store.bootstrap?.player).toEqual(jasmine.objectContaining({ teeth: 8, player_revision: 8 }));
     expect(startup.store.currentRun.data?.nodes.find((node) => node.id === '12')?.status).toBe('available');
+    expect(scene.resolvedNodeSyncState).toBe('succeeded');
+  });
+
+  it('retries Loot run, node, and discriminator mismatches with the exact original attempt identity', async () => {
+    const createKey = jasmine.createSpy('createKey').and.returnValues('run-node:first', 'run-node:second');
+    const { scene, startup, api } = await readyHarness(lootAvailableRun(), createKey);
+    spyOn<any>(scene, 'render').and.stub(); scene.selectNode('11');
+    const loot = lootResolutionSuccess();
+    const wrongRun = { ...loot, run: { ...loot.run, id: '42' } };
+    const wrongNode = { ...loot, node: { ...loot.node, id: '99' } };
+    const rest = restResolutionSuccess();
+    const wrongType = { ...rest, node: { ...rest.node, id: '11' } };
+    api.resolveRunNode.and.returnValues(Promise.resolve(wrongRun), Promise.resolve(wrongNode),
+      Promise.resolve(wrongType), Promise.resolve(loot));
+    api.getCurrentRun.and.resolveTo({ run: restAvailableRun(), playerRevision: 8 });
+
+    for (let index = 0; index < 3; index++) {
+      await scene.activateSelectedNonCombat();
+      expect(scene.nodeActionState).toBe('retryable');
+      expect(startup.store.bootstrap?.player.teeth).toBe(0);
+      expect(scene.resolvedNodeSyncState).toBe('idle');
+    }
+    await scene.activateSelectedNonCombat();
+
+    expect(createKey).toHaveBeenCalledTimes(1);
+    expect(api.resolveRunNode.calls.allArgs().map((args) => args[3])).toEqual([
+      'run-node:first', 'run-node:first', 'run-node:first', 'run-node:first',
+    ]);
+    expect(startup.store.bootstrap?.player.teeth).toBe(8);
     expect(scene.resolvedNodeSyncState).toBe('succeeded');
   });
 
@@ -229,7 +275,7 @@ function abandonSuccess(): abandonResult {
     endedAt: '2026-09-13T12:04:00Z' }, activeRun: null, playerRevision: 8 };
 }
 
-async function readyHarness(run: CurrentRun = currentRun()) {
+async function readyHarness(run: CurrentRun = currentRun(), createKey: () => string = () => 'run-node:fixed') {
   const api = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getCurrentRun', 'abandonRun', 'resolveRunNode']);
   const startup = new RuntimeStartup(api, {} as ClientContentLoader);
   const registry = content();
@@ -239,7 +285,7 @@ async function readyHarness(run: CurrentRun = currentRun()) {
   api.getCurrentRun.and.resolveTo({ run, playerRevision: 7 });
   await startup.store.loadCurrentRun(api, registry);
   const viewport = new RuntimeViewport();
-  const scene = new RunScene(new RuntimeLifecycleState(), startup, viewport, new RunNodeResolutionAttempt(() => 'run-node:fixed'));
+  const scene = new RunScene(new RuntimeLifecycleState(), startup, viewport, new RunNodeResolutionAttempt(createKey));
   const sceneStart = jasmine.createSpy('start');
   (scene as unknown as { scene: { start: jasmine.Spy } }).scene = { start: sceneStart };
   return { scene, startup, api, viewport, sceneStart };
