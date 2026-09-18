@@ -4,7 +4,7 @@
 
 ### Milestone 5 Package 4 - Mudking authored boss content + deterministic boss-combat adaptation
 
-**Status:** Open
+**Status:** In Progress
 **Priority:** High
 
 #### Problem

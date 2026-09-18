@@ -23,6 +23,18 @@
       "active_ability_ids": ["ability.basic_attack_ranged", "ability.mud_sling"],
       "passive_ability_ids": [],
       "virtual_ability_dice": { "sides": 6, "profile_id": "dice_profile.cardboard_plain" }
+    },
+    {
+      "id": "enemy_unit_type.mudking",
+      "type": "enemy_unit_type",
+      "display_name": "Mudking",
+      "description": "The hulking ruler of the Farm mud pits.",
+      "art_key": "enemy_mudking",
+      "role": "frontline",
+      "stats": { "hp": 30, "attack": 5, "defense": 4, "precision": 5, "resolve": 7 },
+      "active_ability_ids": ["ability.basic_attack_melee", "ability.wrestle", "ability.mud_slam"],
+      "passive_ability_ids": ["ability.thick_hide"],
+      "virtual_ability_dice": { "sides": 6, "profile_id": "dice_profile.cardboard_plain" }
     }
   ]
 }

@@ -9,11 +9,11 @@ final class CombatRules
 {
   public const ACTIVE_HANDLERS = [
     'basic_attack_melee', 'basic_attack_ranged', 'heavy_strike', 'aimed_shot',
-    'shield_up', 'bolster_ally', 'sleep_dart', 'wrestle', 'mud_sling',
+    'shield_up', 'bolster_ally', 'sleep_dart', 'wrestle', 'mud_sling', 'mud_slam',
   ];
   public const TARGET_RULES = ['self', 'enemy_front_prefer', 'enemy_back_prefer', 'ally_lowest_hp_pct'];
-  private const DAMAGING = ['basic_attack_melee', 'basic_attack_ranged', 'heavy_strike', 'aimed_shot', 'wrestle', 'mud_sling'];
-  private const MELEE = ['basic_attack_melee', 'heavy_strike', 'wrestle'];
+  private const DAMAGING = ['basic_attack_melee', 'basic_attack_ranged', 'heavy_strike', 'aimed_shot', 'wrestle', 'mud_sling', 'mud_slam'];
+  private const MELEE = ['basic_attack_melee', 'heavy_strike', 'wrestle', 'mud_slam'];
   private const EFFECTS = [
     'flat_damage_bonus', 'flat_defense_bonus', 'percent_defense_bonus', 'percent_attack_bonus',
     'wounded_target_damage_bonus', 'explode_on_maximum',
@@ -28,7 +28,7 @@ final class CombatRules
     $expected = match ($handler) {
       'shield_up' => 'self',
       'bolster_ally' => 'ally_lowest_hp_pct',
-      'basic_attack_melee', 'heavy_strike', 'wrestle' => 'enemy_front_prefer',
+      'basic_attack_melee', 'heavy_strike', 'wrestle', 'mud_slam' => 'enemy_front_prefer',
       'basic_attack_ranged', 'aimed_shot', 'sleep_dart', 'mud_sling' => 'enemy_back_prefer',
       default => throw new InvalidArgumentException('Unsupported active handler.'),
     };
@@ -43,7 +43,7 @@ final class CombatRules
       'shield_up', 'bolster_ally' => ['status_id', 'bolster_defense_pct', 'duration_rounds'],
       'sleep_dart' => ['status_id', 'duration_rounds'],
       'wrestle' => ['power_ratio', 'status_id', 'duration_rounds'],
-      'mud_sling' => ['power_ratio', 'status_id', 'defense_reduction_flat', 'duration_rounds'],
+      'mud_sling', 'mud_slam' => ['power_ratio', 'status_id', 'defense_reduction_flat', 'duration_rounds'],
       default => throw new InvalidArgumentException('Unsupported ability handler.'),
     };
     if (self::isDamaging($handler) && array_key_exists('ignore_defense_flat', $config)) $required[] = 'ignore_defense_flat';
@@ -58,7 +58,7 @@ final class CombatRules
         'shield_up', 'bolster_ally' => 'bolstered',
         'sleep_dart' => 'sleep',
         'wrestle' => 'wrestled',
-        'mud_sling' => 'cracked_armor',
+        'mud_sling', 'mud_slam' => 'cracked_armor',
         default => '',
       };
       if ($config['status_id'] !== $expected) throw new InvalidArgumentException('Unsupported ability status.');

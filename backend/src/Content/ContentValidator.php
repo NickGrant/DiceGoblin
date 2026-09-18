@@ -158,7 +158,9 @@ final class ContentValidator
         foreach ($definition['nodes'] as $node) {
           $this->requireReferenceType($definitions, $id, 'nodes.node_type_id', $node['node_type_id'], 'run_node_type');
           if ($node['encounter_id'] ?? null) {
-            if ($node['node_type_id'] !== 'run_node_type.combat') throw new ContentValidationException("{$id} only combat nodes may reference encounters.");
+            if (!in_array($node['node_type_id'], ['run_node_type.combat', 'run_node_type.boss'], true)) {
+              throw new ContentValidationException("{$id} only combat or boss nodes may reference encounters.");
+            }
             $this->requireReferenceType($definitions, $id, 'nodes.encounter_id', $node['encounter_id'], 'encounter');
           }
           if ($node['event_id'] ?? null) {
@@ -710,8 +712,11 @@ final class ContentValidator
     if (($nodes[1]['event_id'] ?? null) !== 'event.farm_loot_completed') {
       throw new ContentValidationException('region.the_farm Loot node must reference its completion event.');
     }
-    if (($nodes[3]['encounter_id'] ?? null) !== null) {
-      throw new ContentValidationException('region.the_farm boss encounter is not authored yet.');
+    if (($nodes[3]['encounter_id'] ?? null) !== 'encounter.the_farm_mud_boss_1') {
+      throw new ContentValidationException('region.the_farm Boss node must reference its Mudking encounter.');
+    }
+    if (($nodes[3]['event_id'] ?? null) !== null) {
+      throw new ContentValidationException('region.the_farm Boss node must not reference a completion event yet.');
     }
 
     $expectedEdges = [];

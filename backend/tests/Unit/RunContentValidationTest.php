@@ -25,7 +25,8 @@ final class RunContentValidationTest extends TestCase
     $this->assertCount(5, $registry->definitionsOfType('run_node_type'));
     $this->assertSame('encounter.the_farm_mud_combat_1', $generation['nodes'][0]['encounter_id']);
     $this->assertSame('event.farm_loot_completed', $generation['nodes'][1]['event_id']);
-    $this->assertArrayNotHasKey('encounter_id', $generation['nodes'][3]);
+    $this->assertSame('encounter.the_farm_mud_boss_1', $generation['nodes'][3]['encounter_id']);
+    $this->assertArrayNotHasKey('event_id', $generation['nodes'][3]);
     $this->assertSame('Combat', $registry->runNodeType('run_node_type.combat')['display_name']);
   }
 
@@ -53,6 +54,9 @@ final class RunContentValidationTest extends TestCase
     $this->assertStringNotContainsString('Mudwrestler', $encoded);
     $this->assertStringNotContainsString('Mud Sling', $encoded);
     $this->assertStringNotContainsString('encounter.the_farm_mud_combat_1', $encoded);
+    $this->assertStringNotContainsString('encounter.the_farm_mud_boss_1', $encoded);
+    $this->assertStringNotContainsString('Mudking', $encoded);
+    $this->assertStringNotContainsString('Mud Slam', $encoded);
     $this->assertStringNotContainsString('event.farm_loot_completed', $encoded);
   }
 

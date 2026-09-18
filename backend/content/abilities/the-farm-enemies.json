@@ -29,6 +29,21 @@
       "target_rule": "enemy_back_prefer",
       "handler_id": "mud_sling",
       "handler_config": { "power_ratio": 0.90, "status_id": "cracked_armor", "defense_reduction_flat": 2, "duration_rounds": 2 }
+    },
+    {
+      "id": "ability.mud_slam",
+      "type": "ability",
+      "kind": "active",
+      "server_only": true,
+      "display_name": "Mud Slam",
+      "description": "Slams a front enemy with armor-cracking force.",
+      "icon_key": "icon_ability_mud_slam",
+      "dice_slot_count": 1,
+      "action_delay": 8,
+      "resolution_priority": 18,
+      "target_rule": "enemy_front_prefer",
+      "handler_id": "mud_slam",
+      "handler_config": { "power_ratio": 1.20, "status_id": "cracked_armor", "defense_reduction_flat": 3, "duration_rounds": 2 }
     }
   ]
 }

@@ -104,6 +104,43 @@ final class VnextCombatEngineTest extends TestCase
     $this->assertContains('ability.basic_attack_ranged', $abilitiesUsed);
   }
 
+  public function testCanonicalMudkingSnapshotAndBossCombatAreDeterministic(): void
+  {
+    $content = $this->content();
+    $normalizer = new CombatSnapshotNormalizer($content);
+    $player = $this->unit('player_a', 'player', 2, 1, $this->stats(250, 1, 12), [
+      $normalizer->ability('ability.basic_attack_melee', [
+        $normalizer->normalizeDie('player_basic', 6, 'dice_profile.cardboard_plain'),
+      ]),
+    ]);
+    $input = $normalizer->forEncounter('mudking-boss-golden', [$player], 'encounter.the_farm_mud_boss_1');
+    $boss = $input->combatants['mudking'];
+    $this->assertSame(['hp' => 30, 'attack' => 5, 'defense' => 4, 'precision' => 5, 'resolve' => 7], $boss['stats']);
+    $this->assertSame(['ability.basic_attack_melee', 'ability.wrestle', 'ability.mud_slam'],
+      array_column($boss['active_abilities'], 'id'));
+    $this->assertSame(['ability.thick_hide'], array_column($boss['passive_abilities'], 'id'));
+    $this->assertSame(6, (new \DiceGoblins\Combat\Vnext\CombatStatMath())->defense($boss));
+    $this->assertTrue(CombatRules::isDamaging('mud_slam'));
+    $this->assertTrue(CombatRules::isMelee('mud_slam'));
+    $this->assertFalse(CombatRules::isRanged('mud_slam'));
+
+    $engine = new CombatEngine();
+    $first = $engine->resolve($input)->toArray();
+    $second = $engine->resolve($input)->toArray();
+    $this->assertSame($first, $second);
+    $slamAction = array_values(array_filter($this->events($first, 'action_started'),
+      static fn(array $event): bool => $event['facts']['ability_id'] === 'ability.mud_slam'))[0];
+    $slamDamage = array_values(array_filter($this->events($first, 'damage_dealt'),
+      static fn(array $event): bool => $event['tick'] === $slamAction['tick']
+        && $event['facts']['actor_key'] === 'mudking'))[0];
+    $slamStatus = array_values(array_filter($this->events($first, 'status_applied'),
+      static fn(array $event): bool => $event['tick'] === $slamAction['tick']
+        && $event['facts']['source_key'] === 'mudking' && $event['facts']['status_id'] === 'cracked_armor'))[0];
+    $this->assertSame(6, $slamDamage['facts']['attack_component']);
+    $this->assertSame(['defense_reduction_flat' => 3], $slamStatus['facts']['params']);
+    $this->assertSame($slamStatus['round'] + 2, $slamStatus['facts']['expires_round']);
+  }
+
   public function testFirstActionNextAbilityDelayPriorityAndKeyOrder(): void
   {
     $player = $this->unit('player_a', 'player', 1, 1, $this->stats(200, 1, 200), [
@@ -300,6 +337,36 @@ final class VnextCombatEngineTest extends TestCase
       static fn(array $event): bool => $event['tick'] === 1)));
   }
 
+  public function testMudSlamMissAndResistanceFollowTheSharedDeterministicRngOrder(): void
+  {
+    $missSeed = $this->seedWithFirstRollAtMost(24);
+    $inaccurate = $this->unit('player_a', 'player', 2, 1, $this->stats(100, 5, 0, 2),
+      [$this->ability('mud_slam', 1, 18)]);
+    $target = $this->unit('enemy_a', 'enemy', 2, 1, $this->stats(100, 0, 100, 5, 10),
+      [$this->ability('basic_attack_melee', 4000)]);
+    $missed = $this->resolve($missSeed, [$inaccurate, $target]);
+    $this->assertSame('miss', $this->events($missed, 'hit_resolved')[0]['facts']['result']);
+    $this->assertSame([], array_values(array_filter($this->events($missed, 'damage_dealt'),
+      static fn(array $event): bool => $event['tick'] === 1)));
+    $this->assertSame([], array_values(array_filter($this->events($missed, 'status_applied'),
+      static fn(array $event): bool => $event['tick'] === 1)));
+    $this->assertSame([], array_values(array_filter($this->events($missed, 'status_resisted'),
+      static fn(array $event): bool => $event['tick'] === 1)));
+
+    $resistSeed = $this->seedWithSecondRollAtMost(40);
+    $accurate = $inaccurate;
+    $accurate['stats']['precision'] = 5;
+    $resisted = $this->resolve($resistSeed, [$accurate, $target]);
+    $roll = $this->events($resisted, 'dice_rolled')[0]['facts'];
+    $resistance = $this->events($resisted, 'status_resisted')[0]['facts'];
+    $rng = new DeterministicRandom($resistSeed);
+    $this->assertSame($rng->nextInt(1, 6), $roll['initial_roll']);
+    $this->assertSame($rng->nextInt(1, 100), $resistance['check_roll']);
+    $this->assertSame(['cracked_armor', 40], [$resistance['status_id'], $resistance['chance_percent']]);
+    $this->assertSame([], array_values(array_filter($this->events($resisted, 'status_applied'),
+      static fn(array $event): bool => $event['tick'] === 1)));
+  }
+
   public function testWrestledExpiresNormallyWhenNoEligibleAttackConsumesIt(): void
   {
     $player = $this->unit('player_a', 'player', 1, 1, $this->stats(100000, 1, 100000),
@@ -479,6 +546,7 @@ final class VnextCombatEngineTest extends TestCase
       'sleep_dart' => ['status_id' => 'sleep', 'duration_rounds' => 2],
       'wrestle' => ['power_ratio' => 1.05, 'status_id' => 'wrestled', 'duration_rounds' => 2],
       'mud_sling' => ['power_ratio' => 0.9, 'status_id' => 'cracked_armor', 'defense_reduction_flat' => 2, 'duration_rounds' => 2],
+      'mud_slam' => ['power_ratio' => 1.2, 'status_id' => 'cracked_armor', 'defense_reduction_flat' => 3, 'duration_rounds' => 2],
       default => ['power_ratio' => $handler === 'heavy_strike' || $handler === 'aimed_shot' ? 1.6 : 1.0],
     };
     $dice ??= [$this->die('plain_' . $handler, 6)];

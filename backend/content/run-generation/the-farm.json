@@ -26,6 +26,7 @@
         {
           "key": "boss",
           "node_type_id": "run_node_type.boss",
+          "encounter_id": "encounter.the_farm_mud_boss_1",
           "position": { "column": 3, "row": 1 }
         },
         {

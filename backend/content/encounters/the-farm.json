@@ -11,6 +11,17 @@
         { "key": "mudwrestler", "enemy_unit_type_id": "enemy_unit_type.mudwrestler", "position": { "x": 2, "y": 1 } },
         { "key": "mudslinger", "enemy_unit_type_id": "enemy_unit_type.mudslinger", "position": { "x": 0, "y": 1 } }
       ]
+    },
+    {
+      "id": "encounter.the_farm_mud_boss_1",
+      "type": "encounter",
+      "region_id": "region.the_farm",
+      "display_name": "The Mudking",
+      "description": "The Mudking bars the path beyond the Farm.",
+      "difficulty": 2,
+      "combatants": [
+        { "key": "mudking", "enemy_unit_type_id": "enemy_unit_type.mudking", "position": { "x": 2, "y": 1 } }
+      ]
     }
   ]
 }

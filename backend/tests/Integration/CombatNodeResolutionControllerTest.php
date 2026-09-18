@@ -194,6 +194,8 @@ final class CombatNodeResolutionControllerTest extends IntegrationTestCase
     $foreign = $this->httpResolve($other, $runId, $nodes[0], 'foreign-resolve-key');
     $missing = $this->httpResolve($owner, 999999999, 999999999, 'missing-resolve-key');
     $locked = $this->httpResolve($owner, $runId, $nodes[1], 'locked-resolve-key');
+    $this->assertSame('encounter.the_farm_mud_boss_1', (string)$this->scalar(
+      'SELECT `encounter_id` FROM `run_nodes` WHERE `id` = ?', [$nodes[3]]));
     $this->pdo?->prepare("UPDATE `run_nodes` SET `status` = 'available' WHERE `id` = ?")->execute([$nodes[3]]);
     $unsupported = $this->httpResolve($owner, $runId, $nodes[3], 'unsupported-resolve-key');
 
@@ -336,6 +338,8 @@ final class CombatNodeResolutionControllerTest extends IntegrationTestCase
       'nodes' => $this->rows('SELECT `id`, `status`, `completed_at` FROM `run_nodes` WHERE `run_id` = ? ORDER BY `node_index`', [$runId]),
       'hp' => $this->rows('SELECT `unit_id`, `current_hp` FROM `run_unit_state` WHERE `run_id` = ? ORDER BY `unit_id`', [$runId]),
       'battles' => (string)$this->scalar('SELECT COUNT(*) FROM `battles` WHERE `run_id` = ?', [$runId]),
+      'resolved_events' => (string)$this->scalar('SELECT COUNT(*) FROM `resolved_events` WHERE `user_id` = ?', [$userId]),
+      'unlocks' => (string)$this->scalar('SELECT COUNT(*) FROM `user_unlocks` WHERE `user_id` = ?', [$userId]),
       'receipts' => (string)$this->scalar("SELECT COUNT(*) FROM `idempotency_requests` WHERE `user_id` = ? AND `operation_type` = 'resolve_run_node'", [$userId])];
   }
 

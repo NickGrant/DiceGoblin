@@ -16,6 +16,7 @@ describe('battle presentation layout', () => {
     expect(battleArtAssetPath('goblin_bruiser')).toBe('assets/ui/units/goblin_bruiser.png');
     expect(battleArtAssetPath('enemy_mudwrestler')).toBe('assets/ui/units/pig_mudwrestler.png');
     expect(battleArtAssetPath('enemy_mudslinger')).toBe('assets/ui/units/pig_mudslinger.png');
+    expect(battleArtAssetPath('enemy_mudking')).toBe('assets/ui/units/pig_mudking.png');
     expect(battleArtAssetPath('retired.unknown')).toBeNull();
   });
 });

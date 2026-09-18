@@ -25,7 +25,7 @@ final class FixedGraphRunGeneratorTest extends TestCase
       ['node_index' => 0, 'node_type_id' => 'run_node_type.combat', 'encounter_id' => 'encounter.the_farm_mud_combat_1', 'event_id' => null, 'status' => 'available', 'generated_metadata' => ['position' => ['column' => 0, 'row' => 1]]],
       ['node_index' => 1, 'node_type_id' => 'run_node_type.loot', 'encounter_id' => null, 'event_id' => 'event.farm_loot_completed', 'status' => 'locked', 'generated_metadata' => ['position' => ['column' => 1, 'row' => 1]]],
       ['node_index' => 2, 'node_type_id' => 'run_node_type.rest', 'encounter_id' => null, 'event_id' => null, 'status' => 'locked', 'generated_metadata' => ['position' => ['column' => 2, 'row' => 1]]],
-      ['node_index' => 3, 'node_type_id' => 'run_node_type.boss', 'encounter_id' => null, 'event_id' => null, 'status' => 'locked', 'generated_metadata' => ['position' => ['column' => 3, 'row' => 1]]],
+      ['node_index' => 3, 'node_type_id' => 'run_node_type.boss', 'encounter_id' => 'encounter.the_farm_mud_boss_1', 'event_id' => null, 'status' => 'locked', 'generated_metadata' => ['position' => ['column' => 3, 'row' => 1]]],
       ['node_index' => 4, 'node_type_id' => 'run_node_type.exit', 'encounter_id' => null, 'event_id' => null, 'status' => 'locked', 'generated_metadata' => ['position' => ['column' => 4, 'row' => 1]]],
     ], $first['nodes']);
     $this->assertSame([

@@ -11,6 +11,7 @@ const directUnitArtKeys = new Set([
 const farmEnemyArtPaths: Readonly<Record<string, string>> = Object.freeze({
   enemy_mudwrestler: 'assets/ui/units/pig_mudwrestler.png',
   enemy_mudslinger: 'assets/ui/units/pig_mudslinger.png',
+  enemy_mudking: 'assets/ui/units/pig_mudking.png',
 });
 
 export function battleColumnX(side: BattleSide, column: number, sideCenter: number, spacing: number): number {

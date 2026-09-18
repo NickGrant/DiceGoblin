@@ -76,6 +76,9 @@ final class CurrentRunLifecycleControllerTest extends IntegrationTestCase
       $this->assertStringNotContainsString($private, $encoded);
     }
     $this->assertStringNotContainsString('encounter.the_farm_mud_combat_1', $encoded);
+    $this->assertStringNotContainsString('encounter.the_farm_mud_boss_1', $encoded);
+    $this->assertStringNotContainsString('enemy_unit_type.mudking', $encoded);
+    $this->assertStringNotContainsString('ability.mud_slam', $encoded);
     $this->assertStringNotContainsString('Mudwrestler', $encoded);
     $this->assertSame($before, $after);
 
