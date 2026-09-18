@@ -12,6 +12,7 @@ use DiceGoblins\Application\Commands\RunLifecycleConflictException;
 use DiceGoblins\Application\Commands\RunNodeResolutionException;
 use DiceGoblins\Application\Commands\CombatConfigurationException;
 use DiceGoblins\Application\Commands\CombatResolutionIntegrityException;
+use DiceGoblins\Application\Commands\RunNodeResolutionIntegrityException;
 use DiceGoblins\Application\Queries\CurrentRunIntegrityException;
 use DiceGoblins\Controllers\Concerns\RequiresCsrf;
 use DiceGoblins\Core\Db;
@@ -104,7 +105,7 @@ final class RunController
       return;
     }
     try {
-      $result = $services['resolveCombatNodeCommand']->execute(
+      $result = $services['resolveRunNodeCommand']->execute(
         $services['userId'],
         $run,
         $node,
@@ -121,6 +122,8 @@ final class RunController
       $this->error('combat_configuration_invalid', 'Participating combat configuration is invalid.', 422);
     } catch (CombatResolutionIntegrityException) {
       $this->error('run_data_integrity_error', 'Run combat data is unavailable.', 500);
+    } catch (RunNodeResolutionIntegrityException) {
+      $this->error('run_data_integrity_error', 'Run data is unavailable.', 500);
     } catch (Throwable) {
       $this->error('server_error', 'Unexpected error.', 500);
     }

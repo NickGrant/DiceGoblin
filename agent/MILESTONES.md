@@ -7,7 +7,7 @@ Read this for sequencing/planning or when closing/promoting an execution package
 **Status:** Active
 
 ### Related Issues
-- Milestone 5 Package 2 - Finalized reward results + transactional grant application
+- Milestone 5 Package 3 - Farm Loot + Rest authoritative node resolution
 
 Milestone 1 - Walking Skeleton is complete and passed manual user UAT.
 

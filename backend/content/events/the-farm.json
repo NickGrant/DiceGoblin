@@ -1,0 +1,9 @@
+{
+  "definitions": [
+    {
+      "id": "event.farm_loot_completed",
+      "type": "event",
+      "reward_definition_id": "reward_definition.farm_loot_completed"
+    }
+  ]
+}

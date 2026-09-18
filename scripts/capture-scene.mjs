@@ -162,7 +162,8 @@ async function installGameFixtureRoutes(page, options) {
   const scene = options.scene.trim().toLowerCase();
   const battleScenes = ['battle-early', 'battle-mid', 'battle-complete', 'battle-compact', 'battle-wide', 'battle-portrait', 'battle-defeat',
     'battle-result-victory', 'battle-result-defeat', 'battle-result-stalemate', 'battle-result-compact', 'battle-result-wide', 'battle-result-error', 'battle-result-portrait'];
-  const runScenes = ['run', 'run-abandon', 'run-portrait', 'run-combat-available'];
+  const runScenes = ['run', 'run-abandon', 'run-portrait', 'run-combat-available',
+    'run-loot-available', 'run-loot-result', 'run-rest-result'];
   if (!['camp', 'camp-portrait', 'warband', 'squad-editor', 'unit-configuration', ...runScenes, ...battleScenes].includes(scene)) return;
 
   if (battleScenes.includes(scene)) {
@@ -269,22 +270,44 @@ async function installGameFixtureRoutes(page, options) {
     return;
   }
   if (runScenes.includes(scene)) {
-    await page.route('**/api/v1/runs/current', (route) => route.fulfill({
-      status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, data: {
+    let resolvedStage = scene === 'run-rest-result' ? 'loot' : 'combat';
+    const runResponse = () => {
+      const combatAvailable = scene === 'run-combat-available';
+      const lootCompleted = resolvedStage === 'loot' || resolvedStage === 'rest';
+      const restCompleted = resolvedStage === 'rest';
+      return { ok: true, data: {
         run: { id: '401', region_id: 'region.the_farm', squad_id: '301', status: 'active', created_at: '2026-09-13T12:00:00Z',
           nodes: [
-            { id: '501', node_index: 0, node_type_id: 'run_node_type.combat', status: scene === 'run-combat-available' ? 'available' : 'completed', completed_at: scene === 'run-combat-available' ? null : '2026-09-13T12:02:00Z', battle_id: scene === 'run-combat-available' ? null : '601', position: { column: 0, row: 1 } },
-            { id: '502', node_index: 1, node_type_id: 'run_node_type.loot', status: scene === 'run-combat-available' ? 'locked' : 'available', completed_at: null, battle_id: null, position: { column: 1, row: 1 } },
-            { id: '503', node_index: 2, node_type_id: 'run_node_type.rest', status: 'locked', completed_at: null, battle_id: null, position: { column: 2, row: 1 } },
-            { id: '504', node_index: 3, node_type_id: 'run_node_type.boss', status: 'locked', completed_at: null, battle_id: null, position: { column: 3, row: 1 } },
+            { id: '501', node_index: 0, node_type_id: 'run_node_type.combat', status: combatAvailable ? 'available' : 'completed', completed_at: combatAvailable ? null : '2026-09-13T12:02:00Z', battle_id: combatAvailable ? null : '601', position: { column: 0, row: 1 } },
+            { id: '502', node_index: 1, node_type_id: 'run_node_type.loot', status: combatAvailable ? 'locked' : lootCompleted ? 'completed' : 'available', completed_at: lootCompleted ? '2026-09-13T12:03:00Z' : null, battle_id: null, position: { column: 1, row: 1 } },
+            { id: '503', node_index: 2, node_type_id: 'run_node_type.rest', status: lootCompleted ? restCompleted ? 'completed' : 'available' : 'locked', completed_at: restCompleted ? '2026-09-13T12:04:00Z' : null, battle_id: null, position: { column: 2, row: 1 } },
+            { id: '504', node_index: 3, node_type_id: 'run_node_type.boss', status: restCompleted ? 'available' : 'locked', completed_at: null, battle_id: null, position: { column: 3, row: 1 } },
             { id: '505', node_index: 4, node_type_id: 'run_node_type.exit', status: 'locked', completed_at: null, battle_id: null, position: { column: 4, row: 1 } },
           ],
           edges: [
             { from_node_id: '501', to_node_id: '502' }, { from_node_id: '502', to_node_id: '503' },
             { from_node_id: '503', to_node_id: '504' }, { from_node_id: '504', to_node_id: '505' },
-          ], units: activeFormation.filter(Boolean).map((unit_id) => ({ unit_id, current_hp: null })) }, player_revision: 3,
+          ], units: activeFormation.filter(Boolean).map((unit_id, index) => ({ unit_id, current_hp: restCompleted ? 24 + index : index === 0 ? 0 : 12 })) },
+        player_revision: resolvedStage === 'combat' ? 3 : resolvedStage === 'loot' ? 4 : 5,
+      } };
+    };
+    await page.route('**/api/v1/runs/current', (route) => route.fulfill({
+      status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, data: {
+        ...runResponse().data,
       } }),
     }));
+    await page.route('**/api/v1/runs/401/nodes/*/resolve', (route) => {
+      const loot = route.request().url().includes('/nodes/502/');
+      resolvedStage = loot ? 'loot' : 'rest';
+      const common = { node: { id: loot ? '502' : '503', status: 'completed', completed_at: loot ? '2026-09-13T12:03:00Z' : '2026-09-13T12:04:00Z' },
+        newly_available_node_ids: [loot ? '503' : '504'], run: { id: '401', status: 'active', ended_at: null }, player_revision: loot ? 4 : 5 };
+      const data = loot ? { resolution_type: 'loot', wallet: { teeth: 1242 },
+        granted_rewards: [{ reward_type: 'currency', currency_id: 'teeth', amount: 8 }], ...common }
+        : { resolution_type: 'rest', healing: activeFormation.filter(Boolean).map((unit_id, index) => ({
+          unit_id, hp_before: index === 0 ? 0 : 12, hp_after: 24 + index, max_hp: 24 + index,
+        })), ...common };
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, data }) });
+    });
     return;
   }
   if (!['warband', 'squad-editor', 'unit-configuration'].includes(scene)) return;
@@ -505,13 +528,14 @@ async function captureScene(options) {
           );
         }
         if (['camp', 'camp-portrait', 'warband', 'squad-editor', 'unit-configuration', 'run', 'run-abandon', 'run-portrait', 'run-combat-available',
+          'run-loot-available', 'run-loot-result', 'run-rest-result',
           'battle-early', 'battle-mid', 'battle-complete', 'battle-compact', 'battle-wide', 'battle-portrait', 'battle-defeat',
           'battle-result-victory', 'battle-result-defeat', 'battle-result-stalemate', 'battle-result-compact', 'battle-result-wide', 'battle-result-error', 'battle-result-portrait'].includes(options.scene.trim().toLowerCase())) {
           await page.waitForSelector('.game-host__mount canvas', { timeout: options.timeoutMs });
           const requestedGameScreen = options.scene.trim().toLowerCase();
           const gameScreen = ['warband', 'squad-editor', 'unit-configuration'].includes(requestedGameScreen)
             ? requestedGameScreen : requestedGameScreen.startsWith('battle-') ? 'battle'
-              : ['run', 'run-abandon', 'run-portrait', 'run-combat-available'].includes(requestedGameScreen) ? 'run' : 'camp';
+              : ['run', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-loot-available', 'run-loot-result', 'run-rest-result'].includes(requestedGameScreen) ? 'run' : 'camp';
           await page.waitForSelector(`[data-game-screen="${gameScreen}"]`, { timeout: options.timeoutMs });
           if (gameScreen === 'warband') {
             await page.waitForSelector('[data-warband-ready="true"]', { timeout: options.timeoutMs });
@@ -546,6 +570,17 @@ async function captureScene(options) {
             const canvas = page.locator('.game-host__mount canvas'); const box = await canvas.boundingBox();
             if (!box) throw new Error('Run canvas was unavailable.');
             await canvas.click({ position: { x: box.width * 225 / 1600, y: box.height * 418 / 900 }, force: true });
+          }
+          if (['run-loot-available', 'run-loot-result', 'run-rest-result'].includes(requestedGameScreen)) {
+            const canvas = page.locator('.game-host__mount canvas'); const box = await canvas.boundingBox();
+            if (!box) throw new Error('Run canvas was unavailable.');
+            const nodeX = requestedGameScreen === 'run-rest-result' ? 800 : options.width <= 900 ? 562 : 512;
+            await canvas.click({ position: { x: box.width * nodeX / 1600, y: box.height * 418 / 900 }, force: true });
+            if (requestedGameScreen.endsWith('-result')) {
+              await canvas.click({ position: { x: box.width / 2, y: box.height * 800 / 900 }, force: true });
+              await page.waitForSelector(`[data-run-node-result="${requestedGameScreen === 'run-loot-result' ? 'loot' : 'rest'}"]`, { timeout: options.timeoutMs });
+              await page.waitForSelector('[data-run-node-sync="succeeded"]', { timeout: options.timeoutMs });
+            }
           }
           const runtimeMetrics = await page.evaluate(() => {
             const host = document.querySelector('.game-host__mount');

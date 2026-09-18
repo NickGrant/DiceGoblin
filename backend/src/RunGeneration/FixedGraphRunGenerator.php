@@ -38,6 +38,7 @@ final class FixedGraphRunGenerator implements RunGraphGenerator
         'node_index' => $index,
         'node_type_id' => $node['node_type_id'] ?? null,
         'encounter_id' => $node['encounter_id'] ?? null,
+        'event_id' => $node['event_id'] ?? null,
         'status' => $node['key'] === $startKey ? 'available' : 'locked',
         'generated_metadata' => ['position' => $node['position'] ?? null],
       ];

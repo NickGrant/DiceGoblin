@@ -86,6 +86,7 @@ describe('RuntimeApiClient', () => {
 
   it('resolves a run node with the exact authenticated bodyless mutation contract', async () => {
     const payload = { ok: true, data: {
+      resolution_type: 'combat',
       battle: { id: '81', outcome: 'victory', engine_version: 1, playback_version: 1, ending_round: 3, ending_tick: 41 },
       node: { id: '10', status: 'completed', completed_at: '2026-09-16T12:00:00Z' },
       newly_available_node_ids: ['11'], terminal_player_hp: { '21': 12 },
@@ -99,6 +100,8 @@ describe('RuntimeApiClient', () => {
       '41', '10', 'csrf-token', 'combat-node:fixed-attempt',
     );
 
+    expect(result.resolutionType).toBe('combat');
+    if (result.resolutionType !== 'combat') throw new Error('Expected combat result.');
     expect(result.battle.id).toBe('81');
     expect(fetchRequest).toHaveBeenCalledOnceWith('/root/api/v1/runs/41/nodes/10/resolve', {
       method: 'POST', credentials: 'include', headers: {

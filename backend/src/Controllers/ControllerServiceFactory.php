@@ -14,7 +14,11 @@ use DiceGoblins\Application\Commands\RenameUnitCommand;
 use DiceGoblins\Application\Commands\ReplaceUnitLoadoutCommand;
 use DiceGoblins\Application\Commands\RunParticipationValidator;
 use DiceGoblins\Application\Commands\StartRunCommand;
-use DiceGoblins\Application\Commands\ResolveCombatNodeCommand;
+use DiceGoblins\Application\Commands\ResolveRunNodeCommand;
+use DiceGoblins\Application\Rewards\RewardApplicationService;
+use DiceGoblins\Application\RunNodes\CombatNodeResolutionHandler;
+use DiceGoblins\Application\RunNodes\LootNodeResolutionHandler;
+use DiceGoblins\Application\RunNodes\RestNodeResolutionHandler;
 use DiceGoblins\Application\Combat\CombatSnapshotAssembler;
 use DiceGoblins\Application\Commands\UnitConfigurationSupport;
 use DiceGoblins\Application\Commands\UpdateSquadCommand;
@@ -33,11 +37,14 @@ use DiceGoblins\Domain\Energy\EnergyCalculator;
 use DiceGoblins\Domain\Energy\EnergySpendCalculator;
 use DiceGoblins\Domain\Battles\CombatSeedDeriver;
 use DiceGoblins\Domain\CombatStats\BaseLevelStatResolver;
+use DiceGoblins\Domain\Rewards\RewardFinalizer;
 use DiceGoblins\Combat\Vnext\CombatEngine;
 use DiceGoblins\Infrastructure\SystemClock;
+use DiceGoblins\Infrastructure\CryptoRewardRollSource;
 use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Repositories\RunPersistenceRepository;
-use DiceGoblins\Repositories\RunCombatRepository;
+use DiceGoblins\Repositories\RunNodeResolutionRepository;
+use DiceGoblins\Repositories\ResolvedEventRepository;
 use DiceGoblins\Repositories\BattlePersistenceRepository;
 use DiceGoblins\Repositories\IdempotencyRequestRepository;
 use DiceGoblins\Repositories\SquadRepository;
@@ -124,6 +131,11 @@ final class ControllerServiceFactory
     $activeRunPolicy = new ActiveRunConfigurationPolicy($runRepository);
     $activeRunSummary = new ActiveRunSummaryQuery($runRepository, $content);
     $unlockRepository = new UserUnlockRepository($pdo);
+    $nodeResolutionRepository = new RunNodeResolutionRepository($pdo);
+    $rewardApplication = new RewardApplicationService(
+      $pdo, $content, new RewardFinalizer(new CryptoRewardRollSource()), new ResolvedEventRepository($pdo),
+      $core['playerStateRepo'], $unitRepository, $unlockRepository,
+    );
 
     return array_merge($core, [
       'contentRegistry' => $content,
@@ -172,22 +184,23 @@ final class ControllerServiceFactory
         new EnergySpendCalculator(),
         new SystemClock(),
       ),
-      'resolveCombatNodeCommand' => new ResolveCombatNodeCommand(
+      'resolveRunNodeCommand' => new ResolveRunNodeCommand(
         $pdo,
         $core['playerStateRepo'],
         $runRepository,
-        new RunCombatRepository($pdo),
-        new BattlePersistenceRepository($pdo),
+        $nodeResolutionRepository,
         $idempotencyRepository,
-        new CombatSnapshotAssembler(
-          $content,
-          $squadRepository,
-          $unitDetailQuery,
-          $diceRepository,
-          new BaseLevelStatResolver(),
-        ),
-        new CombatEngine(),
-        new CombatSeedDeriver(),
+        [
+          new CombatNodeResolutionHandler(
+            $nodeResolutionRepository,
+            new BattlePersistenceRepository($pdo),
+            new CombatSnapshotAssembler($content, $squadRepository, $unitDetailQuery, $diceRepository, new BaseLevelStatResolver()),
+            new CombatEngine(),
+            new CombatSeedDeriver(),
+          ),
+          new LootNodeResolutionHandler($nodeResolutionRepository, $unitRepository, $unlockRepository, $rewardApplication),
+          new RestNodeResolutionHandler($nodeResolutionRepository, $unitRepository, $content, new BaseLevelStatResolver()),
+        ],
         new SystemClock(),
       ),
       'provisionWarbandFixtureCommand' => new ProvisionWarbandFixtureCommand(

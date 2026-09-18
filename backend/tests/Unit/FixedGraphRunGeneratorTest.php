@@ -22,11 +22,11 @@ final class FixedGraphRunGeneratorTest extends TestCase
 
     $this->assertSame($first, $second);
     $this->assertSame([
-      ['node_index' => 0, 'node_type_id' => 'run_node_type.combat', 'encounter_id' => 'encounter.the_farm_mud_combat_1', 'status' => 'available', 'generated_metadata' => ['position' => ['column' => 0, 'row' => 1]]],
-      ['node_index' => 1, 'node_type_id' => 'run_node_type.loot', 'encounter_id' => null, 'status' => 'locked', 'generated_metadata' => ['position' => ['column' => 1, 'row' => 1]]],
-      ['node_index' => 2, 'node_type_id' => 'run_node_type.rest', 'encounter_id' => null, 'status' => 'locked', 'generated_metadata' => ['position' => ['column' => 2, 'row' => 1]]],
-      ['node_index' => 3, 'node_type_id' => 'run_node_type.boss', 'encounter_id' => null, 'status' => 'locked', 'generated_metadata' => ['position' => ['column' => 3, 'row' => 1]]],
-      ['node_index' => 4, 'node_type_id' => 'run_node_type.exit', 'encounter_id' => null, 'status' => 'locked', 'generated_metadata' => ['position' => ['column' => 4, 'row' => 1]]],
+      ['node_index' => 0, 'node_type_id' => 'run_node_type.combat', 'encounter_id' => 'encounter.the_farm_mud_combat_1', 'event_id' => null, 'status' => 'available', 'generated_metadata' => ['position' => ['column' => 0, 'row' => 1]]],
+      ['node_index' => 1, 'node_type_id' => 'run_node_type.loot', 'encounter_id' => null, 'event_id' => 'event.farm_loot_completed', 'status' => 'locked', 'generated_metadata' => ['position' => ['column' => 1, 'row' => 1]]],
+      ['node_index' => 2, 'node_type_id' => 'run_node_type.rest', 'encounter_id' => null, 'event_id' => null, 'status' => 'locked', 'generated_metadata' => ['position' => ['column' => 2, 'row' => 1]]],
+      ['node_index' => 3, 'node_type_id' => 'run_node_type.boss', 'encounter_id' => null, 'event_id' => null, 'status' => 'locked', 'generated_metadata' => ['position' => ['column' => 3, 'row' => 1]]],
+      ['node_index' => 4, 'node_type_id' => 'run_node_type.exit', 'encounter_id' => null, 'event_id' => null, 'status' => 'locked', 'generated_metadata' => ['position' => ['column' => 4, 'row' => 1]]],
     ], $first['nodes']);
     $this->assertSame([
       ['from_node_index' => 0, 'to_node_index' => 1, 'generated_metadata' => null],
@@ -58,6 +58,7 @@ final class FixedGraphRunGeneratorTest extends TestCase
       'self edge' => [$this->with($valid, fn(array &$graph) => $graph['edges'][0]['to_node_index'] = 0), 'self edge'],
       'duplicate edge' => [$this->with($valid, fn(array &$graph) => $graph['edges'][] = $graph['edges'][0]), 'duplicate edge'],
       'bad availability' => [$this->with($valid, fn(array &$graph) => $graph['nodes'][1]['status'] = 'available'), 'incoherent initial availability'],
+      'bad event identity' => [$this->with($valid, fn(array &$graph) => $graph['nodes'][1]['event_id'] = 'reward_definition.nope'), 'event identity'],
       'unreachable exit' => [$this->with($valid, fn(array &$graph) => $graph['edges'] = []), 'exit is unreachable'],
       'disconnected required node' => [$this->with($valid, function(array &$graph): void {
         $graph['nodes'][] = ['node_index' => 2, 'node_type_id' => 'run_node_type.loot', 'encounter_id' => null, 'status' => 'locked', 'generated_metadata' => []];

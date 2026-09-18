@@ -1,4 +1,4 @@
-import { RunNodeResolutionResult } from './run-node-resolution-contracts';
+import { CombatRunNodeResolutionResult } from './run-node-resolution-contracts';
 
 export interface BattlePresentationMarker {
   readonly version: 1;
@@ -15,12 +15,12 @@ const positiveId = /^[1-9][0-9]*$/;
 
 export class BattlePresentationState {
   private currentMarker: BattlePresentationMarker | null = null;
-  private resolutionResult: RunNodeResolutionResult | null = null;
+  private resolutionResult: CombatRunNodeResolutionResult | null = null;
 
   constructor(private readonly storage: BattleMarkerStorage | null = browserSessionStorage()) {}
 
   get marker(): BattlePresentationMarker | null { return this.currentMarker; }
-  get resolution(): RunNodeResolutionResult | null { return this.resolutionResult; }
+  get resolution(): CombatRunNodeResolutionResult | null { return this.resolutionResult; }
 
   restoreForAccount(accountId: string): BattlePresentationMarker | null {
     let raw: string | null = null;
@@ -48,7 +48,7 @@ export class BattlePresentationState {
     return marker;
   }
 
-  retainResolution(result: RunNodeResolutionResult): void { this.resolutionResult = result; }
+  retainResolution(result: CombatRunNodeResolutionResult): void { this.resolutionResult = result; }
   clear(): void { this.currentMarker = null; this.resolutionResult = null; try { this.storage?.removeItem(STORAGE_KEY); } catch { /* unavailable storage */ } }
 }
 

@@ -36,6 +36,17 @@ final class RewardContentValidationTest extends TestCase
     $this->assertSame('participating_units', $reward['entries'][1]['config']['target_scope']);
   }
 
+  public function testCanonicalFarmLootIsExactlyEightTeeth(): void
+  {
+    $registry = ContentRegistry::load($this->canonicalRoot());
+    $this->assertSame('reward_definition.farm_loot_completed',
+      $registry->event('event.farm_loot_completed')['reward_definition_id']);
+    $this->assertSame([[
+      'key' => 'teeth', 'probability_basis_points' => 10000, 'reward_type' => 'currency',
+      'config' => ['currency_id' => 'teeth', 'amount' => 8],
+    ]], $registry->rewardDefinition('reward_definition.farm_loot_completed')['entries']);
+  }
+
   public function testEventRewardAndUnlockDefinitionsRemainOutsideClientProjection(): void
   {
     $projection = (new ClientContentProjector())->project($this->registryWithRewardFixture());
@@ -110,7 +121,7 @@ final class RewardContentValidationTest extends TestCase
   {
     $registry = ContentRegistry::load($this->canonicalRoot());
     $definitions = [];
-    foreach (['gameplay_config', 'region', 'kin', 'unit_type', 'enemy_unit_type', 'encounter', 'ability', 'dice_material', 'dice_aspect', 'dice_profile', 'run_node_type', 'run_generation', 'unlock'] as $type) {
+    foreach (['gameplay_config', 'region', 'kin', 'unit_type', 'enemy_unit_type', 'encounter', 'ability', 'dice_material', 'dice_aspect', 'dice_profile', 'run_node_type', 'run_generation', 'unlock', 'event', 'reward_definition'] as $type) {
       foreach ($registry->definitionsOfType($type) as $definition) $definitions[] = $definition;
     }
     $definitions[] = [

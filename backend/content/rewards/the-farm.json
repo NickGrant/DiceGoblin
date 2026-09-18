@@ -1,0 +1,19 @@
+{
+  "definitions": [
+    {
+      "id": "reward_definition.farm_loot_completed",
+      "type": "reward_definition",
+      "entries": [
+        {
+          "key": "teeth",
+          "probability_basis_points": 10000,
+          "reward_type": "currency",
+          "config": {
+            "currency_id": "teeth",
+            "amount": 8
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -111,7 +111,7 @@ final class FarmCombatContentValidationTest extends TestCase
     $content = $this->content();
     $definitions = [];
     foreach (['gameplay_config', 'region', 'kin', 'unit_type', 'enemy_unit_type', 'encounter', 'ability',
-      'dice_material', 'dice_aspect', 'dice_profile', 'run_node_type', 'run_generation'] as $type) {
+      'dice_material', 'dice_aspect', 'dice_profile', 'run_node_type', 'run_generation', 'event', 'reward_definition'] as $type) {
       foreach ($content->definitionsOfType($type) as $definition) $definitions[] = $definition;
     }
     return $definitions;

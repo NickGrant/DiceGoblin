@@ -15,7 +15,8 @@ import { RuntimeViewportSnapshot } from '../runtime/runtime-viewport';
 import { RuntimeApiError } from '../runtime/runtime-api-client';
 import { createRunMapLayout, createRunMapPresentation, runNodeColors } from '../runtime/run-map-model';
 import { Bounds } from '../runtime/runtime-viewport';
-import { CombatResolutionAttempt, CombatResolutionAttemptState } from '../runtime/combat-resolution-attempt';
+import { RunNodeResolutionAttempt, RunNodeResolutionAttemptState } from '../runtime/run-node-resolution-attempt';
+import { LootRunNodeResolutionResult, RestRunNodeResolutionResult } from '../runtime/run-node-resolution-contracts';
 import { BattlePlaybackController } from '../runtime/battle-playback-controller';
 import { BattlePlaybackResult } from '../runtime/battle-playback-contracts';
 import { battleArtTextureKey, battleColumnX, supportedBattleArtAssets } from '../runtime/battle-presentation-layout';
@@ -343,12 +344,15 @@ export class RunScene extends RuntimeScene {
   private abandonState: 'idle' | 'confirming' | 'submitting' | 'retryable' | 'rejected' | 'recovery-required' = 'idle';
   private abandonRunId: string | null = null;
   private abandonMessage = '';
-  private combatMessage = '';
+  private nodeMessage = '';
+  private nodeResult: LootRunNodeResolutionResult | RestRunNodeResolutionResult | null = null;
+  private nodeSyncState: 'idle' | 'syncing' | 'sync-error' | 'recovery-required' | 'succeeded' = 'idle';
+  private nodeSyncIdentity: { readonly runId: string; readonly nodeId: string } | null = null;
   constructor(
     runtimeState: RuntimeLifecycleState,
     runtimeStartup: RuntimeStartup,
     runtimeViewport: RuntimeViewport,
-    private readonly combatAttempt: CombatResolutionAttempt = new CombatResolutionAttempt(),
+    private readonly nodeAttempt: RunNodeResolutionAttempt = new RunNodeResolutionAttempt(),
   ) {
     super(RUN_SCENE_KEY, runtimeState, runtimeStartup, runtimeViewport);
   }
@@ -388,7 +392,9 @@ export class RunScene extends RuntimeScene {
   get selectedMapNodeId(): string | null { return this.selectedNodeId; }
 
   get abandonActionState(): string { return this.abandonState; }
-  get combatActionState(): CombatResolutionAttemptState { return this.combatAttempt.state; }
+  get combatActionState(): RunNodeResolutionAttemptState { return this.nodeAttempt.state; }
+  get nodeActionState(): RunNodeResolutionAttemptState { return this.nodeAttempt.state; }
+  get resolvedNodeSyncState(): string { return this.nodeSyncState; }
 
   reflow(): void { this.render(); }
 
@@ -406,13 +412,13 @@ export class RunScene extends RuntimeScene {
     if (node.status === 'completed' && node.battleId) {
       this.presentBattle(bootstrap.account.id, node.battleId, run.id, node.id); return;
     }
-    if (node.status !== 'available' || node.battleId !== null || this.combatAttempt.state === 'submitting') return;
-    this.combatAttempt.begin(run.id, node.id); this.combatMessage = 'Resolving combat authoritatively…'; this.render();
-    const outcome = await this.combatAttempt.submit(this.runtimeStartup.apiClient, bootstrap.session.csrf_token);
+    if (node.status !== 'available' || node.battleId !== null || this.nodeAttempt.state === 'submitting') return;
+    this.nodeAttempt.begin(run.id, node.id); this.nodeMessage = 'Resolving combat authoritatively…'; this.render();
+    const outcome = await this.nodeAttempt.submit(this.runtimeStartup.apiClient, bootstrap.session.csrf_token);
     if (outcome.kind === 'success') {
       const result = outcome.result;
-      if (result.run.id !== run.id || result.node.id !== node.id) {
-        this.combatMessage = 'The response did not match this combat. Reload to recover.'; this.render(); return;
+      if (result.resolutionType !== 'combat' || result.run.id !== run.id || result.node.id !== node.id) {
+        this.nodeMessage = 'The response did not match this combat. Reload to recover.'; this.render(); return;
       }
       this.runtimeStartup.battlePresentation.retainResolution(result);
       this.runtimeStartup.store.markCurrentRunStale();
@@ -424,12 +430,77 @@ export class RunScene extends RuntimeScene {
       if (content) await this.runtimeStartup.store.retryCurrentRun(this.runtimeStartup.apiClient, content);
       const recovered = this.runtimeStartup.store.currentRun.data?.nodes.find((candidate) => candidate.id === node.id);
       if (recovered?.battleId) this.presentBattle(bootstrap.account.id, recovered.battleId, run.id, node.id);
-      else { this.combatMessage = 'Combat was already resolved. Reload to recover its battle.'; this.render(); }
+      else { this.nodeMessage = 'Combat was already resolved. Reload to recover its battle.'; this.render(); }
       return;
     }
-    this.combatMessage = outcome.kind === 'ambiguous'
+    this.nodeMessage = outcome.kind === 'ambiguous'
       ? 'The result is uncertain. Retry with the same combat attempt.'
       : 'Combat could not be entered. The run cache was not changed.';
+    this.render();
+  }
+
+  async activateSelectedNonCombat(): Promise<void> {
+    const run = this.runtimeStartup.store.currentRun.data;
+    const node = run?.nodes.find((candidate) => candidate.id === this.selectedNodeId);
+    const bootstrap = this.runtimeStartup.store.bootstrap;
+    if (!run || !node || !bootstrap || (node.nodeTypeId !== 'run_node_type.loot' && node.nodeTypeId !== 'run_node_type.rest')) return;
+    if (this.nodeSyncState === 'sync-error') { await this.retryNodeSync(); return; }
+    if (node.status !== 'available' || node.battleId !== null || this.nodeAttempt.state === 'submitting') return;
+    this.nodeResult = null;
+    this.nodeSyncState = 'idle';
+    this.nodeSyncIdentity = null;
+    this.nodeAttempt.begin(run.id, node.id);
+    this.nodeMessage = node.nodeTypeId === 'run_node_type.loot' ? 'Collecting loot authoritatively…' : 'Resting authoritatively…';
+    this.render();
+    const outcome = await this.nodeAttempt.submit(this.runtimeStartup.apiClient, bootstrap.session.csrf_token);
+    if (outcome.kind === 'success') {
+      const result = outcome.result;
+      const expectedType = node.nodeTypeId === 'run_node_type.loot' ? 'loot' : 'rest';
+      if (result.resolutionType !== expectedType || result.run.id !== run.id || result.node.id !== node.id) {
+        this.nodeMessage = 'The response did not match this location. Reload to recover.'; this.render(); return;
+      }
+      this.nodeResult = result;
+      try {
+        this.runtimeStartup.store.reconcileResolvedRunNodePlayerState(result);
+      } catch {
+        this.nodeSyncState = 'recovery-required';
+        this.nodeMessage = 'The result was applied, but local player state disagrees. Reload to recover.';
+        this.render(); return;
+      }
+      this.nodeMessage = result.resolutionType === 'loot'
+        ? `Collected ${result.grantedRewards[0].amount} Teeth. Balance: ${result.wallet.teeth}.`
+        : `${result.healing.length} ${result.healing.length === 1 ? 'unit' : 'units'} fully restored.`;
+      await this.syncResolvedNode(result.run.id, result.node.id);
+      return;
+    }
+    if (outcome.kind === 'already-resolved') {
+      this.nodeMessage = 'This location was already resolved. Synchronizing the run…';
+      await this.syncResolvedNode(run.id, node.id);
+      return;
+    }
+    this.nodeMessage = outcome.kind === 'ambiguous'
+      ? 'The result is uncertain. Retry with the same node attempt.'
+      : 'This location could not be resolved. The run cache was not changed.';
+    this.render();
+  }
+
+  async retryNodeSync(): Promise<void> {
+    const identity = this.nodeSyncIdentity;
+    if (!identity || this.nodeSyncState !== 'sync-error') return;
+    await this.syncResolvedNode(identity.runId, identity.nodeId);
+  }
+
+  private async syncResolvedNode(runId: string, nodeId: string): Promise<void> {
+    const content = this.runtimeStartup.contentRegistry;
+    if (!content) return;
+    this.nodeSyncIdentity = { runId, nodeId };
+    this.nodeSyncState = 'syncing'; this.render();
+    await this.runtimeStartup.store.retryCurrentRun(this.runtimeStartup.apiClient, content);
+    const state = this.runtimeStartup.store.currentRun;
+    const synced = state.status === 'fresh' && state.data?.id === runId
+      && state.data.nodes.some((candidate) => candidate.id === nodeId && candidate.status === 'completed');
+    this.nodeSyncState = synced ? 'succeeded' : 'sync-error';
+    if (!synced) this.nodeMessage = 'The result is safe, but the run map could not be synchronized.';
     this.render();
   }
 
@@ -612,16 +683,28 @@ export class RunScene extends RuntimeScene {
     if (selected?.nodeTypeId === 'run_node_type.combat') {
       const canFight = selected.status === 'available' && selected.battleId === null;
       const canWatch = selected.status === 'completed' && selected.battleId !== null;
-      const submitting = this.combatAttempt.state === 'submitting';
+      const submitting = this.nodeAttempt.state === 'submitting';
       if (canFight || canWatch) this.addButton(root, layout.combatButton,
-        canWatch ? 'WATCH / REPLAY BATTLE' : submitting ? 'RESOLVING…' : this.combatAttempt.state === 'retryable' ? 'RETRY FIGHT' : 'ENTER COMBAT',
+        canWatch ? 'WATCH / REPLAY BATTLE' : submitting ? 'RESOLVING…' : this.nodeAttempt.state === 'retryable' ? 'RETRY FIGHT' : 'ENTER COMBAT',
         () => void this.activateSelectedCombat(), canWatch ? 0x315d68 : 0x8a5424, !submitting);
     }
-    if (this.combatMessage) {
-      const message = this.add.text(layout.panel.x + layout.panel.width / 2, layout.combatButton.y - 18, this.combatMessage,
+    if (selected && (selected.nodeTypeId === 'run_node_type.loot' || selected.nodeTypeId === 'run_node_type.rest')) {
+      const available = selected.status === 'available' && selected.battleId === null;
+      const submitting = this.nodeAttempt.state === 'submitting' || this.nodeSyncState === 'syncing';
+      const retrySync = this.nodeSyncState === 'sync-error' && this.nodeSyncIdentity?.nodeId === selected.id;
+      if (available || retrySync) this.addButton(root, layout.combatButton,
+        retrySync ? 'RETRY SYNC' : submitting ? 'RESOLVING…' : this.nodeAttempt.state === 'retryable' ? 'RETRY RESOLVE'
+          : selected.nodeTypeId === 'run_node_type.loot' ? 'COLLECT LOOT' : 'REST',
+        () => void this.activateSelectedNonCombat(), selected.nodeTypeId === 'run_node_type.loot' ? 0x7a5a22 : 0x315d68, !submitting);
+    }
+    if (this.nodeMessage) {
+      const message = this.add.text(layout.panel.x + layout.panel.width / 2, layout.combatButton.y - 18, this.nodeMessage,
         { color: '#f0c982', fontFamily: 'system-ui, sans-serif', fontSize: compact ? '22px' : '14px' }).setOrigin(0.5, 1);
       root.add(message);
     }
+    this.host()?.setAttribute('data-run-node-action', this.nodeAttempt.state);
+    this.host()?.setAttribute('data-run-node-sync', this.nodeSyncState);
+    this.host()?.setAttribute('data-run-node-result', this.nodeResult?.resolutionType ?? 'none');
     this.addButton(root, layout.returnButton, 'RETURN TO CAMP', () => this.returnToCamp(), 0x244b3d, this.abandonState === 'idle');
     this.addButton(root, layout.abandonButton, 'ABANDON RUN', () => this.openAbandonConfirmation(), 0x7a302b, this.abandonState === 'idle');
   }

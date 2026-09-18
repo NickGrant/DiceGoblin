@@ -161,6 +161,9 @@ final class ContentValidator
             if ($node['node_type_id'] !== 'run_node_type.combat') throw new ContentValidationException("{$id} only combat nodes may reference encounters.");
             $this->requireReferenceType($definitions, $id, 'nodes.encounter_id', $node['encounter_id'], 'encounter');
           }
+          if ($node['event_id'] ?? null) {
+            $this->requireReferenceType($definitions, $id, 'nodes.event_id', $node['event_id'], 'event');
+          }
         }
         $this->validateRunGenerationConnectivity($id, $definition);
       }
@@ -284,7 +287,7 @@ final class ContentValidator
       if (!is_array($node) || array_is_list($node)) {
         throw new ContentValidationException("{$nodeLocation} must be an object.");
       }
-      $this->requireExactFieldSet($node, ['key', 'node_type_id', 'position'], ['encounter_id'], $nodeLocation);
+      $this->requireExactFieldSet($node, ['key', 'node_type_id', 'position'], ['encounter_id', 'event_id'], $nodeLocation);
       $key = $this->requireLocalNodeKey($node, 'key', $nodeLocation);
       if (isset($nodeKeys[$key])) {
         throw new ContentValidationException("{$location} contains duplicate local node key '{$key}'.");
@@ -293,6 +296,9 @@ final class ContentValidator
       $this->requireStableIdWithNamespace($node, 'node_type_id', 'run_node_type.', $nodeLocation);
       if (array_key_exists('encounter_id', $node) && $node['encounter_id'] !== null) {
         $this->requireStableIdWithNamespace($node, 'encounter_id', 'encounter.', $nodeLocation);
+      }
+      if (array_key_exists('event_id', $node) && $node['event_id'] !== null) {
+        $this->requireStableIdWithNamespace($node, 'event_id', 'event.', $nodeLocation);
       }
       $position = $node['position'] ?? null;
       if (!is_array($position) || array_is_list($position)) {
@@ -700,6 +706,9 @@ final class ContentValidator
     }
     if (($nodes[0]['encounter_id'] ?? null) !== 'encounter.the_farm_mud_combat_1') {
       throw new ContentValidationException('region.the_farm first combat node must reference its standard mud encounter.');
+    }
+    if (($nodes[1]['event_id'] ?? null) !== 'event.farm_loot_completed') {
+      throw new ContentValidationException('region.the_farm Loot node must reference its completion event.');
     }
     if (($nodes[3]['encounter_id'] ?? null) !== null) {
       throw new ContentValidationException('region.the_farm boss encounter is not authored yet.');

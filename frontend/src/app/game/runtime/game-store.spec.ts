@@ -352,6 +352,28 @@ describe('GameStore Warband cache', () => {
     expect(client.getCurrentRun).toHaveBeenCalledTimes(1);
   });
 
+  it('adopts only authoritative Loot player facts and leaves run graph reconciliation stale', async () => {
+    const active = { ...bootstrap(), active_run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active' as const } };
+    const store = new GameStore(); store.hydrateBootstrap(active); const client = api();
+    const run = { id: '41', regionId: 'region.the_farm', squadId: '31', status: 'active' as const,
+      createdAt: '2026-09-13T12:00:00Z', nodes: [{ id: '11', nodeIndex: 1, nodeTypeId: 'run_node_type.loot',
+        status: 'available' as const, completedAt: null, battleId: null, position: { column: 1, row: 1 } }],
+      edges: [], units: [{ unitId: '11', currentHp: 0 }] };
+    client.getCurrentRun.and.resolveTo({ run, playerRevision: 7 }); await store.loadCurrentRun(client, content());
+    const energy = store.bootstrap!.player.energy;
+
+    store.reconcileResolvedRunNodePlayerState({ resolutionType: 'loot', wallet: { teeth: 18 },
+      grantedRewards: [{ rewardType: 'currency', currencyId: 'teeth', amount: 8 }],
+      node: { id: '11', status: 'completed', completedAt: '2026-09-17T12:00:00Z' }, newlyAvailableNodeIds: ['12'],
+      run: { id: '41', status: 'active', endedAt: null }, playerRevision: 8 });
+
+    expect(store.bootstrap?.player).toEqual(jasmine.objectContaining({ teeth: 18, raw_chaos: 0, player_revision: 8 }));
+    expect(store.bootstrap?.player.energy).toBe(energy);
+    expect(store.currentRun).toEqual({ status: 'stale', data: run, error: null });
+    expect(store.currentRun.data?.nodes[0].status).toBe('available');
+    expect(store.currentRun.data?.units[0].currentHp).toBe(0);
+  });
+
   it('clears a stale summary only for newer null authority and rejects equal-revision contradiction', async () => {
     const active = { ...bootstrap(), active_run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active' as const } };
     const store = new GameStore(); store.hydrateBootstrap(active); const client = api();

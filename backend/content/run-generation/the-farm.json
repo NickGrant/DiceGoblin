@@ -15,6 +15,7 @@
         {
           "key": "loot",
           "node_type_id": "run_node_type.loot",
+          "event_id": "event.farm_loot_completed",
           "position": { "column": 1, "row": 1 }
         },
         {

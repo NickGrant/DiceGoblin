@@ -28,6 +28,10 @@ final class GeneratedRunGraphValidator
       if (!is_string($nodeTypeId) || !str_starts_with($nodeTypeId, 'run_node_type.')) {
         throw new InvalidArgumentException("Generated run node {$offset} has an invalid node-type identity.");
       }
+      $eventId = $node['event_id'] ?? null;
+      if ($eventId !== null && (!is_string($eventId) || preg_match('/^event\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/', $eventId) !== 1)) {
+        throw new InvalidArgumentException("Generated run node {$offset} has an invalid event identity.");
+      }
       $expectedStatus = $offset === 0 ? 'available' : 'locked';
       if (($node['status'] ?? null) !== $expectedStatus) {
         throw new InvalidArgumentException('Generated run graph has incoherent initial availability.');

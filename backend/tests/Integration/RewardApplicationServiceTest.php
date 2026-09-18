@@ -241,7 +241,7 @@ final class RewardApplicationServiceTest extends IntegrationTestCase
     if ($content instanceof ContentRegistry) return $content;
     $canonical = ContentRegistry::load(dirname(__DIR__, 2) . '/content');
     $definitions = [];
-    foreach (['gameplay_config', 'region', 'kin', 'unit_type', 'enemy_unit_type', 'encounter', 'ability', 'dice_material', 'dice_aspect', 'dice_profile', 'run_node_type', 'run_generation', 'unlock'] as $type) {
+    foreach (['gameplay_config', 'region', 'kin', 'unit_type', 'enemy_unit_type', 'encounter', 'ability', 'dice_material', 'dice_aspect', 'dice_profile', 'run_node_type', 'run_generation', 'unlock', 'event', 'reward_definition'] as $type) {
       foreach ($canonical->definitionsOfType($type) as $definition) $definitions[] = $definition;
     }
     $definitions[] = ['id' => 'reward_definition.test_completion', 'type' => 'reward_definition', 'entries' => [

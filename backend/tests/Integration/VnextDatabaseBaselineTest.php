@@ -66,6 +66,10 @@ final class VnextDatabaseBaselineTest extends IntegrationTestCase
       WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'battles' AND CONSTRAINT_NAME = 'fk_battles_run_node'
         AND DELETE_RULE = 'CASCADE'", []));
 
+    $runNodeColumns = $this->pdo?->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'run_nodes' ORDER BY ORDINAL_POSITION")->fetchAll(\PDO::FETCH_COLUMN);
+    $this->assertSame(['id', 'run_id', 'node_index', 'node_type_id', 'encounter_id', 'event_id', 'status', 'completed_at',
+      'generated_metadata', 'created_at', 'updated_at'], $runNodeColumns);
+
     $unlockColumns = $this->pdo?->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user_unlocks' ORDER BY ORDINAL_POSITION")->fetchAll(\PDO::FETCH_COLUMN);
     $this->assertSame(['user_id', 'unlock_id', 'granted_at'], $unlockColumns);
     $resolvedEventColumns = $this->pdo?->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'resolved_events' ORDER BY ORDINAL_POSITION")->fetchAll(\PDO::FETCH_COLUMN);

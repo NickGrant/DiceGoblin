@@ -24,6 +24,7 @@ final class RunContentValidationTest extends TestCase
     );
     $this->assertCount(5, $registry->definitionsOfType('run_node_type'));
     $this->assertSame('encounter.the_farm_mud_combat_1', $generation['nodes'][0]['encounter_id']);
+    $this->assertSame('event.farm_loot_completed', $generation['nodes'][1]['event_id']);
     $this->assertArrayNotHasKey('encounter_id', $generation['nodes'][3]);
     $this->assertSame('Combat', $registry->runNodeType('run_node_type.combat')['display_name']);
   }
@@ -52,6 +53,7 @@ final class RunContentValidationTest extends TestCase
     $this->assertStringNotContainsString('Mudwrestler', $encoded);
     $this->assertStringNotContainsString('Mud Sling', $encoded);
     $this->assertStringNotContainsString('encounter.the_farm_mud_combat_1', $encoded);
+    $this->assertStringNotContainsString('event.farm_loot_completed', $encoded);
   }
 
   public function testPrivateGenerationChangesAffectTheGlobalRevisionWithoutLeakingTopology(): void
@@ -102,6 +104,8 @@ final class RunContentValidationTest extends TestCase
       'wrong generation namespace' => [fn(array &$definitions) => $this->mutate($definitions, 'region.the_farm', fn(array &$definition) => $definition['run_generation_id'] = 'run_node_type.combat'), 'run_generation. namespace'],
       'unsupported algorithm' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['algorithm'] = 'prototype_pattern_v2'), 'algorithm'],
       'missing node type reference' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['nodes'][0]['node_type_id'] = 'run_node_type.missing'), 'references missing run_node_type'],
+      'malformed node event reference' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['nodes'][1]['event_id'] = 'reward_definition.farm_loot_completed'), 'event. namespace'],
+      'missing node event reference' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['nodes'][1]['event_id'] = 'event.missing'), 'references missing event'],
       'wrong node type namespace' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['nodes'][0]['node_type_id'] = 'region.the_farm'), 'run_node_type. namespace'],
       'duplicate local key' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['nodes'][1]['key'] = 'combat'), 'duplicate local node key'],
       'invalid start key' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['start_node_key'] = 'missing'), 'start_node_key references missing local node'],

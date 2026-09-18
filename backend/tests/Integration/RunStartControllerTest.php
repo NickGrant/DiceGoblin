@@ -137,11 +137,12 @@ final class RunStartControllerTest extends IntegrationTestCase
     $this->assertSame($fixture['active_squad_id'], (string)$run['squad_id']);
     $this->assertSame('active', $run['status']);
 
-    $nodes = $this->rows('SELECT `id`, `node_index`, `node_type_id`, `encounter_id`, `status`, `generated_metadata` FROM `run_nodes` WHERE `run_id` = ? ORDER BY `node_index`', [$runId]);
+    $nodes = $this->rows('SELECT `id`, `node_index`, `node_type_id`, `encounter_id`, `event_id`, `status`, `generated_metadata` FROM `run_nodes` WHERE `run_id` = ? ORDER BY `node_index`', [$runId]);
     $this->assertSame([0, 1, 2, 3, 4], array_map('intval', array_column($nodes, 'node_index')));
     $this->assertSame(['run_node_type.combat', 'run_node_type.loot', 'run_node_type.rest', 'run_node_type.boss', 'run_node_type.exit'], array_column($nodes, 'node_type_id'));
     $this->assertSame(['available', 'locked', 'locked', 'locked', 'locked'], array_column($nodes, 'status'));
     $this->assertSame(['encounter.the_farm_mud_combat_1', null, null, null, null], array_column($nodes, 'encounter_id'));
+    $this->assertSame([null, 'event.farm_loot_completed', null, null, null], array_column($nodes, 'event_id'));
     foreach ($nodes as $index => $node) {
       $this->assertEquals(['position' => ['column' => $index, 'row' => 1]], json_decode((string)$node['generated_metadata'], true));
     }

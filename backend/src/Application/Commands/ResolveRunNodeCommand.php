@@ -5,37 +5,39 @@ namespace DiceGoblins\Application\Commands;
 
 use DateTimeImmutable;
 use DateTimeZone;
-use DiceGoblins\Application\Combat\CombatSnapshotAssembler;
-use DiceGoblins\Combat\Vnext\CombatResolver;
-use DiceGoblins\Domain\Battles\CombatSeedDeriver;
-use DiceGoblins\Domain\Battles\FinalizedBattle;
+use DiceGoblins\Application\RunNodes\RunNodeResolutionHandler;
 use DiceGoblins\Infrastructure\Clock;
-use DiceGoblins\Repositories\BattlePersistenceRepository;
 use DiceGoblins\Repositories\IdempotencyRequestRepository;
 use DiceGoblins\Repositories\PlayerStateRepository;
-use DiceGoblins\Repositories\RunCombatRepository;
+use DiceGoblins\Repositories\RunNodeResolutionRepository;
 use DiceGoblins\Repositories\RunPersistenceRepository;
 use JsonException;
 use PDO;
 use RuntimeException;
 use Throwable;
 
-final class ResolveCombatNodeCommand
+final class ResolveRunNodeCommand
 {
   private const OPERATION = 'resolve_run_node';
+  /** @var array<string,RunNodeResolutionHandler> */
+  private array $handlers = [];
 
+  /** @param list<RunNodeResolutionHandler> $handlers */
   public function __construct(
     private readonly PDO $pdo,
     private readonly PlayerStateRepository $playerState,
     private readonly RunPersistenceRepository $runs,
-    private readonly RunCombatRepository $runCombat,
-    private readonly BattlePersistenceRepository $battles,
+    private readonly RunNodeResolutionRepository $nodes,
     private readonly IdempotencyRequestRepository $idempotency,
-    private readonly CombatSnapshotAssembler $assembler,
-    private readonly CombatResolver $resolver,
-    private readonly CombatSeedDeriver $seeds,
+    array $handlers,
     private readonly Clock $clock,
-  ) {}
+  ) {
+    foreach ($handlers as $handler) {
+      $type = $handler->nodeTypeId();
+      if (isset($this->handlers[$type])) throw new RuntimeException('Duplicate run-node resolution handler.');
+      $this->handlers[$type] = $handler;
+    }
+  }
 
   /** @return array<string,mixed> */
   public function execute(int $userId, int $runId, int $nodeId, ?string $providedKey): array
@@ -54,7 +56,7 @@ final class ResolveCombatNodeCommand
     try {
       $this->pdo->beginTransaction();
       $state = $this->playerState->getPlayerStateForUpdate($userId);
-      if ($state === null) throw new CombatResolutionIntegrityException('Required player state is missing.');
+      if ($state === null) throw new RunNodeResolutionIntegrityException('Required player state is missing.');
 
       $prior = $this->idempotency->getForUser($userId, $key);
       if ($prior !== null) {
@@ -69,12 +71,15 @@ final class ResolveCombatNodeCommand
       if ($run === null) throw new RunNodeResolutionException('run_node_not_found', 'Run node is unavailable.', 404);
       if ((int)($run['user_id'] ?? 0) !== $userId || $run['squad_id'] === null
         || (int)($run['squad_user_id'] ?? 0) !== $userId) {
-        throw new CombatResolutionIntegrityException('Owned run participation is invalid.');
+        throw new RunNodeResolutionIntegrityException('Owned run participation is invalid.');
       }
-      $node = $this->runCombat->findNodeForUpdate($runId, $nodeId);
+      $node = $this->nodes->findNodeForUpdate($runId, $nodeId);
       if ($node === null) throw new RunNodeResolutionException('run_node_not_found', 'Run node is unavailable.', 404);
-      if ($this->battles->findForRunNode($runId, $nodeId) !== null || ($node['status'] ?? null) === 'completed') {
+      if (($node['status'] ?? null) === 'completed') {
         throw new RunNodeResolutionException('run_node_already_resolved', 'Run node is already resolved.', 409);
+      }
+      if ($this->nodes->battleExists($runId, $nodeId)) {
+        throw new RunNodeResolutionIntegrityException('Run node battle lifecycle is invalid.');
       }
       if (($run['status'] ?? null) !== 'active' || $run['ended_at'] !== null) {
         throw new RunNodeResolutionException('run_not_active', 'Run is not active.', 409);
@@ -82,73 +87,31 @@ final class ResolveCombatNodeCommand
       if (($node['status'] ?? null) !== 'available') {
         throw new RunNodeResolutionException('run_node_unavailable', 'Run node is unavailable.', 409);
       }
-      if (($node['node_type_id'] ?? null) !== 'run_node_type.combat') {
-        throw new RunNodeResolutionException('run_node_unsupported', 'Run node type is not resolvable.', 422);
-      }
-      $encounterId = $node['encounter_id'];
-      if (!is_string($encounterId) || $encounterId === '') {
-        throw new RunNodeResolutionException('run_node_encounter_invalid', 'Combat encounter is unavailable.', 422);
-      }
-      if (preg_match('/^encounter\.[a-z0-9][a-z0-9_.-]*$/', $encounterId) !== 1) {
-        throw new CombatResolutionIntegrityException('Persisted combat encounter identity is invalid.');
-      }
+      $handler = $this->handlers[(string)($node['node_type_id'] ?? '')] ?? null;
+      if ($handler === null) throw new RunNodeResolutionException('run_node_unsupported', 'Run node type is not resolvable.', 422);
 
-      $seed = $this->seeds->derive($runId, $nodeId, $encounterId);
-      $assembled = $this->assembler->assemble(
-        $userId,
-        (int)$run['squad_id'],
-        $this->runCombat->listParticipatingUnitsForUpdate($runId),
-        $encounterId,
-        $seed,
-      );
-      $combatResult = $this->resolver->resolve($assembled->input);
-      $result = $combatResult->toArray();
-      $battle = new FinalizedBattle(
-        (int)$result['engine_version'],
-        (int)$result['playback_version'],
-        $assembled->input->snapshot,
-        $assembled->manifest,
-        $result,
-      );
-      $battleId = $this->battles->insertFinalized($runId, $nodeId, $battle);
-
-      $terminalByKey = [];
-      foreach ($result['combatants'] as $terminal) $terminalByKey[$terminal['key']] = $terminal;
-      $terminalHp = [];
-      foreach ($battle->manifestArray() as $participant) {
-        if ($participant['side'] !== 'player') continue;
-        $unitId = (int)$participant['unit_id'];
-        $terminal = $terminalByKey[$participant['combatant_key']] ?? null;
-        if (!is_array($terminal)) throw new CombatResolutionIntegrityException('Terminal player state is unavailable.');
-        $hp = (int)$terminal['current_hp'];
-        $this->runCombat->persistUnitHp($runId, $unitId, $hp);
-        $terminalHp[(string)$unitId] = $hp;
-      }
-      ksort($terminalHp, SORT_NUMERIC);
-
+      $outcome = $handler->resolve($userId, $state, $run, $node);
       $completedAt = $this->clock->now()->setTimezone(new DateTimeZone('UTC'));
-      $this->runCombat->completeNode($runId, $nodeId, $completedAt);
+      $this->nodes->completeNode($runId, $nodeId, $completedAt);
       $available = [];
       $runStatus = 'active';
       $endedAt = null;
-      if ($result['outcome'] === 'victory') {
-        $available = $this->runCombat->unlockDirectOutgoingNodes($runId, $nodeId);
-      } else {
-        $this->runCombat->failRun($userId, $runId, $completedAt);
+      if ($outcome->runFailed) {
+        $this->nodes->failRun($userId, $runId, $completedAt);
         $runStatus = 'failed';
         $endedAt = $this->timestamp($completedAt);
+      } else {
+        $available = $this->nodes->unlockDirectOutgoingNodes($runId, $nodeId);
       }
       $revision = $this->playerState->incrementRevision($userId);
-      $response = [
-        'battle' => ['id' => (string)$battleId, 'outcome' => $result['outcome'],
-          'engine_version' => $result['engine_version'], 'playback_version' => $result['playback_version'],
-          'ending_round' => $result['ending_round'], 'ending_tick' => $result['ending_tick']],
+      $response = array_merge([
+        'resolution_type' => $outcome->resolutionType,
+      ], $outcome->facts, [
         'node' => ['id' => (string)$nodeId, 'status' => 'completed', 'completed_at' => $this->timestamp($completedAt)],
         'newly_available_node_ids' => array_map('strval', $available),
-        'terminal_player_hp' => $terminalHp,
         'run' => ['id' => (string)$runId, 'status' => $runStatus, 'ended_at' => $endedAt],
         'player_revision' => $revision,
-      ];
+      ]);
       $this->idempotency->insertFinalized($userId, $key, self::OPERATION, $hash, $response);
       $finalized = $this->idempotency->getForUser($userId, $key);
       if ($finalized === null) throw new RuntimeException('Finalized node-resolution receipt is unavailable.');

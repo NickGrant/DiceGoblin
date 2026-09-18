@@ -94,8 +94,8 @@ final class RunPersistenceRepository
   public function insertNodes(int $runId, array $nodes): array
   {
     $stmt = $this->pdo->prepare('INSERT INTO `run_nodes`
-      (`run_id`, `node_index`, `node_type_id`, `encounter_id`, `status`, `generated_metadata`)
-      VALUES (?, ?, ?, ?, ?, ?)');
+      (`run_id`, `node_index`, `node_type_id`, `encounter_id`, `event_id`, `status`, `generated_metadata`)
+      VALUES (?, ?, ?, ?, ?, ?, ?)');
     $ids = [];
     foreach ($nodes as $node) {
       $index = (int)$node['node_index'];
@@ -104,6 +104,7 @@ final class RunPersistenceRepository
         $index,
         $node['node_type_id'],
         $node['encounter_id'],
+        $node['event_id'],
         $node['status'],
         $this->encodeMetadata($node['generated_metadata'] ?? null),
       ]);

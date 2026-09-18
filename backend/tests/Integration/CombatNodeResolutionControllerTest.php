@@ -7,7 +7,8 @@ use DateTimeImmutable;
 use DateTimeZone;
 use DiceGoblins\Application\Combat\CombatSnapshotAssembler;
 use DiceGoblins\Application\Commands\ProvisionWarbandFixtureCommand;
-use DiceGoblins\Application\Commands\ResolveCombatNodeCommand;
+use DiceGoblins\Application\Commands\ResolveRunNodeCommand;
+use DiceGoblins\Application\RunNodes\CombatNodeResolutionHandler;
 use DiceGoblins\Application\Queries\CurrentRunQuery;
 use DiceGoblins\Application\Queries\UnitDetailQuery;
 use DiceGoblins\Combat\Vnext\CombatInput;
@@ -22,7 +23,7 @@ use DiceGoblins\Infrastructure\Clock;
 use DiceGoblins\Repositories\BattlePersistenceRepository;
 use DiceGoblins\Repositories\IdempotencyRequestRepository;
 use DiceGoblins\Repositories\PlayerStateRepository;
-use DiceGoblins\Repositories\RunCombatRepository;
+use DiceGoblins\Repositories\RunNodeResolutionRepository;
 use DiceGoblins\Repositories\RunPersistenceRepository;
 use DiceGoblins\Repositories\SquadRepository;
 use DiceGoblins\Repositories\WarbandDiceRepository;
@@ -72,6 +73,7 @@ final class CombatNodeResolutionControllerTest extends IntegrationTestCase
     $first = $this->httpResolve($userId, $runId, $nodeIds[0], 'real-resolve-key');
     $this->assertSame(200, $first['status'], json_encode($first['body']));
     $data = $first['body']['data'];
+    $this->assertSame('combat', $data['resolution_type'] ?? null);
     $this->assertSame('victory', $data['battle']['outcome'] ?? null);
     $this->assertSame('completed', $data['node']['status'] ?? null);
     $this->assertSame('active', $data['run']['status'] ?? null);
@@ -192,14 +194,14 @@ final class CombatNodeResolutionControllerTest extends IntegrationTestCase
     $foreign = $this->httpResolve($other, $runId, $nodes[0], 'foreign-resolve-key');
     $missing = $this->httpResolve($owner, 999999999, 999999999, 'missing-resolve-key');
     $locked = $this->httpResolve($owner, $runId, $nodes[1], 'locked-resolve-key');
-    $this->pdo?->prepare("UPDATE `run_nodes` SET `status` = 'available' WHERE `id` = ?")->execute([$nodes[1]]);
-    $unsupported = $this->httpResolve($owner, $runId, $nodes[1], 'unsupported-resolve-key');
+    $this->pdo?->prepare("UPDATE `run_nodes` SET `status` = 'available' WHERE `id` = ?")->execute([$nodes[3]]);
+    $unsupported = $this->httpResolve($owner, $runId, $nodes[3], 'unsupported-resolve-key');
 
     $this->assertSame([404, 'run_node_not_found'], [$foreign['status'], $foreign['body']['error']['code'] ?? null]);
     $this->assertSame([404, 'run_node_not_found'], [$missing['status'], $missing['body']['error']['code'] ?? null]);
     $this->assertSame([409, 'run_node_unavailable'], [$locked['status'], $locked['body']['error']['code'] ?? null]);
     $this->assertSame([422, 'run_node_unsupported'], [$unsupported['status'], $unsupported['body']['error']['code'] ?? null]);
-    $this->pdo?->prepare("UPDATE `run_nodes` SET `status` = 'locked' WHERE `id` = ?")->execute([$nodes[1]]);
+    $this->pdo?->prepare("UPDATE `run_nodes` SET `status` = 'locked' WHERE `id` = ?")->execute([$nodes[3]]);
     $this->assertSame($before, $this->stateSnapshot($owner, $runId));
   }
 
@@ -265,14 +267,17 @@ final class CombatNodeResolutionControllerTest extends IntegrationTestCase
     return [$runId, array_map('intval', array_column($rows, 'id'))];
   }
 
-  private function command(CombatResolver $resolver, Clock $clock): ResolveCombatNodeCommand
+  private function command(CombatResolver $resolver, Clock $clock): ResolveRunNodeCommand
   {
     $content = $this->content();
     $units = new WarbandUnitRepository($this->pdo);
-    return new ResolveCombatNodeCommand($this->pdo, new PlayerStateRepository($this->pdo), new RunPersistenceRepository($this->pdo),
-      new RunCombatRepository($this->pdo), new BattlePersistenceRepository($this->pdo), new IdempotencyRequestRepository($this->pdo),
-      new CombatSnapshotAssembler($content, new SquadRepository($this->pdo), new UnitDetailQuery($units, $content),
-        new WarbandDiceRepository($this->pdo)), $resolver, new CombatSeedDeriver(), $clock);
+    $nodes = new RunNodeResolutionRepository($this->pdo);
+    return new ResolveRunNodeCommand($this->pdo, new PlayerStateRepository($this->pdo), new RunPersistenceRepository($this->pdo),
+      $nodes, new IdempotencyRequestRepository($this->pdo), [new CombatNodeResolutionHandler(
+        $nodes, new BattlePersistenceRepository($this->pdo),
+        new CombatSnapshotAssembler($content, new SquadRepository($this->pdo), new UnitDetailQuery($units, $content),
+          new WarbandDiceRepository($this->pdo)), $resolver, new CombatSeedDeriver(),
+      )], $clock);
   }
 
   private function fixedResolver(string $outcome): CombatResolver

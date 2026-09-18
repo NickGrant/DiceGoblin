@@ -4,7 +4,7 @@
 
 ### Milestone 5 Package 3 - Farm Loot + Rest authoritative node resolution
 
-**Status:** Open
+**Status:** In Progress
 **Priority:** High
 
 #### Problem

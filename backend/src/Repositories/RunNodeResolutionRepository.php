@@ -7,18 +7,25 @@ use DateTimeImmutable;
 use PDO;
 use RuntimeException;
 
-final class RunCombatRepository
+final class RunNodeResolutionRepository
 {
   public function __construct(private readonly PDO $pdo) {}
 
   /** @return array<string,mixed>|null */
   public function findNodeForUpdate(int $runId, int $nodeId): ?array
   {
-    $stmt = $this->pdo->prepare('SELECT `id`, `run_id`, `node_type_id`, `encounter_id`, `status`, `completed_at`
+    $stmt = $this->pdo->prepare('SELECT `id`, `run_id`, `node_type_id`, `encounter_id`, `event_id`, `status`, `completed_at`
       FROM `run_nodes` WHERE `run_id` = ? AND `id` = ? LIMIT 1 FOR UPDATE');
     $stmt->execute([$runId, $nodeId]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     return is_array($row) ? $row : null;
+  }
+
+  public function battleExists(int $runId, int $nodeId): bool
+  {
+    $stmt = $this->pdo->prepare('SELECT 1 FROM `battles` WHERE `run_id` = ? AND `run_node_id` = ? LIMIT 1');
+    $stmt->execute([$runId, $nodeId]);
+    return $stmt->fetchColumn() !== false;
   }
 
   /** @return list<array<string,mixed>> */
@@ -46,7 +53,7 @@ final class RunCombatRepository
     $stmt = $this->pdo->prepare("UPDATE `run_nodes` SET `status` = 'completed', `completed_at` = ?
       WHERE `run_id` = ? AND `id` = ? AND `status` = 'available'");
     $stmt->execute([$completedAt->format('Y-m-d H:i:s'), $runId, $nodeId]);
-    if ($stmt->rowCount() !== 1) throw new RuntimeException('Combat node could not be completed.');
+    if ($stmt->rowCount() !== 1) throw new RuntimeException('Run node could not be completed.');
   }
 
   /** @return list<int> */

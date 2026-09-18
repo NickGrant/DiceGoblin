@@ -1,15 +1,15 @@
 import { RuntimeApiClient, RuntimeApiError } from './runtime-api-client';
 import { RunNodeResolutionResult } from './run-node-resolution-contracts';
 
-export type CombatResolutionAttemptState = 'idle' | 'submitting' | 'retryable' | 'rejected' | 'already-resolved' | 'succeeded';
-export type CombatResolutionAttemptOutcome = { readonly kind: 'success'; readonly result: RunNodeResolutionResult }
+export type RunNodeResolutionAttemptState = 'idle' | 'submitting' | 'retryable' | 'rejected' | 'already-resolved' | 'succeeded';
+export type RunNodeResolutionAttemptOutcome = { readonly kind: 'success'; readonly result: RunNodeResolutionResult }
   | { readonly kind: 'ambiguous' } | { readonly kind: 'rejected' } | { readonly kind: 'already-resolved' } | { readonly kind: 'ignored' };
 
-export class CombatResolutionAttempt {
+export class RunNodeResolutionAttempt {
   private attempt: { runId: string; nodeId: string; key: string } | null = null;
-  private currentState: CombatResolutionAttemptState = 'idle';
-  constructor(private readonly createKey: () => string = () => `combat-node:${crypto.randomUUID()}`) {}
-  get state(): CombatResolutionAttemptState { return this.currentState; }
+  private currentState: RunNodeResolutionAttemptState = 'idle';
+  constructor(private readonly createKey: () => string = () => `run-node:${crypto.randomUUID()}`) {}
+  get state(): RunNodeResolutionAttemptState { return this.currentState; }
   get identity(): Readonly<{ runId: string; nodeId: string; key: string }> | null { return this.attempt; }
 
   begin(runId: string, nodeId: string): void {
@@ -19,7 +19,7 @@ export class CombatResolutionAttempt {
     this.currentState = 'idle';
   }
 
-  async submit(api: RuntimeApiClient, csrfToken: string): Promise<CombatResolutionAttemptOutcome> {
+  async submit(api: RuntimeApiClient, csrfToken: string): Promise<RunNodeResolutionAttemptOutcome> {
     if (!this.attempt || this.currentState === 'submitting' || this.currentState === 'succeeded') return { kind: 'ignored' };
     this.currentState = 'submitting';
     try {

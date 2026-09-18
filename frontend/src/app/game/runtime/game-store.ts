@@ -347,6 +347,27 @@ export class GameStore {
     this.setCurrentRun({ status: 'stale', data: this.currentRunState.data, error: null });
   }
 
+  reconcileResolvedRunNodePlayerState(result: LootRunNodeResolutionResult | RestRunNodeResolutionResult): void {
+    const bootstrap = this.cachedBootstrap;
+    if (!bootstrap || result.playerRevision < bootstrap.player.player_revision)
+      throw new RunContractError('Authoritative player revision regressed.');
+    const activeRun = bootstrap.active_run;
+    if (!activeRun || activeRun.id !== result.run.id)
+      throw new RunContractError('Resolved node disagrees with the authoritative active run.');
+    const current = this.currentRunState.data;
+    if (!current || current.id !== result.run.id || !current.nodes.some((node) => node.id === result.node.id))
+      throw new RunContractError('Resolved node disagrees with the cached current run.');
+    this.cachedBootstrap = Object.freeze({
+      ...bootstrap,
+      player: Object.freeze({
+        ...bootstrap.player,
+        teeth: result.resolutionType === 'loot' ? result.wallet.teeth : bootstrap.player.teeth,
+        player_revision: result.playerRevision,
+      }),
+    });
+    this.setCurrentRun({ status: 'stale', data: current, error: null });
+  }
+
   reconcileRunStart(result: RunStartResult): void {
     const bootstrap = this.cachedBootstrap;
     if (!bootstrap || result.playerRevision < bootstrap.player.player_revision)
@@ -863,6 +884,7 @@ import {
 } from './unit-detail-contracts';
 import { CurrentRun, CurrentRunResult, RunAbandonResult, RunContractError, RunStartResult } from './run-contracts';
 import { activeRunLock, ActiveRunLock } from './active-run-lock';
+import { LootRunNodeResolutionResult, RestRunNodeResolutionResult } from './run-node-resolution-contracts';
 
 function unitDetailErrorKind(error: unknown): WarbandDomainErrorKind {
   if (error instanceof RuntimeApiError) return error.kind;

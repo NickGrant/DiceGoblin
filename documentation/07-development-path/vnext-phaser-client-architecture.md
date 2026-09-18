@@ -382,6 +382,8 @@ An available Combat node is resolved once through the run-node command. The clie
 
 Playback completion produces an explicit local result and waits for the player to Continue. Continue always performs a fresh current-run query and reconciles that response through the runtime store before leaving battle. An active returned run leads to `RunScene`; a null returned run leads to Camp in `GameScene`. The retained marker is cleared only after successful reconciliation, so a failed return synchronization remains retryable and reload can still recover the finalized playback. Continue does not reconstruct HP or graph changes from playback and does not rerun combat, bootstrap, or Warband loading.
 
+Available Loot and Rest nodes use the same bodyless run-node resolution transport and one logical idempotency-key attempt per action. Their discriminated responses remain in `RunScene`: Loot adopts only the authoritative returned wallet balance and player revision, while Rest adopts only the revision. Both then force a current-run query so node availability and run HP are reconciled through the strict runtime store rather than patched from client assumptions. A failed post-mutation query retains the visible result and offers a query-only synchronization retry; it never repeats the finalized node mutation or refreshes bootstrap/Warband state.
+
 ## Visual Testing
 
 Deterministic Phaser screen/scene capture remains an important development capability and should be expanded as Phaser becomes the full game client.

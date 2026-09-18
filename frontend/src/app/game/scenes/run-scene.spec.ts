@@ -3,7 +3,8 @@ import { ClientContentLoader, ClientContentRegistry } from '../runtime/client-co
 import { RuntimeApiClient, RuntimeApiError } from '../runtime/runtime-api-client';
 import { RuntimeStartup } from '../runtime/runtime-startup';
 import { RuntimeViewport, calculateRuntimeViewport } from '../runtime/runtime-viewport';
-import { CombatResolutionAttempt } from '../runtime/combat-resolution-attempt';
+import { RunNodeResolutionAttempt } from '../runtime/run-node-resolution-attempt';
+import { CurrentRun } from '../runtime/run-contracts';
 import { BATTLE_SCENE_KEY, GAME_SCENE_KEY, RUN_SCENE_KEY, RunScene, RuntimeLifecycleState, nextSceneForStartup, runShellLayout } from './runtime-scenes';
 
 describe('RunScene lifecycle shell', () => {
@@ -57,7 +58,7 @@ describe('RunScene lifecycle shell', () => {
 
     await scene.activateSelectedCombat();
 
-    expect(api.resolveRunNode).toHaveBeenCalledOnceWith('41', '10', 'csrf', 'combat-node:fixed');
+    expect(api.resolveRunNode).toHaveBeenCalledOnceWith('41', '10', 'csrf', 'run-node:fixed');
     expect(startup.battlePresentation.marker).toEqual(jasmine.objectContaining({ battleId: '81', runId: '41', runNodeId: '10' }));
     expect(startup.store.currentRun).toEqual(jasmine.objectContaining({ status: 'stale', data: priorRun }));
     expect(startup.store.currentRun.data?.nodes[0].status).toBe('available');
@@ -88,6 +89,62 @@ describe('RunScene lifecycle shell', () => {
     expect(api.resolveRunNode).not.toHaveBeenCalled();
     expect(startup.battlePresentation.marker?.battleId).toBe('81');
     expect(sceneStart).toHaveBeenCalledOnceWith(BATTLE_SCENE_KEY);
+  });
+
+  it('adopts exact Loot wallet facts and reconciles Rest availability through current-run GET', async () => {
+    const { scene, startup, api } = await readyHarness(lootAvailableRun());
+    spyOn<any>(scene, 'render').and.stub();
+    api.resolveRunNode.and.resolveTo(lootResolutionSuccess());
+    api.getCurrentRun.and.resolveTo({ run: restAvailableRun(), playerRevision: 8 });
+    scene.selectNode('11');
+
+    await scene.activateSelectedNonCombat();
+
+    expect(api.resolveRunNode).toHaveBeenCalledOnceWith('41', '11', 'csrf', 'run-node:fixed');
+    expect(api.getCurrentRun).toHaveBeenCalledTimes(2);
+    expect(startup.store.bootstrap?.player).toEqual(jasmine.objectContaining({ teeth: 8, player_revision: 8 }));
+    expect(startup.store.currentRun.data?.nodes.find((node) => node.id === '12')?.status).toBe('available');
+    expect(scene.resolvedNodeSyncState).toBe('succeeded');
+  });
+
+  it('presents Rest facts and reconciles authoritative HP and Boss availability', async () => {
+    const { scene, startup, api } = await readyHarness(restAvailableRun());
+    spyOn<any>(scene, 'render').and.stub();
+    api.resolveRunNode.and.resolveTo(restResolutionSuccess());
+    api.getCurrentRun.and.resolveTo({ run: bossAvailableRun(), playerRevision: 8 });
+    scene.selectNode('12');
+
+    await scene.activateSelectedNonCombat();
+
+    expect(api.resolveRunNode).toHaveBeenCalledOnceWith('41', '12', 'csrf', 'run-node:fixed');
+    expect(startup.store.currentRun.data?.units).toEqual([{ unitId: '11', currentHp: 26 }]);
+    expect(startup.store.currentRun.data?.nodes.find((node) => node.id === '13')?.status).toBe('available');
+    expect(startup.store.bootstrap?.player.teeth).toBe(0);
+  });
+
+  it('retries only current-run synchronization after a committed Loot mutation', async () => {
+    const { scene, api } = await readyHarness(lootAvailableRun());
+    spyOn<any>(scene, 'render').and.stub();
+    api.resolveRunNode.and.resolveTo(lootResolutionSuccess());
+    api.getCurrentRun.and.returnValues(Promise.reject(new RuntimeApiError('network')),
+      Promise.resolve({ run: restAvailableRun(), playerRevision: 8 }));
+    scene.selectNode('11');
+
+    await scene.activateSelectedNonCombat();
+    expect(scene.resolvedNodeSyncState).toBe('sync-error');
+    await scene.retryNodeSync();
+
+    expect(scene.resolvedNodeSyncState).toBe('succeeded');
+    expect(api.resolveRunNode).toHaveBeenCalledTimes(1);
+    expect(api.getCurrentRun).toHaveBeenCalledTimes(3);
+  });
+
+  it('keeps Boss and Exit non-actionable through the Package 3 node action', async () => {
+    const { scene, api } = await readyHarness(bossAvailableRun());
+    spyOn<any>(scene, 'render').and.stub();
+    scene.selectNode('13'); await scene.activateSelectedNonCombat();
+    scene.selectNode('14'); await scene.activateSelectedNonCombat();
+    expect(api.resolveRunNode).not.toHaveBeenCalled();
   });
 
   it('opens and cancels explicit abandon confirmation without mutating authority', async () => {
@@ -172,7 +229,7 @@ function abandonSuccess(): abandonResult {
     endedAt: '2026-09-13T12:04:00Z' }, activeRun: null, playerRevision: 8 };
 }
 
-async function readyHarness(run = currentRun()) {
+async function readyHarness(run: CurrentRun = currentRun()) {
   const api = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getCurrentRun', 'abandonRun', 'resolveRunNode']);
   const startup = new RuntimeStartup(api, {} as ClientContentLoader);
   const registry = content();
@@ -182,32 +239,69 @@ async function readyHarness(run = currentRun()) {
   api.getCurrentRun.and.resolveTo({ run, playerRevision: 7 });
   await startup.store.loadCurrentRun(api, registry);
   const viewport = new RuntimeViewport();
-  const scene = new RunScene(new RuntimeLifecycleState(), startup, viewport, new CombatResolutionAttempt(() => 'combat-node:fixed'));
+  const scene = new RunScene(new RuntimeLifecycleState(), startup, viewport, new RunNodeResolutionAttempt(() => 'run-node:fixed'));
   const sceneStart = jasmine.createSpy('start');
   (scene as unknown as { scene: { start: jasmine.Spy } }).scene = { start: sceneStart };
   return { scene, startup, api, viewport, sceneStart };
 }
 
 function resolutionSuccess() {
-  return { battle: { id: '81', outcome: 'victory' as const, engineVersion: 1 as const, playbackVersion: 1 as const,
+  return { resolutionType: 'combat' as const, battle: { id: '81', outcome: 'victory' as const, engineVersion: 1 as const, playbackVersion: 1 as const,
     endingRound: 3, endingTick: 41 }, node: { id: '10', status: 'completed' as const,
     completedAt: '2026-09-16T12:00:00Z' }, newlyAvailableNodeIds: ['11'], terminalPlayerHp: { '11': 7 },
     run: { id: '41', status: 'active' as const, endedAt: null }, playerRevision: 8 };
+}
+
+function lootResolutionSuccess() {
+  return { resolutionType: 'loot' as const, wallet: { teeth: 8 },
+    grantedRewards: [{ rewardType: 'currency' as const, currencyId: 'teeth' as const, amount: 8 }] as const,
+    node: { id: '11', status: 'completed' as const, completedAt: '2026-09-16T12:01:00Z' },
+    newlyAvailableNodeIds: ['12'], run: { id: '41', status: 'active' as const, endedAt: null }, playerRevision: 8 };
+}
+
+function restResolutionSuccess() {
+  return { resolutionType: 'rest' as const, healing: [{ unitId: '11', hpBefore: 0, hpAfter: 26, maxHp: 26 }],
+    node: { id: '12', status: 'completed' as const, completedAt: '2026-09-16T12:02:00Z' },
+    newlyAvailableNodeIds: ['13'], run: { id: '41', status: 'active' as const, endedAt: null }, playerRevision: 8 };
 }
 
 function content(): ClientContentRegistry {
   return new ClientContentRegistry({ revision: 'a'.repeat(64), content: { gameplay: { run_energy_cost: 10 },
     regions: { 'region.the_farm': { id: 'region.the_farm', display_name: 'The Farm', art_key: 'farm' } },
     kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {},
-    run_node_types: { 'run_node_type.combat': { id: 'run_node_type.combat', display_name: 'Combat', description: 'Fight.', icon_key: 'combat' } },
+    run_node_types: {
+      'run_node_type.combat': { id: 'run_node_type.combat', display_name: 'Combat', description: 'Fight.', icon_key: 'combat' },
+      'run_node_type.loot': { id: 'run_node_type.loot', display_name: 'Loot', description: 'Collect.', icon_key: 'loot' },
+      'run_node_type.rest': { id: 'run_node_type.rest', display_name: 'Rest', description: 'Recover.', icon_key: 'rest' },
+      'run_node_type.boss': { id: 'run_node_type.boss', display_name: 'Boss', description: 'Boss.', icon_key: 'boss' },
+      'run_node_type.exit': { id: 'run_node_type.exit', display_name: 'Exit', description: 'Exit.', icon_key: 'exit' },
+    },
   } });
 }
 
-function currentRun() {
+function currentRun(): CurrentRun {
   return { id: '41', regionId: 'region.the_farm', squadId: '31', status: 'active' as const,
     createdAt: '2026-09-13T12:00:00Z', nodes: [{ id: '10', nodeIndex: 0, nodeTypeId: 'run_node_type.combat',
       status: 'available' as const, completedAt: null, battleId: null, position: { column: 0, row: 1 } }], edges: [],
     units: [{ unitId: '11', currentHp: null }] };
+}
+
+function farmRun(statuses: readonly ['completed', 'completed' | 'available', 'locked' | 'completed' | 'available', 'locked' | 'available', 'locked']): CurrentRun {
+  const types = ['combat', 'loot', 'rest', 'boss', 'exit'];
+  return { id: '41', regionId: 'region.the_farm', squadId: '31', status: 'active' as const,
+    createdAt: '2026-09-13T12:00:00Z', nodes: types.map((type, index) => ({ id: String(10 + index), nodeIndex: index,
+      nodeTypeId: `run_node_type.${type}`, status: statuses[index], completedAt: statuses[index] === 'completed'
+        ? `2026-09-16T12:0${index}:00Z` : null, battleId: type === 'combat' ? '81' : null,
+      position: { column: index, row: 1 } })),
+    edges: types.slice(0, -1).map((_, index) => ({ fromNodeId: String(10 + index), toNodeId: String(11 + index) })),
+    units: [{ unitId: '11', currentHp: 0 }] };
+}
+
+function lootAvailableRun() { return farmRun(['completed', 'available', 'locked', 'locked', 'locked']); }
+function restAvailableRun() { return farmRun(['completed', 'completed', 'available', 'locked', 'locked']); }
+function bossAvailableRun() {
+  const run = farmRun(['completed', 'completed', 'completed', 'available', 'locked']);
+  return { ...run, units: [{ unitId: '11', currentHp: 26 }] };
 }
 
 function activeBootstrap(): GameBootstrapData {
