@@ -2,400 +2,460 @@
 
 ## Milestone 5 - Complete Farm
 
-### Milestone 5 Package 2 - Finalized reward results + transactional grant application
+### Milestone 5 Package 3 - Farm Loot + Rest authoritative node resolution
 
-**Status:** In Progress
+**Status:** Open
 **Priority:** High
 
 #### Problem
-Package 1 established the authored `unlock` / `event` / `reward_definition` contracts, server-only exposure rules, minimal `user_unlocks` and `resolved_events` persistence, and real bootstrap unlock reads.
+Packages 1-2 established the reusable server-only authored reward model, immutable finalized reward results, exact currency/XP/unlock application, and retry-safe resolved-event persistence.
 
-The next requirement is to turn an authored successful event into one immutable, replay-safe, exact reward result and apply that result transactionally to player state.
+The persisted Farm graph already contains:
 
-This package establishes the reusable reward engine/application boundary needed by Farm Loot and the Mudking boss. It does **not** attach rewards to a live Farm node yet.
+`Combat -> Loot -> Rest -> Boss -> Exit`
 
-#### Accepted flow
-The canonical sequence is:
+but the live vNext node-resolution command supports only Combat. Package 3 makes the existing Loot and Rest nodes playable through the same authoritative bodyless resolution endpoint while preserving all Milestone 4 combat behavior.
 
-`successful gameplay fact -> authored event -> reward definition -> exact rolls -> exact finalized result -> transactional grants -> applied event record`
+This is the first live integration of the reward application service.
+
+#### Accepted Farm behavior
+For the current Farm vertical slice:
+
+##### Loot
+Completing the Farm Loot node emits:
+
+`event.farm_loot_completed`
+
+Its reward definition is deliberately simple:
+
+- one ordered reward entry;
+- 10000 basis points;
+- currency = Teeth;
+- amount = **8 Teeth**.
+
+This retains the useful prototype Farm Loot baseline without reviving prototype SQL loot tables or its random unit/die loot behavior.
+
+Do not grant units, dice, items, Raw Chaos, XP, Codex, or unlocks from this Loot node in Package 3.
+
+##### Rest
+Completing the Farm Rest node performs a direct full-recovery effect.
+
+For every exact participating run unit:
+- resolve the unit's current max HP from its current persisted level + current authored unit type using the canonical Package 1 combat-stat resolver;
+- persist `run_unit_state.current_hp = resolved max HP`.
+
+This includes a unit currently at 0 HP.
+
+Rest is an **effect**, not a reward:
+- no Teeth/XP/unlock reward;
+- no artificial reward event merely to record healing;
+- no claim/acknowledgement state.
+
+Rest does not alter unit level/XP or Energy.
+
+#### Authored Loot event
+Add canonical server-only definitions for:
+
+- `event.farm_loot_completed`;
+- `reward_definition.farm_loot_completed`.
+
+The reward definition contains the single deterministic 8-Teeth entry above.
+
+Event/reward definitions remain absent from client content projection.
+
+#### Persist event identity on generated run nodes
+Do not hardcode `event.farm_loot_completed` inside the application handler.
+
+Extend the current fixed-graph authored node contract with optional:
+
+`event_id`
 
 Rules:
-- no ordinary claim step;
-- a committed event result is never rerolled;
-- a committed applied event is never re-applied;
-- reward presentation later consumes finalized authoritative facts;
-- parent gameplay commands own the transaction and the one player-revision increment;
-- this package's reward services do not own/commit transactions or increment `player_revision`.
+- must be a stable `event.*` ID;
+- must reference an authored event;
+- it is private authored/runtime configuration;
+- it is not added to the current-run client projection.
 
-#### Required context
-Read:
-- `documentation/07-development-path/vnext-reward-unlock-model.md`;
-- `documentation/07-development-path/vnext-progression-state-model.md`;
-- `documentation/07-development-path/vnext-currency-economy-model.md`;
-- `documentation/02-systems/unit-stat-advancement.md`;
-- Package 1 content validation and persistence;
-- current `PlayerStateRepository`, Warband unit persistence, and `UserUnlockRepository`;
-- current transaction/locking patterns in StartRun and ResolveCombatNode;
-- retained prototype progression/reward code only as behavioral evidence.
+Persist the optional event identity on the generated `run_nodes` row in the fresh baseline.
 
-Do not revive prototype `battle_rewards`, claim semantics, SQL reward catalogs, tier-dependent XP curves, or `UserUnlockService` namespace storage as the vNext architecture.
+Update run generation/persistence/validation accordingly.
 
-#### XP / level semantics
-Package 2 makes the following vNext rule canonical.
+Set the Farm Loot authored node's `event_id` to `event.farm_loot_completed`.
 
-`unit_instances.xp` stores **progress within the unit's current level**, not lifetime cumulative XP.
+Combat/Rest/Boss/Exit do not need speculative event IDs in this package. Boss will receive its actual completion event in its owning package once that exact reward definition is accepted.
 
-For current level `L >= 1`:
+This persisted event reference is the durable source configuration needed so a later content change does not make an already-generated node silently become a different reward event.
 
-`xp required for L -> L+1 = 100 * L`
+#### One node-resolution endpoint
+Continue using:
 
-When XP is granted:
-1. add the grant to current XP;
-2. while XP is at least the threshold for the current level:
-   - subtract that threshold;
-   - increment level;
-   - recompute the next threshold;
-3. persist the final level and remainder XP.
+`POST /api/v1/runs/:runId/nodes/:nodeId/resolve`
 
-Examples:
-- level 1, 0 XP + 99 -> level 1, 99 XP;
-- level 1, 0 XP + 100 -> level 2, 0 XP;
-- level 2, 150 XP + 50 -> level 3, 0 XP;
-- level 1, 90 XP + 250 -> level 3, 40 XP.
+Requirements remain:
+- authentication;
+- CSRF;
+- canonical positive IDs;
+- 8-128 character `Idempotency-Key`;
+- **no request body**.
 
-Additional rules:
-- unit type/tier does not affect the XP threshold;
-- promotion does not reset level or XP;
-- multiple levels may be gained from one reward;
-- all exact participating units targeted by the reward receive the authored amount individually, including units that ended combat defeated;
-- no maximum-level cap is enforced by this Milestone 5 resolver;
-- arithmetic/SQL overflow must reject/rollback rather than clamp;
-- level-up changes the persisted unit level immediately;
-- level-up does **not** heal or proportionally adjust `run_unit_state.current_hp`;
-- later combat in the same run resolves stats from the new persisted level while retaining the existing numeric run HP until a legitimate healing/effect changes it.
+Do not create Loot/Rest-specific player mutation endpoints.
 
-Update `documentation/02-systems/unit-stat-advancement.md` to make this canonical and remove its statement that the XP curve remains unresolved.
+#### Generic vNext run-node command
+Refactor the active vNext route/composition so it is no longer permanently wired to a command named/structured as Combat-only.
+
+Prefer one authoritative `ResolveRunNodeCommand` transaction boundary with type-specific internal handlers/services for:
+- Combat;
+- Loot;
+- Rest.
+
+Alternative internal naming is acceptable if the architecture has the same properties.
+
+Do **not** route through or revive the dormant prototype `RunNodeController` / `DeterministicRunNodeResolver`.
+
+##### Shared transaction ordering
+For every supported type:
+
+1. validate canonical IDs/key/body at HTTP boundary;
+2. begin transaction;
+3. lock `user_state` first;
+4. check exact idempotency receipt before ordinary lifecycle rejection;
+5. lock owned run;
+6. lock exact run node;
+7. validate run/node lifecycle;
+8. execute the selected authoritative handler;
+9. complete node;
+10. unlock only directly outgoing persisted child nodes;
+11. increment `player_revision` exactly once;
+12. persist exact idempotency response receipt;
+13. commit.
+
+A handler must not own/commit its own parent transaction.
+
+Preserve Package 4 Combat semantics exactly, including battle persistence, terminal HP, defeat/stalemate run failure, combat seed, battle response facts, and replay/retry behavior.
+
+#### Idempotency
+Continue operation identity:
+
+`resolve_run_node`
+
+and the existing canonical run/node fingerprint.
 
-Implement the XP calculation as a small infrastructure-free domain resolver.
+Exact same-key replay occurs before ordinary already-resolved rejection and returns the exact original response without:
+- rerunning combat;
+- rerolling Loot;
+- reapplying Teeth;
+- healing again;
+- unlocking again;
+- changing completion timestamps;
+- incrementing revision again.
 
-#### Reward roll source
-Reward probabilities use the Package 1 integer basis-point contract.
+A different key against a completed node returns the established already-resolved conflict and does not use the event record as a way to "resolve" the node again.
 
-Each authored entry consumes exactly one integer roll in `1..10000`.
+For Loot, `resolved_events` is an additional reward double-application/reroll safety boundary, not a replacement for command idempotency.
 
-The entry rolls when:
+#### Loot transaction
+After shared locks/lifecycle validation:
 
-`roll <= probability_basis_points`
+1. require the persisted Loot node to have a valid persisted `event_id`;
+2. assemble `RewardContext` from authoritative locked state:
+   - wallet balances from already-locked `user_state`;
+   - exact run-participating unit IDs with their current persisted level/XP;
+   - current owned unlock IDs;
+3. invoke Package 2 reward application inside the same parent transaction using:
+   - event ID from the persisted node;
+   - source type `run_node`;
+   - source ID using the exact durable run-node identity, canonicalized as `run_node:<nodeId>`;
+4. receive the exact finalized/applied result;
+5. complete the Loot node and unlock only its direct child (Rest);
+6. increment revision once and commit with the receipt.
 
-Therefore a 10000 entry always succeeds and a 1 entry succeeds only on roll 1.
+Do not mutate Energy.
 
-Use a small injected roll-source interface:
-- production uses a cryptographically appropriate server random source such as `random_int(1, 10000)`;
-- tests use fixed/scripted rolls.
+The current production Loot definition has one deterministic entry, but do not special-case "8 Teeth" in application logic. It must flow through authored event -> reward definition -> Package 2 finalization/application.
 
-Do **not** derive production reward outcomes from public run/node IDs, timestamps, client values, or a predictable public seed.
-
-The pure finalizer must be deterministic for identical normalized definitions + authoritative context + scripted roll sequence.
+##### Loot response projection
+Do **not** return the raw finalized reward result because that contains private probability and roll facts.
 
-An already persisted event result consumes no new rolls.
+Return a narrow player-safe projection such as:
+- resolution type = `loot`;
+- node completion facts;
+- newly available IDs;
+- resulting run status;
+- authoritative affected wallet balance(s);
+- player-visible granted reward summary (for current content: 8 Teeth);
+- player revision.
 
-#### Authoritative reward context
-The finalizer consumes a normalized authoritative context supplied by the owning command/application layer.
+Do not expose:
+- event ID;
+- reward-definition ID;
+- probability;
+- roll;
+- source identity;
+- private reward config.
 
-For the current grant types it contains:
-- current Teeth and Raw Chaos balances;
-- exact participating owned units targeted by `participating_units`, each with unit ID, level, and XP;
-- current owned unlock IDs.
+#### Rest transaction
+After shared locks/lifecycle validation:
 
-Context is server state. The browser never submits reward context.
+1. require node type Rest;
+2. lock/read the exact run participating units and their current run HP;
+3. load the exact owned active unit state needed for current unit type + level;
+4. resolve each max HP using ContentRegistry + the canonical infrastructure-free `BaseLevelStatResolver`;
+5. persist full HP for every run participant;
+6. complete Rest;
+7. unlock only its direct child (Boss);
+8. increment revision once and commit with receipt.
 
-The future owning run-node command must obtain/lock those facts using the established user-first lock order before finalization.
+Reject/rollback on:
+- participant mismatch;
+- missing/foreign/inactive unit;
+- invalid authored unit type/stat content;
+- invalid persisted HP.
 
-Package 2 tests may use a narrow integration harness/transaction to prove the service without adding a player endpoint.
+Do not use prototype unit-stat services or SQL unit-type catalogs.
 
-#### Versioned finalized result
-Add a strict infrastructure-free value/codec for **version 1** finalized reward events.
+##### Rest response projection
+Return a narrow player-safe projection including:
+- resolution type = `rest`;
+- node completion facts;
+- newly available IDs;
+- run status;
+- exact ordered healing transitions:
+  - unit ID;
+  - HP before;
+  - HP after/max HP;
+- player revision.
 
-The authoritative persisted result must carry enough exact information to replay/application-check without consulting current probabilities or recomputing XP.
+Do not return hidden authored stat config.
 
-At minimum:
+#### Discriminated mutation response
+The shared endpoint now returns more than Combat.
 
-- `version: 1`;
-- `event_id`;
-- `reward_definition_id`;
-- exact source identity: `source_type` + `source_id`;
-- ordered resolved entry results in the same order as authored entries.
-
-Every entry records:
-- authored entry `key`;
-- `reward_type`;
-- `probability_basis_points`;
-- exact `roll`;
-- outcome;
-- exact typed grant/application facts when applicable.
-
-Allowed outcomes for Package 2:
-- `not_rolled`;
-- `granted`;
-- `already_owned` for a rolled unique unlock that produces no grant.
-
-Typed exact facts:
-
-##### Currency
-For a granted currency entry record:
-- currency ID;
-- authored amount;
-- balance before;
-- balance after.
-
-Multiple successful entries for the same currency must chain through a local projected balance in authored entry order.
-
-##### Unit XP
-For a granted XP entry record:
-- target scope;
-- amount per unit;
-- exact ordered unit results.
-
-Each unit result records:
-- unit ID;
-- level before;
-- XP before;
-- level after;
-- XP after.
-
-Multiple successful XP entries must chain through projected unit state in authored entry order.
-
-Use deterministic ascending canonical unit-ID order inside each XP grant result regardless of incidental query order.
-
-##### Unlock
-For a rolled unlock entry record the target unlock ID.
-
-If not previously/planned-owned:
-- outcome `granted`.
+Add a strict top-level discriminator:
 
-If already owned:
-- outcome `already_owned`;
-- no durable grant is produced.
+`resolution_type: "combat" | "loot" | "rest"`
 
-If two ordered entries in the same finalized reward definition target the same unique unlock, the first successful planned grant makes that unlock owned in the finalizer's projected state so a later successful entry finalizes as `already_owned`.
+Add `resolution_type: "combat"` to the existing Combat response while preserving all its other accepted fields/semantics.
 
-#### Strict result validation
-The result value/codec must reject incoherent payloads, including:
-- unsupported version/event/source identity;
-- duplicate/missing/reordered entry keys relative to the finalized payload contract;
-- roll outside 1..10000;
-- outcome inconsistent with roll and probability;
-- unsupported reward type/outcome combinations;
-- malformed currency before/after math;
-- malformed XP before/after transitions;
-- duplicate XP unit IDs;
-- unordered XP unit IDs;
-- XP transitions that do not match the canonical XP resolver;
-- `already_owned` on non-unlock rewards;
-- malformed unlock IDs;
-- integer overflow/negative values.
-
-Do not rerun randomness during decode/hydration.
-
-The persisted result should remain understandable without current authored reward probabilities. It is historical operational evidence.
-
-#### Resolved-event repository
-Now that the finalized result boundary is concrete, add a typed persistence repository/codec boundary for `resolved_events`.
-
-Required primitives:
-- retrieve by exact user + event + source type + source ID;
-- insert a caller-supplied finalized value;
-- mark the exact finalized row applied without rewriting `result_json`;
-- hydrate through the strict finalized-result codec.
-
-Validate row columns against JSON:
-- event ID must match;
-- source type/ID must match;
-- status/timestamps coherent;
-- applied rows have `applied_at`;
-- result JSON remains immutable.
-
-Repositories do not own transactions, RNG, ContentRegistry, grant decisions, or revision increments.
-
-#### Reward resolution/application service
-Introduce an application service that operates **inside a caller-owned transaction**.
-
-It may use ContentRegistry + persistence repositories, but must not begin/commit/rollback the parent transaction itself.
-
-For an exact event/source identity:
-
-1. look for an existing resolved event;
-2. if existing and `applied`, return its decoded exact result with no RNG or player mutation;
-3. if an existing `finalized` but unapplied row is encountered at the start of a new application call, treat it as integrity failure rather than guessing whether grants partially committed;
-4. otherwise:
-   - load/validate authored event + reward definition;
-   - validate the authoritative reward context;
-   - finalize the exact result using the injected roll source;
-   - insert the `finalized` result;
-   - apply exactly the `granted` entries;
-   - mark the event `applied`;
-   - return the exact finalized result.
-
-Normal production commands must insert finalization + all grants + applied transition inside the same outer transaction. Therefore a failed grant rolls back the new event row too.
-
-The unique `resolved_events` identity is a database concurrency backstop; user-first parent locking remains the primary serialization strategy.
-
-#### Grant application
-Apply only the Package 1 supported families.
-
-##### Currency
-Support both current wallet currencies:
-- `teeth`;
-- `raw_chaos`.
-
-Apply the finalized exact before/after state. Reject stale/mismatched balances or overflow rather than silently recalculating a different result.
-
-Do not modify Energy.
-
-##### Unit XP
-Apply the exact finalized level/XP transition to the exact owned unit.
-
-Use ownership/current-state checks and reject stale/mismatched `level/xp` rather than recomputing a different result.
-
-Do not:
-- heal current run HP;
-- promote the unit;
-- grant abilities;
-- alter unit type/kin/loadout/dice.
-
-##### Unlock
-Before finalization, validate every authored unlock reward target through ContentRegistry.
-
-For a finalized `granted` unlock, the idempotent insert is expected to create the row. If it unexpectedly already exists after finalization planned a grant, fail integrity/rollback rather than silently changing the finalized outcome.
-
-`already_owned` performs no insert.
-
-Do not grant un-authored IDs.
-
-#### Player revision
-This service does not increment `player_revision`.
-
-The future owning gameplay command will perform all direct effects + reward grants + exactly one revision increment in the same transaction.
-
-Package 2 integration tests should prove reward application alone leaves revision unchanged.
-
-#### No live Farm integration yet
-Do not:
-- attach an event to Combat/Loot/Rest/Boss/Exit;
-- author production Farm reward amounts/chances merely to exercise this package;
-- change node-resolution responses;
-- add reward UI;
-- alter BattleScene;
-- unlock Mountains for a fixture/account;
-- create a reward endpoint.
-
-Use controlled test authored definitions and a narrow transaction harness for integration proof.
+The strict TypeScript transport/parser becomes a union keyed by `resolution_type`.
+
+Existing Fight/BattleScene code must continue to accept only the Combat variant for Fight.
+
+Loot/Rest RunScene actions accept only their matching variants.
+
+Exact idempotency receipts persist the discriminated response.
+
+#### Authoritative frontend reconciliation
+Add RunScene interactions only for current available nodes:
+
+- available Loot -> clear action such as **Collect Loot**;
+- available Rest -> clear action such as **Rest**;
+- Boss and Exit remain unavailable as actions until their later packages.
+
+Use the same bodyless `resolveRunNode` API transport.
+
+Prefer generalizing the existing logical node-resolution attempt/idempotency-key helper rather than creating incompatible duplicate retry machinery.
+
+For one user action:
+- create one run/node/key attempt;
+- suppress duplicate submission;
+- retain the same key across ambiguous network/5xx/malformed-response outcomes;
+- exact retry reuses the same key.
+
+No optimistic graph/HP/wallet mutation.
+
+After a definitive successful Loot/Rest response:
+1. retain its player-visible result locally for presentation;
+2. apply only authoritative wallet/revision facts from the mutation response to the appropriate GameStore/bootstrap cache boundary;
+3. force a fresh `GET /api/v1/runs/current`;
+4. reconcile run graph/current HP through the existing strict current-run/GameStore boundary;
+5. show the result and resulting map state.
+
+Do not patch node availability or Rest HP locally from assumptions.
+
+If the post-mutation current-run GET fails:
+- the mutation is already finalized;
+- keep an understandable local result/sync-error state;
+- Retry Sync performs **current-run GET only**;
+- do not resolve the node again;
+- do not call bootstrap/Warband merely to synchronize the run.
+
+Reload may lose the transient result card; that is acceptable because there is no claim/acknowledgement state. The authoritative completed node/reward/HP remain persisted.
+
+#### Player-state cache after Loot
+Loot changes Teeth.
+
+The successful authoritative mutation response must include the resulting Teeth balance and revision needed for the client to adopt those exact player-state facts without a bootstrap refresh.
+
+Do not increment or guess the balance client-side.
+
+Rest leaves wallet state unchanged.
+
+#### Run progression
+For current Farm victory path:
+
+Before Package 3:
+- Combat completed;
+- Loot available;
+- Rest/Boss/Exit locked.
+
+After resolving Loot:
+- Combat completed;
+- Loot completed;
+- Rest available;
+- Boss/Exit locked.
+
+After resolving Rest:
+- Combat completed;
+- Loot completed;
+- Rest completed;
+- Boss available;
+- Exit locked.
+
+Run remains `active`.
+
+Only direct outgoing persisted graph edges control unlocking.
+
+Do not reconstruct the Farm sequence in application code.
+
+#### Failure and integrity behavior
+Preserve non-disclosing owned run/node behavior.
+
+Use established controlled errors where possible.
+
+Reward/content/stat/persisted event inconsistencies become the existing run-data integrity boundary, not raw internal error text.
+
+A reward failure, HP failure, node-completion failure, revision failure, or receipt failure rolls the complete node transaction back.
+
+For Loot rollback must include:
+- finalized/applied event;
+- Teeth;
+- node status;
+- child unlock;
+- revision;
+- receipt.
+
+For Rest rollback must include:
+- all HP changes;
+- node status;
+- child unlock;
+- revision;
+- receipt.
 
 #### Tests
 At minimum prove:
 
-##### XP domain
-- threshold boundaries;
-- carry remainder;
-- multiple level-ups;
-- level/tier independence;
-- overflow rejection;
-- the four examples above;
-- run current HP is not part of XP resolution.
+##### Content/generation
+- canonical Farm Loot node references `event.farm_loot_completed`;
+- event references the accepted reward definition;
+- reward is exactly one 100% 8-Teeth entry;
+- malformed/missing node event references reject content;
+- generated/persisted Loot retains event ID;
+- event ID is absent from client current-run/content projection.
 
-##### Pure finalization
-- exact 1 and 10000 probability boundaries;
-- one roll consumed per entry;
-- authored entry order preserved;
-- fixed roll sequence produces deep-equal result;
-- currency entries chain balances;
-- XP entries chain each unit's projected level/XP;
-- participant target IDs sort canonically;
-- duplicate/planned unlock behavior;
-- already-owned unlock;
-- no roll/application when existing applied result is reused.
+##### Backend Loot
+Real MySQL integration:
+- available Loot resolves to exactly +8 Teeth;
+- resolved event becomes applied;
+- result JSON retains exact finalized facts privately;
+- node completes, only Rest unlocks;
+- revision increments once;
+- Energy unchanged;
+- same-key replay returns exact response with no second Teeth/event/unlock/revision;
+- different key cannot reroll/reapply;
+- missing/malformed/wrong persisted event fails atomically;
+- post-reward forced failure rolls event + Teeth + node + unlock + revision + receipt back.
 
-##### Codec/value
-- exact valid round trip;
-- every incoherence class above rejects;
-- no timestamps/free-form presentation text/random source state inside deterministic result.
+##### Backend Rest
+Real MySQL integration:
+- partially injured, 0-HP, and healthy participants all end at exact current max HP;
+- higher-level unit max HP uses current canonical level stats;
+- no unit level/XP changes;
+- no Energy/wallet changes;
+- node completes, only Boss unlocks;
+- revision increments once;
+- exact replay does not heal/revise again;
+- different key cannot resolve twice;
+- invalid participant/content/state rolls back;
+- forced post-heal failure rolls every HP/node/unlock/revision/receipt change back.
 
-##### MySQL/application
-Using actual MySQL 8:
-- finalized row + currency/XP/unlock grants + applied transition commit together;
-- applied exact retry returns the same result with no rolls or second grants;
-- no `player_revision` change;
-- no Energy change;
-- current run HP unchanged by XP level-up;
-- other user's units/unlocks cannot be targeted;
-- stale wallet or stale unit state rolls back event/grants;
-- forced failure after event insertion/grants rolls back event + wallet + XP + unlock together;
-- a preexisting unexpected `finalized` row fails safely without application;
-- raw authored unlock validation prevents arbitrary DB IDs.
+##### Combat regression
+- existing Combat endpoint behavior remains intact except accepted `resolution_type: combat`;
+- Combat still invokes CombatEngine exactly once;
+- Fight retry/reload/replay semantics remain green;
+- defeat/stalemate still terminate runs correctly;
+- BattleScene does not receive Loot/Rest responses.
 
-##### Regression
-- Package 1 bootstrap unlock behavior remains correct;
-- M1-M4 tests remain green;
-- content remains server-private for events/reward definitions.
+##### Frontend
+- available Loot shows Collect Loot and sends one bodyless resolve POST;
+- successful Loot shows +8 Teeth from response, adopts exact balance, and reconciles Rest availability through current-run GET;
+- available Rest shows Rest and resolves once;
+- Rest result presents full-recovery facts and reconciles Boss availability/current HP;
+- Boss/Exit remain non-actionable;
+- ambiguous POST retry reuses key;
+- duplicate clicks suppressed;
+- sync retry after committed mutation performs current-run GET only;
+- no bootstrap/Warband refresh;
+- no client reward roll or HP/max-stat calculation;
+- existing Combat Fight/Replay/BattleScene tests remain green;
+- pointer/disabled/portrait behavior follows current interaction conventions.
 
-#### Documentation
-Update current canonical docs where concrete behavior is now resolved:
-- unit-stat advancement XP semantics;
-- reward/unlock finalization/application details if useful;
-- storage documentation if the typed resolved-event boundary needs clarification.
-
-Do not add historical/prototype docs back.
-
-#### Explicitly out of scope
-Do not implement or scaffold:
-- live Farm event definitions/reward tuning;
-- Loot node resolution;
-- Rest healing;
-- Mudking content;
-- Boss/Exit resolution;
-- Mountains grant in actual gameplay;
-- Mountains run generation;
-- item/die/unit/Codex reward grants;
-- Shop/Academy/Wrong Machine use of the service;
-- objectives;
-- reward/result Phaser UI;
-- claim/acknowledgement endpoints;
-- max-level/promotion eligibility beyond the XP rules above;
-- Milestone 6.
-
-#### Verification gates
-Run applicable gates from `agent/QUALITY_GATES.md`.
+#### Verification
+Run applicable `agent/QUALITY_GATES.md` gates.
 
 At minimum report:
-- focused XP/finalizer/codec unit tests;
-- focused resolved-event/grant MySQL integration tests;
-- Package 1 content/bootstrap regressions;
-- fresh DB reset if baseline/test fixtures changed;
+- content validation/revision;
+- fixed-graph generation tests;
+- focused Loot/Rest MySQL command/controller tests;
+- Package 2 reward application regression;
+- M4 combat resolution/playback regressions;
+- focused RunScene/API/GameStore tests;
 - complete backend Docker suite;
-- content validation;
-- frontend suite only if a client-facing contract/file changes unexpectedly;
+- complete frontend suite;
+- production frontend build;
+- bundle check;
+- deterministic captures for available Loot, Loot result/Rest available, Rest result/Boss available in Standard plus Compact/Wide where useful;
 - `npm run llm:check`;
 - `npm run docs:lint`;
 - `git diff --check`.
 
-Do not claim GitHub CI or unsupported host-only gates passed.
+If practical extend a real-stack browser verifier through:
+
+`Combat Continue -> Loot -> Rest -> Boss available`
+
+Do not claim unavailable CI or host-only gates passed.
+
+#### Explicitly out of scope
+Do not implement:
+- random unit/die/item Loot;
+- Combat rewards;
+- XP from live Farm nodes;
+- Raw Chaos from Farm Loot;
+- Rest choices/consumable spending;
+- run modifiers;
+- Mudking content or Boss resolution;
+- Exit resolution;
+- Farm successful termination;
+- Mountains grant/gameplay;
+- reward history/replay UI;
+- claim/acknowledgement lifecycle;
+- Milestone 6.
 
 #### Completion requirements
 Before architectural review:
-1. implement only this package;
-2. preserve caller-owned transaction/revision boundaries;
-3. update canonical XP/reward docs;
-4. run/report applicable gates honestly;
-5. leave Package 2 **In Progress**;
-6. do not promote Package 3;
-7. report:
+1. implement only Package 3;
+2. preserve all M4 Combat authority/idempotency/playback behavior;
+3. use authored Loot event + Package 2 reward application rather than hardcoded grant logic;
+4. keep Rest healing as a direct effect;
+5. run/report gates honestly;
+6. leave Package 3 **In Progress**;
+7. do not promote Package 4;
+8. report:
    - exact implementation SHA;
-   - XP resolver semantics;
-   - finalized-result schema/codec;
-   - roll-source design;
-   - resolved-event repository;
-   - application service and transaction assumptions;
-   - exact currency/XP/unlock grant behavior;
-   - replay/stale/failure handling;
-   - exact tests/gates;
-   - deferred decisions for Package 3.
+   - generic node-resolution transaction/handler structure;
+   - persisted authored `event_id` path;
+   - Loot event/reward definition;
+   - Rest max-HP resolution;
+   - mutation response union;
+   - frontend retry/reconciliation/result behavior;
+   - rollback/idempotency evidence;
+   - exact verification results.
