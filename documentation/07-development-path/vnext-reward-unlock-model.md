@@ -1,7 +1,7 @@
 ---
 Title: "vNext Reward and Unlock Model"
 Status: Accepted
-Last Updated: 2026-09-09
+Last Updated: 2026-09-17
 Owner: Product + Engineering
 Depends On:
   - documentation/07-development-path/vnext-game-overhaul.md
@@ -101,6 +101,10 @@ Reward rolls are finalized once for a resolved event. Retries, reconnects, repea
 The finalized result, rather than the probabilities that produced it, is the authoritative record used for application and presentation.
 
 Grant application must be transactional and idempotent so the same finalized event result cannot duplicate currency, inventory, unit, die, XP, Codex, or unlock grants.
+
+The initial finalized-result contract is a strict versioned value. Version 1 records the event and reward-definition IDs, durable source identity, each authored entry in order, its basis-point probability and exact server roll, its outcome, and the exact typed before/after grant facts needed for application checks. Currency entries record balances, participating-unit XP entries record each unit's ordered level/XP transition, and unique unlock entries distinguish `granted` from `already_owned`. The persisted value contains no presentation text, timestamps, or random-source state.
+
+Production rolls use server cryptographic randomness and consume exactly one integer in `1..10000` per authored entry. Application runs inside the initiating command's transaction: it inserts the finalized row, applies only its exact grants, and marks the same row applied. The reward service neither owns that transaction nor increments the player revision. An applied retry returns the persisted result without rerolling or reapplying; a committed finalized-but-unapplied row is treated as an integrity failure.
 
 ## Node Resolution
 

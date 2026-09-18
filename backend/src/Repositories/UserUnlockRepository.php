@@ -11,9 +11,9 @@ final class UserUnlockRepository
   public function __construct(private readonly PDO $pdo) {}
 
   /** @return list<string> */
-  public function listIdsForUser(int $userId): array
+  public function listIdsForUser(int $userId, bool $forUpdate = false): array
   {
-    $stmt = $this->pdo->prepare('SELECT `unlock_id` FROM `user_unlocks` WHERE `user_id` = ? ORDER BY `unlock_id` ASC');
+    $stmt = $this->pdo->prepare('SELECT `unlock_id` FROM `user_unlocks` WHERE `user_id` = ? ORDER BY `unlock_id` ASC' . ($forUpdate ? ' FOR UPDATE' : ''));
     $stmt->execute([$userId]);
     return array_map(static fn(mixed $id): string => (string)$id, $stmt->fetchAll(PDO::FETCH_COLUMN));
   }

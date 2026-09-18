@@ -118,6 +118,21 @@ final class WarbandUnitRepository
     }
   }
 
+  public function applyProgressionTransition(
+    int $userId,
+    int $unitId,
+    int $levelBefore,
+    int $xpBefore,
+    int $levelAfter,
+    int $xpAfter,
+  ): void {
+    $stmt = $this->pdo->prepare('UPDATE `unit_instances`
+      SET `level` = ?, `xp` = ?
+      WHERE `id` = ? AND `user_id` = ? AND `lifecycle_status` = \'active\' AND `level` = ? AND `xp` = ?');
+    $stmt->execute([$levelAfter, $xpAfter, $unitId, $userId, $levelBefore, $xpBefore]);
+    if ($stmt->rowCount() !== 1) throw new \RuntimeException('Unit progression state is stale or unavailable.');
+  }
+
   /**
    * @param list<array{ability_id:string,dice_instance_ids:list<int>}> $abilities
    */

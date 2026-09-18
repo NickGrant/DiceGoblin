@@ -81,6 +81,17 @@ final class PlayerStateRepository
     return $this->revisionForUser($userId);
   }
 
+  public function applyCurrencyTransition(int $userId, string $currencyId, int $before, int $after): void
+  {
+    if (!in_array($currencyId, ['teeth', 'raw_chaos'], true) || $before < 0 || $after < $before) {
+      throw new RuntimeException('Currency transition is invalid.');
+    }
+    $sql = "UPDATE `user_state` SET `{$currencyId}` = ? WHERE `user_id` = ? AND `{$currencyId}` = ?";
+    $stmt = $this->pdo->prepare($sql);
+    $stmt->execute([$after, $userId, $before]);
+    if ($stmt->rowCount() !== 1) throw new RuntimeException('Currency state is stale or unavailable.');
+  }
+
   private function revisionForUser(int $userId): int
   {
     $stmt = $this->pdo->prepare('SELECT `player_revision` FROM `user_state` WHERE `user_id` = ? LIMIT 1');

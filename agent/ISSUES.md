@@ -4,7 +4,7 @@
 
 ### Milestone 5 Package 2 - Finalized reward results + transactional grant application
 
-**Status:** Open
+**Status:** In Progress
 **Priority:** High
 
 #### Problem
