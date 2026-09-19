@@ -213,6 +213,43 @@ describe('RuntimeApiClient', () => {
     expect(abandon[1]?.headers).toEqual({ Accept: 'application/json', 'X-CSRF-Token': 'csrf-token' });
   });
 
+  it('parses a raw current-run response with completed Combat and Boss battles at the API boundary', async () => {
+    const node = (id: string) => ({ id, display_name: id, description: id, icon_key: id });
+    const content = new ClientContentRegistry({ revision: 'a'.repeat(64), content: {
+      gameplay: { run_energy_cost: 10 }, regions: {
+        'region.the_farm': { id: 'region.the_farm', display_name: 'The Farm', art_key: 'farm' },
+      }, kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {},
+      run_node_types: {
+        'run_node_type.combat': node('run_node_type.combat'), 'run_node_type.loot': node('run_node_type.loot'),
+        'run_node_type.rest': node('run_node_type.rest'), 'run_node_type.boss': node('run_node_type.boss'),
+        'run_node_type.exit': node('run_node_type.exit'),
+      },
+    } });
+    const raw = { ok: true, data: { run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active',
+      created_at: '2026-09-19T12:00:00Z', nodes: [
+        { id: '10', node_index: 0, node_type_id: 'run_node_type.combat', status: 'completed', completed_at: '2026-09-19T12:01:00Z', battle_id: '81', position: { column: 0, row: 1 } },
+        { id: '11', node_index: 1, node_type_id: 'run_node_type.loot', status: 'completed', completed_at: '2026-09-19T12:02:00Z', battle_id: null, position: { column: 1, row: 1 } },
+        { id: '12', node_index: 2, node_type_id: 'run_node_type.rest', status: 'completed', completed_at: '2026-09-19T12:03:00Z', battle_id: null, position: { column: 2, row: 1 } },
+        { id: '13', node_index: 3, node_type_id: 'run_node_type.boss', status: 'completed', completed_at: '2026-09-19T12:04:00Z', battle_id: '82', position: { column: 3, row: 1 } },
+        { id: '14', node_index: 4, node_type_id: 'run_node_type.exit', status: 'available', completed_at: null, battle_id: null, position: { column: 4, row: 1 } },
+      ], edges: [
+        { from_node_id: '10', to_node_id: '11' }, { from_node_id: '11', to_node_id: '12' },
+        { from_node_id: '12', to_node_id: '13' }, { from_node_id: '13', to_node_id: '14' },
+      ], units: [{ unit_id: '21', current_hp: 7 }] }, player_revision: 9 } };
+    const fetchRequest = jasmine.createSpy<RuntimeFetch>('fetchRequest').and.resolveTo(
+      new Response(JSON.stringify(raw), { status: 200 }),
+    );
+
+    const result = await new RuntimeApiClient(fetchRequest, '/root').getCurrentRun(content);
+
+    expect(result.run?.nodes[3]).toEqual(jasmine.objectContaining({
+      nodeTypeId: 'run_node_type.boss', status: 'completed', battleId: '82',
+    }));
+    expect(result.run?.nodes[4]).toEqual(jasmine.objectContaining({
+      nodeTypeId: 'run_node_type.exit', status: 'available', battleId: null,
+    }));
+  });
+
   it('rejects a non-canonical abandon run ID before sending a request', async () => {
     const fetchRequest = jasmine.createSpy<RuntimeFetch>('fetchRequest');
     const client = new RuntimeApiClient(fetchRequest, '');

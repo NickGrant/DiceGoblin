@@ -177,9 +177,9 @@ export function parseCurrentRunEnvelope(value: unknown, content: ClientContentRe
     const completedAt = nullableTimestamp(node['completed_at'], 'Node completed_at');
     if ((node['status'] === 'completed') !== (completedAt !== null)) throw new RunContractError('Run node completion state is incoherent.');
     const battleId = node['battle_id'] === null ? null : positiveId(node['battle_id'], 'Node battle_id');
-    const isCombat = nodeTypeId === 'run_node_type.combat';
-    if ((battleId !== null && (node['status'] !== 'completed' || !isCombat))
-      || (isCombat && node['status'] === 'completed' && battleId === null))
+    const isBattleBearing = nodeTypeId === 'run_node_type.combat' || nodeTypeId === 'run_node_type.boss';
+    if ((battleId !== null && (node['status'] !== 'completed' || !isBattleBearing))
+      || (isBattleBearing && node['status'] === 'completed' && battleId === null))
       throw new RunContractError('Run node battle correspondence is incoherent.');
     const position = record(node['position'], 'Run node position');
     exact(position, ['column', 'row'], 'Run node position');
