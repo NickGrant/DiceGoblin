@@ -143,7 +143,8 @@ final class FarmCombatContentValidationTest extends TestCase
       'missing boss encounter' => ['run_generation.the_farm', static function (array &$d): void { unset($d['nodes'][3]['encounter_id']); }, 'Boss node'],
       'wrong boss encounter' => ['run_generation.the_farm', static fn(array &$d) => $d['nodes'][3]['encounter_id'] = 'encounter.the_farm_mud_combat_1', 'Boss node'],
       'loot encounter forbidden' => ['run_generation.the_farm', static fn(array &$d) => $d['nodes'][1]['encounter_id'] = 'encounter.the_farm_mud_combat_1', 'only combat or boss nodes'],
-      'boss completion event forbidden' => ['run_generation.the_farm', static fn(array &$d) => $d['nodes'][3]['event_id'] = 'event.farm_loot_completed', 'must not reference a completion event'],
+      'wrong boss completion event' => ['run_generation.the_farm', static fn(array &$d) => $d['nodes'][3]['event_id'] = 'event.farm_loot_completed', 'must reference its completion event'],
+      'missing boss completion event' => ['run_generation.the_farm', static function(array &$d): void { unset($d['nodes'][3]['event_id']); }, 'must reference its completion event'],
       'server only nonboolean' => ['ability.wrestle', static fn(array &$d) => $d['server_only'] = 'yes', 'server_only'],
       'wrestle missing ratio' => ['ability.wrestle', static function (array &$d): void { unset($d['handler_config']['power_ratio']); }, 'invalid current combat handler configuration'],
       'mud sling invalid reduction' => ['ability.mud_sling', static fn(array &$d) => $d['handler_config']['defense_reduction_flat'] = -1, 'invalid current combat handler configuration'],
@@ -168,7 +169,7 @@ final class FarmCombatContentValidationTest extends TestCase
     $content = $this->content();
     $definitions = [];
     foreach (['gameplay_config', 'region', 'kin', 'unit_type', 'enemy_unit_type', 'encounter', 'ability',
-      'dice_material', 'dice_aspect', 'dice_profile', 'run_node_type', 'run_generation', 'event', 'reward_definition'] as $type) {
+      'dice_material', 'dice_aspect', 'dice_profile', 'run_node_type', 'run_generation', 'unlock', 'event', 'reward_definition'] as $type) {
       foreach ($content->definitionsOfType($type) as $definition) $definitions[] = $definition;
     }
     return $definitions;

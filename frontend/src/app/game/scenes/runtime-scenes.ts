@@ -408,17 +408,19 @@ export class RunScene extends RuntimeScene {
     const run = this.runtimeStartup.store.currentRun.data;
     const node = run?.nodes.find((candidate) => candidate.id === this.selectedNodeId);
     const bootstrap = this.runtimeStartup.store.bootstrap;
-    if (!run || !node || !bootstrap || node.nodeTypeId !== 'run_node_type.combat') return;
+    if (!run || !node || !bootstrap
+      || (node.nodeTypeId !== 'run_node_type.combat' && node.nodeTypeId !== 'run_node_type.boss')) return;
     if (node.status === 'completed' && node.battleId) {
       this.presentBattle(bootstrap.account.id, node.battleId, run.id, node.id); return;
     }
     if (node.status !== 'available' || node.battleId !== null || this.nodeAttempt.state === 'submitting') return;
     this.nodeAttempt.begin(run.id, node.id); this.nodeMessage = 'Resolving combat authoritatively…'; this.render();
+    const expectedType = node.nodeTypeId === 'run_node_type.boss' ? 'boss' : 'combat';
     const outcome = await this.nodeAttempt.submit(this.runtimeStartup.apiClient, bootstrap.session.csrf_token,
-      (result) => result.resolutionType === 'combat' && result.run.id === run.id && result.node.id === node.id);
+      (result) => result.resolutionType === expectedType && result.run.id === run.id && result.node.id === node.id);
     if (outcome.kind === 'success') {
       const result = outcome.result;
-      if (result.resolutionType !== 'combat' || result.run.id !== run.id || result.node.id !== node.id) {
+      if (result.resolutionType !== expectedType || result.run.id !== run.id || result.node.id !== node.id) {
         this.nodeMessage = 'The response did not match this combat. Reload to recover.'; this.render(); return;
       }
       this.runtimeStartup.battlePresentation.retainResolution(result);
@@ -682,12 +684,13 @@ export class RunScene extends RuntimeScene {
         align: 'center', wordWrap: { width: layout.panel.width - 160 },
       }).setOrigin(0.5);
     root.add(detail);
-    if (selected?.nodeTypeId === 'run_node_type.combat') {
+    if (selected && (selected.nodeTypeId === 'run_node_type.combat' || selected.nodeTypeId === 'run_node_type.boss')) {
       const canFight = selected.status === 'available' && selected.battleId === null;
       const canWatch = selected.status === 'completed' && selected.battleId !== null;
       const submitting = this.nodeAttempt.state === 'submitting';
       if (canFight || canWatch) this.addButton(root, layout.combatButton,
-        canWatch ? 'WATCH / REPLAY BATTLE' : submitting ? 'RESOLVING…' : this.nodeAttempt.state === 'retryable' ? 'RETRY FIGHT' : 'ENTER COMBAT',
+        canWatch ? 'WATCH / REPLAY BATTLE' : submitting ? 'RESOLVING…' : this.nodeAttempt.state === 'retryable' ? 'RETRY FIGHT'
+          : selected.nodeTypeId === 'run_node_type.boss' ? 'FIGHT BOSS' : 'ENTER COMBAT',
         () => void this.activateSelectedCombat(), canWatch ? 0x315d68 : 0x8a5424, !submitting);
     }
     if (selected && (selected.nodeTypeId === 'run_node_type.loot' || selected.nodeTypeId === 'run_node_type.rest')) {
@@ -955,7 +958,12 @@ export class BattleScene extends RuntimeScene {
       { color: '#fff1bd', fontFamily: 'Georgia, serif', fontSize: compact ? '29px' : '25px', fontStyle: 'bold', align: 'center' }).setOrigin(0.5); root.add(caption);
     const playerResult = completed ? state.participants.filter((participant) => participant.side === 'player')
       .map((participant) => `${participant.displayName}: ${participant.currentHp}/${participant.maxHp} HP${participant.defeated ? ' · DEFEATED' : ''}`).join('   ·   ') : null;
-    const facts = completed ? (playerResult ?? '') : [state.dice, state.hit, `EVENT ${state.nextSequence}`].filter(Boolean).join('   ·   ');
+    const retained = this.runtimeStartup.battlePresentation.resolution;
+    const rewardResult = completed && retained?.resolutionType === 'boss' && retained.rewards
+      ? `${retained.rewards.unitXp.map((xp) => `Unit ${xp.unitId}: +${xp.amount} XP${xp.levelAfter > xp.levelBefore ? ` (Level ${xp.levelAfter})` : ''}`).join(' · ')} · Mountains ${retained.rewards.mountains.outcome === 'granted' ? 'unlocked' : 'already owned'}`
+      : null;
+    const facts = completed ? [playerResult, rewardResult].filter(Boolean).join('   ·   ')
+      : [state.dice, state.hit, `EVENT ${state.nextSequence}`].filter(Boolean).join('   ·   ');
     const factText = this.add.text(safe.x + safe.width / 2, captionY + (compact ? 42 : 38), facts,
       { color: '#d1c7ac', fontFamily: 'system-ui, sans-serif', fontSize: compact ? '20px' : '16px' }).setOrigin(0.5); root.add(factText);
     if (completed) {

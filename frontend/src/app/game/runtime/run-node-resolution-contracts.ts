@@ -20,6 +20,18 @@ export interface CombatRunNodeResolutionResult extends ResolutionBase {
   readonly run: { readonly id: string; readonly status: 'active' | 'failed'; readonly endedAt: string | null };
 }
 
+export interface BossRunNodeResolutionResult extends ResolutionBase {
+  readonly resolutionType: 'boss';
+  readonly battle: CombatRunNodeResolutionResult['battle'];
+  readonly terminalPlayerHp: Readonly<Record<string, number>>;
+  readonly run: CombatRunNodeResolutionResult['run'];
+  readonly rewards: null | {
+    readonly unitXp: readonly { readonly unitId: string; readonly amount: 16; readonly levelBefore: number;
+      readonly xpBefore: number; readonly levelAfter: number; readonly xpAfter: number }[];
+    readonly mountains: { readonly regionId: 'region.mountains'; readonly outcome: 'granted' | 'already_owned' };
+  };
+}
+
 export interface LootRunNodeResolutionResult extends ResolutionBase {
   readonly resolutionType: 'loot';
   readonly wallet: { readonly teeth: number };
@@ -33,7 +45,8 @@ export interface RestRunNodeResolutionResult extends ResolutionBase {
   readonly run: ResolvedActiveRun;
 }
 
-export type RunNodeResolutionResult = CombatRunNodeResolutionResult | LootRunNodeResolutionResult | RestRunNodeResolutionResult;
+export type BattleRunNodeResolutionResult = CombatRunNodeResolutionResult | BossRunNodeResolutionResult;
+export type RunNodeResolutionResult = BattleRunNodeResolutionResult | LootRunNodeResolutionResult | RestRunNodeResolutionResult;
 
 const positiveIdPattern = /^[1-9][0-9]*$/;
 const utcTimestampPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
@@ -83,13 +96,13 @@ export function parseRunNodeResolutionEnvelope(value: unknown): RunNodeResolutio
   if (envelope['ok'] !== true) throw new RunNodeResolutionContractError('Node resolution response is not successful.');
   const data = object(envelope['data'], 'Node resolution data');
   if (data['resolution_type'] === 'combat') return parseCombat(data);
+  if (data['resolution_type'] === 'boss') return parseBoss(data);
   if (data['resolution_type'] === 'loot') return parseLoot(data);
   if (data['resolution_type'] === 'rest') return parseRest(data);
   throw new RunNodeResolutionContractError('Node resolution type is unsupported.');
 }
 
-function parseCombat(data: Record<string, unknown>): CombatRunNodeResolutionResult {
-  exact(data, ['resolution_type', 'battle', 'node', 'newly_available_node_ids', 'terminal_player_hp', 'run', 'player_revision'], 'Combat resolution data');
+function parseBattleFacts(data: Record<string, unknown>): Omit<CombatRunNodeResolutionResult, 'resolutionType'> {
   const base = common(data); const battle = object(data['battle'], 'Resolved battle');
   exact(battle, ['id', 'outcome', 'engine_version', 'playback_version', 'ending_round', 'ending_tick'], 'Resolved battle');
   if (battle['engine_version'] !== 1 || battle['playback_version'] !== 1) throw new RunNodeResolutionContractError('Resolved battle version is unsupported.');
@@ -101,11 +114,45 @@ function parseCombat(data: Record<string, unknown>): CombatRunNodeResolutionResu
   if (run['status'] !== 'active' && run['status'] !== 'failed') throw new RunNodeResolutionContractError('Resolved run status is invalid.');
   const endedAt = run['ended_at'] === null ? null : timestamp(run['ended_at'], 'Resolved run ended_at');
   if ((run['status'] === 'active') !== (endedAt === null)) throw new RunNodeResolutionContractError('Resolved run lifecycle is incoherent.');
-  return Object.freeze({ resolutionType: 'combat',
-    battle: Object.freeze({ id: id(battle['id'], 'Battle id'), outcome, engineVersion: 1, playbackVersion: 1,
+  return { battle: Object.freeze({ id: id(battle['id'], 'Battle id'), outcome, engineVersion: 1, playbackVersion: 1,
       endingRound: integer(battle['ending_round'], 'Battle ending round'), endingTick: integer(battle['ending_tick'], 'Battle ending tick') }),
     node: base.node, newlyAvailableNodeIds: base.newlyAvailableNodeIds, terminalPlayerHp: Object.freeze(terminalPlayerHp),
-    run: Object.freeze({ id: id(run['id'], 'Resolved run id'), status: run['status'], endedAt }), playerRevision: base.playerRevision });
+    run: Object.freeze({ id: id(run['id'], 'Resolved run id'), status: run['status'], endedAt }), playerRevision: base.playerRevision };
+}
+
+function parseCombat(data: Record<string, unknown>): CombatRunNodeResolutionResult {
+  exact(data, ['resolution_type', 'battle', 'node', 'newly_available_node_ids', 'terminal_player_hp', 'run', 'player_revision'], 'Combat resolution data');
+  return Object.freeze({ resolutionType: 'combat', ...parseBattleFacts(data) });
+}
+
+function parseBoss(data: Record<string, unknown>): BossRunNodeResolutionResult {
+  exact(data, ['resolution_type', 'battle', 'node', 'newly_available_node_ids', 'terminal_player_hp', 'rewards', 'run', 'player_revision'], 'Boss resolution data');
+  const facts = parseBattleFacts(data);
+  if (data['rewards'] === null) {
+    if (facts.battle.outcome === 'victory') throw new RunNodeResolutionContractError('Boss victory rewards are missing.');
+    return Object.freeze({ resolutionType: 'boss', ...facts, rewards: null });
+  }
+  if (facts.battle.outcome !== 'victory') throw new RunNodeResolutionContractError('Failed Boss battle cannot grant rewards.');
+  const rewards = object(data['rewards'], 'Boss rewards'); exact(rewards, ['unit_xp', 'mountains'], 'Boss rewards');
+  if (!Array.isArray(rewards['unit_xp']) || rewards['unit_xp'].length === 0) throw new RunNodeResolutionContractError('Boss XP rewards are invalid.');
+  let priorUnitId: string | null = null;
+  const unitXp = rewards['unit_xp'].map((value) => {
+    const row = object(value, 'Boss XP transition');
+    exact(row, ['unit_id', 'amount', 'level_before', 'xp_before', 'level_after', 'xp_after'], 'Boss XP transition');
+    if (row['amount'] !== 16) throw new RunNodeResolutionContractError('Boss XP amount is invalid.');
+    const unitId = id(row['unit_id'], 'Boss XP unit id');
+    if (priorUnitId !== null && (unitId.length < priorUnitId.length || (unitId.length === priorUnitId.length && unitId <= priorUnitId)))
+      throw new RunNodeResolutionContractError('Boss XP unit IDs must be uniquely ordered.');
+    priorUnitId = unitId;
+    return Object.freeze({ unitId, amount: 16 as const,
+      levelBefore: integer(row['level_before'], 'Boss level before'), xpBefore: integer(row['xp_before'], 'Boss XP before'),
+      levelAfter: integer(row['level_after'], 'Boss level after'), xpAfter: integer(row['xp_after'], 'Boss XP after') });
+  });
+  const mountains = object(rewards['mountains'], 'Mountains reward'); exact(mountains, ['region_id', 'outcome'], 'Mountains reward');
+  if (mountains['region_id'] !== 'region.mountains' || (mountains['outcome'] !== 'granted' && mountains['outcome'] !== 'already_owned'))
+    throw new RunNodeResolutionContractError('Mountains reward is invalid.');
+  return Object.freeze({ resolutionType: 'boss', ...facts, rewards: Object.freeze({ unitXp: Object.freeze(unitXp),
+    mountains: Object.freeze({ regionId: 'region.mountains' as const, outcome: mountains['outcome'] }) }) });
 }
 
 function parseLoot(data: Record<string, unknown>): LootRunNodeResolutionResult {

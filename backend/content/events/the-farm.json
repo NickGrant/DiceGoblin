@@ -4,6 +4,11 @@
       "id": "event.farm_loot_completed",
       "type": "event",
       "reward_definition_id": "reward_definition.farm_loot_completed"
+    },
+    {
+      "id": "event.farm_boss_completed",
+      "type": "event",
+      "reward_definition_id": "reward_definition.farm_boss_completed"
     }
   ]
 }

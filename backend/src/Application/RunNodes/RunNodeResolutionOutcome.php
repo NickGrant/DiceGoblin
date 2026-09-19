@@ -13,7 +13,7 @@ final class RunNodeResolutionOutcome
     public readonly array $facts,
     public readonly bool $runFailed = false,
   ) {
-    if (!in_array($resolutionType, ['combat', 'loot', 'rest'], true)) {
+    if (!in_array($resolutionType, ['combat', 'boss', 'loot', 'rest'], true)) {
       throw new InvalidArgumentException('Run node resolution type is unsupported.');
     }
   }

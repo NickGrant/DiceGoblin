@@ -401,6 +401,17 @@ describe('GameStore Warband cache', () => {
     expect(store.playerRevision).toBe(8);
   });
 
+  it('accepts the retained battle relationship for a completed Boss node', () => {
+    const active = { ...bootstrap(), active_run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active' as const } };
+    const store = new GameStore(); store.hydrateBootstrap(active);
+    const run = { id: '41', regionId: 'region.the_farm', squadId: '31', status: 'active' as const,
+      createdAt: '2026-09-13T12:00:00Z', nodes: [{ id: '13', nodeIndex: 3, nodeTypeId: 'run_node_type.boss',
+        status: 'completed' as const, completedAt: '2026-09-13T12:03:00Z', battleId: '82', position: { column: 3, row: 1 } }],
+      edges: [], units: [{ unitId: '11', currentHp: 4 }] };
+    expect(store.reconcileBattleReturn({ run, playerRevision: 8 },
+      { battleId: '82', runId: '41', runNodeId: '13', minimumPlayerRevision: 8 })).toBe(run);
+  });
+
   it('clears terminal run authority and its Warband lock while preserving Energy and loaded Warband caches', async () => {
     const active = { ...bootstrap(), active_run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active' as const } };
     const store = new GameStore(); store.hydrateBootstrap(active); await store.loadWarbandDomains(api(), content());

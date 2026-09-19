@@ -715,8 +715,8 @@ final class ContentValidator
     if (($nodes[3]['encounter_id'] ?? null) !== 'encounter.the_farm_mud_boss_1') {
       throw new ContentValidationException('region.the_farm Boss node must reference its Mudking encounter.');
     }
-    if (($nodes[3]['event_id'] ?? null) !== null) {
-      throw new ContentValidationException('region.the_farm Boss node must not reference a completion event yet.');
+    if (($nodes[3]['event_id'] ?? null) !== 'event.farm_boss_completed') {
+      throw new ContentValidationException('region.the_farm Boss node must reference its completion event.');
     }
 
     $expectedEdges = [];

@@ -14,6 +14,24 @@
           }
         }
       ]
+    },
+    {
+      "id": "reward_definition.farm_boss_completed",
+      "type": "reward_definition",
+      "entries": [
+        {
+          "key": "xp",
+          "probability_basis_points": 10000,
+          "reward_type": "unit_xp",
+          "config": { "target_scope": "participating_units", "amount": 16 }
+        },
+        {
+          "key": "mountains",
+          "probability_basis_points": 10000,
+          "reward_type": "unlock",
+          "config": { "unlock_id": "unlock.region.mountains" }
+        }
+      ]
     }
   ]
 }

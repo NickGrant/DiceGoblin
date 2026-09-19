@@ -185,12 +185,17 @@ describe('RunScene lifecycle shell', () => {
     expect(api.getCurrentRun).toHaveBeenCalledTimes(3);
   });
 
-  it('keeps Boss and Exit non-actionable through the Package 3 node action', async () => {
-    const { scene, api } = await readyHarness(bossAvailableRun());
+  it('resolves an available Boss once into retained BattleScene presentation while Exit remains non-actionable', async () => {
+    const { scene, startup, api, sceneStart } = await readyHarness(bossAvailableRun());
     spyOn<any>(scene, 'render').and.stub();
-    scene.selectNode('13'); await scene.activateSelectedNonCombat();
+    api.resolveRunNode.and.resolveTo(bossResolutionSuccess());
+    scene.selectNode('13'); await scene.activateSelectedCombat();
+    expect(api.resolveRunNode).toHaveBeenCalledTimes(1);
+    expect(startup.battlePresentation.resolution?.resolutionType).toBe('boss');
+    expect(startup.battlePresentation.marker).toEqual(jasmine.objectContaining({ battleId: '82', runNodeId: '13' }));
+    expect(sceneStart).toHaveBeenCalledWith(BATTLE_SCENE_KEY);
     scene.selectNode('14'); await scene.activateSelectedNonCombat();
-    expect(api.resolveRunNode).not.toHaveBeenCalled();
+    expect(api.resolveRunNode).toHaveBeenCalledTimes(1);
   });
 
   it('opens and cancels explicit abandon confirmation without mutating authority', async () => {
@@ -296,6 +301,15 @@ function resolutionSuccess() {
     endingRound: 3, endingTick: 41 }, node: { id: '10', status: 'completed' as const,
     completedAt: '2026-09-16T12:00:00Z' }, newlyAvailableNodeIds: ['11'], terminalPlayerHp: { '11': 7 },
     run: { id: '41', status: 'active' as const, endedAt: null }, playerRevision: 8 };
+}
+
+function bossResolutionSuccess() {
+  return { resolutionType: 'boss' as const, battle: { id: '82', outcome: 'victory' as const, engineVersion: 1 as const,
+      playbackVersion: 1 as const, endingRound: 4, endingTick: 62 },
+    node: { id: '13', status: 'completed' as const, completedAt: '2026-09-16T12:03:00Z' },
+    newlyAvailableNodeIds: ['14'], terminalPlayerHp: { '11': 9 }, run: { id: '41', status: 'active' as const, endedAt: null },
+    rewards: { unitXp: [{ unitId: '11', amount: 16 as const, levelBefore: 1, xpBefore: 90, levelAfter: 2, xpAfter: 6 }],
+      mountains: { regionId: 'region.mountains' as const, outcome: 'granted' as const } }, playerRevision: 9 };
 }
 
 function lootResolutionSuccess() {

@@ -47,6 +47,19 @@ final class RewardContentValidationTest extends TestCase
     ]], $registry->rewardDefinition('reward_definition.farm_loot_completed')['entries']);
   }
 
+  public function testCanonicalFarmBossRewardIsExactlyParticipatingXpAndMountains(): void
+  {
+    $registry = ContentRegistry::load($this->canonicalRoot());
+    $this->assertSame('reward_definition.farm_boss_completed',
+      $registry->event('event.farm_boss_completed')['reward_definition_id']);
+    $this->assertSame([
+      ['key' => 'xp', 'probability_basis_points' => 10000, 'reward_type' => 'unit_xp',
+        'config' => ['target_scope' => 'participating_units', 'amount' => 16]],
+      ['key' => 'mountains', 'probability_basis_points' => 10000, 'reward_type' => 'unlock',
+        'config' => ['unlock_id' => 'unlock.region.mountains']],
+    ], $registry->rewardDefinition('reward_definition.farm_boss_completed')['entries']);
+  }
+
   public function testEventRewardAndUnlockDefinitionsRemainOutsideClientProjection(): void
   {
     $projection = (new ClientContentProjector())->project($this->registryWithRewardFixture());

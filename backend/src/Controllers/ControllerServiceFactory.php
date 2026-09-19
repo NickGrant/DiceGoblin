@@ -17,6 +17,7 @@ use DiceGoblins\Application\Commands\StartRunCommand;
 use DiceGoblins\Application\Commands\ResolveRunNodeCommand;
 use DiceGoblins\Application\Rewards\RewardApplicationService;
 use DiceGoblins\Application\RunNodes\CombatNodeResolutionHandler;
+use DiceGoblins\Application\RunNodes\BossNodeResolutionHandler;
 use DiceGoblins\Application\RunNodes\LootNodeResolutionHandler;
 use DiceGoblins\Application\RunNodes\RestNodeResolutionHandler;
 use DiceGoblins\Application\Combat\CombatSnapshotAssembler;
@@ -136,6 +137,13 @@ final class ControllerServiceFactory
       $pdo, $content, new RewardFinalizer(new CryptoRewardRollSource()), new ResolvedEventRepository($pdo),
       $core['playerStateRepo'], $unitRepository, $unlockRepository,
     );
+    $combatNodeHandler = new CombatNodeResolutionHandler(
+      $nodeResolutionRepository,
+      new BattlePersistenceRepository($pdo),
+      new CombatSnapshotAssembler($content, $squadRepository, $unitDetailQuery, $diceRepository, new BaseLevelStatResolver()),
+      new CombatEngine(),
+      new CombatSeedDeriver(),
+    );
 
     return array_merge($core, [
       'contentRegistry' => $content,
@@ -191,13 +199,8 @@ final class ControllerServiceFactory
         $nodeResolutionRepository,
         $idempotencyRepository,
         [
-          new CombatNodeResolutionHandler(
-            $nodeResolutionRepository,
-            new BattlePersistenceRepository($pdo),
-            new CombatSnapshotAssembler($content, $squadRepository, $unitDetailQuery, $diceRepository, new BaseLevelStatResolver()),
-            new CombatEngine(),
-            new CombatSeedDeriver(),
-          ),
+          $combatNodeHandler,
+          new BossNodeResolutionHandler($combatNodeHandler, $nodeResolutionRepository, $unitRepository, $unlockRepository, $rewardApplication),
           new LootNodeResolutionHandler($nodeResolutionRepository, $unitRepository, $unlockRepository, $rewardApplication),
           new RestNodeResolutionHandler($nodeResolutionRepository, $unitRepository, $content, new BaseLevelStatResolver()),
         ],

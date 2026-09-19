@@ -26,7 +26,7 @@ final class RunContentValidationTest extends TestCase
     $this->assertSame('encounter.the_farm_mud_combat_1', $generation['nodes'][0]['encounter_id']);
     $this->assertSame('event.farm_loot_completed', $generation['nodes'][1]['event_id']);
     $this->assertSame('encounter.the_farm_mud_boss_1', $generation['nodes'][3]['encounter_id']);
-    $this->assertArrayNotHasKey('event_id', $generation['nodes'][3]);
+    $this->assertSame('event.farm_boss_completed', $generation['nodes'][3]['event_id']);
     $this->assertSame('Combat', $registry->runNodeType('run_node_type.combat')['display_name']);
   }
 
