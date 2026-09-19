@@ -4,35 +4,29 @@ import { spawnSync } from "node:child_process";
 
 const ACTIVE_ISSUES_PATH = path.join("agent", "ISSUES.md");
 const BACKLOG_ISSUES_PATH = path.join("agent", "ISSUES_BACKLOG.md");
-const ARCHIVE_ISSUES_PATH = path.join("agent", "ISSUES_ARCHIVE.md");
 const ACTIVE_MILESTONES_PATH = path.join("agent", "MILESTONES.md");
 const BACKLOG_MILESTONES_PATH = path.join("agent", "MILESTONES_BACKLOG.md");
-const ARCHIVE_MILESTONES_PATH = path.join("agent", "MILESTONES_ARCHIVE.md");
 
 const SOURCE_TO_PATH = {
   issue: {
     active: ACTIVE_ISSUES_PATH,
     backlog: BACKLOG_ISSUES_PATH,
-    archive: ARCHIVE_ISSUES_PATH,
   },
   milestone: {
     active: ACTIVE_MILESTONES_PATH,
     backlog: BACKLOG_MILESTONES_PATH,
-    archive: ARCHIVE_MILESTONES_PATH,
   },
 };
 
 const ISSUE_STATUS_BY_SOURCE = {
   active: new Set(["Open", "In Progress", "Blocked", "Complete"]),
   backlog: new Set(["open", "in progress", "blocked", "complete", "unstarted"]),
-  archive: new Set(["open", "in progress", "blocked", "complete", "unstarted"]),
 };
 
 const ISSUE_PRIORITIES = new Set(["low", "medium", "high"]);
 const MILESTONE_STATUS_BY_SOURCE = {
   active: new Set(["Planned", "Active", "Blocked", "Complete"]),
   backlog: new Set(["planned", "active", "blocked", "complete", "not-started"]),
-  archive: new Set(["planned", "active", "blocked", "complete", "not-started"]),
 };
 
 main();
@@ -103,7 +97,7 @@ Commands:
 
 Common selectors:
   --type issue|milestone
-  --source active|backlog|archive|all
+  --source active|backlog|all
   --id <issue id>
   --ids <comma,separated,issue,ids>
   --title <issue title>
@@ -117,7 +111,7 @@ Examples:
   npm run backlog -- get --type issue --id UPR-003 --json
   npm run backlog -- update --type issue --id UPR-004 --status "In Progress"
   npm run backlog -- complete --type issue --id UPR-004
-  npm run backlog -- move --type issue --id UPR-004 --to archive
+  npm run backlog -- move --type issue --id UPR-004 --to backlog
   npm run backlog -- set-active-milestone --name "Unit Progression Rework"
   npm run backlog -- add --type issue --source active --input new-issue.json`);
 }
@@ -355,10 +349,10 @@ function normalizeType(value) {
 
 function normalizeSource(value) {
   const normalized = cleanScalar(value).toLowerCase();
-  if (["active", "backlog", "archive", "all"].includes(normalized)) {
+  if (["active", "backlog", "all"].includes(normalized)) {
     return normalized;
   }
-  fail(`Unsupported source "${value}". Use active, backlog, archive, or all.`);
+  fail(`Unsupported source "${value}". Use active, backlog, or all.`);
 }
 
 function normalizeWritableSource(value) {
@@ -395,7 +389,7 @@ function findEntries(backlog, type, source, selectors) {
 }
 
 function collectEntries(backlog, type, source) {
-  const sources = source === "all" ? ["active", "backlog", "archive"] : [source];
+  const sources = source === "all" ? ["active", "backlog"] : [source];
   const out = [];
   for (const entrySource of sources) {
     const container = type === "issue" ? backlog.issues[entrySource] : backlog.milestones[entrySource];
@@ -427,12 +421,10 @@ function loadBacklog(root) {
     issues: {
       active: parseActiveIssuesDoc(readRequired(root, ACTIVE_ISSUES_PATH)),
       backlog: parseRecordDoc(readRequired(root, BACKLOG_ISSUES_PATH), "issue", "backlog"),
-      archive: parseRecordDoc(readRequired(root, ARCHIVE_ISSUES_PATH), "issue", "archive"),
     },
     milestones: {
       active: parseActiveMilestonesDoc(readRequired(root, ACTIVE_MILESTONES_PATH)),
       backlog: parseRecordDoc(readRequired(root, BACKLOG_MILESTONES_PATH), "milestone", "backlog"),
-      archive: parseRecordDoc(readRequired(root, ARCHIVE_MILESTONES_PATH), "milestone", "archive"),
     },
   };
 }
@@ -796,10 +788,8 @@ function persistBacklog(backlog, options, root) {
   const writes = [
     [ACTIVE_ISSUES_PATH, renderActiveIssuesDoc(backlog.issues.active)],
     [BACKLOG_ISSUES_PATH, renderRecordDoc(backlog.issues.backlog.header, backlog.issues.backlog.entries, "issue")],
-    [ARCHIVE_ISSUES_PATH, renderRecordDoc(backlog.issues.archive.header, backlog.issues.archive.entries, "issue")],
     [ACTIVE_MILESTONES_PATH, renderActiveMilestonesDoc(backlog.milestones.active)],
     [BACKLOG_MILESTONES_PATH, renderRecordDoc(backlog.milestones.backlog.header, backlog.milestones.backlog.entries, "milestone")],
-    [ARCHIVE_MILESTONES_PATH, renderRecordDoc(backlog.milestones.archive.header, backlog.milestones.archive.entries, "milestone")],
   ];
 
   if (options["dry-run"]) {
