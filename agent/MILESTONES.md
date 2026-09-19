@@ -7,7 +7,7 @@ Read this for sequencing/planning or when closing/promoting an execution package
 **Status:** Active
 
 ### Related Issues
-- Milestone 5 Package 5 - Boss-node authoritative resolution + finalized Farm boss rewards/XP + Mountains unlock
+- Milestone 5 Package 6 - Exit-node resolution + successful run termination + authoritative Camp/RunScene/unlock reconciliation
 
 Milestone 1 - Walking Skeleton is complete and passed manual user UAT.
 
@@ -52,8 +52,8 @@ Mountains gameplay itself remains Milestone 6. Milestone 5 may expose that Mount
 2. ~~Finalized reward results + transactional grant application (currency, unit XP, permanent unlock).~~ Complete and architecturally approved at `0b41c7337ff490315826f9211d5a3f7486ae8be3`.
 3. ~~Farm Loot + Rest authoritative node resolution and RunScene interaction/result flow.~~ Complete and architecturally approved at `03f2e361e9cfc23eeb2ed54f584f5678f0ac6696` after focused semantic-retry correction.
 4. ~~Mudking authored boss content + deterministic boss-combat adaptation.~~ Complete and architecturally approved at `d2a1f9933f2c5e4d7e60a6c740bc0eedf9ed8d02`.
-5. **Boss-node authoritative resolution + finalized Farm boss rewards/XP + Mountains unlock.** Current.
-6. Exit-node resolution + successful run termination + authoritative Camp/RunScene/unlock reconciliation.
+5. ~~Boss-node authoritative resolution + finalized Farm boss rewards/XP + Mountains unlock.~~ Complete and architecturally approved at `a466d3a226ff2ad1b7edee33fda2ca8333466def`.
+6. **Exit-node resolution + successful run termination + authoritative Camp/RunScene/unlock reconciliation.** Current.
 7. Complete-Farm integrated verification/closure.
 8. Focused manual UAT; Milestone 6 is not promoted until it passes.
 
@@ -62,7 +62,7 @@ Mountains gameplay itself remains Milestone 6. Milestone 5 may expose that Mount
 - Package 2 established version-1 immutable finalized reward results, cryptographic production rolls, exact currency/XP/unlock application inside a caller-owned transaction, replay without RNG/regrant, and the canonical `100 × current level` XP curve. It did not attach rewards to a live Farm node.
 - Package 3 established shared authoritative Combat/Loot/Rest node resolution, persisted authored Loot event identity, deterministic 8-Teeth Loot through the reward pipeline, direct full-recovery Rest, strict response discrimination, authoritative current-run reconciliation, and retry identity preservation across ambiguous or semantically mismatched responses. It was approved at `03f2e361e9cfc23eeb2ed54f584f5678f0ac6696`.
 - Package 4 established canonical Mudking/Mud Slam/boss encounter content, persisted the Boss encounter identity, adapted Mud Slam through the shared deterministic vNext combat rules, retained Mudking battle art, and proved the Boss remained unsupported/non-mutating at the live resolution boundary. It was approved at `d2a1f9933f2c5e4d7e60a6c740bc0eedf9ed8d02`.
-- Package 5 extends authoritative node resolution to Boss and attaches `event.farm_boss_completed` transactionally. The accepted vNext Farm boss reward is exactly 16 XP per participating unit plus the permanent Mountains unlock; no prototype random unit/die/item or variable Teeth reward is revived. Boss victory unlocks only its persisted direct child (Exit).
+- Package 5 extended authoritative node resolution to Boss and attached `event.farm_boss_completed` transactionally. The accepted vNext Farm boss reward is exactly 16 XP per participating unit plus the permanent Mountains unlock; no prototype random unit/die/item or variable Teeth reward was revived. Boss victory unlocks only its persisted direct child (Exit). It was approved at `a466d3a226ff2ad1b7edee33fda2ca8333466def` after the frontend current-run Boss contract correction.
 - Package 6 resolves Exit as a normal node, terminates the run successfully, clears active-run locks through authoritative reconciliation, and presents the resulting progression without inventing a claim lifecycle.
 - Package 7 is technical closure. Manual UAT follows.
 - Do not begin Mountains implementation, economy breadth, Academy, Wrong Machine, objectives, or general visual-overhaul work inside Milestone 5.
