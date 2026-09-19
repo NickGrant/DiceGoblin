@@ -385,6 +385,7 @@ export class RunScene extends RuntimeScene {
   }
 
   retry(): void {
+    if (this.exitReconciliationLocked) return;
     const content = this.runtimeStartup.contentRegistry;
     if (content) void this.runtimeStartup.store.retryCurrentRun(this.runtimeStartup.apiClient, content);
   }
@@ -395,16 +396,19 @@ export class RunScene extends RuntimeScene {
   get combatActionState(): RunNodeResolutionAttemptState { return this.nodeAttempt.state; }
   get nodeActionState(): RunNodeResolutionAttemptState { return this.nodeAttempt.state; }
   get resolvedNodeSyncState(): string { return this.nodeSyncState; }
+  get exitReconciliationLocked(): boolean { return this.nodeResult?.resolutionType === 'exit'; }
 
   reflow(): void { this.render(); }
 
   selectNode(nodeId: string): void {
-    if (this.abandonState !== 'idle' || !this.runtimeStartup.store.currentRun.data?.nodes.some((node) => node.id === nodeId)) return;
+    if (this.exitReconciliationLocked || this.abandonState !== 'idle'
+      || !this.runtimeStartup.store.currentRun.data?.nodes.some((node) => node.id === nodeId)) return;
     this.selectedNodeId = nodeId;
     this.render();
   }
 
   async activateSelectedCombat(): Promise<void> {
+    if (this.exitReconciliationLocked) return;
     const run = this.runtimeStartup.store.currentRun.data;
     const node = run?.nodes.find((candidate) => candidate.id === this.selectedNodeId);
     const bootstrap = this.runtimeStartup.store.bootstrap;
@@ -443,6 +447,10 @@ export class RunScene extends RuntimeScene {
   }
 
   async activateSelectedNonCombat(): Promise<void> {
+    if (this.exitReconciliationLocked) {
+      if (this.nodeSyncState === 'sync-error') await this.retryNodeSync();
+      return;
+    }
     const run = this.runtimeStartup.store.currentRun.data;
     const node = run?.nodes.find((candidate) => candidate.id === this.selectedNodeId);
     const bootstrap = this.runtimeStartup.store.bootstrap;
@@ -539,12 +547,12 @@ export class RunScene extends RuntimeScene {
   }
 
   returnToCamp(): void {
-    if (this.abandonState === 'idle') this.scene.start(GAME_SCENE_KEY);
+    if (!this.exitReconciliationLocked && this.abandonState === 'idle') this.scene.start(GAME_SCENE_KEY);
   }
 
   openAbandonConfirmation(): void {
     const run = this.runtimeStartup.store.currentRun.data;
-    if (this.abandonState !== 'idle' || !run) return;
+    if (this.exitReconciliationLocked || this.abandonState !== 'idle' || !run) return;
     this.abandonRunId = run.id;
     this.abandonState = 'confirming';
     this.abandonMessage = 'This run will end. The Energy spent to enter will not be refunded.';
@@ -560,7 +568,8 @@ export class RunScene extends RuntimeScene {
   }
 
   async confirmAbandon(): Promise<void> {
-    if ((this.abandonState !== 'confirming' && this.abandonState !== 'retryable') || !this.abandonRunId) return;
+    if (this.exitReconciliationLocked
+      || (this.abandonState !== 'confirming' && this.abandonState !== 'retryable') || !this.abandonRunId) return;
     const content = this.runtimeStartup.contentRegistry;
     const bootstrap = this.runtimeStartup.store.bootstrap;
     if (!content || !bootstrap) return;
@@ -683,7 +692,7 @@ export class RunScene extends RuntimeScene {
       graphic.lineStyle(this.selectedNodeId === node.id ? 7 : 5,
         this.selectedNodeId === node.id ? 0xffffff : colors.border, 1);
       graphic.strokeCircle(node.centerX, node.centerY, node.radius);
-      if (this.abandonState === 'idle') {
+      if (this.abandonState === 'idle' && !this.exitReconciliationLocked) {
         graphic.setInteractive(new Phaser.Geom.Circle(node.centerX, node.centerY, node.radius), Phaser.Geom.Circle.Contains)
           .on('pointerup', () => this.selectNode(node.id));
         actionCursor(graphic);
@@ -709,7 +718,8 @@ export class RunScene extends RuntimeScene {
         align: 'center', wordWrap: { width: layout.panel.width - 160 },
       }).setOrigin(0.5);
     root.add(detail);
-    if (selected && (selected.nodeTypeId === 'run_node_type.combat' || selected.nodeTypeId === 'run_node_type.boss')) {
+    if (!this.exitReconciliationLocked && selected
+      && (selected.nodeTypeId === 'run_node_type.combat' || selected.nodeTypeId === 'run_node_type.boss')) {
       const canFight = selected.status === 'available' && selected.battleId === null;
       const canWatch = selected.status === 'completed' && selected.battleId !== null;
       const submitting = this.nodeAttempt.state === 'submitting';
@@ -718,8 +728,10 @@ export class RunScene extends RuntimeScene {
           : selected.nodeTypeId === 'run_node_type.boss' ? 'FIGHT BOSS' : 'ENTER COMBAT',
         () => void this.activateSelectedCombat(), canWatch ? 0x315d68 : 0x8a5424, !submitting);
     }
-    if (selected && (selected.nodeTypeId === 'run_node_type.loot' || selected.nodeTypeId === 'run_node_type.rest'
-      || selected.nodeTypeId === 'run_node_type.exit')) {
+    if (selected && (!this.exitReconciliationLocked || (this.nodeSyncState === 'sync-error'
+      && this.nodeSyncIdentity?.nodeId === selected.id))
+      && (selected.nodeTypeId === 'run_node_type.loot' || selected.nodeTypeId === 'run_node_type.rest'
+        || selected.nodeTypeId === 'run_node_type.exit')) {
       const available = selected.status === 'available' && selected.battleId === null;
       const submitting = this.nodeAttempt.state === 'submitting' || this.nodeSyncState === 'syncing';
       const retrySync = this.nodeSyncState === 'sync-error' && this.nodeSyncIdentity?.nodeId === selected.id;
@@ -737,8 +749,10 @@ export class RunScene extends RuntimeScene {
     this.host()?.setAttribute('data-run-node-action', this.nodeAttempt.state);
     this.host()?.setAttribute('data-run-node-sync', this.nodeSyncState);
     this.host()?.setAttribute('data-run-node-result', this.nodeResult?.resolutionType ?? 'none');
-    this.addButton(root, layout.returnButton, 'RETURN TO CAMP', () => this.returnToCamp(), 0x244b3d, this.abandonState === 'idle');
-    this.addButton(root, layout.abandonButton, 'ABANDON RUN', () => this.openAbandonConfirmation(), 0x7a302b, this.abandonState === 'idle');
+    this.host()?.setAttribute('data-run-exit-reconciliation-lock', this.exitReconciliationLocked ? 'true' : 'false');
+    const ordinaryActionsEnabled = this.abandonState === 'idle' && !this.exitReconciliationLocked;
+    this.addButton(root, layout.returnButton, 'RETURN TO CAMP', () => this.returnToCamp(), 0x244b3d, ordinaryActionsEnabled);
+    this.addButton(root, layout.abandonButton, 'ABANDON RUN', () => this.openAbandonConfirmation(), 0x7a302b, ordinaryActionsEnabled);
   }
 
   private renderAbandonConfirmation(root: Phaser.GameObjects.Container, region: Bounds): void {

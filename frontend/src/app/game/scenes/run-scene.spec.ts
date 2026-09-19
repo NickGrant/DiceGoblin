@@ -212,8 +212,36 @@ describe('RunScene lifecycle shell', () => {
     expect(sceneStart).toHaveBeenCalledOnceWith(GAME_SCENE_KEY);
   });
 
+  it('locks every ordinary run interaction while committed Exit bootstrap synchronization is pending', async () => {
+    const { scene, startup, api, sceneStart } = await readyHarness(bossCompletedRun());
+    spyOn<any>(scene, 'render').and.stub(); scene.selectNode('14');
+    api.resolveRunNode.and.resolveTo(exitResolutionSuccess());
+    let finishBootstrap!: (value: unknown) => void;
+    api.getBootstrap.and.returnValue(new Promise((resolve) => { finishBootstrap = resolve; }));
+
+    const resolving = scene.activateSelectedNonCombat();
+    await Promise.resolve(); await Promise.resolve();
+    expect(scene.exitReconciliationLocked).toBeTrue();
+    expect(scene.resolvedNodeSyncState).toBe('syncing');
+
+    scene.returnToCamp(); scene.openAbandonConfirmation(); scene.selectNode('13');
+    expect(scene.selectedMapNodeId).toBe('14');
+    expect(scene.abandonActionState).toBe('idle');
+    (scene as unknown as { selectedNodeId: string }).selectedNodeId = '13';
+    await scene.activateSelectedCombat();
+    (scene as unknown as { selectedNodeId: string }).selectedNodeId = '14';
+    await scene.activateSelectedNonCombat();
+
+    expect(api.resolveRunNode).toHaveBeenCalledTimes(1);
+    expect(api.abandonRun).not.toHaveBeenCalled();
+    expect(startup.battlePresentation.marker).toBeNull();
+    expect(sceneStart).not.toHaveBeenCalled();
+    finishBootstrap({ ok: true, data: terminalBootstrap() }); await resolving;
+    expect(sceneStart).toHaveBeenCalledOnceWith(GAME_SCENE_KEY);
+  });
+
   it('retries only bootstrap synchronization after a committed Exit result', async () => {
-    const { scene, api, sceneStart } = await readyHarness(bossCompletedRun());
+    const { scene, startup, api, sceneStart } = await readyHarness(bossCompletedRun());
     spyOn<any>(scene, 'render').and.stub(); scene.selectNode('14');
     api.resolveRunNode.and.resolveTo(exitResolutionSuccess());
     api.getBootstrap.and.returnValues(Promise.reject(new RuntimeApiError('network')),
@@ -221,6 +249,15 @@ describe('RunScene lifecycle shell', () => {
 
     await scene.activateSelectedNonCombat();
     expect(scene.resolvedNodeSyncState).toBe('sync-error'); expect(sceneStart).not.toHaveBeenCalled();
+    expect(scene.exitReconciliationLocked).toBeTrue();
+    scene.returnToCamp(); scene.openAbandonConfirmation(); scene.selectNode('13');
+    expect(scene.selectedMapNodeId).toBe('14'); expect(scene.abandonActionState).toBe('idle');
+    (scene as unknown as { selectedNodeId: string }).selectedNodeId = '13';
+    await scene.activateSelectedCombat();
+    (scene as unknown as { selectedNodeId: string }).selectedNodeId = '14';
+    expect(api.resolveRunNode).toHaveBeenCalledTimes(1);
+    expect(api.abandonRun).not.toHaveBeenCalled();
+    expect(startup.battlePresentation.marker).toBeNull(); expect(sceneStart).not.toHaveBeenCalled();
     await scene.retryNodeSync();
 
     expect(api.resolveRunNode).toHaveBeenCalledTimes(1);
