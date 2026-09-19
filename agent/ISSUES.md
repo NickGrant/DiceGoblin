@@ -2,241 +2,402 @@
 
 ## Milestone 5 - Complete Farm
 
-### Milestone 5 Package 4 - Mudking authored boss content + deterministic boss-combat adaptation
+### Milestone 5 Package 5 - Boss-node authoritative resolution + finalized Farm boss rewards/XP + Mountains unlock
 
-**Status:** In Progress
+**Status:** Open
 **Priority:** High
 
 #### Problem
-Packages 1-3 established finalized rewards, authoritative Loot/Rest resolution, and the Farm path through an available but intentionally unsupported Boss node.
+Packages 1-4 established the reusable finalized reward pipeline, authoritative Combat/Loot/Rest resolution, canonical Mudking combat content, and a persisted Farm Boss encounter identity.
 
-The persisted Farm graph is now:
+The Farm path is now:
 
 `Combat -> Loot -> Rest -> Boss -> Exit`
 
-The Boss node has no authored encounter yet, and the deterministic vNext combat kernel does not yet support Mudking's distinct `mud_slam` active ability.
+After Rest, Boss becomes available, but the live node-resolution command intentionally still rejects Boss as unsupported.
 
-Package 4 adapts the useful Mudking prototype behavior/art into canonical vNext authored content and the existing infrastructure-free combat kernel. It proves the boss fight can be assembled and simulated deterministically, but it does **not** make the Boss node resolvable. Package 5 owns the authoritative Boss-node transaction, rewards/XP, Mountains unlock, battle persistence through live node resolution, and Exit unlock.
+Package 5 connects the authored Mudking encounter to the existing authoritative bodyless node-resolution transaction, persists/replays the battle exactly like ordinary Combat, applies the successful boss-completion reward event in that same transaction, grants participating-unit XP and permanent Mountains access, unlocks only Exit on victory, and presents the finalized boss battle/reward result through the existing BattleScene lifecycle.
 
-#### Authority and reuse
-Use current vNext source and accepted combat/content docs as authority:
+Exit resolution and successful Farm termination remain Package 6.
+
+#### Authority
+Use current vNext source plus:
 - `documentation/02-systems/combat-resolution.md`;
-- `documentation/02-systems/target-resolution.md`;
-- `documentation/07-development-path/vnext-authored-content-model.md`;
-- `documentation/07-development-path/vnext-prototype-code-disposition.md`.
+- `documentation/02-systems/unit-stat-advancement.md`;
+- `documentation/07-development-path/vnext-reward-unlock-model.md`;
+- `documentation/07-development-path/vnext-progression-state-model.md`;
+- `documentation/07-development-path/vnext-backend-internal-architecture.md`;
+- `documentation/07-development-path/vnext-phaser-client-architecture.md`.
 
-Prototype Mudking definitions are behavioral evidence only. Preserve the accepted behavior below; do not revive SQL-authored catalogs, prototype node orchestration, reward logic, or `DeterministicRunNodeResolver`.
+Prototype behavior is evidence only. The retained Mudking content establishes the boss XP identity of **16 XP**. Do not revive prototype claim flow, random unit/die drops, item grants, SQL-authored reward catalogs, variable Teeth rewards, or `DeterministicRunNodeResolver`.
 
-#### Canonical Mudking content
-Add canonical server-authored definitions for:
+#### Accepted Farm boss completion event
+Add canonical server-only:
 
-##### Enemy
-`enemy_unit_type.mudking`
+`event.farm_boss_completed`
 
-Accepted facts:
-- display name: **Mudking**;
-- role: `frontline`;
-- art key: `enemy_mudking`;
-- stats:
-  - HP = 30;
-  - Attack = 5;
-  - Defense = 4;
-  - Precision = 5;
-  - Resolve = 7;
-- ordered active abilities:
-  1. `ability.basic_attack_melee`
-  2. `ability.wrestle`
-  3. `ability.mud_slam`
-- passive abilities:
-  - `ability.thick_hide`;
-- virtual ability die:
-  - d6;
-  - `dice_profile.cardboard_plain`.
+referencing:
 
-Do not add Speed. The tick scheduler remains defined by authored ability `action_delay`.
+`reward_definition.farm_boss_completed`
 
-##### Mud Slam
-Add server-only `ability.mud_slam`.
+The reward definition has exactly two ordered deterministic entries:
 
-Accepted behavior:
-- active, one die slot;
-- action delay = 8;
-- resolution priority = 18;
-- target rule = `enemy_front_prefer`;
-- damaging melee attack;
-- power ratio = 1.20;
-- on a successful damaging hit, apply `cracked_armor`;
-- cracked armor reduction = 3 Defense;
-- duration = 2 rounds;
-- harmful status uses the existing Precision/Resolve resistance rules;
-- misses do not apply the harmful status.
+1. `xp`
+   - probability = 10000 basis points;
+   - reward type = `unit_xp`;
+   - target scope = `participating_units`;
+   - amount = **16 XP per participating unit**.
+2. `mountains`
+   - probability = 10000 basis points;
+   - reward type = `unlock`;
+   - unlock = `unlock.region.mountains`.
 
-Use the existing combat/status pipeline. Extend the accepted handler/config classification only as needed for this behavior; do not add a boss-only simulation branch.
+No other Farm boss reward is accepted in Package 5.
 
-`ability.thick_hide` already exists and remains the canonical +2 flat Defense passive. Reuse it rather than creating a Mudking-specific equivalent.
+In particular do not grant:
+- Teeth;
+- Raw Chaos;
+- units;
+- dice;
+- items/Pig Ears/Crown Fragments;
+- Codex entries;
+- Shop/Tooth Collector/Wrong Machine unlocks.
 
-##### Encounter
-Add:
+Those systems are not part of this package.
+
+Both entries still flow through Package 2 finalization. Production therefore consumes one cryptographic basis-point roll for each authored entry even though both probabilities are 100%.
+
+#### Persist Boss event identity
+Set the authored Farm Boss node's optional `event_id` to:
+
+`event.farm_boss_completed`
+
+The already-authored/persisted Boss `encounter_id` remains:
 
 `encounter.the_farm_mud_boss_1`
 
-Accepted facts:
-- region = `region.the_farm`;
-- difficulty = 2;
-- one combatant:
-  - key = `mudking`;
-  - enemy type = `enemy_unit_type.mudking`;
-  - position = `{ x: 2, y: 1 }`.
+Fresh run generation/persistence must therefore retain both durable identities on the Boss `run_nodes` row.
 
-Use concise current-vNext display/description text consistent with the existing Farm content. Do not make prose gameplay-authoritative.
+Update the Farm structural content contract accordingly:
+- Combat -> `encounter.the_farm_mud_combat_1`;
+- Loot -> `event.farm_loot_completed`;
+- Rest -> no encounter/event;
+- Boss -> `encounter.the_farm_mud_boss_1` + `event.farm_boss_completed`;
+- Exit -> no event yet.
 
-#### Farm boss-node encounter identity
-Set the authored Farm Boss node's `encounter_id` to:
+Encounter/event IDs remain private and absent from current-run/client content projection.
 
-`encounter.the_farm_mud_boss_1`
+#### Shared endpoint and transaction boundary
+Continue using only:
 
-Update authored-content validation so an encounter reference is legal for the current Combat **or Boss** node types and still rejected for Loot/Rest/Exit.
+`POST /api/v1/runs/:runId/nodes/:nodeId/resolve`
 
-Update the Farm-specific structural contract so:
-- the first Combat node still references `encounter.the_farm_mud_combat_1`;
-- the Boss node references `encounter.the_farm_mud_boss_1`;
-- the Boss node still has no reward/event identity in this package.
+with the existing auth, CSRF, canonical-ID, bodyless-request, and 8-128-character idempotency-key contract.
 
-Fresh run generation must carry that encounter ID into the generated graph and persisted `run_nodes.encounter_id`.
+Register authoritative Boss support inside the existing `ResolveRunNodeCommand` transaction boundary.
 
-The current-run client projection must continue to omit encounter IDs and private enemy/encounter definitions.
+Preserve the shared transaction ordering established by Package 3:
+1. HTTP validation;
+2. begin transaction;
+3. lock `user_state`;
+4. exact idempotency receipt lookup before lifecycle rejection;
+5. lock owned run;
+6. lock exact node;
+7. lifecycle validation;
+8. execute Boss handler;
+9. complete node;
+10. on victory unlock only directly outgoing persisted child nodes;
+11. increment `player_revision` exactly once;
+12. persist exact response receipt;
+13. commit.
 
-Do not add content-version pinning or a migration chain; fresh-baseline rules remain in force.
+A Boss handler/service must not commit the parent transaction.
 
-#### Deterministic vNext combat adaptation
-Extend the existing vNext combat rule classification for `mud_slam`:
-- supported active handler;
-- damaging;
-- melee;
-- `enemy_front_prefer` target rule;
-- exact config validation for power ratio, `cracked_armor`, flat Defense reduction, and duration.
+#### Shared combat execution
+Boss combat uses the exact Package 4 authored encounter and Milestone 4 deterministic combat engine.
 
-Use the existing generic CombatEngine damage, dice, critical/miss, position, harmful-status resistance, status replacement/expiration, and playback paths.
+Do not fork a second combat implementation.
 
-The Mudking encounter must normalize through `ContentRegistry -> CombatSnapshotNormalizer -> CombatInput` with:
-- exact authored stats;
-- ordered active abilities;
-- Thick Hide passive;
-- one deterministic virtual d6 per active ability slot;
-- stable/unique virtual die keys;
-- no PDO/repository access inside the kernel.
+Prefer extracting/reusing a cohesive internal battle-resolution component if necessary so ordinary Combat and Boss share:
+- persisted encounter identity validation;
+- deterministic seed derivation;
+- authoritative snapshot assembly;
+- CombatEngine invocation;
+- immutable battle persistence;
+- terminal player HP persistence;
+- battle response facts.
 
-No new engine/playback schema version is required merely for Mud Slam if the current version-1 event contract can express all resulting facts.
+Alternative structure is acceptable if it avoids duplicating or diverging the combat algorithm/orchestration.
 
-#### Determinism and behavioral proof
-Add focused characterization/regression coverage proving at minimum:
-- same Mudking snapshot + same seed produces deep-equal combat result/playback;
-- the canonical boss snapshot contains exactly the authored Mudking facts above;
-- `mud_slam` is classified as melee and damaging;
-- a successful Mud Slam uses the 1.20 power ratio and applies `cracked_armor` with Defense reduction 3 for 2 rounds;
-- Mud Slam miss/status-resistance behavior follows the existing rules and deterministic RNG order;
-- Thick Hide contributes the existing +2 flat Defense and is not duplicated;
-- boss encounter normalization uses the existing plain cardboard d6 rules;
-- standard Farm combat behavior remains unchanged.
+Ordinary `run_node_type.combat` behavior must remain unchanged.
 
-Do not special-case the Mudking identity in CombatEngine when the behavior can be expressed by authored ability/passive configuration.
+#### Boss victory transaction
+When the deterministic battle outcome is `victory`, inside the same parent node-resolution transaction:
 
-#### Presentation asset
-The existing Mudking art assets under `frontend/public/assets/ui/units/` are retained.
+1. persist the finalized boss battle and terminal run HP;
+2. require valid persisted `event.farm_boss_completed`;
+3. assemble the exact authoritative `RewardContext` from locked state:
+   - wallet balances;
+   - every run-participating unit's current persisted level/XP, including units ending the boss fight at 0 HP;
+   - current owned unlock IDs;
+4. invoke Package 2 reward application using:
+   - persisted event ID;
+   - source type `run_node`;
+   - source ID `run_node:<nodeId>`;
+5. apply exactly 16 XP to every participating unit through the canonical XP resolver;
+6. apply the Mountains unlock, or finalize it as `already_owned` when already owned;
+7. complete Boss;
+8. unlock only its persisted direct child, Exit;
+9. increment player revision once;
+10. finalize the idempotency receipt and commit.
 
-Extend the current BattleScene art-key mapping so `enemy_mudking` resolves to the existing Mudking battle asset. Add focused mapping coverage.
+XP level-ups do **not** heal or proportionally adjust `run_unit_state.current_hp`. Terminal combat HP remains the run HP, even when the XP grant increases max HP.
 
-Do not build a new boss UI, dialogue flow, animation system, or live Boss action in this package.
+The run remains `active`.
 
-#### Boss node remains unsupported
-Package 4 must **not** register a Boss resolution handler with `ResolveRunNodeCommand`.
+#### Boss defeat/stalemate
+For `defeat` or `stalemate`:
+- persist the finalized battle and terminal player HP according to existing Combat semantics;
+- complete Boss;
+- fail/end the run using the existing combat failure behavior;
+- do not resolve `event.farm_boss_completed`;
+- do not grant XP;
+- do not grant Mountains;
+- do not unlock Exit;
+- increment revision once;
+- persist the exact idempotency result.
 
-Even when Rest has completed and Boss is available:
-- RunScene keeps Boss non-actionable;
-- a direct resolve request for the Boss remains the established unsupported-node response;
-- no battle row is created;
-- no HP/node/run/reward/unlock/revision mutation occurs.
+No reward row should exist for a failed boss fight.
 
-This is intentional. Package 5 will connect the authored encounter to authoritative run mutation.
+#### Reward finalization and rollback
+The boss event is an additional exactly-once safety boundary, not a substitute for command idempotency.
 
-#### Content secrecy
-Enemy unit types, server-only enemy abilities, encounters, and generated-node encounter identities remain private.
+A failure in any of these steps must roll back the complete Boss command:
+- battle persistence;
+- terminal HP;
+- reward finalization;
+- XP transitions;
+- Mountains unlock;
+- node completion;
+- Exit availability;
+- run lifecycle;
+- revision;
+- idempotency receipt.
 
-At minimum prove client content/current-run projection does not expose:
-- `enemy_unit_type.mudking`;
-- `ability.mud_slam`;
-- `encounter.the_farm_mud_boss_1`;
-- Mud Slam handler config;
-- persisted Boss `encounter_id`.
+A forced failure after reward application must leave no battle, no applied/finalized boss event, no XP change, no Mountains grant, no node/Exit change, and no revision/receipt change.
 
-The existing player-safe Mudking art asset does not make private combat configuration public.
+#### Idempotency
+Continue operation identity:
+
+`resolve_run_node`
+
+with the current run/node fingerprint.
+
+Same run/node/key replay must occur before ordinary completed-node rejection and return the exact original Boss response without:
+- rerunning CombatEngine;
+- creating another battle;
+- rerolling either reward entry;
+- applying XP twice;
+- leveling twice;
+- granting Mountains twice;
+- unlocking Exit twice;
+- changing HP/timestamps/revision.
+
+A different key for an already-completed Boss returns the established already-resolved conflict.
+
+If Mountains was already owned before the first Boss resolution, the finalized unlock result is `already_owned`; do not reroll, substitute, or invent another reward.
+
+#### Player-safe Boss response
+Extend the discriminated node-resolution contract with:
+
+`resolution_type: "boss"`
+
+The Boss response should contain the existing player-safe combat facts:
+- battle ID/outcome/versions/ending round/tick;
+- terminal player HP;
+- node completion;
+- newly available node IDs;
+- run status/ended-at;
+- player revision;
+
+plus a narrow finalized reward projection.
+
+For victory, expose exact player-visible progression facts without private roll/config data, for example:
+- ordered XP transitions for every participating unit:
+  - unit ID;
+  - XP amount = 16;
+  - level before;
+  - XP before;
+  - level after;
+  - XP after;
+- Mountains region unlock result:
+  - region ID = `region.mountains`;
+  - outcome = `granted` or `already_owned`.
+
+For defeat/stalemate, the Boss response has no granted XP/unlock progression.
+
+Do not expose:
+- event ID;
+- reward-definition ID;
+- `unlock.region.mountains`;
+- probability;
+- roll;
+- source identity;
+- private reward config.
+
+The exact field naming may follow current transport conventions, but TypeScript parsing must remain strict.
+
+#### Phaser Boss action and retry semantics
+An available Boss node becomes actionable in RunScene with a clear fight action.
+
+Use the same bodyless resolve transport and generalized `RunNodeResolutionAttempt`.
+
+For one Boss action:
+- one run/node/idempotency-key identity;
+- duplicate clicks suppressed;
+- ambiguous network/5xx/malformed responses reuse the same key;
+- semantically wrong resolution type/run ID/node ID is ambiguous and also retains the same key;
+- a definitive successful Boss result establishes the retained battle marker and enters BattleScene.
+
+Do not create a second retry system for bosses.
+
+Completed Boss nodes with a persisted battle must support the same replay/reload-safe BattleScene behavior as completed ordinary Combat without issuing another resolve POST.
+
+#### Battle presentation
+Generalize the retained battle-presentation result type from Combat-only to battle-bearing Combat-or-Boss without changing the persisted marker identity unless necessary.
+
+BattleScene continues to fetch authoritative persisted playback; it never simulates the Boss locally.
+
+At battle completion, a Boss victory must present the finalized player-visible reward facts from the retained Boss resolution:
+- 16 XP per participating unit with any resulting level changes;
+- Mountains unlocked, or already owned.
+
+Do not calculate XP/levels client-side.
+
+A reload may lose the transient Boss reward card if only the persisted battle marker survives; that is acceptable. The battle, XP, unlock, and node state remain authoritative.
+
+#### Return-to-run reconciliation
+After BattleScene Continue, keep the existing authoritative reconciliation shape:
+- perform current-run GET;
+- do not resolve Boss again;
+- reconcile persisted node/graph/HP from current-run authority;
+- on Boss victory, RunScene shows Boss completed and Exit available;
+- on Boss defeat/stalemate, current run is terminal/null and return to Camp follows the existing failed-combat behavior.
+
+Generalize `GameStore.reconcileBattleReturn` so the retained battle relationship may be a completed Combat **or Boss** node with the expected persisted battle ID.
+
+Do not fetch bootstrap/Warband merely to synchronize the run.
+
+Package 5 does not need to make the same-runtime Camp/region-selection UI immediately reflect Mountains or reconcile every Warband level/XP cache after the boss. Package 6 owns terminal Exit plus authoritative Camp/RunScene/unlock reconciliation. The Boss result itself must nevertheless show the authoritative progression facts.
 
 #### Tests
-At minimum cover:
-- exact canonical Mudking enemy/ability/encounter facts;
-- malformed Mudking stat/ability/passive/virtual-die references;
-- malformed Mud Slam target/config/status values;
-- boss encounter enemy/position/reference validation;
-- Farm Boss encounter reference required by current Farm structure;
-- generated/persisted Boss retains its encounter ID;
-- private boss content remains absent from client projection/current-run;
-- deterministic boss snapshot and CombatEngine behavior;
-- existing standard Farm combat regression;
-- available Boss remains unsupported/non-mutating through the live endpoint;
-- `enemy_mudking` battle art mapping resolves to the retained asset.
+At minimum prove:
+
+##### Content
+- Boss node references both canonical boss encounter and completion event;
+- event references the exact two-entry reward definition;
+- XP entry is 100% participating-unit 16 XP;
+- Mountains entry is 100% `unlock.region.mountains`;
+- malformed/missing/wrong Boss event references fail validation;
+- generated/persisted Boss retains both encounter and event IDs;
+- event/reward/private identities remain absent from client projection/current-run.
+
+##### Backend victory
+Real MySQL integration:
+- available Boss invokes deterministic combat exactly once;
+- victory persists one immutable battle;
+- exact terminal player HP persists;
+- every participating unit receives exactly 16 XP, including a defeated participant;
+- level rollover uses the canonical `100 × current level` curve;
+- level-up does not heal/change terminal run HP;
+- Mountains is granted exactly once;
+- pre-owned Mountains finalizes `already_owned` without duplicate ownership;
+- Boss completes and only Exit becomes available;
+- run remains active;
+- revision increments once;
+- event is finalized/applied with exact private result facts;
+- response exposes only the accepted safe reward projection.
+
+##### Backend failure/idempotency
+- defeat and stalemate persist battle/failure semantics but produce no boss event/XP/Mountains/Exit;
+- same-key replay returns exact response, CombatEngine remains once, and rewards do not reroll/reapply;
+- different key cannot resolve completed Boss again;
+- malformed/missing persisted encounter/event fails atomically;
+- forced failure after combat and after reward application rolls back the complete transaction.
+
+##### Regression
+- ordinary Combat behavior remains unchanged;
+- Loot and Rest Package 3 behavior remains unchanged;
+- battle playback ownership/reload/replay remains green.
+
+##### Frontend
+- available Boss shows Fight and sends one bodyless resolve POST;
+- duplicate/ambiguous/semantic mismatch retry retains exact attempt identity;
+- valid Boss result enters BattleScene and retains the correct battle marker;
+- BattleScene playback uses existing server playback;
+- Boss victory result displays exact XP/level transitions and Mountains outcome from the response;
+- no client XP calculation or reward rolling;
+- Continue performs current-run GET only and returns to Exit-available RunScene;
+- completed Boss Replay does not resolve again;
+- defeat/stalemate returns through existing terminal combat behavior;
+- ordinary Combat BattleScene flow remains green.
 
 #### Verification
 Run applicable `agent/QUALITY_GATES.md` gates.
 
 At minimum report:
-- content validation/revision generation;
-- focused Farm combat/Mudking content tests;
-- focused vNext CombatEngine/normalizer tests;
-- fixed-graph generation and run-start persistence regression;
-- live resolve endpoint regression proving Boss remains unsupported;
-- Milestone 4 combat regression;
-- Package 3 Loot/Rest regression;
+- content validation/revision;
+- focused boss event/reward content tests;
+- focused Boss MySQL node-resolution/controller tests;
+- Package 2 reward application regression;
+- Milestone 4 Combat/playback regressions;
+- Package 3 Loot/Rest regressions;
+- focused RunScene/BattleScene/API/GameStore/contract tests;
 - complete backend Docker suite;
-- focused frontend battle-art tests;
-- complete frontend suite if frontend source changes;
+- complete frontend suite;
 - production frontend build;
-- bundle check when applicable;
+- bundle check where applicable;
+- deterministic captures for Boss available, Mudking playback/result, and Exit available after victory at Standard plus Compact/Wide where useful;
 - `npm run llm:check`;
 - `npm run docs:lint`;
 - `git diff --check`.
 
-Do not claim unavailable CI or host-only checks passed.
+If practical, extend a real-stack verifier through:
+
+`Combat -> Loot -> Rest -> Boss Fight -> Battle Continue -> Exit available`
+
+Do not claim unavailable CI or host-only gates passed.
 
 #### Explicitly out of scope
 Do not implement:
-- Boss-node resolution;
-- `BossNodeResolutionHandler`;
-- boss completion event/reward definition;
-- boss XP reward amount;
-- Mountains unlock grant;
-- Exit unlock from boss victory;
-- live Boss Fight button/action;
-- battle persistence for the Boss through a run;
-- Farm successful termination;
-- Exit resolution;
+- Exit-node resolution;
+- successful Farm termination;
+- Camp return after successful Exit;
+- general same-runtime Mountains region selection/reconciliation;
+- Mountains run generation/gameplay;
+- boss Teeth/Raw Chaos/item/unit/die/Codex rewards;
+- Pig Ear/Crown Fragment inventory;
 - Tooth Collector/Shop/Wrong Machine progression;
-- Pig Ear/Crown Fragment inventory behavior;
-- Mountains gameplay;
-- general visual overhaul.
+- claim/acknowledgement lifecycle;
+- general visual overhaul;
+- Milestone 6.
 
 #### Completion requirements
 Before architectural review:
-1. implement only Package 4;
-2. preserve the existing deterministic combat architecture and Package 3 run-node behavior;
-3. keep the Boss node unsupported at the live mutation boundary;
-4. run/report gates honestly;
-5. leave Package 4 **In Progress**;
-6. do not promote Package 5;
-7. report:
+1. implement only Package 5;
+2. preserve one parent transaction and all existing Combat/Loot/Rest authority/idempotency behavior;
+3. use the persisted authored Boss event + Package 2 reward pipeline rather than direct XP/unlock writes;
+4. keep Exit unresolved and the run active after Boss victory;
+5. run/report gates honestly;
+6. leave Package 5 **In Progress**;
+7. do not promote Package 6;
+8. report:
    - exact implementation SHA;
-   - authored Mudking, Mud Slam, and boss encounter facts;
-   - persisted Boss encounter-ID path;
-   - CombatRules/kernel adaptation;
-   - deterministic boss-combat evidence;
-   - client secrecy/art mapping evidence;
+   - shared combat/Boss handler structure;
+   - persisted Boss event/encounter identity path;
+   - exact reward definition and safe response projection;
+   - XP/level/HP behavior;
+   - Mountains unique-unlock behavior;
+   - replay/rollback/idempotency evidence;
+   - frontend battle/reward/reconciliation behavior;
    - exact verification results.
