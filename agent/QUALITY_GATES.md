@@ -6,13 +6,14 @@ Use targeted checks during implementation; run the applicable package-level gate
 If a documented command is stale because the package intentionally replaces that infrastructure, update the command/script as part of the package rather than preserving compatibility solely for the gate.
 
 ## Core Commands
+- Compact package verification: `npm run verify:package` (captures full gate logs under ignored `artifacts/verification/` and writes `package-summary.json`; use `-- --continue-on-failure` when a complete failure inventory is more useful than fail-fast feedback)
 - Agent/context integrity: `npm run llm:check`
 - Documentation headers: `npm run docs:lint`
 - Backend suite: `npm run test:backend` (Docker variant: `npm run test:backend:docker`)
 - Frontend suite: `npm run test:frontend`
 - Frontend production build: `npm run build:frontend`
 - Frontend bundle budget when bundle/runtime dependencies change: `npm run bundle:check`
-- Full cross-stack gate when warranted: `npm run verify:full`
+- Full cross-stack gate when warranted: `npm run verify:full` (alias of the compact package verifier)
 - Deterministic Phaser capture: `npm run capture:scene -- ...` using the relevant scene/fixture arguments
 
 Repository scripts in `package.json` are the executable source of truth when a specialized domain gate is needed.
@@ -36,4 +37,4 @@ When replacing prototype behavior, follow `documentation/07-development-path/vne
 - Never report a gate as passed unless it was actually run successfully.
 
 ## Completion Evidence
-Final report should name only the meaningful gates run and their result. Do not paste successful logs or provide a test-by-test narrative unless requested.
+Prefer the compact `artifacts/verification/package-summary.json` result when `verify:package` was run. Final reports should name only meaningful gates and failures; do not paste successful logs or provide a test-by-test narrative unless requested.
