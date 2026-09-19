@@ -37,6 +37,8 @@ Git history is the archive for superseded plans and prototype documentation. His
 - `agent/CONTEXT_ROUTER.md` routes tasks to current vNext sources.
 - `agent/ISSUES.md` and `agent/MILESTONES.md` contain active vNext execution work.
 - `agent/QUALITY_GATES.md` owns current verification commands and quality gates.
+- `npm run verify:package` runs the standard package gates with compact console output and writes ignored machine-readable evidence under `artifacts/verification/`.
+- Repository-local reusable workflows live under `skills/`; `skills/package-verification/SKILL.md` is the standard verification handoff.
 
 ## Repository Layout
 
