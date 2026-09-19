@@ -7,6 +7,13 @@
 **Status:** In Progress
 **Priority:** High
 
+#### Current Architectural Review Findings
+
+1. **Committed Exit is not interaction-locked during Camp synchronization.** After a successful Exit response, `RunScene` retains the terminal result and correctly retries bootstrap with GET only, but while that bootstrap request is in flight or in `sync-error`, ordinary run interactions remain available. The player can still use Return to Camp, open Abandon Run, select another node, or replay a completed battle. That can navigate away with stale `bootstrap.active_run` or attempt mutations against an already-completed run. Once a definitive Exit result is accepted, enter a terminal-reconciliation lock: the only in-scene recovery action is retrying Exit bootstrap synchronization. Do not permit Camp navigation, abandon, node selection, battle replay, or another node-resolution attempt until authoritative bootstrap reconciliation succeeds (a full reload remains a valid recovery path). Add focused tests proving these actions are suppressed both while Exit bootstrap is pending and after a sync failure, and that retry performs bootstrap GET only.
+
+2. **MySQL Exit transaction tests are not covered by current CI evidence.** The green `verify:package` run at `e11b52a15e286077518252ade13fa1c6d7137c0e` reports 761 backend tests but 418 skipped because CI does not provide `TEST_DB_DSN`; the new `FarmLootRestNodeResolutionControllerTest` integration cases therefore are not independently exercised there. Before review, run the focused Exit MySQL integration tests and the applicable Docker backend gate (normally `npm run test:backend:docker`, with the test DB provision/reset required by the repo) and report the actual results. Do not treat the non-DB CI backend pass as proof of the Exit transaction/rollback/idempotency behavior.
+
+
 #### Problem
 
 Complete the successful Farm path after Package 5:
