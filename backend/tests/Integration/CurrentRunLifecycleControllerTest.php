@@ -97,20 +97,40 @@ final class CurrentRunLifecycleControllerTest extends IntegrationTestCase
     $this->assertSame($nodeIds, array_column($mutable['body']['data']['run']['nodes'], 'id'));
   }
 
-  public function testCurrentRejectsImpossibleBattleNodeCorrespondence(): void
+  /** @dataProvider invalidBattleCorrespondenceProvider */
+  public function testCurrentRejectsImpossibleBattleNodeCorrespondence(
+    int $nodeIndex, string $status, bool $withBattle,
+  ): void
   {
-    [$userId, $fixture] = $this->fixtureAccount('current-battle-corrupt');
+    [$userId, $fixture] = $this->fixtureAccount('current-battle-corrupt-' . $nodeIndex . '-' . $status . '-' . (int)$withBattle);
     $runId = $this->start($userId);
-    $node = $this->row('SELECT `id` FROM `run_nodes` WHERE `run_id` = ? AND `node_index` = 0', [$runId]);
-    (new BattlePersistenceRepository($this->pdo))->insertFinalized(
-      $runId, (int)$node['id'], VnextBattleFixture::battle((int)$fixture['unit_ids']['bruiser']),
-    );
+    $node = $this->row('SELECT `id` FROM `run_nodes` WHERE `run_id` = ? AND `node_index` = ?', [$runId, $nodeIndex]);
+    $this->pdo?->prepare('UPDATE `run_nodes` SET `status` = ?, `completed_at` = ? WHERE `id` = ?')
+      ->execute([$status, $status === 'completed' ? '2026-09-19 12:00:00' : null, (int)$node['id']]);
+    if ($withBattle) {
+      (new BattlePersistenceRepository($this->pdo))->insertFinalized(
+        $runId, (int)$node['id'], VnextBattleFixture::battle((int)$fixture['unit_ids']['bruiser']),
+      );
+    }
 
     $response = $this->current($userId);
 
     $this->assertSame([500, 'run_data_integrity_error'], [
       $response['status'], $response['body']['error']['code'] ?? null,
     ]);
+  }
+
+  public function invalidBattleCorrespondenceProvider(): array
+  {
+    return [
+      'completed Combat without battle' => [0, 'completed', false],
+      'non-completed Combat with battle' => [0, 'available', true],
+      'battle on Loot' => [1, 'completed', true],
+      'battle on Rest' => [2, 'completed', true],
+      'completed Boss without battle' => [3, 'completed', false],
+      'non-completed Boss with battle' => [3, 'available', true],
+      'battle on Exit' => [4, 'completed', true],
+    ];
   }
 
   public function testCurrentAndBootstrapFailSafelyForObservableCorruption(): void

@@ -65,6 +65,25 @@ final class BossNodeResolutionControllerTest extends IntegrationTestCase
       $this->assertStringNotContainsString($private, json_encode($data, JSON_THROW_ON_ERROR));
     }
 
+    $_SESSION['user_id'] = $userId;
+    $current = $this->invoke(fn() => (new RunController())->current());
+    $this->assertSame(200, $current['status'], json_encode($current['body']));
+    $currentData = $current['body']['data'];
+    $currentNodes = array_column($currentData['run']['nodes'], null, 'id');
+    $this->assertSame(['active', 'completed', (string)$data['battle']['id'], 'available'], [
+      $currentData['run']['status'], $currentNodes[(string)$bossId]['status'],
+      $currentNodes[(string)$bossId]['battle_id'], $currentNodes[(string)$exitId]['status'],
+    ]);
+    $persistedHp = $this->rows('SELECT `unit_id`, `current_hp` FROM `run_unit_state` WHERE `run_id` = ? ORDER BY `unit_id`', [$runId]);
+    $this->assertSame(array_map(static fn(array $row): array => [
+      'unit_id' => (string)$row['unit_id'], 'current_hp' => (int)$row['current_hp'],
+    ], $persistedHp), $currentData['run']['units']);
+    $encodedCurrent = json_encode($currentData, JSON_THROW_ON_ERROR);
+    foreach (['encounter.the_farm_mud_boss_1', 'event.farm_boss_completed', 'enemy_unit_type.mudking',
+      'reward_definition.', 'unlock.region.mountains', 'probability', 'roll', 'run_node:'] as $private) {
+      $this->assertStringNotContainsString($private, $encodedCurrent);
+    }
+
     $snapshot = $this->rows('SELECT ui.`id`, ui.`level`, ui.`xp`, rus.`current_hp` FROM `unit_instances` ui
       JOIN `run_unit_state` rus ON rus.`unit_id` = ui.`id` AND rus.`run_id` = ? WHERE ui.`user_id` = ? ORDER BY ui.`id`', [$runId, $userId]);
     $replay = $this->resolve($userId, $runId, $bossId, 'boss-resolve-key');

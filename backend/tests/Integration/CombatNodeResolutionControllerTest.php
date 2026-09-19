@@ -184,7 +184,7 @@ final class CombatNodeResolutionControllerTest extends IntegrationTestCase
     }
   }
 
-  public function testOwnershipAvailabilityAndNodeTypeRejectionsAreNonMutating(): void
+  public function testOwnershipAndAvailabilityRejectionsAreNonMutating(): void
   {
     [$owner] = $this->fixtureAccount('combat-owner');
     [$other] = $this->fixtureAccount('combat-other');
@@ -194,16 +194,9 @@ final class CombatNodeResolutionControllerTest extends IntegrationTestCase
     $foreign = $this->httpResolve($other, $runId, $nodes[0], 'foreign-resolve-key');
     $missing = $this->httpResolve($owner, 999999999, 999999999, 'missing-resolve-key');
     $locked = $this->httpResolve($owner, $runId, $nodes[1], 'locked-resolve-key');
-    $this->assertSame('encounter.the_farm_mud_boss_1', (string)$this->scalar(
-      'SELECT `encounter_id` FROM `run_nodes` WHERE `id` = ?', [$nodes[3]]));
-    $this->pdo?->prepare("UPDATE `run_nodes` SET `status` = 'available' WHERE `id` = ?")->execute([$nodes[3]]);
-    $unsupported = $this->httpResolve($owner, $runId, $nodes[3], 'unsupported-resolve-key');
-
     $this->assertSame([404, 'run_node_not_found'], [$foreign['status'], $foreign['body']['error']['code'] ?? null]);
     $this->assertSame([404, 'run_node_not_found'], [$missing['status'], $missing['body']['error']['code'] ?? null]);
     $this->assertSame([409, 'run_node_unavailable'], [$locked['status'], $locked['body']['error']['code'] ?? null]);
-    $this->assertSame([422, 'run_node_unsupported'], [$unsupported['status'], $unsupported['body']['error']['code'] ?? null]);
-    $this->pdo?->prepare("UPDATE `run_nodes` SET `status` = 'locked' WHERE `id` = ?")->execute([$nodes[3]]);
     $this->assertSame($before, $this->stateSnapshot($owner, $runId));
   }
 

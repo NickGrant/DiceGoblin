@@ -92,9 +92,9 @@ final class CurrentRunQuery
         throw new CurrentRunIntegrityException('Active run node position is invalid.');
       }
       $battleId = $row['battle_id'] === null ? null : (int)$row['battle_id'];
-      $isCombat = (string)$nodeType['id'] === 'run_node_type.combat';
-      if (($battleId !== null && ($battleId <= 0 || $status !== 'completed' || !$isCombat))
-        || ($isCombat && $status === 'completed' && $battleId === null)) {
+      $isBattleBearing = in_array((string)$nodeType['id'], ['run_node_type.combat', 'run_node_type.boss'], true);
+      if (($battleId !== null && ($battleId <= 0 || $status !== 'completed' || !$isBattleBearing))
+        || ($isBattleBearing && $status === 'completed' && $battleId === null)) {
         throw new CurrentRunIntegrityException('Active run battle correspondence is invalid.');
       }
       $ids[$id] = true;

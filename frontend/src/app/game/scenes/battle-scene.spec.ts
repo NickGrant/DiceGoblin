@@ -98,6 +98,34 @@ describe('BattleScene retained playback lifecycle', () => {
     expect(startup.battlePresentation.marker).toBeNull(); expect(sceneStart).toHaveBeenCalledOnceWith('RunScene');
   });
 
+  it('returns from a persisted Boss battle through current-run authority without another mutation or bootstrap read', async () => {
+    const { scene, startup, api, sceneStart } = await harness(true);
+    startup.battlePresentation.establish('1', '81', '41', '13');
+    const bossPlayback = playback();
+    api.getBattlePlayback.and.resolveTo({ ...bossPlayback,
+      battle: { ...bossPlayback.battle, runNodeId: '13' } });
+    api.getCurrentRun.and.resolveTo({ run: bossVictoryRun(), playerRevision: 9 });
+
+    await completePlayback(scene);
+    await scene.continueAfterBattle();
+
+    expect(startup.store.currentRun.data?.nodes[3]).toEqual(jasmine.objectContaining({
+      nodeTypeId: 'run_node_type.boss', status: 'completed', battleId: '81',
+    }));
+    expect(startup.store.currentRun.data?.nodes[4]).toEqual(jasmine.objectContaining({
+      nodeTypeId: 'run_node_type.exit', status: 'available', battleId: null,
+    }));
+    expect(startup.store.currentRun.data?.units).toEqual([{ unitId: '11', currentHp: 7 }]);
+    expect(startup.battlePresentation.marker).toBeNull();
+    expect(sceneStart).toHaveBeenCalledOnceWith('RunScene');
+    expect(api.getCurrentRun).toHaveBeenCalledTimes(1);
+    expect(api.resolveRunNode).not.toHaveBeenCalled();
+    expect(api.getBootstrap).not.toHaveBeenCalled();
+    expect(api.getUnits).not.toHaveBeenCalled();
+    expect(api.getDice).not.toHaveBeenCalled();
+    expect(api.getSquads).not.toHaveBeenCalled();
+  });
+
   it('allows Continue again when the same BattleScene instance is reused for Replay', async () => {
     const { scene, startup, api, sceneStart } = await harness(true);
     api.getCurrentRun.and.resolveTo({ run: victoryRun(), playerRevision: 8 });
@@ -248,6 +276,18 @@ function victoryRun(): CurrentRun {
       { fromNodeId: '10', toNodeId: '11' }, { fromNodeId: '11', toNodeId: '12' },
       { fromNodeId: '12', toNodeId: '13' }, { fromNodeId: '13', toNodeId: '14' },
     ], units: [{ unitId: '11', currentHp: 7 }] };
+}
+
+function bossVictoryRun(): CurrentRun {
+  const run = victoryRun();
+  return { ...run, nodes: run.nodes.map((node, index) => {
+    if (index === 0) return { ...node, battleId: '80' };
+    if (index === 1 || index === 2) return { ...node, status: 'completed' as const,
+      completedAt: '2026-09-16T12:00:00Z', battleId: null };
+    if (index === 3) return { ...node, status: 'completed' as const,
+      completedAt: '2026-09-16T12:00:00Z', battleId: '81' };
+    return { ...node, status: 'available' as const, completedAt: null, battleId: null };
+  }) };
 }
 
 function content(): ClientContentRegistry {
