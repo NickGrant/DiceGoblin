@@ -5,6 +5,7 @@ namespace DiceGoblins\Application\Commands;
 
 use DateTimeImmutable;
 use DateTimeZone;
+use Closure;
 use DiceGoblins\Application\RunNodes\RunNodeResolutionHandler;
 use DiceGoblins\Infrastructure\Clock;
 use DiceGoblins\Repositories\IdempotencyRequestRepository;
@@ -31,6 +32,7 @@ final class ResolveRunNodeCommand
     private readonly IdempotencyRequestRepository $idempotency,
     array $handlers,
     private readonly Clock $clock,
+    private readonly ?Closure $beforeCommit = null,
   ) {
     foreach ($handlers as $handler) {
       $type = $handler->nodeTypeId();
@@ -100,6 +102,10 @@ final class ResolveRunNodeCommand
         $this->nodes->failRun($userId, $runId, $completedAt);
         $runStatus = 'failed';
         $endedAt = $this->timestamp($completedAt);
+      } elseif ($outcome->runCompleted) {
+        $this->nodes->completeRun($userId, $runId, $completedAt);
+        $runStatus = 'completed';
+        $endedAt = $this->timestamp($completedAt);
       } else {
         $available = $this->nodes->unlockDirectOutgoingNodes($runId, $nodeId);
       }
@@ -115,6 +121,7 @@ final class ResolveRunNodeCommand
       $this->idempotency->insertFinalized($userId, $key, self::OPERATION, $hash, $response);
       $finalized = $this->idempotency->getForUser($userId, $key);
       if ($finalized === null) throw new RuntimeException('Finalized node-resolution receipt is unavailable.');
+      if ($this->beforeCommit !== null) ($this->beforeCommit)();
       $this->pdo->commit();
       return $finalized['result'];
     } catch (Throwable $e) {

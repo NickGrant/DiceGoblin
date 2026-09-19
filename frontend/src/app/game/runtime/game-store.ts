@@ -368,6 +368,28 @@ export class GameStore {
     this.setCurrentRun({ status: 'stale', data: current, error: null });
   }
 
+  reconcileExitBootstrap(bootstrap: GameBootstrapData, result: ExitRunNodeResolutionResult): void {
+    const prior = this.cachedBootstrap;
+    if (!prior || !prior.active_run || prior.active_run.id !== result.run.id
+      || bootstrap.account.id !== prior.account.id || bootstrap.content_revision !== prior.content_revision
+      || bootstrap.player.player_revision < result.playerRevision
+      || bootstrap.player.player_revision < prior.player.player_revision
+      || bootstrap.active_run !== null
+      || !prior.active_squad || !bootstrap.active_squad || bootstrap.active_squad.id !== prior.active_squad.id) {
+      throw new RunContractError('Exit bootstrap disagrees with retained authoritative state.');
+    }
+    this.cacheGeneration += 1;
+    this.cachedBootstrap = bootstrap;
+    const units = this.warbandCache.units;
+    this.warbandCache = Object.freeze({ ...this.warbandCache,
+      units: Object.freeze({ status: units.data ? 'stale' : 'not-loaded', data: units.data, error: null }) });
+    for (const [unitId, detail] of this.unitDetailCache) {
+      this.unitDetailCache.set(unitId, Object.freeze({ status: detail.data ? 'stale' : 'not-loaded', data: detail.data, error: null }));
+    }
+    this.setCurrentRun({ status: 'fresh', data: null, error: null });
+    this.emit();
+  }
+
   reconcileRunStart(result: RunStartResult): void {
     const bootstrap = this.cachedBootstrap;
     if (!bootstrap || result.playerRevision < bootstrap.player.player_revision)
@@ -884,7 +906,7 @@ import {
 } from './unit-detail-contracts';
 import { CurrentRun, CurrentRunResult, RunAbandonResult, RunContractError, RunStartResult } from './run-contracts';
 import { activeRunLock, ActiveRunLock } from './active-run-lock';
-import { LootRunNodeResolutionResult, RestRunNodeResolutionResult } from './run-node-resolution-contracts';
+import { ExitRunNodeResolutionResult, LootRunNodeResolutionResult, RestRunNodeResolutionResult } from './run-node-resolution-contracts';
 
 function unitDetailErrorKind(error: unknown): WarbandDomainErrorKind {
   if (error instanceof RuntimeApiError) return error.kind;

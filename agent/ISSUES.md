@@ -7,7 +7,7 @@
 **Status:** In Progress
 **Priority:** High
 
-#### Goal
+#### Problem
 
 Complete the successful Farm path after Package 5:
 

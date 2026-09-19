@@ -45,8 +45,15 @@ export interface RestRunNodeResolutionResult extends ResolutionBase {
   readonly run: ResolvedActiveRun;
 }
 
+export interface ExitRunNodeResolutionResult extends ResolutionBase {
+  readonly resolutionType: 'exit';
+  readonly newlyAvailableNodeIds: readonly [];
+  readonly run: { readonly id: string; readonly status: 'completed'; readonly endedAt: string };
+}
+
 export type BattleRunNodeResolutionResult = CombatRunNodeResolutionResult | BossRunNodeResolutionResult;
-export type RunNodeResolutionResult = BattleRunNodeResolutionResult | LootRunNodeResolutionResult | RestRunNodeResolutionResult;
+export type RunNodeResolutionResult = BattleRunNodeResolutionResult | LootRunNodeResolutionResult | RestRunNodeResolutionResult
+  | ExitRunNodeResolutionResult;
 
 const positiveIdPattern = /^[1-9][0-9]*$/;
 const utcTimestampPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
@@ -99,6 +106,7 @@ export function parseRunNodeResolutionEnvelope(value: unknown): RunNodeResolutio
   if (data['resolution_type'] === 'boss') return parseBoss(data);
   if (data['resolution_type'] === 'loot') return parseLoot(data);
   if (data['resolution_type'] === 'rest') return parseRest(data);
+  if (data['resolution_type'] === 'exit') return parseExit(data);
   throw new RunNodeResolutionContractError('Node resolution type is unsupported.');
 }
 
@@ -189,4 +197,15 @@ function parseRest(data: Record<string, unknown>): RestRunNodeResolutionResult {
   });
   return Object.freeze({ resolutionType: 'rest', node: base.node, newlyAvailableNodeIds: base.newlyAvailableNodeIds,
     healing: Object.freeze(healing), run: activeRun(base.runValue), playerRevision: base.playerRevision });
+}
+
+function parseExit(data: Record<string, unknown>): ExitRunNodeResolutionResult {
+  exact(data, ['resolution_type', 'node', 'newly_available_node_ids', 'run', 'player_revision'], 'Exit resolution data');
+  const base = common(data);
+  if (base.newlyAvailableNodeIds.length !== 0) throw new RunNodeResolutionContractError('Exit cannot unlock another run node.');
+  const run = base.runValue; exact(run, ['id', 'status', 'ended_at'], 'Resolved run');
+  if (run['status'] !== 'completed') throw new RunNodeResolutionContractError('Exit must complete the run.');
+  return Object.freeze({ resolutionType: 'exit', node: base.node, newlyAvailableNodeIds: Object.freeze([] as const),
+    run: Object.freeze({ id: id(run['id'], 'Resolved run id'), status: 'completed',
+      endedAt: timestamp(run['ended_at'], 'Resolved run ended_at') }), playerRevision: base.playerRevision });
 }

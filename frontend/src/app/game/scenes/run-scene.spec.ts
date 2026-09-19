@@ -185,7 +185,7 @@ describe('RunScene lifecycle shell', () => {
     expect(api.getCurrentRun).toHaveBeenCalledTimes(3);
   });
 
-  it('resolves an available Boss once into retained BattleScene presentation while Exit remains non-actionable', async () => {
+  it('resolves an available Boss once into retained BattleScene presentation', async () => {
     const { scene, startup, api, sceneStart } = await readyHarness(bossAvailableRun());
     spyOn<any>(scene, 'render').and.stub();
     api.resolveRunNode.and.resolveTo(bossResolutionSuccess());
@@ -194,8 +194,60 @@ describe('RunScene lifecycle shell', () => {
     expect(startup.battlePresentation.resolution?.resolutionType).toBe('boss');
     expect(startup.battlePresentation.marker).toEqual(jasmine.objectContaining({ battleId: '82', runNodeId: '13' }));
     expect(sceneStart).toHaveBeenCalledWith(BATTLE_SCENE_KEY);
-    scene.selectNode('14'); await scene.activateSelectedNonCombat();
+  });
+
+  it('resolves Exit once, reconciles authoritative bootstrap progression, and enters Camp', async () => {
+    const { scene, startup, api, sceneStart } = await readyHarness(bossCompletedRun());
+    spyOn<any>(scene, 'render').and.stub(); scene.selectNode('14');
+    api.resolveRunNode.and.resolveTo(exitResolutionSuccess());
+    api.getBootstrap.and.resolveTo({ ok: true, data: terminalBootstrap() });
+
+    await scene.activateSelectedNonCombat();
+
+    expect(api.resolveRunNode).toHaveBeenCalledOnceWith('41', '14', 'csrf', 'run-node:fixed');
+    expect(api.getBootstrap).toHaveBeenCalledTimes(1);
+    expect(startup.store.bootstrap?.active_run).toBeNull();
+    expect(startup.store.bootstrap?.active_squad?.units[0]).toEqual(jasmine.objectContaining({ level: 2, xp: 6 }));
+    expect(startup.store.bootstrap?.progression.unlock_ids).toEqual(['unlock.region.mountains']);
+    expect(sceneStart).toHaveBeenCalledOnceWith(GAME_SCENE_KEY);
+  });
+
+  it('retries only bootstrap synchronization after a committed Exit result', async () => {
+    const { scene, api, sceneStart } = await readyHarness(bossCompletedRun());
+    spyOn<any>(scene, 'render').and.stub(); scene.selectNode('14');
+    api.resolveRunNode.and.resolveTo(exitResolutionSuccess());
+    api.getBootstrap.and.returnValues(Promise.reject(new RuntimeApiError('network')),
+      Promise.resolve({ ok: true, data: terminalBootstrap() }));
+
+    await scene.activateSelectedNonCombat();
+    expect(scene.resolvedNodeSyncState).toBe('sync-error'); expect(sceneStart).not.toHaveBeenCalled();
+    await scene.retryNodeSync();
+
     expect(api.resolveRunNode).toHaveBeenCalledTimes(1);
+    expect(api.getBootstrap).toHaveBeenCalledTimes(2);
+    expect(sceneStart).toHaveBeenCalledOnceWith(GAME_SCENE_KEY);
+  });
+
+  it('retries Exit discriminator and identity mismatches with one attempt key and suppresses duplicates', async () => {
+    const createKey = jasmine.createSpy('createKey').and.returnValues('exit:first', 'exit:second');
+    const { scene, api, sceneStart } = await readyHarness(bossCompletedRun(), createKey);
+    spyOn<any>(scene, 'render').and.stub(); scene.selectNode('14');
+    const exit = exitResolutionSuccess();
+    api.resolveRunNode.and.returnValues(Promise.resolve({ ...exit, run: { ...exit.run, id: '42' } }),
+      Promise.resolve({ ...exit, node: { ...exit.node, id: '99' } }), Promise.resolve(restResolutionSuccess()),
+      Promise.resolve(exit));
+    api.getBootstrap.and.resolveTo({ ok: true, data: terminalBootstrap() });
+
+    for (let index = 0; index < 3; index++) await scene.activateSelectedNonCombat();
+    const success = scene.activateSelectedNonCombat(); const duplicate = scene.activateSelectedNonCombat();
+    await Promise.all([success, duplicate]);
+
+    expect(createKey).toHaveBeenCalledTimes(1);
+    expect(api.resolveRunNode.calls.allArgs().map((args) => args[3])).toEqual([
+      'exit:first', 'exit:first', 'exit:first', 'exit:first',
+    ]);
+    expect(api.getBootstrap).toHaveBeenCalledTimes(1);
+    expect(sceneStart).toHaveBeenCalledOnceWith(GAME_SCENE_KEY);
   });
 
   it('retries a Boss semantic mismatch with the original key and suppresses duplicate Fight clicks', async () => {
@@ -314,7 +366,7 @@ function abandonSuccess(): abandonResult {
 }
 
 async function readyHarness(run: CurrentRun = currentRun(), createKey: () => string = () => 'run-node:fixed') {
-  const api = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getCurrentRun', 'abandonRun', 'resolveRunNode']);
+  const api = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getBootstrap', 'getCurrentRun', 'abandonRun', 'resolveRunNode']);
   const startup = new RuntimeStartup(api, {} as ClientContentLoader);
   const registry = content();
   startup.store.hydrateBootstrap(activeBootstrap());
@@ -356,6 +408,13 @@ function restResolutionSuccess() {
   return { resolutionType: 'rest' as const, healing: [{ unitId: '11', hpBefore: 0, hpAfter: 26, maxHp: 26 }],
     node: { id: '12', status: 'completed' as const, completedAt: '2026-09-16T12:02:00Z' },
     newlyAvailableNodeIds: ['13'], run: { id: '41', status: 'active' as const, endedAt: null }, playerRevision: 8 };
+}
+
+function exitResolutionSuccess() {
+  return { resolutionType: 'exit' as const,
+    node: { id: '14', status: 'completed' as const, completedAt: '2026-09-19T12:00:00Z' },
+    newlyAvailableNodeIds: [] as const, run: { id: '41', status: 'completed' as const, endedAt: '2026-09-19T12:00:00Z' },
+    playerRevision: 10 };
 }
 
 function content(): ClientContentRegistry {
@@ -407,4 +466,10 @@ function activeBootstrap(): GameBootstrapData {
     active_squad: { id: '31', name: 'Raiders', is_active: true, formation: ['11', null, null, null, null, null, null, null, null],
       units: [{ id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active' }] },
     active_run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active' } };
+}
+
+function terminalBootstrap(): GameBootstrapData {
+  const value = activeBootstrap();
+  return { ...value, player: { ...value.player, player_revision: 10 }, progression: { unlock_ids: ['unlock.region.mountains'] },
+    active_squad: { ...value.active_squad!, units: [{ ...value.active_squad!.units[0], level: 2, xp: 6 }] }, active_run: null };
 }

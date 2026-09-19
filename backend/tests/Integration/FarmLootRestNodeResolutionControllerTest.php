@@ -9,9 +9,11 @@ use DiceGoblins\Application\Commands\ResolveRunNodeCommand;
 use DiceGoblins\Application\Rewards\RewardApplicationService;
 use DiceGoblins\Application\RunNodes\LootNodeResolutionHandler;
 use DiceGoblins\Application\RunNodes\RestNodeResolutionHandler;
+use DiceGoblins\Application\RunNodes\ExitNodeResolutionHandler;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Controllers\ControllerServiceFactory;
 use DiceGoblins\Controllers\RunController;
+use DiceGoblins\Controllers\GameBootstrapController;
 use DiceGoblins\Domain\CombatStats\BaseLevelStatResolver;
 use DiceGoblins\Domain\Rewards\RewardFinalizer;
 use DiceGoblins\Infrastructure\Clock;
@@ -31,6 +33,83 @@ use RuntimeException;
 final class FarmLootRestNodeResolutionControllerTest extends IntegrationTestCase
 {
   protected function supportsVnextBaseline(): bool { return true; }
+
+  public function testExitCompletesFarmExactlyOnceAndBootstrapReturnsAuthoritativeCampState(): void
+  {
+    [$userId, $runId, $nodes] = $this->readyExit('exit-success');
+    $before = $this->state($userId);
+    $eventsBefore = $this->rows('SELECT `id`, `result_json` FROM `resolved_events` WHERE `user_id` = ? ORDER BY `id`', [$userId]);
+
+    $first = $this->httpResolve($userId, $runId, $nodes[4], 'exit-resolve-key');
+
+    $this->assertSame(200, $first['status'], json_encode($first['body']));
+    $data = $first['body']['data'];
+    $this->assertSame(['exit', (string)$nodes[4], [], (string)$runId, 'completed'], [
+      $data['resolution_type'] ?? null, $data['node']['id'] ?? null, $data['newly_available_node_ids'] ?? null,
+      $data['run']['id'] ?? null, $data['run']['status'] ?? null,
+    ]);
+    $this->assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/', (string)($data['run']['ended_at'] ?? ''));
+    $this->assertSame((int)$before['player_revision'] + 1, $data['player_revision'] ?? null);
+    $this->assertEqualsCanonicalizing(['node', 'newly_available_node_ids', 'player_revision', 'resolution_type', 'run'], array_keys($data));
+    $run = $this->row('SELECT `status`, `ended_at` FROM `runs` WHERE `id` = ?', [$runId]);
+    $this->assertSame('completed', $run['status'] ?? null);
+    $this->assertNotNull($run['ended_at'] ?? null);
+    $this->assertSame($eventsBefore,
+      $this->rows('SELECT `id`, `result_json` FROM `resolved_events` WHERE `user_id` = ? ORDER BY `id`', [$userId]));
+    $snapshot = $this->snapshot($userId, $runId);
+
+    $replay = $this->httpResolve($userId, $runId, $nodes[4], 'exit-resolve-key');
+    $this->assertSame($first['body'], $replay['body']);
+    $this->assertSame($snapshot, $this->snapshot($userId, $runId));
+    $different = $this->httpResolve($userId, $runId, $nodes[4], 'exit-other-key');
+    $this->assertSame([409, 'run_node_already_resolved'], [$different['status'], $different['body']['error']['code'] ?? null]);
+
+    $_SESSION['user_id'] = $userId;
+    $current = $this->invoke(fn() => (new RunController())->current());
+    $this->assertSame(200, $current['status'], json_encode($current['body']));
+    $this->assertNull($current['body']['data']['run'] ?? null);
+
+    $bootstrap = $this->invoke(fn() => (new GameBootstrapController())->bootstrap());
+    $this->assertSame(200, $bootstrap['status'], json_encode($bootstrap['body']));
+    $bootstrapData = $bootstrap['body']['data'];
+    $this->assertNull($bootstrapData['active_run']);
+    $this->assertNotNull($bootstrapData['active_squad']);
+    $this->assertContains('unlock.region.mountains', $bootstrapData['progression']['unlock_ids']);
+    $expected = $this->rows('SELECT ui.`id`, ui.`level`, ui.`xp` FROM `unit_instances` ui
+      JOIN `run_unit_state` rus ON rus.`unit_id` = ui.`id` AND rus.`run_id` = ?
+      WHERE ui.`user_id` = ? ORDER BY ui.`id`', [$runId, $userId]);
+    $actual = array_map(static fn(array $unit): array => ['id' => (int)$unit['id'], 'level' => $unit['level'], 'xp' => $unit['xp']],
+      $bootstrapData['active_squad']['units']);
+    $this->assertEquals($expected, $actual);
+  }
+
+  public function testInvalidExitIdentityFailsWithoutMutation(): void
+  {
+    [$userId, $runId, $nodes] = $this->readyExit('exit-invalid');
+    $this->pdo?->prepare("UPDATE `run_nodes` SET `event_id` = 'event.farm_loot_completed' WHERE `id` = ?")->execute([$nodes[4]]);
+    $before = $this->snapshot($userId, $runId);
+    $response = $this->httpResolve($userId, $runId, $nodes[4], 'exit-invalid-key');
+    $this->assertSame([500, 'run_data_integrity_error'], [$response['status'], $response['body']['error']['code'] ?? null]);
+    $this->assertSame($before, $this->snapshot($userId, $runId));
+  }
+
+  public function testPostExitMutationFailureRollsBackNodeRunRevisionAndReceipt(): void
+  {
+    [$userId, $runId, $nodes] = $this->readyExit('exit-rollback');
+    $before = $this->snapshot($userId, $runId);
+    $command = new ResolveRunNodeCommand($this->pdo, new PlayerStateRepository($this->pdo),
+      new RunPersistenceRepository($this->pdo), $repository = new RunNodeResolutionRepository($this->pdo),
+      new IdempotencyRequestRepository($this->pdo), [new ExitNodeResolutionHandler($repository)],
+      new class implements Clock { public function now(): DateTimeImmutable { return new DateTimeImmutable('2026-09-19 12:00:00'); } },
+      static function(): void { throw new RuntimeException('Injected before-commit failure.'); });
+    try {
+      $command->execute($userId, $runId, $nodes[4], 'exit-rollback-key');
+      $this->fail('Expected injected before-commit failure.');
+    } catch (RuntimeException $e) {
+      $this->assertSame('Injected before-commit failure.', $e->getMessage());
+    }
+    $this->assertSame($before, $this->snapshot($userId, $runId));
+  }
 
   public function testLootAppliesAuthoredEightTeethPrivatelyAndReplaysExactlyOnce(): void
   {
@@ -199,6 +278,18 @@ final class FarmLootRestNodeResolutionControllerTest extends IntegrationTestCase
     return [$userId, $runId, $nodes, $fixture];
   }
 
+  /** @return array{0:int,1:int,2:list<int>} */
+  private function readyExit(string $prefix): array
+  {
+    [$userId] = $this->fixtureAccount($prefix);
+    [$runId, $nodes] = $this->startRun($userId, $prefix . '-start');
+    foreach ([0 => 'combat', 1 => 'loot', 2 => 'rest', 3 => 'boss'] as $index => $suffix) {
+      $response = $this->httpResolve($userId, $runId, $nodes[$index], $prefix . '-' . $suffix);
+      $this->assertSame(200, $response['status'], json_encode($response['body']));
+    }
+    return [$userId, $runId, $nodes];
+  }
+
   /** @return array{0:int,1:array<string,mixed>} */
   private function fixtureAccount(string $prefix): array
   {
@@ -236,6 +327,7 @@ final class FarmLootRestNodeResolutionControllerTest extends IntegrationTestCase
       new IdempotencyRequestRepository($this->pdo), [
         new LootNodeResolutionHandler($nodes, $units, $unlocks, $rewards),
         new RestNodeResolutionHandler($nodes, $units, $content),
+        new ExitNodeResolutionHandler($nodes),
       ], $clock);
   }
 
@@ -299,6 +391,7 @@ final class FarmLootRestNodeResolutionControllerTest extends IntegrationTestCase
   private function snapshot(int $userId, int $runId): array
   {
     return ['state' => $this->state($userId),
+      'run' => $this->row('SELECT `status`, `ended_at` FROM `runs` WHERE `id` = ?', [$runId]),
       'nodes' => $this->rows('SELECT `id`, `status`, `completed_at` FROM `run_nodes` WHERE `run_id` = ? ORDER BY `node_index`', [$runId]),
       'hp' => $this->rows('SELECT `unit_id`, `current_hp` FROM `run_unit_state` WHERE `run_id` = ? ORDER BY `unit_id`', [$runId]),
       'events' => $this->rows('SELECT `event_id`, `source_type`, `source_id`, `status`, `result_json`, `applied_at` FROM `resolved_events` WHERE `user_id` = ? ORDER BY `id`', [$userId]),

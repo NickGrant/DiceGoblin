@@ -14,7 +14,7 @@ final class RunNodeResolutionRepository
   /** @return array<string,mixed>|null */
   public function findNodeForUpdate(int $runId, int $nodeId): ?array
   {
-    $stmt = $this->pdo->prepare('SELECT `id`, `run_id`, `node_type_id`, `encounter_id`, `event_id`, `status`, `completed_at`
+    $stmt = $this->pdo->prepare('SELECT `id`, `run_id`, `node_index`, `node_type_id`, `encounter_id`, `event_id`, `status`, `completed_at`
       FROM `run_nodes` WHERE `run_id` = ? AND `id` = ? LIMIT 1 FOR UPDATE');
     $stmt->execute([$runId, $nodeId]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -81,5 +81,28 @@ final class RunNodeResolutionRepository
       WHERE `id` = ? AND `user_id` = ? AND `status` = 'active'");
     $stmt->execute([$endedAt->format('Y-m-d H:i:s'), $runId, $userId]);
     if ($stmt->rowCount() !== 1) throw new RuntimeException('Run could not be failed.');
+  }
+
+  public function completeRun(int $userId, int $runId, DateTimeImmutable $endedAt): void
+  {
+    $stmt = $this->pdo->prepare("UPDATE `runs` SET `status` = 'completed', `ended_at` = ?
+      WHERE `id` = ? AND `user_id` = ? AND `status` = 'active'");
+    $stmt->execute([$endedAt->format('Y-m-d H:i:s'), $runId, $userId]);
+    if ($stmt->rowCount() !== 1) throw new RuntimeException('Run could not be completed.');
+  }
+
+  public function isTerminalFarmExit(int $runId, int $nodeId): bool
+  {
+    $stmt = $this->pdo->prepare("SELECT
+        (SELECT COUNT(*) FROM `run_edges` WHERE `run_id` = ? AND `from_node_id` = ?) AS `outgoing_count`,
+        (SELECT COUNT(*) FROM `run_edges` WHERE `run_id` = ? AND `to_node_id` = ?) AS `incoming_count`,
+        (SELECT COUNT(*) FROM `run_edges` edge
+          JOIN `run_nodes` parent ON parent.`run_id` = edge.`run_id` AND parent.`id` = edge.`from_node_id`
+          WHERE edge.`run_id` = ? AND edge.`to_node_id` = ? AND parent.`node_type_id` = 'run_node_type.boss'
+            AND parent.`status` = 'completed') AS `boss_parent_count`");
+    $stmt->execute([$runId, $nodeId, $runId, $nodeId, $runId, $nodeId]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    return is_array($row) && (int)$row['outgoing_count'] === 0 && (int)$row['incoming_count'] === 1
+      && (int)$row['boss_parent_count'] === 1;
   }
 }

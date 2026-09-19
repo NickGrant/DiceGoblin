@@ -34,6 +34,24 @@ describe('run node resolution contracts', () => {
     expect(rest.healing).toEqual([{ unitId: '21', hpBefore: 0, hpAfter: 26, maxHp: 26 }]);
   });
 
+  it('parses only the exact terminal Exit shape', () => {
+    const exit = { ok: true, data: { resolution_type: 'exit',
+      node: { id: '14', status: 'completed', completed_at: '2026-09-19T12:00:00Z' }, newly_available_node_ids: [],
+      run: { id: '41', status: 'completed', ended_at: '2026-09-19T12:00:00Z' }, player_revision: 11 } };
+    const parsed = parseRunNodeResolutionEnvelope(exit);
+    expect(parsed).toEqual({ resolutionType: 'exit',
+      node: { id: '14', status: 'completed', completedAt: '2026-09-19T12:00:00Z' }, newlyAvailableNodeIds: [],
+      run: { id: '41', status: 'completed', endedAt: '2026-09-19T12:00:00Z' }, playerRevision: 11 });
+    for (const mutate of [
+      (value: any) => value.data.newly_available_node_ids.push('15'),
+      (value: any) => { value.data.run.status = 'active'; value.data.run.ended_at = null; },
+      (value: any) => value.data.reward = {},
+    ]) {
+      const invalid = structuredClone(exit); mutate(invalid);
+      expect(() => parseRunNodeResolutionEnvelope(invalid)).toThrowError(RunNodeResolutionContractError);
+    }
+  });
+
   it('parses strict player-safe Boss progression and rejects private or incoherent rewards', () => {
     const boss = { ok: true, data: { ...envelope().data, resolution_type: 'boss', rewards: {
       unit_xp: [{ unit_id: '21', amount: 16, level_before: 1, xp_before: 90, level_after: 2, xp_after: 6 }],

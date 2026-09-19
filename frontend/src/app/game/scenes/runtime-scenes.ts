@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { actionCursor } from '../screens/action-cursor';
 import { readDebugCaptureRequest } from '../../core/debug/debug-capture';
-import { GameStore } from '../runtime/game-store';
+import { GameStore, parseGameBootstrapEnvelope } from '../runtime/game-store';
 import { RuntimeStartup, RuntimeStartupSnapshot } from '../runtime/runtime-startup';
 import { RuntimeViewport } from '../runtime/runtime-viewport';
 import { CampScreen } from '../screens/camp-screen';
@@ -16,7 +16,7 @@ import { RuntimeApiError } from '../runtime/runtime-api-client';
 import { createRunMapLayout, createRunMapPresentation, runNodeColors } from '../runtime/run-map-model';
 import { Bounds } from '../runtime/runtime-viewport';
 import { RunNodeResolutionAttempt, RunNodeResolutionAttemptState } from '../runtime/run-node-resolution-attempt';
-import { LootRunNodeResolutionResult, RestRunNodeResolutionResult } from '../runtime/run-node-resolution-contracts';
+import { ExitRunNodeResolutionResult, LootRunNodeResolutionResult, RestRunNodeResolutionResult } from '../runtime/run-node-resolution-contracts';
 import { BattlePlaybackController } from '../runtime/battle-playback-controller';
 import { BattlePlaybackResult } from '../runtime/battle-playback-contracts';
 import { battleArtTextureKey, battleColumnX, supportedBattleArtAssets } from '../runtime/battle-presentation-layout';
@@ -345,7 +345,7 @@ export class RunScene extends RuntimeScene {
   private abandonRunId: string | null = null;
   private abandonMessage = '';
   private nodeMessage = '';
-  private nodeResult: LootRunNodeResolutionResult | RestRunNodeResolutionResult | null = null;
+  private nodeResult: LootRunNodeResolutionResult | RestRunNodeResolutionResult | ExitRunNodeResolutionResult | null = null;
   private nodeSyncState: 'idle' | 'syncing' | 'sync-error' | 'recovery-required' | 'succeeded' = 'idle';
   private nodeSyncIdentity: { readonly runId: string; readonly nodeId: string } | null = null;
   constructor(
@@ -446,16 +446,20 @@ export class RunScene extends RuntimeScene {
     const run = this.runtimeStartup.store.currentRun.data;
     const node = run?.nodes.find((candidate) => candidate.id === this.selectedNodeId);
     const bootstrap = this.runtimeStartup.store.bootstrap;
-    if (!run || !node || !bootstrap || (node.nodeTypeId !== 'run_node_type.loot' && node.nodeTypeId !== 'run_node_type.rest')) return;
+    if (!run || !node || !bootstrap || (node.nodeTypeId !== 'run_node_type.loot'
+      && node.nodeTypeId !== 'run_node_type.rest' && node.nodeTypeId !== 'run_node_type.exit')) return;
     if (this.nodeSyncState === 'sync-error') { await this.retryNodeSync(); return; }
+    if (this.nodeSyncState === 'syncing') return;
     if (node.status !== 'available' || node.battleId !== null || this.nodeAttempt.state === 'submitting') return;
     this.nodeResult = null;
     this.nodeSyncState = 'idle';
     this.nodeSyncIdentity = null;
     this.nodeAttempt.begin(run.id, node.id);
     this.nodeMessage = node.nodeTypeId === 'run_node_type.loot' ? 'Collecting loot authoritatively…' : 'Resting authoritatively…';
+    if (node.nodeTypeId === 'run_node_type.exit') this.nodeMessage = 'Leaving the Farm safely...';
     this.render();
-    const expectedType = node.nodeTypeId === 'run_node_type.loot' ? 'loot' : 'rest';
+    const expectedType = node.nodeTypeId === 'run_node_type.loot' ? 'loot'
+      : node.nodeTypeId === 'run_node_type.rest' ? 'rest' : 'exit';
     const outcome = await this.nodeAttempt.submit(this.runtimeStartup.apiClient, bootstrap.session.csrf_token,
       (result) => result.resolutionType === expectedType && result.run.id === run.id && result.node.id === node.id);
     if (outcome.kind === 'success') {
@@ -464,6 +468,11 @@ export class RunScene extends RuntimeScene {
         this.nodeMessage = 'The response did not match this location. Reload to recover.'; this.render(); return;
       }
       this.nodeResult = result;
+      if (result.resolutionType === 'exit') {
+        this.nodeMessage = 'Run complete. Synchronizing Camp...';
+        await this.syncExitBootstrap(result);
+        return;
+      }
       try {
         this.runtimeStartup.store.reconcileResolvedRunNodePlayerState(result);
       } catch {
@@ -491,7 +500,23 @@ export class RunScene extends RuntimeScene {
   async retryNodeSync(): Promise<void> {
     const identity = this.nodeSyncIdentity;
     if (!identity || this.nodeSyncState !== 'sync-error') return;
+    if (this.nodeResult?.resolutionType === 'exit') { await this.syncExitBootstrap(this.nodeResult); return; }
     await this.syncResolvedNode(identity.runId, identity.nodeId);
+  }
+
+  private async syncExitBootstrap(result: ExitRunNodeResolutionResult): Promise<void> {
+    this.nodeSyncIdentity = { runId: result.run.id, nodeId: result.node.id };
+    this.nodeSyncState = 'syncing'; this.render();
+    try {
+      const bootstrap = parseGameBootstrapEnvelope(await this.runtimeStartup.apiClient.getBootstrap());
+      this.runtimeStartup.store.reconcileExitBootstrap(bootstrap, result);
+    } catch {
+      this.nodeSyncState = 'sync-error';
+      this.nodeMessage = 'The run is complete, but Camp state could not be synchronized. Retry synchronization.';
+      this.render(); return;
+    }
+    this.nodeSyncState = 'succeeded';
+    this.scene.start(GAME_SCENE_KEY);
   }
 
   private async syncResolvedNode(runId: string, nodeId: string): Promise<void> {
@@ -693,13 +718,15 @@ export class RunScene extends RuntimeScene {
           : selected.nodeTypeId === 'run_node_type.boss' ? 'FIGHT BOSS' : 'ENTER COMBAT',
         () => void this.activateSelectedCombat(), canWatch ? 0x315d68 : 0x8a5424, !submitting);
     }
-    if (selected && (selected.nodeTypeId === 'run_node_type.loot' || selected.nodeTypeId === 'run_node_type.rest')) {
+    if (selected && (selected.nodeTypeId === 'run_node_type.loot' || selected.nodeTypeId === 'run_node_type.rest'
+      || selected.nodeTypeId === 'run_node_type.exit')) {
       const available = selected.status === 'available' && selected.battleId === null;
       const submitting = this.nodeAttempt.state === 'submitting' || this.nodeSyncState === 'syncing';
       const retrySync = this.nodeSyncState === 'sync-error' && this.nodeSyncIdentity?.nodeId === selected.id;
       if (available || retrySync) this.addButton(root, layout.combatButton,
         retrySync ? 'RETRY SYNC' : submitting ? 'RESOLVING…' : this.nodeAttempt.state === 'retryable' ? 'RETRY RESOLVE'
-          : selected.nodeTypeId === 'run_node_type.loot' ? 'COLLECT LOOT' : 'REST',
+          : selected.nodeTypeId === 'run_node_type.loot' ? 'COLLECT LOOT'
+          : selected.nodeTypeId === 'run_node_type.rest' ? 'REST' : 'LEAVE FARM',
         () => void this.activateSelectedNonCombat(), selected.nodeTypeId === 'run_node_type.loot' ? 0x7a5a22 : 0x315d68, !submitting);
     }
     if (this.nodeMessage) {

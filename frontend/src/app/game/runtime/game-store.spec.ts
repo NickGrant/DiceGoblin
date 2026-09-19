@@ -477,4 +477,44 @@ describe('GameStore Warband cache', () => {
     expect(() => store.reconcileRunAbandon({ ...result, run: { ...result.run, id: '41' }, playerRevision: 6 })).toThrowError();
     expect(store.bootstrap).toBe(before);
   });
+
+  it('reconciles terminal Exit bootstrap, authoritative progression, and stale unit caches atomically', async () => {
+    const active = { ...bootstrap(), active_run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active' as const } };
+    const store = new GameStore(); store.hydrateBootstrap(active); const client = api(); const registry = content();
+    await store.loadWarbandDomains(client, registry); await store.loadUnitDetail('11', client, registry);
+    const terminal = { ...bootstrap(), player: { ...bootstrap().player, player_revision: 10 },
+      progression: { unlock_ids: ['unlock.region.mountains'] }, active_run: null,
+      active_squad: { ...bootstrap().active_squad!, units: [{ ...bootstrap().active_squad!.units[0], level: 2, xp: 6 }] } };
+
+    store.reconcileExitBootstrap(terminal, { resolutionType: 'exit',
+      node: { id: '14', status: 'completed', completedAt: '2026-09-19T12:00:00Z' }, newlyAvailableNodeIds: [],
+      run: { id: '41', status: 'completed', endedAt: '2026-09-19T12:00:00Z' }, playerRevision: 9 });
+
+    expect(store.bootstrap?.active_run).toBeNull();
+    expect(store.bootstrap?.active_squad?.id).toBe('31');
+    expect(store.bootstrap?.active_squad?.units[0]).toEqual(jasmine.objectContaining({ level: 2, xp: 6 }));
+    expect(store.bootstrap?.progression.unlock_ids).toEqual(['unlock.region.mountains']);
+    expect(store.playerRevision).toBe(10);
+    expect(store.warband.units.status).toBe('stale');
+    expect(store.warband.dice.status).toBe('fresh'); expect(store.warband.squads.status).toBe('fresh');
+    expect(store.unitDetail('11').status).toBe('stale');
+    expect(store.currentRun).toEqual({ status: 'fresh', data: null, error: null });
+  });
+
+  it('rejects Exit bootstrap revision, lifecycle, account, and active-squad disagreement without committing it', () => {
+    const active = { ...bootstrap(), active_run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active' as const } };
+    const result = { resolutionType: 'exit' as const,
+      node: { id: '14', status: 'completed' as const, completedAt: '2026-09-19T12:00:00Z' }, newlyAvailableNodeIds: [] as const,
+      run: { id: '41', status: 'completed' as const, endedAt: '2026-09-19T12:00:00Z' }, playerRevision: 9 };
+    for (const terminal of [
+      { ...bootstrap(), player: { ...bootstrap().player, player_revision: 8 } },
+      { ...bootstrap(), player: { ...bootstrap().player, player_revision: 9 }, active_run: active.active_run },
+      { ...bootstrap(), account: { ...bootstrap().account, id: '2' }, player: { ...bootstrap().player, player_revision: 9 } },
+      { ...bootstrap(null), player: { ...bootstrap().player, player_revision: 9 } },
+    ]) {
+      const store = new GameStore(); store.hydrateBootstrap(active); const before = store.bootstrap;
+      expect(() => store.reconcileExitBootstrap(terminal, result)).toThrowError();
+      expect(store.bootstrap).toBe(before);
+    }
+  });
 });
