@@ -831,6 +831,11 @@ export class BattleScene extends RuntimeScene {
   get playbackState(): string { return this.controller?.snapshot.state ?? this.loadState; }
   get playbackController(): BattlePlaybackController | null { return this.controller; }
   get battleContinueState(): string { return this.continueState; }
+  get bossRewardSummary(): string | null {
+    const retained = this.runtimeStartup.battlePresentation.resolution;
+    if (this.controller?.snapshot.state !== 'complete' || retained?.resolutionType !== 'boss' || !retained.rewards) return null;
+    return `${retained.rewards.unitXp.map((xp) => `Unit ${xp.unitId}: +${xp.amount} XP${xp.levelAfter > xp.levelBefore ? ` (Level ${xp.levelAfter})` : ''}`).join(' · ')} · Mountains ${retained.rewards.mountains.outcome === 'granted' ? 'unlocked' : 'already owned'}`;
+  }
 
   retryPlayback(): void { if (this.loadState === 'retryable' || this.loadState === 'integrity-error') void this.loadPlayback(); }
 
@@ -958,10 +963,7 @@ export class BattleScene extends RuntimeScene {
       { color: '#fff1bd', fontFamily: 'Georgia, serif', fontSize: compact ? '29px' : '25px', fontStyle: 'bold', align: 'center' }).setOrigin(0.5); root.add(caption);
     const playerResult = completed ? state.participants.filter((participant) => participant.side === 'player')
       .map((participant) => `${participant.displayName}: ${participant.currentHp}/${participant.maxHp} HP${participant.defeated ? ' · DEFEATED' : ''}`).join('   ·   ') : null;
-    const retained = this.runtimeStartup.battlePresentation.resolution;
-    const rewardResult = completed && retained?.resolutionType === 'boss' && retained.rewards
-      ? `${retained.rewards.unitXp.map((xp) => `Unit ${xp.unitId}: +${xp.amount} XP${xp.levelAfter > xp.levelBefore ? ` (Level ${xp.levelAfter})` : ''}`).join(' · ')} · Mountains ${retained.rewards.mountains.outcome === 'granted' ? 'unlocked' : 'already owned'}`
-      : null;
+    const rewardResult = this.bossRewardSummary;
     const facts = completed ? [playerResult, rewardResult].filter(Boolean).join('   ·   ')
       : [state.dice, state.hit, `EVENT ${state.nextSequence}`].filter(Boolean).join('   ·   ');
     const factText = this.add.text(safe.x + safe.width / 2, captionY + (compact ? 42 : 38), facts,

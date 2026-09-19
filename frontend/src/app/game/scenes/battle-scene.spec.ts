@@ -59,6 +59,26 @@ describe('BattleScene retained playback lifecycle', () => {
     expect(startup.battlePresentation.marker).not.toBeNull(); expect(sceneStart).not.toHaveBeenCalled();
   });
 
+  it('presents only retained authoritative Boss rewards after playback completes', async () => {
+    const { scene, startup } = await harness(true);
+    startup.battlePresentation.retainResolution(bossResolutionForPresentation());
+
+    await completePlayback(scene);
+
+    expect(scene.bossRewardSummary).toBe('Unit 11: +16 XP (Level 2) · Mountains unlocked');
+    expect(Object.keys(scene.playbackController!.result)).not.toContain('rewards');
+    expect(Object.keys(scene.playbackController!.result)).not.toContain('xp');
+  });
+
+  it('presents the authoritative already-owned Mountains outcome without deriving a substitute', async () => {
+    const { scene, startup } = await harness(true);
+    const result = bossResolutionForPresentation();
+    startup.battlePresentation.retainResolution({ ...result,
+      rewards: { ...result.rewards!, mountains: { regionId: 'region.mountains', outcome: 'already_owned' } } });
+    await completePlayback(scene);
+    expect(scene.bossRewardSummary).toContain('Mountains already owned');
+  });
+
   it('forces current-run authority before adopting victory HP, graph, battle ID, revision, and destination', async () => {
     const { scene, startup, api, sceneStart } = await harness(true);
     api.getCurrentRun.and.resolveTo({ run: preCombatRun(), playerRevision: 7 });
@@ -256,6 +276,17 @@ function playback(outcome: 'victory' | 'defeat' | 'stalemate' = 'victory'): Batt
       { sequence: 0, type: 'battle_started', round: 0, tick: 0, facts: { combatant_keys: ['ashback', 'mudwrestler'] } },
       { sequence: 1, type: 'battle_ended', round: 1, tick: 1, facts: { outcome } },
     ] }, playerRevision: 8 };
+}
+
+function bossResolutionForPresentation() {
+  return { resolutionType: 'boss' as const,
+    battle: { id: '81', outcome: 'victory' as const, engineVersion: 1 as const, playbackVersion: 1 as const,
+      endingRound: 1, endingTick: 1 },
+    node: { id: '10', status: 'completed' as const, completedAt: '2026-09-16T12:00:00Z' },
+    newlyAvailableNodeIds: ['11'], terminalPlayerHp: { '11': 7 },
+    run: { id: '41', status: 'active' as const, endedAt: null },
+    rewards: { unitXp: [{ unitId: '11', amount: 16 as const, levelBefore: 1, xpBefore: 90, levelAfter: 2, xpAfter: 6 }],
+      mountains: { regionId: 'region.mountains' as const, outcome: 'granted' as const } }, playerRevision: 8 };
 }
 
 function preCombatRun(): CurrentRun {

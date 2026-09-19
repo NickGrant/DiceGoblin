@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace DiceGoblins\Application\RunNodes;
 
+use Closure;
 use DiceGoblins\Application\Commands\RunNodeResolutionIntegrityException;
 use DiceGoblins\Application\Rewards\RewardApplicationService;
 use DiceGoblins\Domain\Rewards\RewardContext;
@@ -19,6 +20,8 @@ final class BossNodeResolutionHandler implements RunNodeResolutionHandler
     private readonly WarbandUnitRepository $units,
     private readonly UserUnlockRepository $unlocks,
     private readonly RewardApplicationService $rewards,
+    private readonly ?Closure $afterCombat = null,
+    private readonly ?Closure $afterRewards = null,
   ) {}
 
   public function nodeTypeId(): string { return 'run_node_type.boss'; }
@@ -26,6 +29,7 @@ final class BossNodeResolutionHandler implements RunNodeResolutionHandler
   public function resolve(int $userId, array $playerState, array $run, array $node): RunNodeResolutionOutcome
   {
     $combat = $this->combat->resolve($userId, $playerState, $run, $node);
+    if ($this->afterCombat !== null) ($this->afterCombat)();
     $facts = $combat->facts;
     $facts['rewards'] = null;
     if ($combat->runFailed) return new RunNodeResolutionOutcome('boss', $facts, true);
@@ -84,6 +88,7 @@ final class BossNodeResolutionHandler implements RunNodeResolutionHandler
       }
       if ($xp === null || $mountains === null) throw new RunNodeResolutionIntegrityException('Boss rewards are incomplete.');
       $facts['rewards'] = ['unit_xp' => $xp, 'mountains' => $mountains];
+      if ($this->afterRewards !== null) ($this->afterRewards)();
       return new RunNodeResolutionOutcome('boss', $facts);
     } catch (RunNodeResolutionIntegrityException $e) {
       throw $e;

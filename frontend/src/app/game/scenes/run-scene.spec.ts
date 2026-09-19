@@ -198,6 +198,39 @@ describe('RunScene lifecycle shell', () => {
     expect(api.resolveRunNode).toHaveBeenCalledTimes(1);
   });
 
+  it('retries a Boss semantic mismatch with the original key and suppresses duplicate Fight clicks', async () => {
+    const createKey = jasmine.createSpy('createKey').and.returnValues('boss:first', 'boss:second');
+    const { scene, startup, api, sceneStart } = await readyHarness(bossAvailableRun(), createKey);
+    spyOn<any>(scene, 'render').and.stub(); scene.selectNode('13');
+    let finish!: (value: ReturnType<typeof resolutionSuccess>) => void;
+    api.resolveRunNode.and.returnValues(Promise.resolve(resolutionSuccess()),
+      new Promise((resolve) => { finish = resolve; }) as any);
+
+    await scene.activateSelectedCombat();
+    expect(scene.combatActionState).toBe('retryable');
+    const retry = scene.activateSelectedCombat(); const duplicate = scene.activateSelectedCombat();
+    expect(api.resolveRunNode).toHaveBeenCalledTimes(2);
+    finish(bossResolutionSuccess() as any); await Promise.all([retry, duplicate]);
+
+    expect(createKey).toHaveBeenCalledTimes(1);
+    expect(api.resolveRunNode.calls.allArgs().map((args) => args[3])).toEqual(['boss:first', 'boss:first']);
+    expect(startup.battlePresentation.marker).toEqual(jasmine.objectContaining({ battleId: '82', runNodeId: '13' }));
+    expect(sceneStart).toHaveBeenCalledOnceWith(BATTLE_SCENE_KEY);
+  });
+
+  it('replays a completed Boss from persisted battle identity without resolving it again', async () => {
+    const { scene, startup, api, sceneStart } = await readyHarness(bossCompletedRun());
+    spyOn<any>(scene, 'render').and.stub(); scene.selectNode('13');
+
+    await scene.activateSelectedCombat();
+
+    expect(api.resolveRunNode).not.toHaveBeenCalled();
+    expect(startup.battlePresentation.marker).toEqual(jasmine.objectContaining({
+      accountId: '1', battleId: '82', runId: '41', runNodeId: '13',
+    }));
+    expect(sceneStart).toHaveBeenCalledOnceWith(BATTLE_SCENE_KEY);
+  });
+
   it('opens and cancels explicit abandon confirmation without mutating authority', async () => {
     const { scene, startup, api, sceneStart } = await readyHarness();
     const bootstrap = startup.store.bootstrap;
@@ -346,12 +379,12 @@ function currentRun(): CurrentRun {
     units: [{ unitId: '11', currentHp: null }] };
 }
 
-function farmRun(statuses: readonly ['completed', 'completed' | 'available', 'locked' | 'completed' | 'available', 'locked' | 'available', 'locked']): CurrentRun {
+function farmRun(statuses: readonly ['completed', 'completed' | 'available', 'locked' | 'completed' | 'available', 'locked' | 'available' | 'completed', 'locked' | 'available']): CurrentRun {
   const types = ['combat', 'loot', 'rest', 'boss', 'exit'];
   return { id: '41', regionId: 'region.the_farm', squadId: '31', status: 'active' as const,
     createdAt: '2026-09-13T12:00:00Z', nodes: types.map((type, index) => ({ id: String(10 + index), nodeIndex: index,
       nodeTypeId: `run_node_type.${type}`, status: statuses[index], completedAt: statuses[index] === 'completed'
-        ? `2026-09-16T12:0${index}:00Z` : null, battleId: type === 'combat' ? '81' : null,
+        ? `2026-09-16T12:0${index}:00Z` : null, battleId: type === 'combat' ? '81' : type === 'boss' && statuses[index] === 'completed' ? '82' : null,
       position: { column: index, row: 1 } })),
     edges: types.slice(0, -1).map((_, index) => ({ fromNodeId: String(10 + index), toNodeId: String(11 + index) })),
     units: [{ unitId: '11', currentHp: 0 }] };
@@ -363,6 +396,7 @@ function bossAvailableRun() {
   const run = farmRun(['completed', 'completed', 'completed', 'available', 'locked']);
   return { ...run, units: [{ unitId: '11', currentHp: 26 }] };
 }
+function bossCompletedRun() { return farmRun(['completed', 'completed', 'completed', 'completed', 'available']); }
 
 function activeBootstrap(): GameBootstrapData {
   return { account: { id: '1', display_name: 'Goblin', role: 'user' },
