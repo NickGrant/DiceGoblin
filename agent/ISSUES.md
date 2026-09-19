@@ -7,6 +7,11 @@
 **Status:** In Progress
 **Priority:** High
 
+#### Current Architectural Review Finding
+
+The remaining Package 5 blocker is frontend current-run parsing. Backend `CurrentRunQuery` and `GameStore.reconcileBattleReturn` correctly treat Combat and Boss as the only battle-bearing node types, but `frontend/src/app/game/runtime/run-contracts.ts` still permits `battle_id` only for Combat. Generalize that strict wire contract to exactly Combat-or-Boss, keep Loot/Rest/Exit non-battle-bearing, and add raw-envelope/API-boundary coverage proving a completed Boss battle parses through `RuntimeApiClient.getCurrentRun()`. Preserve the existing Boss Continue/replay tests and do not begin Package 6.
+
+
 #### Problem
 Packages 1-4 established the reusable finalized reward pipeline, authoritative Combat/Loot/Rest resolution, canonical Mudking combat content, and a persisted Farm Boss encounter identity.
 
