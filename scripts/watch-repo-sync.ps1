@@ -770,58 +770,6 @@ function Set-IssueStatus {
   Write-Log -Message "Updated issue '$IssueTitle' to status '$NewStatus'."
 }
 
-function Set-MilestoneStatus {
-  param(
-    [string]$MilestoneName,
-    [string]$NewStatus
-  )
-
-  $escapedName = [regex]::Escape($MilestoneName)
-  $sectionPattern = "^##\s+$escapedName\s*$"
-  Set-MarkdownFieldValueInFile -Path $script:MilestonesPath -SectionPattern $sectionPattern -FieldName "Status" -NewValue $NewStatus
-  Write-Log -Message "Updated milestone '$MilestoneName' to status '$NewStatus'."
-}
-
-function Advance-MilestonesIfNeeded {
-  $milestones = Get-Milestones -Path $script:MilestonesPath
-  $issues = Get-Issues -Path $script:IssuesPath
-
-  $activeMilestone = $milestones |
-    Where-Object { $_.Status -eq "Active" } |
-    Select-Object -First 1
-
-  if (-not $activeMilestone) {
-    return $false
-  }
-
-  $remainingIssues = @(
-    $issues |
-      Where-Object {
-        $_.Milestone -eq $activeMilestone.Name -and
-        $_.Status -in @("Open", "In Progress", "Blocked")
-      }
-  )
-
-  if ($remainingIssues.Count -gt 0) {
-    return $false
-  }
-
-  Set-MilestoneStatus -MilestoneName $activeMilestone.Name -NewStatus "Complete"
-
-  $nextPlannedMilestone = $milestones |
-    Where-Object { $_.Status -eq "Planned" } |
-    Select-Object -First 1
-
-  if ($nextPlannedMilestone) {
-    Set-MilestoneStatus -MilestoneName $nextPlannedMilestone.Name -NewStatus "Active"
-    Write-Log -Message "Advanced next planned milestone '$($nextPlannedMilestone.Name)' to Active."
-  } else {
-    Write-Log -Message "No planned milestones remain after completing '$($activeMilestone.Name)'."
-  }
-
-  return $true
-}
-
 function Get-State {
   if (-not (Test-Path -LiteralPath $script:StatePathResolved)) {
     return [ordered]@{
@@ -1055,14 +1003,9 @@ function Invoke-CodexForMilestone {
   }
 
   if (-not $issue) {
-    if (Advance-MilestonesIfNeeded) {
-      $State["lastBacklogHash"] = Get-BacklogHash
-      Save-State -State $State
-    } else {
-      Write-Log -Message "Backlog changed, but no actionable issues were found for milestone '$($milestone.Name)'."
-      $State["lastBacklogHash"] = $BacklogHash
-      Save-State -State $State
-    }
+    Write-Log -Message "Backlog changed, but no actionable issues were found for milestone '$($milestone.Name)'. Architectural review owns package and milestone promotion."
+    $State["lastBacklogHash"] = $BacklogHash
+    Save-State -State $State
     return
   }
 
@@ -1078,41 +1021,22 @@ function Invoke-CodexForMilestone {
     return
   }
 
-  $verificationCommands = @(
-    "npm.cmd run llm:check",
-    "composer --working-dir=backend test",
-    "npm.cmd --prefix frontend run test -- --watch=false --browsers=ChromeHeadless",
-    "npm.cmd --prefix frontend run build"
-  )
-
   $prompt = @"
-You are working in the Dice Goblins repository at $($script:RepoRootResolved).
+Work only on the current Dice Goblins execution package.
 
-Start by reading and following:
+Read and follow:
 - AGENTS.md
-- agent/LLM_CONTEXT.md
 - agent/ISSUES.md
-- agent/MILESTONES.md
-- agent/ROLES.md
-
-The watcher has already selected the next issue for you. Do not re-triage the backlog.
-
-Active milestone:
-- $($milestone.Name)
 
 Selected issue:
 - $($issue.Title)
-- Status: $($issue.Status)
-- Priority: $($issue.Priority)
+- Milestone: $($milestone.Name)
 
-Execution requirements:
-1. Implement only the selected issue and tightly related verification/doc updates required by repo policy.
-2. Run this verification loop until the relevant checks are clean or you hit a real blocker:
-$($verificationCommands | ForEach-Object { "- $_" } | Out-String)
-3. If a check fails, fix the issue when it is caused by your work and rerun the affected checks.
-4. If a failure is clearly pre-existing or blocked externally, stop and explain it clearly.
-5. When the selected issue is complete, update the active backlog docs accordingly, including archive movement if the repo policy requires active issues only.
-6. Respect dirty-worktree safety. Do not revert user changes you did not make.
+Implement only the active issue. Use agent/CONTEXT_ROUTER.md only when additional authority is needed. Before reporting, follow agent/QUALITY_GATES.md and run npm.cmd run verify:package plus any specialized gates explicitly required by the issue.
+
+Do not mark the package complete, promote the next package, edit agent/MILESTONES.md, or update the roadmap. Architectural review owns approval and promotion. Respect existing user changes.
+
+Keep the final message concise: meaningful behavior changed, verification result, and any remaining blocker. The watcher owns commit and push.
 "@
 
   Write-Log -Message "Launching Codex for issue '$($issue.Title)' in milestone '$($milestone.Name)'."
@@ -1122,7 +1046,6 @@ $($verificationCommands | ForEach-Object { "- $_" } | Out-String)
     Write-Log -Level "ERROR" -Message "Codex exec failed with exit code $($result.ExitCode). Details: $($result.Output -replace '\s+', ' ')"
   } else {
     Write-Log -Message "Codex exec completed successfully."
-    [void](Advance-MilestonesIfNeeded)
     try {
       Invoke-CommitAndPush -MilestoneName $milestone.Name -PreRunTreeWasClean $PreRunTreeWasClean -PreRunDirtyPaths $PreRunDirtyPaths
     } catch {
