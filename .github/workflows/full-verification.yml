@@ -7,6 +7,10 @@ on:
       - main
       - vnext-game-overhaul
 
+concurrency:
+  group: full-verification-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
     runs-on: ubuntu-latest
