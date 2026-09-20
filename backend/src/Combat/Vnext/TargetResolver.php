@@ -63,7 +63,7 @@ final class TargetResolver
       foreach ($candidates as $key => $candidate) {
         $score = $candidate['position']['x'] === $this->backmostX($candidates) ? 300 : 0;
         $candidateReasons = $score > 0 ? ['backline'] : [];
-        if ($candidate['current_hp'] < $candidate['max_hp']) { $score += 250; $candidateReasons[] = 'wounded'; }
+        if ($this->isWounded($candidate)) { $score += 250; $candidateReasons[] = 'wounded'; }
         if ($this->hasStatus($candidate, 'marked')) { $score += 260; $candidateReasons[] = 'marked'; }
         if ($key === $previousTargetKey) { $score += 290; $candidateReasons[] = 'preferred_previous_target'; }
         if ($bestScore === null || $score > $bestScore) {
@@ -104,6 +104,12 @@ final class TargetResolver
   {
     foreach ($unit['statuses'] as $status) if ($status['id'] === $id) return true;
     return false;
+  }
+
+  /** @param array<string,mixed> $unit */
+  private function isWounded(array $unit): bool
+  {
+    return $unit['current_hp'] <= intdiv($unit['max_hp'] * 3, 10);
   }
 
   /** @param array<string,array<string,mixed>> $candidates */

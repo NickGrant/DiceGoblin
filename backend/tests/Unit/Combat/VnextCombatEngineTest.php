@@ -562,7 +562,7 @@ final class VnextCombatEngineTest extends TestCase
     ]);
     $back = $this->unit('back', 'enemy', 0, 0, $this->stats(100, 1, 0), [$this->ability('basic_attack_ranged')]);
     $wounded = $this->unit('wounded', 'enemy', 1, 0, $this->stats(100, 1, 0), [$this->ability('basic_attack_ranged')]);
-    $wounded['current_hp'] = 50;
+    $wounded['current_hp'] = 30;
     $marked = $this->unit('marked', 'enemy', 2, 0, $this->stats(100, 1, 0), [$this->ability('basic_attack_ranged')], [], [
       $this->status('marked', 'actor', 3),
     ]);
@@ -574,6 +574,19 @@ final class VnextCombatEngineTest extends TestCase
       new DeterministicRandom('patient-aim'), $aimed, 'marked');
     $this->assertSame('marked', $chosen['key']);
     $this->assertSame('patient_aim:marked,preferred_previous_target', $chosen['reason']);
+
+    $boundary = $this->unit('boundary', 'enemy', 0, 0, $this->stats(100, 1, 0),
+      [$this->ability('basic_attack_ranged')]);
+    $boundary['current_hp'] = 30;
+    $this->assertSame('patient_aim:backline,wounded', $resolver->choose(
+      ['actor' => $actor, 'boundary' => $boundary], 'actor', 'enemy_back_prefer', true,
+      new DeterministicRandom('patient-aim-boundary'), $aimed,
+    )['reason']);
+    $boundary['current_hp'] = 31;
+    $this->assertSame('patient_aim:backline', $resolver->choose(
+      ['actor' => $actor, 'boundary' => $boundary], 'actor', 'enemy_back_prefer', true,
+      new DeterministicRandom('patient-aim-boundary'), $aimed,
+    )['reason']);
 
     $actor['active_abilities'] = [
       $this->ability('basic_attack_melee', 1),
@@ -587,7 +600,7 @@ final class VnextCombatEngineTest extends TestCase
     $actorActions = array_values(array_filter($this->events($engineResult, 'action_started'),
       static fn(array $event): bool => $event['facts']['actor_key'] === 'actor'));
     $this->assertSame(['marked', 'marked'], array_slice(array_column(array_column($actorActions, 'facts'), 'target_key'), 0, 2));
-    $this->assertSame('patient_aim:wounded,marked,preferred_previous_target', $actorActions[1]['facts']['target_reason']);
+    $this->assertSame('patient_aim:marked,preferred_previous_target', $actorActions[1]['facts']['target_reason']);
   }
 
   public function testDumbLuckIsAOncePerBattleLivingTeamReaction(): void
