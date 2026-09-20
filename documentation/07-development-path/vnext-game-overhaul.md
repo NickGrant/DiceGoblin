@@ -99,8 +99,8 @@ Manual Milestone 4 combat UAT passed on 2026-09-17 after focused Replay correcti
 
 
 ## Milestone 6 Package Sequence
-1. Mountains authored combat foundation + deterministic kobold adaptation. **Current.**
-2. Region-neutral reward/node-resolution generalization required by a second region.
+1. Mountains authored combat foundation + deterministic kobold adaptation. **Approved at `4adff479b4c10af40057f1f93088c0930e5894d8`.**
+2. Region-neutral Boss reward + terminal Exit resolution contracts. **Current.**
 3. Mountains authored run graph/events/rewards + terminal lifecycle.
 4. Unlock-aware multi-region run start + Camp region selection/resume.
 5. Mountains integrated verification/closure.
