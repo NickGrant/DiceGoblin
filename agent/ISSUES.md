@@ -7,6 +7,21 @@
 **Status:** In Progress
 **Priority:** High
 
+#### Current Architectural Review Findings
+
+The authored roster, encounter formations, art identities, server-only projection boundary, and deterministic execution all match Package 1. The shared-engine kobold adaptation at `c30414a5b7cf4d0c925b5f9cb7f7d5ac25e9a0f0` still diverges from established deterministic semantics in four places that must be corrected before approval:
+
+1. **Taunting Guard must remain a one-attack Guard redirect, not a duration-long multi-hit taunt.** Established behavior derives Guard stacks from half-die scaling (`ceil(die_total / 2)` for the current d6), redirects one eligible hostile attack, applies the stack reduction to that attack, and consumes the Guard/redirect on that attack. The new vNext implementation derives reduction from the full roll (capped) and leaves `taunting_guard` active for its whole duration, so every damaging action can be redirected and repeatedly reduced. Preserve the established one-redirect/consume behavior and add a focused deterministic test proving both scaling and consumption.
+
+2. **Shield Set stacks must retain their established short-lived refresh semantics.** The retained deterministic resolver applies/refreshes Shield Set after damage with a one-round duration while preserving the stack cap (including Wall of Scrap). The new vNext implementation writes `expires_round = 401`, making accumulated Defense effectively battle-long. Adapt the existing behavior through the vNext status model and add a focused test covering stack gain, cap extension, refresh, and expiry.
+
+3. **Patient Aim is missing its targeting behavior.** The existing deterministic implementation changes Aimed Shot targeting to prefer the established marked/wounded/previous-target priority in addition to the authored 18% damage bonus. The new vNext `DamageCalculator` preserves only the damage modifier while `TargetResolver` still knows only ordinary front/back preference. Carry the existing Aimed Shot priority semantics into the vNext targeting boundary and test that Patient Aim changes target selection without creating a Chief-Engineer-specific branch.
+
+4. **Dumb Luck lost its team-reaction scope.** Existing deterministic combat applies Dumb Luck once per battle to a low roll made by the owning unit's living team; the Chief Engineer can therefore improve a kobold ally's qualifying roll. The new `rollDice()` checks only the acting unit's passives and tracks use per actor, turning it into a self-only passive. Preserve the once-per-battle team reaction semantics and add a deterministic test proving an ally can consume the Chief Engineer's Dumb Luck and that it cannot trigger a second time.
+
+Keep the fixes inside the shared deterministic vNext combat/status/targeting model. Do not revive the prototype resolver, add Mountains run generation, or promote Package 2.
+
+
 #### Problem
 
 Milestone 5 proved the full Farm loop and its manual UAT passed on 2026-09-19. Milestone 6 must now prove that the accepted region/run/combat architecture is not Farm-specific.
