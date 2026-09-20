@@ -1,88 +1,110 @@
 # Active Execution Issue
 
-## Milestone 5 - Complete Farm
+## Milestone 6 - Prove Region Generalization
 
-### Milestone 5 Package 8 - Focused manual UAT
+### Milestone 6 Package 1 - Mountains authored combat foundation + deterministic kobold adaptation
 
 **Status:** In Progress
 **Priority:** High
 
 #### Problem
 
-Technical closure is complete. Manually prove the player-facing Farm loop behaves correctly end to end before Milestone 6 is promoted.
+Milestone 5 proved the full Farm loop and its manual UAT passed on 2026-09-19. Milestone 6 must now prove that the accepted region/run/combat architecture is not Farm-specific.
 
-Accepted implementation/closure baseline:
-- Package 7 technical closure approved at `9825a62f567fca39445674fc7fc71d3f2038c253`.
-- Clean-database Farm integration passed.
-- Combat playback verification passed.
-- Run lifecycle verification passed.
-- Standard package verification and Docker backend suite passed.
-- No known technical blocker remains.
+The first package establishes canonical vNext Mountains combat content before making Mountains startable. Do not add Camp region selection or live Mountains run entry yet.
 
-#### Manual UAT path
+#### Goal
 
-Use a normal player account and production UI paths. Do not use direct API calls to advance the run.
+Create the canonical authored combat vocabulary for `region.mountains` and adapt the established kobold behavior to the deterministic vNext combat engine without introducing a parallel combat path.
 
-Verify:
+Canonical enemy roster:
+- `enemy_unit_type.kobold_skirmisher` — backline grunt; HP 18, Attack 6, Defense 2, Precision 6, Resolve 4.
+- `enemy_unit_type.kobold_shieldbearer` — frontline grunt; HP 28, Attack 3, Defense 6, Precision 4, Resolve 6.
+- `enemy_unit_type.kobold_sharpshooter` — backline elite; HP 22, Attack 9, Defense 3, Precision 7, Resolve 4.
+- `enemy_unit_type.kobold_warchief` — player-facing name **Kobold Chief Engineer**; backline boss; HP 42, Attack 11, Defense 4, Precision 7, Resolve 5.
 
-1. **Camp / run entry**
-   - Start from Camp with an active squad.
-   - Enter the Farm normally.
-   - Confirm the expected five-node path is presented.
+Use the existing kobold visual assets. Preserve the legacy `kobold_warchief` implementation identity for now; do not create a migration solely to rename that stable key.
 
-2. **Combat**
-   - Resolve the first Combat.
-   - Watch the persisted battle playback.
-   - Continue back to the same run without a duplicate fight or reward.
-   - Confirm Loot becomes available.
+#### Behavioral evidence
 
-3. **Loot**
-   - Collect Loot once.
-   - Confirm the player receives exactly 8 Teeth.
-   - Confirm Rest becomes available and Loot cannot be granted again.
+The retained prototype/docs are behavior evidence, not architecture authority:
+- `documentation/03-content/03-enemy-types.md`
+- `documentation/03-content/05-enemy-abilities.md`
+- `backend/migrations/54_rebalance_kobolds_frogmen.sql`
+- `backend/migrations/55_rebalance_mountains_swamps_encounters.sql`
 
-4. **Rest**
-   - Use Rest.
-   - Confirm participating units are restored to full run HP.
-   - Confirm Boss becomes available.
+Preserve the established role identities:
+- Skirmisher: `bomb_toss`, `basic_attack_ranged`, `sharpshooter`.
+- Shieldbearer: `basic_attack_melee`, `taunting_guard`, `shield_set`, `wall_of_scrap`, `unmoving`.
+- Sharpshooter: `basic_attack_ranged`, `disarming_shot`, `aimed_shot`, `sharpshooter`, `clean_shot`.
+- Chief Engineer: `bomb_toss`, `basic_attack_ranged`, `aimed_shot`, `sharpshooter`, `patient_aim`, `dumb_luck`.
 
-5. **Mudking Boss**
-   - Fight Mudking and watch the battle result/playback.
-   - Confirm each participating unit receives 16 XP.
-   - Confirm level changes, if any, are reflected after authoritative reconciliation.
-   - Confirm Mountains is reported as unlocked/already owned.
-   - Continue back to the run and confirm Exit becomes available.
+Adapt these through the accepted vNext ability/content/engine boundaries. Reuse existing deterministic ability semantics where they already exist. Do not revive the prototype combat service or introduce a second resolver.
 
-6. **Exit / terminal reconciliation**
-   - Leave the Farm through Exit.
-   - Confirm the run completes and returns to Camp only after synchronization.
-   - Confirm there is no active-run lock afterward.
-   - Confirm the post-Boss XP/levels remain visible.
-   - Confirm the Mountains unlock remains durable.
-   - Confirm no extra Loot/Boss reward is granted during Exit.
+#### Authored Mountains encounters
 
-7. **Warband after completion**
-   - Open Warband after returning to Camp.
-   - Confirm squad/loadout editing is available again.
-   - Confirm unit XP/level state agrees with the completed Boss result.
+Add canonical Mountains encounter definitions using these retained compositions:
 
-8. **Reload durability**
-   - Reload from Camp after completion.
-   - Confirm the player remains out of the completed run.
-   - Confirm Teeth, XP/levels, and Mountains access remain authoritative and durable.
+1. **Kobold Warband I**
+   - Shieldbearer at `(0,1)`
+   - Skirmisher at `(2,0)`
+   - Skirmisher at `(2,2)`
 
-#### Failure handling
+2. **Kobold Warband II**
+   - Shieldbearer at `(0,1)`
+   - Skirmisher at `(2,0)`
+   - Sharpshooter at `(2,2)`
 
-If UAT exposes a defect:
-- record the exact step, visible symptom, and whether reload changes the result;
-- leave Milestone 5 active;
-- create only the focused correction necessary for the failed behavior;
-- rerun the affected automated verification before repeating UAT.
+3. **Kobold Warband III**
+   - Shieldbearer at `(0,0)`
+   - Shieldbearer at `(0,2)`
+   - Skirmisher at `(2,0)`
+   - Sharpshooter at `(2,2)`
 
-Do not add unrelated polish or Milestone 6 functionality while correcting UAT findings.
+4. **Kobold Command**
+   - Shieldbearer at `(0,1)`
+   - Sharpshooter at `(1,0)`
+   - Skirmisher at `(2,2)`
+   - Chief Engineer at `(2,1)`
+
+Use stable vNext encounter IDs under the Mountains namespace and `region_id: "region.mountains"`.
+
+#### Architecture constraints
+
+- JSON in Git remains canonical authored gameplay content.
+- PHP remains authoritative for combat.
+- Reuse the existing CombatSnapshotAssembler / deterministic vNext engine / playback model.
+- Kobold-specific abilities may be server-only; do not leak hidden handler configuration into the browser projection.
+- Do not create database-authored enemy/ability configuration for vNext.
+- Do not add Mountains run generation, rewards, events, region-start authorization, Camp selection, or Swamps unlocking in this package.
+- Do not implement Lizard Kin; kin restoration remains a later milestone.
+
+#### Required tests
+
+Prove:
+- all four enemy definitions validate with the exact canonical stats/roles/abilities above;
+- all required kobold ability definitions resolve through supported deterministic vNext handlers;
+- all four Mountains encounters validate and assemble with the exact authored formations;
+- representative combat for each encounter is deterministic for identical authoritative input;
+- Chief Engineer is treated as Boss content without a Farm-specific engine branch;
+- playback/snapshot data carries the correct stable enemy/art identities;
+- server-only combat configuration remains absent from the generated client projection;
+- existing Farm combat remains unchanged.
+
+#### Verification
+
+Run `npm run verify:package` plus focused content/combat tests for the new Mountains definitions. If DB-backed tests are introduced or affected, run the applicable Docker backend gate and report skipped counts.
+
+#### Out of scope
+
+- Mountains run graph;
+- starting a Mountains run;
+- Camp region selector;
+- Mountains Loot/Rest/Boss rewards or Exit lifecycle;
+- Swamps unlock;
+- Lizard Kin;
+- broader visual/UI overhaul.
 
 #### Completion
 
-Milestone 5 closes only after the user reports this focused UAT passed.
-
-Do not promote Milestone 6 until that report is received.
+Implement only Package 1. Leave it **In Progress** for architectural review and do not promote Package 2 or make Mountains playable.
