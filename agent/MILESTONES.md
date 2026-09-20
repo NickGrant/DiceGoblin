@@ -7,7 +7,7 @@ Read this for sequencing/planning or when closing/promoting an execution package
 **Status:** Active
 
 ### Related Issues
-- Milestone 6 Package 1 - Mountains authored combat foundation + deterministic kobold adaptation
+- Milestone 6 Package 2 - Region-neutral Boss reward + terminal Exit resolution contracts
 
 Milestone 1 - Walking Skeleton is complete and passed manual user UAT.
 
@@ -50,8 +50,8 @@ Swamps, Lizard Kin restoration, Wrong Machine recovery, economy breadth, and fin
 
 ### Package Queue
 
-1. **Mountains authored combat foundation + deterministic kobold adaptation.** Current.
-2. Region-neutral reward/node-resolution generalization required by a second region.
+1. ~~Mountains authored combat foundation + deterministic kobold adaptation.~~ Complete and architecturally approved at `4adff479b4c10af40057f1f93088c0930e5894d8` after focused kobold semantic corrections.
+2. **Region-neutral Boss reward + terminal Exit resolution contracts.** Current.
 3. Mountains authored run graph/events/rewards + terminal lifecycle.
 4. Unlock-aware multi-region run start + Camp region selection/resume.
 5. Mountains integrated verification/closure.
@@ -59,8 +59,8 @@ Swamps, Lizard Kin restoration, Wrong Machine recovery, economy breadth, and fin
 
 ### Sequencing Notes
 
-- Package 1 establishes canonical Shieldbearer, Skirmisher, Sharpshooter, and Chief Engineer content plus retained Mountains encounter compositions, but does not make Mountains startable.
-- Package 2 removes only the Farm-specific assumptions in reusable Loot/Boss/Exit resolution that prevent a second authored region from using the accepted pipeline.
+- Package 1 established canonical Shieldbearer, Skirmisher, Sharpshooter, and Chief Engineer content plus retained Mountains encounter compositions through the shared deterministic combat engine; it was approved at `4adff479b4c10af40057f1f93088c0930e5894d8`.
+- Package 2 removes only the Farm-specific assumptions in reusable Boss reward projection and terminal Exit resolution that prevent a second authored region from using the accepted pipeline. Loot and Rest remain unchanged unless a concrete second-region requirement proves otherwise.
 - Package 3 supplies the actual Mountains fixed graph and its authored event/reward identities, using the generalized Package 2 path. It must not invent Swamps progression merely to provide a boss reward.
 - Package 4 replaces the current `startingRegionId()`-only start gate with authoritative unlock-aware availability, then gives Camp a content-driven region choice. Active-run resume remains region-agnostic.
 - Package 5 proves the full second-region path and checks for remaining Farm-specific architecture leaks.
