@@ -2,117 +2,124 @@
 
 ## Milestone 6 - Prove Region Generalization
 
-### Milestone 6 Package 1 - Mountains authored combat foundation + deterministic kobold adaptation
+### Milestone 6 Package 2 - Region-neutral Boss reward + terminal Exit resolution contracts
 
 **Status:** In Progress
 **Priority:** High
 
-#### Current Architectural Review Finding
-
-The Taunting Guard, Shield Set, and Dumb Luck corrections at `59c0b441ef36150fcf6d4507ca7f66215feaee09` are accepted. One Patient Aim semantic mismatch remains:
-
-- **Patient Aim must use the established wounded threshold of 30% HP or lower.** The retained deterministic resolver's `isWounded()` definition is `current_hp <= floor(max_hp * 0.3)`. The new vNext `TargetResolver` currently awards the Patient Aim wounded weight whenever `current_hp < max_hp`, so even a unit at 99% HP is treated as wounded. The new focused test encodes a 50/100 target as wounded, which locks in the wrong behavior. Correct the shared targeting rule to the established <=30% threshold and update the focused test to prove both sides of the boundary (for example, 30% qualifies and 31% does not). Keep the existing marked/backline/previous-target weights and deterministic tie behavior unchanged.
-
-No other implementation change is requested. Keep Package 1 In Progress and do not promote Package 2.
-
 #### Problem
 
-Milestone 5 proved the full Farm loop and its manual UAT passed on 2026-09-19. Milestone 6 must now prove that the accepted region/run/combat architecture is not Farm-specific.
+Package 1 established canonical Mountains/kobold combat and is approved at `4adff479b4c10af40057f1f93088c0930e5894d8`.
 
-The first package establishes canonical vNext Mountains combat content before making Mountains startable. Do not add Camp region selection or live Mountains run entry yet.
+The reusable node-resolution path still contains Farm-only assumptions that prevent a second region from using the same Boss/Exit lifecycle:
+- `BossNodeResolutionHandler` requires `event.farm_boss_completed`;
+- Boss reward projection requires exactly 16 XP plus the Mountains unlock;
+- the strict frontend Boss contract and BattleScene summary are Mountains-specific;
+- `ExitNodeResolutionHandler` requires `region.the_farm`, node index `4`, and `isTerminalFarmExit()`;
+- RunScene's Exit progress text names the Farm.
+
+Loot and Rest are already sufficiently region-neutral for the current second-region requirement. Do not refactor them merely for symmetry.
 
 #### Goal
 
-Create the canonical authored combat vocabulary for `region.mountains` and adapt the established kobold behavior to the deterministic vNext combat engine without introducing a parallel combat path.
+Remove only the Farm-specific assumptions required for a second authored region to reuse the accepted Boss reward and successful terminal Exit pipeline.
 
-Canonical enemy roster:
-- `enemy_unit_type.kobold_skirmisher` — backline grunt; HP 18, Attack 6, Defense 2, Precision 6, Resolve 4.
-- `enemy_unit_type.kobold_shieldbearer` — frontline grunt; HP 28, Attack 3, Defense 6, Precision 4, Resolve 6.
-- `enemy_unit_type.kobold_sharpshooter` — backline elite; HP 22, Attack 9, Defense 3, Precision 7, Resolve 4.
-- `enemy_unit_type.kobold_warchief` — player-facing name **Kobold Chief Engineer**; backline boss; HP 42, Attack 11, Defense 4, Precision 7, Resolve 5.
+Do **not** author the Mountains run graph/events/rewards yet. That is Package 3.
 
-Use the existing kobold visual assets. Preserve the legacy `kobold_warchief` implementation identity for now; do not create a migration solely to rename that stable key.
+#### Backend - Boss
 
-#### Behavioral evidence
+Keep the existing `run_node_type.boss` path and the existing Combat -> reward transaction ownership.
 
-The retained prototype/docs are behavior evidence, not architecture authority:
-- `documentation/03-content/03-enemy-types.md`
-- `documentation/03-content/05-enemy-abilities.md`
-- `backend/migrations/54_rebalance_kobolds_frogmen.sql`
-- `backend/migrations/55_rebalance_mountains_swamps_encounters.sql`
+After a victorious Boss:
+- require a valid persisted stable `event.*` identity, but do not require the Farm event ID;
+- finalize/apply that authored event through the existing `RewardApplicationService`;
+- preserve participating-unit ownership/context validation;
+- project only player-safe finalized facts needed by the client;
+- support the reward types required by Farm and Mountains in this milestone: `unit_xp` and `unlock`;
+- do not hardcode XP amount, reward key names, Mountains, or a required unlock;
+- require `unit_xp` grants to target participating units and report the actual authored amount/transitions;
+- project unlock grants generically by stable `unlock_id` plus `granted | already_owned`;
+- return deterministic ordering for unit XP transitions and unlock entries;
+- successful Boss rewards may contain XP with zero unlock entries;
+- reject unsupported Boss reward types rather than silently dropping them;
+- a failed Boss still returns `rewards: null` and applies no reward event.
 
-Preserve the established role identities:
-- Skirmisher: `bomb_toss`, `basic_attack_ranged`, `sharpshooter`.
-- Shieldbearer: `basic_attack_melee`, `taunting_guard`, `shield_set`, `wall_of_scrap`, `unmoving`.
-- Sharpshooter: `basic_attack_ranged`, `disarming_shot`, `aimed_shot`, `sharpshooter`, `clean_shot`.
-- Chief Engineer: `bomb_toss`, `basic_attack_ranged`, `aimed_shot`, `sharpshooter`, `patient_aim`, `dumb_luck`.
+Use a generic player-safe response shape:
 
-Adapt these through the accepted vNext ability/content/engine boundaries. Reuse existing deterministic ability semantics where they already exist. Do not revive the prototype combat service or introduce a second resolver.
+`rewards: { unit_xp: [...], unlocks: [...] }`
 
-#### Authored Mountains encounters
+Each XP transition remains:
+`{ unit_id, amount, level_before, xp_before, level_after, xp_after }`
 
-Add canonical Mountains encounter definitions using these retained compositions:
+Each unlock remains:
+`{ unlock_id, outcome }`
 
-1. **Kobold Warband I**
-   - Shieldbearer at `(0,1)`
-   - Skirmisher at `(2,0)`
-   - Skirmisher at `(2,2)`
+Do not expose event IDs, reward definition IDs, probability/roll facts, handler config, or other authored-private data.
 
-2. **Kobold Warband II**
-   - Shieldbearer at `(0,1)`
-   - Skirmisher at `(2,0)`
-   - Sharpshooter at `(2,2)`
+#### Backend - Exit
 
-3. **Kobold Warband III**
-   - Shieldbearer at `(0,0)`
-   - Shieldbearer at `(0,2)`
-   - Skirmisher at `(2,0)`
-   - Sharpshooter at `(2,2)`
+Generalize Exit from Farm identity to structural terminal identity:
+- node type must be `run_node_type.exit`;
+- Exit must carry no encounter or event;
+- do not require a specific region ID;
+- do not require a specific node index;
+- preserve the accepted topology invariant needed by the current run model: zero outgoing edges, exactly one incoming edge, and that parent is a completed Boss node;
+- rename/refactor the repository predicate so it is not Farm-named;
+- completion still owns the same active run, sets `status = completed` + `ended_at`, unlocks no child nodes, increments revision once, and retains exact idempotent replay.
 
-4. **Kobold Command**
-   - Shieldbearer at `(0,1)`
-   - Sharpshooter at `(1,0)`
-   - Skirmisher at `(2,2)`
-   - Chief Engineer at `(2,1)`
+A structurally incoherent Exit must still fail atomically.
 
-Use stable vNext encounter IDs under the Mountains namespace and `region_id: "region.mountains"`.
+#### Frontend contract/presentation
 
-#### Architecture constraints
+Generalize the strict Boss parser/type to the backend shape:
+- `rewards.unit_xp` is a deterministic list of positive authored XP transitions; do not require amount `16`;
+- `rewards.unlocks` is a deterministic list of `{ unlock_id, outcome }`; it may be empty;
+- reject duplicate/unsorted identities, invalid outcomes, invalid XP transitions, private extra fields, or rewards on a failed Boss;
+- retain strict battle/run/node/revision semantics.
 
-- JSON in Git remains canonical authored gameplay content.
-- PHP remains authoritative for combat.
-- Reuse the existing CombatSnapshotAssembler / deterministic vNext engine / playback model.
-- Kobold-specific abilities may be server-only; do not leak hidden handler configuration into the browser projection.
-- Do not create database-authored enemy/ability configuration for vNext.
-- Do not add Mountains run generation, rewards, events, region-start authorization, Camp selection, or Swamps unlocking in this package.
-- Do not implement Lizard Kin; kin restoration remains a later milestone.
+Make BattleScene Boss reward presentation generic:
+- show actual XP amounts/level changes;
+- summarize generic unlock grants without depending on a Mountains-specific property;
+- do not derive progression state locally.
+
+Make RunScene's Exit progress copy region-neutral. The terminal bootstrap reconciliation, interaction lock, GET-only retry after committed Exit, and Camp transition must remain unchanged.
 
 #### Required tests
 
-Prove:
-- all four enemy definitions validate with the exact canonical stats/roles/abilities above;
-- all required kobold ability definitions resolve through supported deterministic vNext handlers;
-- all four Mountains encounters validate and assemble with the exact authored formations;
-- representative combat for each encounter is deterministic for identical authoritative input;
-- Chief Engineer is treated as Boss content without a Farm-specific engine branch;
-- playback/snapshot data carries the correct stable enemy/art identities;
-- server-only combat configuration remains absent from the generated client projection;
-- existing Farm combat remains unchanged.
+Backend:
+- current Farm Boss still grants exactly its authored 16 XP and `unlock.region.mountains`, now through the generic projection;
+- a valid Boss reward result with XP and no unlock is accepted by the generic projection path;
+- invalid/missing event identity fails atomically;
+- unsupported Boss reward type fails atomically rather than being omitted;
+- failed Boss applies no rewards;
+- structurally valid non-Farm Exit can complete a run without region/index checks;
+- Exit with outgoing children, invalid incoming topology, incomplete/non-Boss parent, event, or encounter fails atomically;
+- same-key Exit replay and different-key conflict remain unchanged;
+- Farm Boss/Exit regression remains green.
+
+Frontend:
+- generic Boss parser accepts Farm's 16-XP + Mountains unlock result;
+- parser also accepts a different positive XP amount with `unlocks: []`;
+- rejects hardcoded/private/duplicate/incoherent reward facts;
+- BattleScene generic summary handles XP-only and XP+unlock Boss results;
+- Exit terminal reconciliation/retry tests remain green;
+- RunScene contains no Farm-specific Exit message.
 
 #### Verification
 
-Run `npm run verify:package` plus focused content/combat tests for the new Mountains definitions. If DB-backed tests are introduced or affected, run the applicable Docker backend gate and report skipped counts.
+Run `npm run verify:package` plus focused Boss/Exit backend/frontend tests. If DB-backed integration coverage is touched, run the applicable Docker backend gate and report skipped counts.
 
 #### Out of scope
 
-- Mountains run graph;
-- starting a Mountains run;
-- Camp region selector;
-- Mountains Loot/Rest/Boss rewards or Exit lifecycle;
+- Mountains run-generation definition;
+- Mountains events/reward definitions;
+- Mountains Loot/Rest/Boss tuning;
+- Camp region selector or run-start authorization;
 - Swamps unlock;
 - Lizard Kin;
-- broader visual/UI overhaul.
+- unrelated reward-system expansion;
+- broad visual/UI work.
 
 #### Completion
 
-Implement only Package 1. Leave it **In Progress** for architectural review and do not promote Package 2 or make Mountains playable.
+Implement only Package 2. Leave it **In Progress** for architectural review. Do not promote Package 3 or make Mountains startable.
