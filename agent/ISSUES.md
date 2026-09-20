@@ -7,7 +7,7 @@
 **Status:** In Progress
 **Priority:** High
 
-#### Goal
+#### Problem
 
 Close the Milestone 5 technical slice by proving the complete persisted Farm path works coherently on a fresh vNext database:
 

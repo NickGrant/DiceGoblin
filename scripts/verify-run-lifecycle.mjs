@@ -54,6 +54,19 @@ async function cursorAt(page, x, y) {
   return canvas.evaluate((element) => element.style.cursor);
 }
 
+async function rightmostPointerIn(page, xStart, xEnd, yStart, yEnd) {
+  const canvas = page.locator('.game-host__mount canvas'); const bounds = await canvas.boundingBox();
+  assert(bounds);
+  for (let y = yStart; y <= yEnd; y += 20) {
+    for (let x = xStart; x >= xEnd; x -= 30) {
+      await page.mouse.move(bounds.x + x * bounds.width / 1600, bounds.y + y * bounds.height / 900);
+      await page.waitForTimeout(5);
+      if (await canvas.evaluate((element) => element.style.cursor) === 'pointer') return { x, y };
+    }
+  }
+  return null;
+}
+
 const browser = await chromium.launch();
 try {
   const requests = [];
@@ -129,8 +142,9 @@ try {
   assert.equal(countApp('PUT', `/api/v1/squads/${participatingSquadId}`), 0);
   await click(page, 120, 825); await screen(page, 'warband');
   await click(page, 290, 297); await click(page, 300, 405); await screen(page, 'unit-configuration');
+  await page.waitForSelector('.game-host__mount[data-unit-configuration-ready="true"]');
   assert.equal(await page.locator('input[data-unit-name-input="true"]').isEnabled(), true);
-  assert.notEqual(await cursorAt(page, 1490, 286), 'pointer', 'locked loadout Remove must not advertise action');
+  assert.equal(await page.locator('.game-host__mount').getAttribute('data-unit-loadout-locked'), 'true');
   await click(page, 1490, 286); await click(page, 558, 827);
   assert.equal(countApp('PUT', `/api/v1/units/${participantUnitId}/loadout`), 0);
   await click(page, 120, 75); await screen(page, 'warband');
@@ -221,8 +235,11 @@ try {
     && response.request().method() === 'PUT');
   await click(page, 340, 825); assert.equal((await squadSave).status(), 200); await screen(page, 'warband');
   await click(page, 290, 297); await click(page, 300, 405); await screen(page, 'unit-configuration');
-  assert.equal(await cursorAt(page, 1490, 286), 'pointer', 'loadout must unlock after Abandon');
-  await click(page, 1490, 286);
+  await page.waitForSelector('.game-host__mount[data-unit-configuration-ready="true"]');
+  assert.equal(await page.locator('.game-host__mount').getAttribute('data-unit-loadout-locked'), 'false');
+  const loadoutAction = await rightmostPointerIn(page, 1580, 900, 270, 400);
+  assert(loadoutAction, 'loadout must unlock after Abandon');
+  await click(page, loadoutAction.x, loadoutAction.y);
   const loadoutSave = page.waitForResponse((response) => new URL(response.url()).pathname === `/api/v1/units/${participantUnitId}/loadout`
     && response.request().method() === 'PUT');
   await click(page, 558, 827); assert.equal((await loadoutSave).status(), 200);

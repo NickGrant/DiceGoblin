@@ -86,7 +86,7 @@ try {
   assert.equal(count('POST', exactResolvePath), 1);
   assert.equal(count('GET', `/api/v1/battles/${battleId}/playback`), 1);
   const authoritativeResolveRequest = appRequests().find((request) => request.method === 'POST' && request.path === exactResolvePath);
-  assert.match(authoritativeResolveRequest?.key ?? '', /^combat-node:/);
+  assert.match(authoritativeResolveRequest?.key ?? '', /^run-node:/);
   assert.equal(authoritativeResolveRequest?.body, null, 'combat resolution POST must not contain a request body');
   const resolveIndex = appRequests().findIndex((request) => request.method === 'POST' && request.path === exactResolvePath);
   assert.deepEqual(appRequests().slice(resolveIndex + 1).filter((request) => request.path.startsWith('/api/'))

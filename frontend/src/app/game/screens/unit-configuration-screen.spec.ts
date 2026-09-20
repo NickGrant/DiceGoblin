@@ -91,6 +91,7 @@ describe('UnitConfigurationScreen', () => {
 
   it('preserves detail, rename/loadout drafts, slot selection, and dirty state across reflow', async () => {
     const { screen, parent } = await readyHarness();
+    expect(parent.dataset['unitLoadoutLocked']).toBe('false');
     screen.draft!.setName('Responsive Grub'); screen.addAbility('ability.smash'); screen.selectSlot('ability.smash', 0); screen.assignDie('22');
     const compact = calculateRuntimeViewport({ cssWidth: 844, cssHeight: 390, safeInsetsCss: { top: 0, right: 0, bottom: 0, left: 0 }, coarsePointer: true, noHover: true });
     const wide = calculateRuntimeViewport({ cssWidth: 2560, cssHeight: 1080, safeInsetsCss: { top: 0, right: 0, bottom: 0, left: 0 }, coarsePointer: false, noHover: false });
@@ -161,6 +162,7 @@ describe('UnitConfigurationScreen', () => {
     const { screen, store, client, input, parent, scene } = await readyHarness();
     store.hydrateBootstrap({ ...bootstrap(), active_run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active' } });
     screen.reflow(new RuntimeViewport().snapshot);
+    expect(parent.dataset['unitLoadoutLocked']).toBe('true');
     const original = screen.draft!.loadout.map((entry) => [entry.ability.id, [...entry.diceInstanceIds]]);
     screen.addAbility('ability.smash'); screen.removeAbility('ability.bash'); screen.moveAbility('ability.bash', 1);
     screen.selectSlot('ability.bash', 0); screen.assignDie('22');

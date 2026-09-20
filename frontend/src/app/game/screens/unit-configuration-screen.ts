@@ -481,6 +481,9 @@ export class UnitConfigurationScreen implements GameSceneScreen {
 
   private publishReadyState(ready: boolean): void {
     const parent = (this.scene.sys as Phaser.Scenes.Systems & { game?: Phaser.Game }).game?.canvas.parentElement;
-    if (parent) parent.dataset['unitConfigurationReady'] = ready ? 'true' : 'false';
+    if (parent) {
+      parent.dataset['unitConfigurationReady'] = ready ? 'true' : 'false';
+      parent.dataset['unitLoadoutLocked'] = ready && this.loadoutLocked ? 'true' : 'false';
+    }
   }
 }
