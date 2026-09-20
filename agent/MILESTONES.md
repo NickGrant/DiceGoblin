@@ -2,12 +2,12 @@
 
 Read this for sequencing/planning or when closing/promoting an execution package. Normal implementation should use `agent/ISSUES.md` instead.
 
-## Milestone 5 - Complete Farm
+## Milestone 6 - Prove Region Generalization
 
 **Status:** Active
 
 ### Related Issues
-- Milestone 5 Package 8 - Focused manual UAT
+- Milestone 6 Package 1 - Mountains authored combat foundation + deterministic kobold adaptation
 
 Milestone 1 - Walking Skeleton is complete and passed manual user UAT.
 
@@ -15,54 +15,53 @@ Milestone 2 - Warband is complete and passed manual user UAT on 2026-09-13.
 
 Milestone 3 - Enter Farm is complete and passed manual user UAT on 2026-09-15.
 
-Milestone 4 - Combat is complete and passed manual user UAT on 2026-09-17. Integrated technical closure was approved at `16288bff6223cdddee56b5cbf359e607c07dc81e`. Manual UAT exposed one persistent-scene Replay return-state defect; the focused correction at `dcca26823ca035d3d53df77024fb5393e611307f` resets ephemeral BattleScene activation state and preserves zero-reroll Replay behavior. The focused recheck passed.
+Milestone 4 - Combat is complete and passed manual user UAT on 2026-09-17. Integrated technical closure was approved at `16288bff6223cdddee56b5cbf359e607c07dc81e`. Manual UAT exposed one persistent-scene Replay return-state defect; the focused correction at `dcca26823ca035d3d53df77024fb5393e611307f` passed the focused recheck.
 
-The major game-wide visual/UI overhaul remains intentionally deferred. Milestone 5 completes the Farm gameplay loop before final presentation fidelity.
+Milestone 5 - Complete Farm is complete and passed manual user UAT on 2026-09-19. Integrated technical closure was approved at `9825a62f567fca39445674fc7fc71d3f2038c253`; focused manual UAT completed the full Combat -> Loot -> Rest -> Mudking Boss -> Exit -> Camp path with no issues.
+
+The major game-wide visual/UI overhaul remains intentionally deferred.
 
 ### Outcome
-Complete the currently persisted Farm path as a coherent authoritative run:
 
-`Combat -> Loot -> Rest -> Mudking Boss -> Exit -> successful terminal run`
+Prove that the accepted region/run architecture generalizes beyond the Farm by making the unlocked Mountains and kobolds playable through the same authored-content, run-generation, authoritative-resolution, playback, persistence, and Phaser presentation boundaries.
 
-Milestone 5 also establishes the reusable event/reward path required by that flow:
-- reward-bearing gameplay facts resolve once into immutable finalized event results;
-- grants apply transactionally with no ordinary claim step;
-- participating units can receive XP through the reward model;
-- permanent region access is a unique unlock reward;
-- Mudking completion awards the Mountains unlock directly rather than creating a separate generic Farm-completed flag;
-- Exit is normal node resolution and owns successful run termination after the boss path has been cleared.
+Milestone 6 is successful when:
+- Mountains is authored canonically in vNext rather than read from prototype DB content;
+- the existing `unlock.region.mountains` controls availability;
+- an unlocked player can select and start Mountains from Camp;
+- Mountains generates and persists through the same run architecture as Farm;
+- kobold Combat/Boss encounters use the same deterministic combat/playback pipeline;
+- reusable node resolution no longer depends on Farm-only event/region/index assumptions;
+- completion returns cleanly to Camp through the existing terminal reconciliation path;
+- Mountains does not require a parallel API, repository layer, combat service, or Phaser scene.
 
-Mountains gameplay itself remains Milestone 6. Milestone 5 may expose that Mountains is unlocked, but it does not need to implement a Mountains run.
+Swamps, Lizard Kin restoration, Wrong Machine recovery, economy breadth, and final visual polish remain later milestones.
 
 ### Architectural Direction
-- Authored events and reward definitions live in Git JSON and use stable IDs.
-- An event records a successful gameplay fact. Attempting a UI action does not itself create rewards.
-- Reward probability is authored and finalized exactly once. Reconnect/retry/replay never rerolls rewards.
-- Finalized reward/event records are operational correctness records, not a general event-sourcing architecture.
-- Reward grants are additive ownership/progression: currencies, XP, owned assets/collections, and permanent unlocks. Damage, healing, node state, run lifecycle, and other mutations remain effects/domain transitions.
-- Ordinary finalized rewards are applied in the same authoritative transaction as their owning gameplay command. There is no battle/reward claim endpoint.
-- Unique rewards such as Mountains access resolve to no additional grant if already owned; they are not rerolled or substituted.
-- Permanent region access is represented by `user_unlocks`, not by a second region-completion history table.
-- Unit XP remains on `unit_instances.xp`. Package 2 establishes XP as progress within the current level: advancing from level `L` to `L+1` costs `100 × L` XP; excess carries through multiple levels; unit tier/type does not change the curve; promotion does not reset level/XP; level-up does not heal current run HP; no separate max-level cap is enforced by the Milestone 5 resolver.
-- PHP remains authoritative. Phaser presents finalized effects/rewards and reconciles server state; it does not roll rewards or apply progression locally.
-- Fresh-baseline rules remain in force: update `vnext_baseline.sql`, do not create a migration chain for current prototype/runtime data.
+
+- Generalize by removing concrete Farm assumptions only where Mountains proves they are false; do not build speculative multi-region abstractions.
+- JSON in Git remains canonical authored gameplay content.
+- Region availability is authoritative server state: the starting region is available by rule; later regions require their stable unlock.
+- A playable region must point to validated authored run generation.
+- Continue using the same `POST /api/v1/runs`, current-run query, node-resolution endpoint, battle persistence/playback, and terminal reconciliation model.
+- Prefer content-driven region/event/reward identities over region-specific handler classes.
+- Unique future-region rewards are not invented merely to complete Mountains. Milestone 6 does not need to unlock Swamps.
+- Fresh-baseline rules remain in force: update `vnext_baseline.sql` rather than creating a prototype migration chain.
 
 ### Package Queue
-1. ~~Reward/event authored model + persistence foundation.~~ Complete and architecturally approved at `a7392f9f54820704feaaeec6cfddad5f6ae440ed`.
-2. ~~Finalized reward results + transactional grant application (currency, unit XP, permanent unlock).~~ Complete and architecturally approved at `0b41c7337ff490315826f9211d5a3f7486ae8be3`.
-3. ~~Farm Loot + Rest authoritative node resolution and RunScene interaction/result flow.~~ Complete and architecturally approved at `03f2e361e9cfc23eeb2ed54f584f5678f0ac6696` after focused semantic-retry correction.
-4. ~~Mudking authored boss content + deterministic boss-combat adaptation.~~ Complete and architecturally approved at `d2a1f9933f2c5e4d7e60a6c740bc0eedf9ed8d02`.
-5. ~~Boss-node authoritative resolution + finalized Farm boss rewards/XP + Mountains unlock.~~ Complete and architecturally approved at `a466d3a226ff2ad1b7edee33fda2ca8333466def`.
-6. ~~Exit-node resolution + successful run termination + authoritative Camp/RunScene/unlock reconciliation.~~ Complete and architecturally approved at `d46f09a514c7401c3e39bf14c075b0309f62566b` after focused MySQL verification on branch state `5fe5a2400399893841fcf03f55f31a1d5d318346`.
-7. ~~Complete-Farm integrated verification/closure.~~ Complete and architecturally approved at `9825a62f567fca39445674fc7fc71d3f2038c253`.
-8. **Focused manual UAT.** Current; Milestone 6 is not promoted until it passes.
+
+1. **Mountains authored combat foundation + deterministic kobold adaptation.** Current.
+2. Region-neutral reward/node-resolution generalization required by a second region.
+3. Mountains authored run graph/events/rewards + terminal lifecycle.
+4. Unlock-aware multi-region run start + Camp region selection/resume.
+5. Mountains integrated verification/closure.
+6. Focused manual UAT; Milestone 7 is not promoted until it passes.
 
 ### Sequencing Notes
-- Package 1 established the server-only `unlock`/`event`/`reward_definition` authored contracts, `unlock.region.mountains`, minimal `user_unlocks`/`resolved_events` storage, real bootstrap unlock reads, and an authored-but-unplayable `region.mountains` identity. It did not grant Mountains or add Mountains run generation.
-- Package 2 established version-1 immutable finalized reward results, cryptographic production rolls, exact currency/XP/unlock application inside a caller-owned transaction, replay without RNG/regrant, and the canonical `100 × current level` XP curve. It did not attach rewards to a live Farm node.
-- Package 3 established shared authoritative Combat/Loot/Rest node resolution, persisted authored Loot event identity, deterministic 8-Teeth Loot through the reward pipeline, direct full-recovery Rest, strict response discrimination, authoritative current-run reconciliation, and retry identity preservation across ambiguous or semantically mismatched responses. It was approved at `03f2e361e9cfc23eeb2ed54f584f5678f0ac6696`.
-- Package 4 established canonical Mudking/Mud Slam/boss encounter content, persisted the Boss encounter identity, adapted Mud Slam through the shared deterministic vNext combat rules, retained Mudking battle art, and proved the Boss remained unsupported/non-mutating at the live resolution boundary. It was approved at `d2a1f9933f2c5e4d7e60a6c740bc0eedf9ed8d02`.
-- Package 5 extended authoritative node resolution to Boss and attached `event.farm_boss_completed` transactionally. The accepted vNext Farm boss reward is exactly 16 XP per participating unit plus the permanent Mountains unlock; no prototype random unit/die/item or variable Teeth reward was revived. Boss victory unlocks only its persisted direct child (Exit). It was approved at `a466d3a226ff2ad1b7edee33fda2ca8333466def` after the frontend current-run Boss contract correction.
-- Package 6 resolves Exit as a normal node, terminates the run successfully, clears active-run locks through authoritative reconciliation, and presents the resulting progression without inventing a claim lifecycle. It was approved at `d46f09a514c7401c3e39bf14c075b0309f62566b` after focused MySQL verification proved the Exit transaction and Docker backend suite.
-- Package 7 completed integrated technical closure and was approved at `9825a62f567fca39445674fc7fc71d3f2038c253`. Package 8 is focused manual UAT.
-- Do not begin Mountains implementation, economy breadth, Academy, Wrong Machine, objectives, or general visual-overhaul work inside Milestone 5.
+
+- Package 1 establishes canonical Shieldbearer, Skirmisher, Sharpshooter, and Chief Engineer content plus retained Mountains encounter compositions, but does not make Mountains startable.
+- Package 2 removes only the Farm-specific assumptions in reusable Loot/Boss/Exit resolution that prevent a second authored region from using the accepted pipeline.
+- Package 3 supplies the actual Mountains fixed graph and its authored event/reward identities, using the generalized Package 2 path. It must not invent Swamps progression merely to provide a boss reward.
+- Package 4 replaces the current `startingRegionId()`-only start gate with authoritative unlock-aware availability, then gives Camp a content-driven region choice. Active-run resume remains region-agnostic.
+- Package 5 proves the full second-region path and checks for remaining Farm-specific architecture leaks.
+- Package 6 is manual UAT. Do not begin Milestone 7 economy/inventory work until it passes.
