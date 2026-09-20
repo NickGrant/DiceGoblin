@@ -77,8 +77,8 @@ final class BossNodeResolutionControllerTest extends IntegrationTestCase
     $this->assertSame(['boss', 'victory', 'active'], [$data['resolution_type'], $data['battle']['outcome'], $data['run']['status']]);
     $this->assertSame([(string)$exitId], $data['newly_available_node_ids']);
     $this->assertSame($revision + 1, $data['player_revision']);
-    $this->assertSame('region.mountains', $data['rewards']['mountains']['region_id']);
-    $this->assertSame($preOwned ? 'already_owned' : 'granted', $data['rewards']['mountains']['outcome']);
+    $this->assertEquals([['unlock_id' => 'unlock.region.mountains',
+      'outcome' => $preOwned ? 'already_owned' : 'granted']], $data['rewards']['unlocks']);
     $this->assertSame(array_map('strval', array_column($unitsBefore, 'id')),
       array_column($data['rewards']['unit_xp'], 'unit_id'));
     $this->assertSame(array_fill(0, count($unitsBefore), 16), array_column($data['rewards']['unit_xp'], 'amount'));
@@ -90,7 +90,7 @@ final class BossNodeResolutionControllerTest extends IntegrationTestCase
     $this->assertSame('applied', $this->scalar("SELECT `status` FROM `resolved_events` WHERE `user_id` = ? AND `event_id` = 'event.farm_boss_completed'", [$userId]));
     $this->assertSame(['completed', 'available'], array_column($this->rows(
       'SELECT `status` FROM `run_nodes` WHERE `id` IN (?, ?) ORDER BY `node_index`', [$bossId, $exitId]), 'status'));
-    foreach (['event.farm_boss_completed', 'reward_definition.', 'unlock.region.mountains', 'probability', 'roll', 'run_node:'] as $private) {
+    foreach (['event.farm_boss_completed', 'reward_definition.', 'probability', 'roll', 'run_node:'] as $private) {
       $this->assertStringNotContainsString($private, json_encode($data, JSON_THROW_ON_ERROR));
     }
 
@@ -225,8 +225,21 @@ final class BossNodeResolutionControllerTest extends IntegrationTestCase
       'missing encounter' => ['encounter_id', null],
       'unknown encounter' => ['encounter_id', 'encounter.missing'],
       'missing event' => ['event_id', null],
-      'wrong event' => ['event_id', 'event.farm_loot_completed'],
+      'malformed event' => ['event_id', 'reward_definition.farm_boss_completion'],
     ];
+  }
+
+  public function testBossEventWithUnsupportedRewardTypeRollsBackAtomically(): void
+  {
+    [$userId, , $runId, $bossId] = $this->bossFixture('boss-unsupported-reward');
+    $this->pdo?->prepare("UPDATE `run_nodes` SET `event_id` = 'event.farm_loot_completed' WHERE `id` = ?")
+      ->execute([$bossId]);
+    $before = $this->stateSnapshot($userId, $runId);
+
+    $response = $this->resolve($userId, $runId, $bossId, 'boss-unsupported-reward-key');
+
+    $this->assertSame([500, 'run_data_integrity_error'], [$response['status'], $response['body']['error']['code'] ?? null]);
+    $this->assertSame($before, $this->stateSnapshot($userId, $runId));
   }
 
   public function testInjectedPostCombatAndPostRewardFailuresRollBackParentTransaction(): void

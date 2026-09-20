@@ -16,13 +16,11 @@ final class ExitNodeResolutionHandler implements RunNodeResolutionHandler
   {
     $runId = (int)($run['id'] ?? 0);
     $nodeId = (int)($node['id'] ?? 0);
-    if (($run['region_id'] ?? null) !== 'region.the_farm'
-      || ($node['node_type_id'] ?? null) !== $this->nodeTypeId()
-      || (int)($node['node_index'] ?? -1) !== 4
+    if (($node['node_type_id'] ?? null) !== $this->nodeTypeId()
       || ($node['encounter_id'] ?? null) !== null
       || ($node['event_id'] ?? null) !== null
-      || !$this->nodes->isTerminalFarmExit($runId, $nodeId)) {
-      throw new RunNodeResolutionIntegrityException('Persisted Farm Exit identity is invalid.');
+      || !$this->nodes->isTerminalExit($runId, $nodeId)) {
+      throw new RunNodeResolutionIntegrityException('Persisted terminal Exit identity is invalid.');
     }
     return new RunNodeResolutionOutcome('exit', [], false, true);
   }

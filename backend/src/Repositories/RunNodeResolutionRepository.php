@@ -91,7 +91,7 @@ final class RunNodeResolutionRepository
     if ($stmt->rowCount() !== 1) throw new RuntimeException('Run could not be completed.');
   }
 
-  public function isTerminalFarmExit(int $runId, int $nodeId): bool
+  public function isTerminalExit(int $runId, int $nodeId): bool
   {
     $stmt = $this->pdo->prepare("SELECT
         (SELECT COUNT(*) FROM `run_edges` WHERE `run_id` = ? AND `from_node_id` = ?) AS `outgoing_count`,

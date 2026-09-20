@@ -464,7 +464,7 @@ export class RunScene extends RuntimeScene {
     this.nodeSyncIdentity = null;
     this.nodeAttempt.begin(run.id, node.id);
     this.nodeMessage = node.nodeTypeId === 'run_node_type.loot' ? 'Collecting loot authoritatively…' : 'Resting authoritatively…';
-    if (node.nodeTypeId === 'run_node_type.exit') this.nodeMessage = 'Leaving the Farm safely...';
+    if (node.nodeTypeId === 'run_node_type.exit') this.nodeMessage = 'Leaving the region safely...';
     this.render();
     const expectedType = node.nodeTypeId === 'run_node_type.loot' ? 'loot'
       : node.nodeTypeId === 'run_node_type.rest' ? 'rest' : 'exit';
@@ -875,7 +875,11 @@ export class BattleScene extends RuntimeScene {
   get bossRewardSummary(): string | null {
     const retained = this.runtimeStartup.battlePresentation.resolution;
     if (this.controller?.snapshot.state !== 'complete' || retained?.resolutionType !== 'boss' || !retained.rewards) return null;
-    return `${retained.rewards.unitXp.map((xp) => `Unit ${xp.unitId}: +${xp.amount} XP${xp.levelAfter > xp.levelBefore ? ` (Level ${xp.levelAfter})` : ''}`).join(' · ')} · Mountains ${retained.rewards.mountains.outcome === 'granted' ? 'unlocked' : 'already owned'}`;
+    const xp = retained.rewards.unitXp.map((transition) =>
+      `Unit ${transition.unitId}: +${transition.amount} XP${transition.levelAfter > transition.levelBefore ? ` (Level ${transition.levelAfter})` : ''}`);
+    const unlocks = retained.rewards.unlocks.map((unlock) =>
+      `${unlock.unlockId} ${unlock.outcome === 'granted' ? 'unlocked' : 'already owned'}`);
+    return [...xp, ...unlocks].join(' · ');
   }
 
   retryPlayback(): void { if (this.loadState === 'retryable' || this.loadState === 'integrity-error') void this.loadPlayback(); }

@@ -55,17 +55,31 @@ describe('run node resolution contracts', () => {
   it('parses strict player-safe Boss progression and rejects private or incoherent rewards', () => {
     const boss = { ok: true, data: { ...envelope().data, resolution_type: 'boss', rewards: {
       unit_xp: [{ unit_id: '21', amount: 16, level_before: 1, xp_before: 90, level_after: 2, xp_after: 6 }],
-      mountains: { region_id: 'region.mountains', outcome: 'granted' },
+      unlocks: [{ unlock_id: 'unlock.region.mountains', outcome: 'granted' }],
     } } };
     const parsed = parseRunNodeResolutionEnvelope(boss);
     expect(parsed.resolutionType).toBe('boss');
     if (parsed.resolutionType !== 'boss' || !parsed.rewards) throw new Error('Expected Boss rewards.');
     expect(parsed.rewards.unitXp[0]).toEqual(jasmine.objectContaining({ unitId: '21', amount: 16, levelAfter: 2, xpAfter: 6 }));
-    expect(parsed.rewards.mountains).toEqual({ regionId: 'region.mountains', outcome: 'granted' });
+    expect(parsed.rewards.unlocks).toEqual([{ unlockId: 'unlock.region.mountains', outcome: 'granted' }]);
+    const xpOnly = structuredClone(boss); xpOnly.data.rewards.unit_xp[0] = {
+      unit_id: '21', amount: 37, level_before: 2, xp_before: 80, level_after: 2, xp_after: 117,
+    }; xpOnly.data.rewards.unlocks = [];
+    const parsedXpOnly = parseRunNodeResolutionEnvelope(xpOnly);
+    expect(parsedXpOnly.resolutionType === 'boss' && parsedXpOnly.rewards?.unitXp[0].amount).toBe(37);
+    expect(parsedXpOnly.resolutionType === 'boss' && parsedXpOnly.rewards?.unlocks).toEqual([]);
     const leaked = structuredClone(boss); leaked.data.rewards.event_id = 'event.farm_boss_completed';
     expect(() => parseRunNodeResolutionEnvelope(leaked)).toThrowError(RunNodeResolutionContractError);
-    const wrongAmount = structuredClone(boss); wrongAmount.data.rewards.unit_xp[0].amount = 15;
-    expect(() => parseRunNodeResolutionEnvelope(wrongAmount)).toThrowError(RunNodeResolutionContractError);
+    const incoherentAmount = structuredClone(boss); incoherentAmount.data.rewards.unit_xp[0].amount = 15;
+    expect(() => parseRunNodeResolutionEnvelope(incoherentAmount)).toThrowError(RunNodeResolutionContractError);
+    const duplicateUnit = structuredClone(boss); duplicateUnit.data.rewards.unit_xp.push(duplicateUnit.data.rewards.unit_xp[0]);
+    expect(() => parseRunNodeResolutionEnvelope(duplicateUnit)).toThrowError(RunNodeResolutionContractError);
+    const duplicateUnlock = structuredClone(boss); duplicateUnlock.data.rewards.unlocks.push(duplicateUnlock.data.rewards.unlocks[0]);
+    expect(() => parseRunNodeResolutionEnvelope(duplicateUnlock)).toThrowError(RunNodeResolutionContractError);
+    const unsortedUnlock = structuredClone(boss); unsortedUnlock.data.rewards.unlocks.unshift({ unlock_id: 'unlock.region.zzz', outcome: 'granted' });
+    expect(() => parseRunNodeResolutionEnvelope(unsortedUnlock)).toThrowError(RunNodeResolutionContractError);
+    const privateUnlock = structuredClone(boss); privateUnlock.data.rewards.unlocks[0].roll = 1;
+    expect(() => parseRunNodeResolutionEnvelope(privateUnlock)).toThrowError(RunNodeResolutionContractError);
     const failedWithRewards = structuredClone(boss); failedWithRewards.data.battle.outcome = 'defeat';
     failedWithRewards.data.run = { id: '41', status: 'failed', ended_at: '2026-09-16T12:00:00Z' };
     expect(() => parseRunNodeResolutionEnvelope(failedWithRewards)).toThrowError(RunNodeResolutionContractError);

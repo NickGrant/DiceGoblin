@@ -22,6 +22,7 @@ final class BossNodeResolutionHandler implements RunNodeResolutionHandler
     private readonly RewardApplicationService $rewards,
     private readonly ?Closure $afterCombat = null,
     private readonly ?Closure $afterRewards = null,
+    private readonly ?BossRewardProjector $projector = null,
   ) {}
 
   public function nodeTypeId(): string { return 'run_node_type.boss'; }
@@ -36,7 +37,7 @@ final class BossNodeResolutionHandler implements RunNodeResolutionHandler
 
     try {
       $eventId = $node['event_id'] ?? null;
-      if ($eventId !== 'event.farm_boss_completed') {
+      if (!is_string($eventId) || preg_match('/^event\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/', $eventId) !== 1) {
         throw new RunNodeResolutionIntegrityException('Persisted Boss event identity is invalid.');
       }
       $runId = (int)$run['id'];
@@ -63,31 +64,7 @@ final class BossNodeResolutionHandler implements RunNodeResolutionHandler
         $contextUnits, $this->unlocks->listIdsForUser($userId, true));
       $result = $this->rewards->apply($userId, $eventId, 'run_node', 'run_node:' . $nodeId, $context);
 
-      $xp = null;
-      $mountains = null;
-      foreach ($result->entries() as $entry) {
-        if ($entry['key'] === 'xp' && $entry['reward_type'] === 'unit_xp' && $entry['outcome'] === 'granted') {
-          $grant = $entry['grant'];
-          if ($grant['amount_per_unit'] !== 16 || $grant['target_scope'] !== 'participating_units') {
-            throw new RunNodeResolutionIntegrityException('Boss XP reward is invalid.');
-          }
-          $xp = array_map(static fn(array $unit): array => [
-            'unit_id' => $unit['unit_id'], 'amount' => 16,
-            'level_before' => $unit['level_before'], 'xp_before' => $unit['xp_before'],
-            'level_after' => $unit['level_after'], 'xp_after' => $unit['xp_after'],
-          ], $grant['units']);
-        } elseif ($entry['key'] === 'mountains' && $entry['reward_type'] === 'unlock'
-          && in_array($entry['outcome'], ['granted', 'already_owned'], true)) {
-          if (($entry['grant']['unlock_id'] ?? null) !== 'unlock.region.mountains') {
-            throw new RunNodeResolutionIntegrityException('Boss unlock reward is invalid.');
-          }
-          $mountains = ['region_id' => 'region.mountains', 'outcome' => $entry['outcome']];
-        } else {
-          throw new RunNodeResolutionIntegrityException('Boss reward result is invalid.');
-        }
-      }
-      if ($xp === null || $mountains === null) throw new RunNodeResolutionIntegrityException('Boss rewards are incomplete.');
-      $facts['rewards'] = ['unit_xp' => $xp, 'mountains' => $mountains];
+      $facts['rewards'] = ($this->projector ?? new BossRewardProjector())->project($result, array_keys($ids));
       if ($this->afterRewards !== null) ($this->afterRewards)();
       return new RunNodeResolutionOutcome('boss', $facts);
     } catch (RunNodeResolutionIntegrityException $e) {

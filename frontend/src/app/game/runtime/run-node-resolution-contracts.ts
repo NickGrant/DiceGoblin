@@ -26,9 +26,9 @@ export interface BossRunNodeResolutionResult extends ResolutionBase {
   readonly terminalPlayerHp: Readonly<Record<string, number>>;
   readonly run: CombatRunNodeResolutionResult['run'];
   readonly rewards: null | {
-    readonly unitXp: readonly { readonly unitId: string; readonly amount: 16; readonly levelBefore: number;
+    readonly unitXp: readonly { readonly unitId: string; readonly amount: number; readonly levelBefore: number;
       readonly xpBefore: number; readonly levelAfter: number; readonly xpAfter: number }[];
-    readonly mountains: { readonly regionId: 'region.mountains'; readonly outcome: 'granted' | 'already_owned' };
+    readonly unlocks: readonly { readonly unlockId: string; readonly outcome: 'granted' | 'already_owned' }[];
   };
 }
 
@@ -56,6 +56,7 @@ export type RunNodeResolutionResult = BattleRunNodeResolutionResult | LootRunNod
   | ExitRunNodeResolutionResult;
 
 const positiveIdPattern = /^[1-9][0-9]*$/;
+const unlockIdPattern = /^unlock\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/;
 const utcTimestampPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
 
 function object(value: unknown, context: string): Record<string, unknown> {
@@ -74,6 +75,22 @@ function id(value: unknown, context: string): string {
 function integer(value: unknown, context: string): number {
   if (!Number.isSafeInteger(value) || (value as number) < 0) throw new RunNodeResolutionContractError(`${context} is invalid.`);
   return value as number;
+}
+function positiveInteger(value: unknown, context: string): number {
+  const result = integer(value, context);
+  if (result < 1) throw new RunNodeResolutionContractError(`${context} is invalid.`);
+  return result;
+}
+function unlockId(value: unknown): string {
+  if (typeof value !== 'string' || !unlockIdPattern.test(value)) throw new RunNodeResolutionContractError('Boss unlock ID is invalid.');
+  return value;
+}
+function validXpTransition(levelBefore: number, xpBefore: number, amount: number, levelAfter: number, xpAfter: number): boolean {
+  if (levelBefore < 1 || levelAfter < levelBefore || xpBefore >= levelBefore * 100 || xpAfter >= levelAfter * 100) return false;
+  const beforeTotal = xpBefore + ((levelBefore - 1) * levelBefore * 50);
+  const afterTotal = xpAfter + ((levelAfter - 1) * levelAfter * 50);
+  return Number.isSafeInteger(beforeTotal) && Number.isSafeInteger(afterTotal) && Number.isSafeInteger(beforeTotal + amount)
+    && beforeTotal + amount === afterTotal;
 }
 function timestamp(value: unknown, context: string): string {
   if (typeof value !== 'string' || !utcTimestampPattern.test(value) || Number.isNaN(Date.parse(value)))
@@ -141,26 +158,39 @@ function parseBoss(data: Record<string, unknown>): BossRunNodeResolutionResult {
     return Object.freeze({ resolutionType: 'boss', ...facts, rewards: null });
   }
   if (facts.battle.outcome !== 'victory') throw new RunNodeResolutionContractError('Failed Boss battle cannot grant rewards.');
-  const rewards = object(data['rewards'], 'Boss rewards'); exact(rewards, ['unit_xp', 'mountains'], 'Boss rewards');
+  const rewards = object(data['rewards'], 'Boss rewards'); exact(rewards, ['unit_xp', 'unlocks'], 'Boss rewards');
   if (!Array.isArray(rewards['unit_xp']) || rewards['unit_xp'].length === 0) throw new RunNodeResolutionContractError('Boss XP rewards are invalid.');
   let priorUnitId: string | null = null;
   const unitXp = rewards['unit_xp'].map((value) => {
     const row = object(value, 'Boss XP transition');
     exact(row, ['unit_id', 'amount', 'level_before', 'xp_before', 'level_after', 'xp_after'], 'Boss XP transition');
-    if (row['amount'] !== 16) throw new RunNodeResolutionContractError('Boss XP amount is invalid.');
     const unitId = id(row['unit_id'], 'Boss XP unit id');
     if (priorUnitId !== null && (unitId.length < priorUnitId.length || (unitId.length === priorUnitId.length && unitId <= priorUnitId)))
       throw new RunNodeResolutionContractError('Boss XP unit IDs must be uniquely ordered.');
     priorUnitId = unitId;
-    return Object.freeze({ unitId, amount: 16 as const,
-      levelBefore: integer(row['level_before'], 'Boss level before'), xpBefore: integer(row['xp_before'], 'Boss XP before'),
-      levelAfter: integer(row['level_after'], 'Boss level after'), xpAfter: integer(row['xp_after'], 'Boss XP after') });
+    const amount = positiveInteger(row['amount'], 'Boss XP amount');
+    const levelBefore = positiveInteger(row['level_before'], 'Boss level before');
+    const xpBefore = integer(row['xp_before'], 'Boss XP before');
+    const levelAfter = positiveInteger(row['level_after'], 'Boss level after');
+    const xpAfter = integer(row['xp_after'], 'Boss XP after');
+    if (!validXpTransition(levelBefore, xpBefore, amount, levelAfter, xpAfter))
+      throw new RunNodeResolutionContractError('Boss XP transition is incoherent.');
+    return Object.freeze({ unitId, amount, levelBefore, xpBefore, levelAfter, xpAfter });
   });
-  const mountains = object(rewards['mountains'], 'Mountains reward'); exact(mountains, ['region_id', 'outcome'], 'Mountains reward');
-  if (mountains['region_id'] !== 'region.mountains' || (mountains['outcome'] !== 'granted' && mountains['outcome'] !== 'already_owned'))
-    throw new RunNodeResolutionContractError('Mountains reward is invalid.');
+  if (!Array.isArray(rewards['unlocks'])) throw new RunNodeResolutionContractError('Boss unlock rewards are invalid.');
+  let priorUnlockId: string | null = null;
+  const unlocks = rewards['unlocks'].map((value) => {
+    const row = object(value, 'Boss unlock reward'); exact(row, ['unlock_id', 'outcome'], 'Boss unlock reward');
+    const currentUnlockId = unlockId(row['unlock_id']);
+    if (priorUnlockId !== null && currentUnlockId <= priorUnlockId)
+      throw new RunNodeResolutionContractError('Boss unlock IDs must be uniquely ordered.');
+    if (row['outcome'] !== 'granted' && row['outcome'] !== 'already_owned')
+      throw new RunNodeResolutionContractError('Boss unlock outcome is invalid.');
+    priorUnlockId = currentUnlockId;
+    return Object.freeze({ unlockId: currentUnlockId, outcome: row['outcome'] });
+  });
   return Object.freeze({ resolutionType: 'boss', ...facts, rewards: Object.freeze({ unitXp: Object.freeze(unitXp),
-    mountains: Object.freeze({ regionId: 'region.mountains' as const, outcome: mountains['outcome'] }) }) });
+    unlocks: Object.freeze(unlocks) }) });
 }
 
 function parseLoot(data: Record<string, unknown>): LootRunNodeResolutionResult {

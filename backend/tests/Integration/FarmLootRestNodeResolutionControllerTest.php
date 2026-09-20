@@ -83,6 +83,22 @@ final class FarmLootRestNodeResolutionControllerTest extends IntegrationTestCase
     $this->assertEquals($expected, $actual);
   }
 
+  public function testStructurallyTerminalNonFarmExitCompletesWithoutRegionOrIndexAssumptions(): void
+  {
+    [$userId, $runId, $nodes] = $this->readyExit('exit-generic');
+    $this->pdo?->prepare("UPDATE `runs` SET `region_id` = 'region.mountains' WHERE `id` = ?")->execute([$runId]);
+    $this->pdo?->prepare('UPDATE `run_nodes` SET `node_index` = 9 WHERE `id` = ?')->execute([$nodes[4]]);
+
+    $response = $this->httpResolve($userId, $runId, $nodes[4], 'exit-generic-key');
+
+    $this->assertSame(200, $response['status'], json_encode($response['body']));
+    $this->assertSame(['exit', 'completed', []], [
+      $response['body']['data']['resolution_type'] ?? null,
+      $response['body']['data']['run']['status'] ?? null,
+      $response['body']['data']['newly_available_node_ids'] ?? null,
+    ]);
+  }
+
   public function testInvalidExitIdentityFailsWithoutMutation(): void
   {
     [$userId, $runId, $nodes] = $this->readyExit('exit-invalid');
@@ -91,6 +107,46 @@ final class FarmLootRestNodeResolutionControllerTest extends IntegrationTestCase
     $response = $this->httpResolve($userId, $runId, $nodes[4], 'exit-invalid-key');
     $this->assertSame([500, 'run_data_integrity_error'], [$response['status'], $response['body']['error']['code'] ?? null]);
     $this->assertSame($before, $this->snapshot($userId, $runId));
+  }
+
+  /** @dataProvider invalidExitTopologyProvider */
+  public function testStructurallyInvalidExitFailsAtomically(string $defect): void
+  {
+    [$userId, $runId, $nodes] = $this->readyExit('exit-structure-' . $defect);
+    if ($defect === 'encounter') {
+      $this->pdo?->prepare("UPDATE `run_nodes` SET `encounter_id` = 'encounter.the_farm_mud_boss_1' WHERE `id` = ?")
+        ->execute([$nodes[4]]);
+    } elseif ($defect === 'outgoing') {
+      $this->pdo?->prepare('INSERT INTO `run_edges` (`run_id`, `from_node_id`, `to_node_id`) VALUES (?, ?, ?)')
+        ->execute([$runId, $nodes[4], $nodes[0]]);
+    } elseif ($defect === 'multiple_incoming') {
+      $this->pdo?->prepare('INSERT INTO `run_edges` (`run_id`, `from_node_id`, `to_node_id`) VALUES (?, ?, ?)')
+        ->execute([$runId, $nodes[2], $nodes[4]]);
+    } elseif ($defect === 'non_boss_parent') {
+      $this->pdo?->prepare('DELETE FROM `run_edges` WHERE `run_id` = ? AND `to_node_id` = ?')->execute([$runId, $nodes[4]]);
+      $this->pdo?->prepare('INSERT INTO `run_edges` (`run_id`, `from_node_id`, `to_node_id`) VALUES (?, ?, ?)')
+        ->execute([$runId, $nodes[2], $nodes[4]]);
+    } else {
+      $this->pdo?->prepare("UPDATE `run_nodes` SET `status` = 'available', `completed_at` = NULL WHERE `id` = ?")
+        ->execute([$nodes[3]]);
+    }
+    $before = $this->snapshot($userId, $runId);
+
+    $response = $this->httpResolve($userId, $runId, $nodes[4], 'exit-structure-key');
+
+    $this->assertSame([500, 'run_data_integrity_error'], [$response['status'], $response['body']['error']['code'] ?? null]);
+    $this->assertSame($before, $this->snapshot($userId, $runId));
+  }
+
+  public function invalidExitTopologyProvider(): array
+  {
+    return [
+      'encounter' => ['encounter'],
+      'outgoing child' => ['outgoing'],
+      'multiple incoming parents' => ['multiple_incoming'],
+      'non-Boss parent' => ['non_boss_parent'],
+      'incomplete Boss parent' => ['incomplete_boss_parent'],
+    ];
   }
 
   public function testPostExitMutationFailureRollsBackNodeRunRevisionAndReceipt(): void
