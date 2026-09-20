@@ -48,7 +48,9 @@ final class DamageCalculator
       if ($tauntRedirected && $passive['handler_id'] === 'unmoving') $damage -= $passive['config']['taunt_damage_reduction_flat'];
     }
     if ($tauntRedirected) {
-      foreach ($target['statuses'] as $status) if ($status['id'] === 'taunting_guard') $damage -= $status['params']['guard_reduction_flat'];
+      foreach ($target['statuses'] as $status) if ($status['id'] === 'taunting_guard') {
+        $damage -= $status['params']['stack_count'] * $status['params']['per_stack_damage_reduction'];
+      }
     }
     return ['amount' => max(1, $damage), 'attack_component' => $attackComponent, 'target_defense' => $defense,
       'conditional_multiplier' => round($conditionalMultiplier, 6), 'position_multiplier' => round($positionMultiplier, 6)];

@@ -24,6 +24,7 @@ final class CombatEngine implements CombatResolver
     $indices = [];
     $sleepBlockedUntil = [];
     $dumbLuckUsed = [];
+    $previousTargets = [];
     $events = new PlaybackRecorder();
     $events->add('battle_started', 0, 0, ['combatant_keys' => array_keys($units)]);
     foreach ($units as $key => $unit) {
@@ -64,7 +65,8 @@ final class CombatEngine implements CombatResolver
           $this->advance($units[$key], $key, $tick, $indices, $next);
           continue;
         }
-        $chosen = $this->targets->choose($units, $key, $ability['target_rule'], CombatRules::isDamaging($ability['handler_id']), $rng);
+        $chosen = $this->targets->choose($units, $key, $ability['target_rule'], CombatRules::isDamaging($ability['handler_id']),
+          $rng, $ability, $previousTargets[$key] ?? null);
         if ($chosen === null) {
           $events->add('action_skipped', $round, $tick,
             ['actor_key' => $key, 'ability_id' => $ability['id'], 'reason' => 'no_target']);
@@ -85,7 +87,7 @@ final class CombatEngine implements CombatResolver
             ['actor_key' => $key, 'target_key' => $targetKey, 'result' => $hit['result'],
               'chance_percent' => $hit['chance'], 'check_roll' => $hit['roll']]);
         }
-        $rollTotal = $this->rollDice($ability, $units[$key], $key, $round, $tick, $rng, $events, $dumbLuckUsed);
+        $rollTotal = $this->rollDice($ability, $units, $key, $round, $tick, $rng, $events, $dumbLuckUsed);
         if ($hit['result'] !== 'miss') {
           if (CombatRules::isDamaging($ability['handler_id'])) {
             $facts = $this->damage->calculate($units[$key], $units[$targetKey], $ability, $rollTotal,
@@ -110,6 +112,10 @@ final class CombatEngine implements CombatResolver
             $this->applyStatus($units, $key, $targetKey, $ability, $rollTotal, $round, $tick, $rng, $events, $sleepBlockedUntil);
           }
         }
+        if ($chosen['reason'] === 'taunting_guard') {
+          $this->removeStatus($units, $targetKey, 'taunting_guard', 'consumed', $round, $tick, $events, $sleepBlockedUntil);
+        }
+        if (str_starts_with($ability['target_rule'], 'enemy_')) $previousTargets[$key] = $targetKey;
         $this->advance($units[$key], $key, $tick, $indices, $next);
         $outcome = $this->outcome($units);
         if ($outcome !== null) return $this->finish($units, $events, $outcome, $round, $tick);
@@ -208,7 +214,7 @@ final class CombatEngine implements CombatResolver
   }
 
   /** @param array<string,mixed> $ability */
-  private function rollDice(array $ability, array $unit, string $actor, int $round, int $tick, DeterministicRandom $rng,
+  private function rollDice(array $ability, array $units, string $actor, int $round, int $tick, DeterministicRandom $rng,
     PlaybackRecorder $events, array &$dumbLuckUsed): int
   {
     $total = 0;
@@ -227,11 +233,14 @@ final class CombatEngine implements CombatResolver
       $rollFacts[] = ['actor_key' => $actor, 'ability_id' => $ability['id'], 'slot' => $slot, 'die_key' => $die['key'],
         'sides' => $die['sides'], 'initial_roll' => $initial, 'extra_roll' => $extra, 'roll_total' => $value];
     }
-    foreach ($unit['passive_abilities'] as $passive) {
-      if ($passive['handler_id'] === 'dumb_luck' && !isset($dumbLuckUsed[$actor]) && $total <= $passive['config']['low_roll_threshold']) {
+    foreach ($units as $ownerKey => $unit) {
+      if ($unit['side'] !== $units[$actor]['side'] || $unit['current_hp'] <= 0 || isset($dumbLuckUsed[$ownerKey])) continue;
+      foreach ($unit['passive_abilities'] as $passive) {
+        if ($passive['handler_id'] !== 'dumb_luck' || $total > $passive['config']['low_roll_threshold']) continue;
         $total += $passive['config']['bonus_flat'];
         $rollFacts[array_key_last($rollFacts)]['roll_total'] += $passive['config']['bonus_flat'];
-        $dumbLuckUsed[$actor] = true;
+        $dumbLuckUsed[$ownerKey] = true;
+        break 2;
       }
     }
     foreach ($rollFacts as $facts) $events->add('dice_rolled', $round, $tick, $facts);
@@ -257,7 +266,8 @@ final class CombatEngine implements CombatResolver
     $params = match ($id) {
       'bolstered' => ['defense_pct' => $config['bolster_defense_pct']],
       'cracked_armor' => ['defense_reduction_flat' => $config['defense_reduction_flat']],
-      'taunting_guard' => ['guard_reduction_flat' => min($config['guard_stack_cap'], max(1, $rollTotal)) * $config['guard_reduction_per_stack']],
+      'taunting_guard' => ['stack_count' => min($config['guard_stack_cap'], max(1, intdiv($rollTotal + 1, 2))),
+        'per_stack_damage_reduction' => $config['guard_reduction_per_stack']],
       'disarmed' => ['attack_reduction_pct' => $config['attack_reduction_pct']],
       'fuse_lit' => ['bomb_damage' => max(1, (int)floor($this->damageAttack($units[$source]) * $config['bomb_damage_ratio']))],
       default => [],
@@ -288,11 +298,11 @@ final class CombatEngine implements CombatResolver
     $stacks = min($cap, $stacks + 1);
     $this->removeStatus($units, $target, 'shield_set', 'replaced', $round, $tick, $events, $sleepBlockedUntil);
     $params = ['stacks' => $stacks, 'defense_flat_per_stack' => $shield['defense_flat_per_stack']];
-    $units[$target]['statuses'][] = ['id' => 'shield_set', 'source_key' => $target, 'expires_round' => 401,
+    $units[$target]['statuses'][] = ['id' => 'shield_set', 'source_key' => $target, 'expires_round' => $round + 1,
       'params' => $params, 'forced_target_key' => null];
     $events->add('status_applied', $round, $tick,
       ['target_key' => $target, 'status_id' => 'shield_set', 'source_key' => $target,
-        'expires_round' => 401, 'params' => $params, 'forced_target_key' => null]);
+        'expires_round' => $round + 1, 'params' => $params, 'forced_target_key' => null]);
   }
 
   /** @param array<string,mixed> $unit */

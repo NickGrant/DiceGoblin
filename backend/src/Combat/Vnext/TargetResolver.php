@@ -8,7 +8,8 @@ use DiceGoblins\Support\DeterministicRandom;
 final class TargetResolver
 {
   /** @param array<string,array<string,mixed>> $combatants @return array{key:string,reason:string}|null */
-  public function choose(array $combatants, string $actorKey, string $rule, bool $damaging, DeterministicRandom $rng): ?array
+  public function choose(array $combatants, string $actorKey, string $rule, bool $damaging, DeterministicRandom $rng,
+    ?array $ability = null, ?string $previousTargetKey = null): ?array
   {
     $actor = $combatants[$actorKey];
     if ($rule === 'self') return ['key' => $actorKey, 'reason' => 'self'];
@@ -55,6 +56,27 @@ final class TargetResolver
         'reason' => count($ties) === 1 ? 'lowest_hp_pct' : 'lowest_hp_pct_tie'];
     }
 
+    if (($ability['handler_id'] ?? null) === 'aimed_shot' && $this->hasPassive($actor, 'patient_aim')) {
+      $bestScore = null;
+      $ties = [];
+      $reasons = [];
+      foreach ($candidates as $key => $candidate) {
+        $score = $candidate['position']['x'] === $this->backmostX($candidates) ? 300 : 0;
+        $candidateReasons = $score > 0 ? ['backline'] : [];
+        if ($candidate['current_hp'] < $candidate['max_hp']) { $score += 250; $candidateReasons[] = 'wounded'; }
+        if ($this->hasStatus($candidate, 'marked')) { $score += 260; $candidateReasons[] = 'marked'; }
+        if ($key === $previousTargetKey) { $score += 290; $candidateReasons[] = 'preferred_previous_target'; }
+        if ($bestScore === null || $score > $bestScore) {
+          $bestScore = $score; $ties = [$key]; $reasons = [$key => $candidateReasons];
+        } elseif ($score === $bestScore) {
+          $ties[] = $key; $reasons[$key] = $candidateReasons;
+        }
+      }
+      sort($ties, SORT_STRING);
+      $key = $ties[count($ties) === 1 ? 0 : $rng->nextInt(0, count($ties) - 1)];
+      return ['key' => $key, 'reason' => 'patient_aim:' . implode(',', $reasons[$key])];
+    }
+
     $preferred = $rule === 'enemy_front_prefer' ? 2 : 0;
     $bestRank = 3;
     $ties = [];
@@ -68,5 +90,25 @@ final class TargetResolver
     $reason = $preferred === 2 ? 'front_preference' : 'back_preference';
     return ['key' => $ties[count($ties) === 1 ? 0 : $rng->nextInt(0, count($ties) - 1)],
       'reason' => count($ties) === 1 ? $reason : $reason . '_tie'];
+  }
+
+  /** @param array<string,mixed> $unit */
+  private function hasPassive(array $unit, string $handler): bool
+  {
+    foreach ($unit['passive_abilities'] as $passive) if ($passive['handler_id'] === $handler) return true;
+    return false;
+  }
+
+  /** @param array<string,mixed> $unit */
+  private function hasStatus(array $unit, string $id): bool
+  {
+    foreach ($unit['statuses'] as $status) if ($status['id'] === $id) return true;
+    return false;
+  }
+
+  /** @param array<string,array<string,mixed>> $candidates */
+  private function backmostX(array $candidates): int
+  {
+    return min(array_column(array_column($candidates, 'position'), 'x'));
   }
 }

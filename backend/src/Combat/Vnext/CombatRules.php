@@ -139,14 +139,14 @@ final class CombatRules
   public static function validateStatus(array $status): void
   {
     CombatInput::keys($status, ['id', 'source_key', 'expires_round', 'params', 'forced_target_key']);
-    if (!in_array($status['id'], ['bolstered', 'sleep', 'cracked_armor', 'wrestled', 'taunting_guard', 'disarmed', 'fuse_lit', 'shield_set'], true)) throw new InvalidArgumentException('Unsupported status.');
+    if (!in_array($status['id'], ['bolstered', 'sleep', 'cracked_armor', 'wrestled', 'taunting_guard', 'disarmed', 'fuse_lit', 'shield_set', 'marked'], true)) throw new InvalidArgumentException('Unsupported status.');
     if (!is_string($status['source_key']) || $status['source_key'] === '') throw new InvalidArgumentException('Status source is required.');
     CombatInput::integer($status['expires_round'], 1, 401, 'expires_round');
     if (!is_array($status['params']) || ($status['params'] !== [] && array_is_list($status['params']))) throw new InvalidArgumentException('Status params must be an object.');
     $required = match ($status['id']) {
       'bolstered' => ['defense_pct'],
       'cracked_armor' => ['defense_reduction_flat'],
-      'taunting_guard' => ['guard_reduction_flat'],
+      'taunting_guard' => ['stack_count', 'per_stack_damage_reduction'],
       'disarmed' => ['attack_reduction_pct'],
       'fuse_lit' => ['bomb_damage'],
       'shield_set' => ['stacks', 'defense_flat_per_stack'],
@@ -155,7 +155,10 @@ final class CombatRules
     CombatInput::keys($status['params'], $required);
     if ($status['id'] === 'bolstered') self::number($status['params']['defense_pct'], 0, 1, 'defense_pct');
     if ($status['id'] === 'cracked_armor') CombatInput::integer($status['params']['defense_reduction_flat'], 0, 1000000, 'defense_reduction_flat');
-    if ($status['id'] === 'taunting_guard') CombatInput::integer($status['params']['guard_reduction_flat'], 0, 1000000, 'guard_reduction_flat');
+    if ($status['id'] === 'taunting_guard') {
+      CombatInput::integer($status['params']['stack_count'], 1, 100, 'stack_count');
+      CombatInput::integer($status['params']['per_stack_damage_reduction'], 0, 1000000, 'per_stack_damage_reduction');
+    }
     if ($status['id'] === 'disarmed') self::number($status['params']['attack_reduction_pct'], 0, 1, 'attack_reduction_pct');
     if ($status['id'] === 'fuse_lit') CombatInput::integer($status['params']['bomb_damage'], 1, 1000000, 'bomb_damage');
     if ($status['id'] === 'shield_set') {

@@ -490,6 +490,127 @@ final class VnextCombatEngineTest extends TestCase
       ['outcome' => $stalemate['outcome'], 'round' => $stalemate['ending_round'], 'tick' => $stalemate['ending_tick']]);
   }
 
+  public function testTauntingGuardUsesHalfDieScalingAndIsConsumedByOneRedirectedAttack(): void
+  {
+    $guardAbility = $this->ability('taunting_guard', 1, 8, [$this->die('guard_die', 6)],
+      ['status_id' => 'taunting_guard', 'guard_stack_cap' => 4, 'guard_reduction_per_stack' => 1, 'duration_rounds' => 2]);
+    $guard = $this->unit('guard', 'enemy', 0, 1, $this->stats(500, 1, 0), [
+      $guardAbility, $this->ability('basic_attack_melee', 4000),
+    ], [['id' => 'ability.unmoving', 'handler_id' => 'unmoving', 'config' => ['taunt_damage_reduction_flat' => 2]]]);
+    $attacker = $this->unit('attacker', 'player', 1, 1, $this->stats(500, 10, 0),
+      [$this->ability('basic_attack_ranged', 2)]);
+    $result = $this->resolve('guard-one-attack', [$attacker, $guard]);
+
+    $guardRoll = array_values(array_filter($this->events($result, 'dice_rolled'),
+      static fn(array $event): bool => $event['facts']['actor_key'] === 'guard'))[0]['facts']['roll_total'];
+    $applied = array_values(array_filter($this->events($result, 'status_applied'),
+      static fn(array $event): bool => $event['facts']['status_id'] === 'taunting_guard'))[0];
+    $stacks = min(4, (int)ceil($guardRoll / 2));
+    $this->assertSame(['stack_count' => $stacks, 'per_stack_damage_reduction' => 1], $applied['facts']['params']);
+
+    $attacks = array_values(array_filter($this->events($result, 'action_started'),
+      static fn(array $event): bool => $event['facts']['actor_key'] === 'attacker'));
+    $this->assertSame(['taunting_guard', 'back_preference'],
+      [$attacks[0]['facts']['target_reason'], $attacks[1]['facts']['target_reason']]);
+    $consumed = array_values(array_filter($this->events($result, 'status_removed'),
+      static fn(array $event): bool => $event['facts']['status_id'] === 'taunting_guard'))[0];
+    $this->assertSame([2, 'consumed'], [$consumed['tick'], $consumed['facts']['reason']]);
+    $attackRoll = array_values(array_filter($this->events($result, 'dice_rolled'),
+      static fn(array $event): bool => $event['facts']['actor_key'] === 'attacker' && $event['tick'] === 2))[0]['facts']['roll_total'];
+    $damage = array_values(array_filter($this->events($result, 'damage_dealt'),
+      static fn(array $event): bool => $event['facts']['actor_key'] === 'attacker' && $event['tick'] === 2))[0]['facts']['amount'];
+    $this->assertSame(max(1, 10 + $attackRoll - $stacks - 2), $damage);
+  }
+
+  public function testShieldSetGainsExtendedCapRefreshesAndExpiresAfterOneRound(): void
+  {
+    $attackers = [];
+    for ($index = 0; $index < 5; $index++) {
+      $attackers[] = $this->unit('attacker_' . $index, 'player', intdiv($index, 3), $index % 3,
+        $this->stats(500, 10, 0), [
+          $this->ability('basic_attack_ranged', 1, 10, [$this->die('basic_' . $index, 6)]),
+          $this->ability('aimed_shot', 20, 20, [$this->die('aimed_' . $index, 6)]),
+        ]);
+    }
+    $shield = $this->unit('shield', 'enemy', 0, 1, $this->stats(500, 1, 0),
+      [$this->ability('basic_attack_ranged', 4000)], [
+        ['id' => 'ability.shield_set', 'handler_id' => 'shield_set',
+          'config' => ['stack_cap' => 3, 'defense_flat_per_stack' => 1]],
+        ['id' => 'ability.wall_of_scrap', 'handler_id' => 'wall_of_scrap', 'config' => ['stack_cap_bonus' => 2]],
+      ]);
+    $result = $this->resolve('shield-refresh', [...$attackers, $shield]);
+    $applications = array_values(array_filter($this->events($result, 'status_applied'),
+      static fn(array $event): bool => $event['facts']['status_id'] === 'shield_set'));
+    $roundOne = array_values(array_filter($applications, static fn(array $event): bool => $event['tick'] === 1));
+    $this->assertSame([1, 2, 3, 4, 5],
+      array_map(static fn(array $event): int => $event['facts']['params']['stacks'], $roundOne));
+    $this->assertSame([2, 2, 2, 2, 2], array_column(array_column($roundOne, 'facts'), 'expires_round'));
+    $expired = array_values(array_filter($this->events($result, 'status_removed'),
+      static fn(array $event): bool => $event['facts']['status_id'] === 'shield_set' && $event['facts']['reason'] === 'expired'));
+    $this->assertSame(21, $expired[0]['tick']);
+    $roundTwo = array_values(array_filter($applications, static fn(array $event): bool => $event['tick'] === 21));
+    $this->assertSame(1, $roundTwo[0]['facts']['params']['stacks']);
+    $this->assertSame(3, $roundTwo[0]['facts']['expires_round']);
+  }
+
+  public function testPatientAimUsesSharedMarkedWoundedAndPreviousTargetWeights(): void
+  {
+    $resolver = new TargetResolver();
+    $aimed = $this->ability('aimed_shot');
+    $actor = $this->unit('actor', 'player', 0, 1, $this->stats(100, 1, 0), [$aimed], [
+      ['id' => 'ability.patient_aim', 'handler_id' => 'patient_aim', 'config' => ['aimed_shot_bonus_pct' => 0.18]],
+    ]);
+    $back = $this->unit('back', 'enemy', 0, 0, $this->stats(100, 1, 0), [$this->ability('basic_attack_ranged')]);
+    $wounded = $this->unit('wounded', 'enemy', 1, 0, $this->stats(100, 1, 0), [$this->ability('basic_attack_ranged')]);
+    $wounded['current_hp'] = 50;
+    $marked = $this->unit('marked', 'enemy', 2, 0, $this->stats(100, 1, 0), [$this->ability('basic_attack_ranged')], [], [
+      $this->status('marked', 'actor', 3),
+    ]);
+    $units = compact('actor', 'back', 'wounded', 'marked');
+    $plainActor = $actor; $plainActor['passive_abilities'] = []; $plainUnits = $units; $plainUnits['actor'] = $plainActor;
+    $this->assertSame('back', $resolver->choose($plainUnits, 'actor', 'enemy_back_prefer', true,
+      new DeterministicRandom('patient-aim'), $aimed, 'marked')['key']);
+    $chosen = $resolver->choose($units, 'actor', 'enemy_back_prefer', true,
+      new DeterministicRandom('patient-aim'), $aimed, 'marked');
+    $this->assertSame('marked', $chosen['key']);
+    $this->assertSame('patient_aim:marked,preferred_previous_target', $chosen['reason']);
+
+    $actor['active_abilities'] = [
+      $this->ability('basic_attack_melee', 1),
+      $this->ability('aimed_shot', 1),
+    ];
+    $back['active_abilities'] = [$this->ability('basic_attack_ranged', 3)];
+    $back['stats']['attack'] = 10000;
+    $marked['active_abilities'] = [$this->ability('basic_attack_ranged', 3)];
+    $marked['stats']['attack'] = 10000;
+    $engineResult = $this->resolve('patient-aim-engine-history', [$actor, $back, $marked]);
+    $actorActions = array_values(array_filter($this->events($engineResult, 'action_started'),
+      static fn(array $event): bool => $event['facts']['actor_key'] === 'actor'));
+    $this->assertSame(['marked', 'marked'], array_slice(array_column(array_column($actorActions, 'facts'), 'target_key'), 0, 2));
+    $this->assertSame('patient_aim:wounded,marked,preferred_previous_target', $actorActions[1]['facts']['target_reason']);
+  }
+
+  public function testDumbLuckIsAOncePerBattleLivingTeamReaction(): void
+  {
+    $seed = $this->seedWithFirstTwoDiceAtMost(2, 6);
+    $ally = $this->unit('enemy_ally', 'enemy', 0, 0, $this->stats(500, 0, 100),
+      [$this->ability('basic_attack_ranged', 1)]);
+    $chief = $this->unit('enemy_chief', 'enemy', 0, 1, $this->stats(500, 0, 100),
+      [$this->ability('basic_attack_ranged', 4000)], [
+        ['id' => 'ability.dumb_luck', 'handler_id' => 'dumb_luck',
+          'config' => ['low_roll_threshold' => 2, 'bonus_flat' => 2]],
+      ]);
+    $player = $this->unit('player', 'player', 0, 1, $this->stats(20, 0, 100),
+      [$this->ability('basic_attack_ranged', 4000)]);
+    $result = $this->resolve($seed, [$ally, $chief, $player]);
+    $rolls = array_values(array_filter($this->events($result, 'dice_rolled'),
+      static fn(array $event): bool => $event['facts']['actor_key'] === 'enemy_ally'));
+    $this->assertLessThanOrEqual(2, $rolls[0]['facts']['initial_roll']);
+    $this->assertLessThanOrEqual(2, $rolls[1]['facts']['initial_roll']);
+    $this->assertSame($rolls[0]['facts']['initial_roll'] + 2, $rolls[0]['facts']['roll_total']);
+    $this->assertSame($rolls[1]['facts']['initial_roll'], $rolls[1]['facts']['roll_total']);
+  }
+
   /** @dataProvider invalidSnapshotProvider */
   public function testMalformedSnapshotFailsBeforeSimulation(callable $change): void
   {
@@ -537,8 +658,8 @@ final class VnextCombatEngineTest extends TestCase
   private function ability(string $handler, int $delay = 4, int $priority = 10, ?array $dice = null, ?array $config = null): array
   {
     $target = match ($handler) {
-      'shield_up' => 'self', 'bolster_ally' => 'ally_lowest_hp_pct',
-      'basic_attack_ranged', 'aimed_shot', 'sleep_dart', 'mud_sling' => 'enemy_back_prefer',
+      'shield_up', 'taunting_guard' => 'self', 'bolster_ally' => 'ally_lowest_hp_pct',
+      'basic_attack_ranged', 'aimed_shot', 'sleep_dart', 'mud_sling', 'bomb_toss', 'disarming_shot' => 'enemy_back_prefer',
       default => 'enemy_front_prefer',
     };
     $config ??= match ($handler) {
@@ -547,6 +668,7 @@ final class VnextCombatEngineTest extends TestCase
       'wrestle' => ['power_ratio' => 1.05, 'status_id' => 'wrestled', 'duration_rounds' => 2],
       'mud_sling' => ['power_ratio' => 0.9, 'status_id' => 'cracked_armor', 'defense_reduction_flat' => 2, 'duration_rounds' => 2],
       'mud_slam' => ['power_ratio' => 1.2, 'status_id' => 'cracked_armor', 'defense_reduction_flat' => 3, 'duration_rounds' => 2],
+      'taunting_guard' => ['status_id' => 'taunting_guard', 'guard_stack_cap' => 4, 'guard_reduction_per_stack' => 1, 'duration_rounds' => 2],
       default => ['power_ratio' => $handler === 'heavy_strike' || $handler === 'aimed_shot' ? 1.6 : 1.0],
     };
     $dice ??= [$this->die('plain_' . $handler, 6)];
@@ -617,5 +739,15 @@ final class VnextCombatEngineTest extends TestCase
       if ((new DeterministicRandom($seed))->nextInt(0, $count - 1) !== $choice) return $seed;
     }
     throw new \RuntimeException('No alternate target seed found.');
+  }
+
+  private function seedWithFirstTwoDiceAtMost(int $limit, int $sides): string
+  {
+    for ($index = 0; $index < 10000; $index++) {
+      $seed = 'two-low-dice-' . $index;
+      $rng = new DeterministicRandom($seed);
+      if ($rng->nextInt(1, $sides) <= $limit && $rng->nextInt(1, $sides) <= $limit) return $seed;
+    }
+    throw new \RuntimeException('No deterministic two-low-dice seed found.');
   }
 }
