@@ -1,0 +1,42 @@
+{
+  "definitions": [
+    {
+      "id": "encounter.mountains_kobold_combat_1", "type": "encounter", "kind": "combat", "region_id": "region.mountains",
+      "display_name": "Kobold Warband I", "description": "A shieldbearer screens two bomb-tossing skirmishers.", "difficulty": 1,
+      "combatants": [
+        { "key": "shieldbearer", "enemy_unit_type_id": "enemy_unit_type.kobold_shieldbearer", "position": { "x": 0, "y": 1 } },
+        { "key": "skirmisher_a", "enemy_unit_type_id": "enemy_unit_type.kobold_skirmisher", "position": { "x": 2, "y": 0 } },
+        { "key": "skirmisher_b", "enemy_unit_type_id": "enemy_unit_type.kobold_skirmisher", "position": { "x": 2, "y": 2 } }
+      ]
+    },
+    {
+      "id": "encounter.mountains_kobold_combat_2", "type": "encounter", "kind": "combat", "region_id": "region.mountains",
+      "display_name": "Kobold Warband II", "description": "A sharpshooter joins the guarded skirmish line.", "difficulty": 2,
+      "combatants": [
+        { "key": "shieldbearer", "enemy_unit_type_id": "enemy_unit_type.kobold_shieldbearer", "position": { "x": 0, "y": 1 } },
+        { "key": "skirmisher", "enemy_unit_type_id": "enemy_unit_type.kobold_skirmisher", "position": { "x": 2, "y": 0 } },
+        { "key": "sharpshooter", "enemy_unit_type_id": "enemy_unit_type.kobold_sharpshooter", "position": { "x": 2, "y": 2 } }
+      ]
+    },
+    {
+      "id": "encounter.mountains_kobold_combat_3", "type": "encounter", "kind": "combat", "region_id": "region.mountains",
+      "display_name": "Kobold Warband III", "description": "A reinforced kobold formation locks down both flanks.", "difficulty": 3,
+      "combatants": [
+        { "key": "shieldbearer_a", "enemy_unit_type_id": "enemy_unit_type.kobold_shieldbearer", "position": { "x": 0, "y": 0 } },
+        { "key": "shieldbearer_b", "enemy_unit_type_id": "enemy_unit_type.kobold_shieldbearer", "position": { "x": 0, "y": 2 } },
+        { "key": "skirmisher", "enemy_unit_type_id": "enemy_unit_type.kobold_skirmisher", "position": { "x": 2, "y": 0 } },
+        { "key": "sharpshooter", "enemy_unit_type_id": "enemy_unit_type.kobold_sharpshooter", "position": { "x": 2, "y": 2 } }
+      ]
+    },
+    {
+      "id": "encounter.mountains_kobold_boss_1", "type": "encounter", "kind": "boss", "region_id": "region.mountains",
+      "display_name": "Kobold Command", "description": "The Chief Engineer directs a fully equipped command formation.", "difficulty": 5,
+      "combatants": [
+        { "key": "shieldbearer", "enemy_unit_type_id": "enemy_unit_type.kobold_shieldbearer", "position": { "x": 0, "y": 1 } },
+        { "key": "sharpshooter", "enemy_unit_type_id": "enemy_unit_type.kobold_sharpshooter", "position": { "x": 1, "y": 0 } },
+        { "key": "skirmisher", "enemy_unit_type_id": "enemy_unit_type.kobold_skirmisher", "position": { "x": 2, "y": 2 } },
+        { "key": "chief_engineer", "enemy_unit_type_id": "enemy_unit_type.kobold_warchief", "position": { "x": 2, "y": 1 } }
+      ]
+    }
+  ]
+}

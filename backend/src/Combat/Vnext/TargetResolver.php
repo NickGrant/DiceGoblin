@@ -21,6 +21,15 @@ final class TargetResolver
           return ['key' => $forced, 'reason' => 'wrestled_forced'];
         }
       }
+      $guards = [];
+      foreach ($combatants as $key => $candidate) {
+        if ($candidate['current_hp'] <= 0 || $candidate['side'] === $actor['side']) continue;
+        foreach ($candidate['statuses'] as $status) if ($status['id'] === 'taunting_guard') $guards[] = $key;
+      }
+      if ($guards !== []) {
+        sort($guards, SORT_STRING);
+        return ['key' => $guards[0], 'reason' => 'taunting_guard'];
+      }
     }
 
     $candidates = [];

@@ -44,6 +44,19 @@ final class CombatSnapshotNormalizer
     return $combatants;
   }
 
+  /** @return list<array<string,mixed>> */
+  public function enemyManifest(string $encounterId): array
+  {
+    $manifest = [];
+    foreach ($this->content->encounter($encounterId)['combatants'] as $slot) {
+      $enemy = $this->content->enemyUnitType($slot['enemy_unit_type_id']);
+      $manifest[] = ['combatant_key' => $slot['key'], 'side' => 'enemy', 'unit_id' => null,
+        'unit_type_id' => null, 'enemy_unit_type_id' => $slot['enemy_unit_type_id'],
+        'display_name' => $enemy['display_name'], 'art_key' => $enemy['art_key']];
+    }
+    return $manifest;
+  }
+
   /** @param list<array<string,mixed>> $dice @return array<string,mixed> */
   public function ability(string $abilityId, array $dice): array
   {

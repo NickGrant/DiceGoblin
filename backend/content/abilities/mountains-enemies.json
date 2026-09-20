@@ -1,0 +1,35 @@
+{
+  "definitions": [
+    {
+      "id": "ability.bomb_toss", "type": "ability", "kind": "active", "server_only": true,
+      "display_name": "Bomb Toss", "description": "Hurls a volatile charge into the enemy backline.", "icon_key": "icon_ability_bomb_toss",
+      "dice_slot_count": 1, "action_delay": 8, "resolution_priority": 17, "target_rule": "enemy_back_prefer",
+      "handler_id": "bomb_toss", "handler_config": { "power_ratio": 0.75, "status_id": "fuse_lit", "bomb_damage_ratio": 0.9, "duration_rounds": 1 }
+    },
+    {
+      "id": "ability.wall_of_scrap", "type": "ability", "kind": "passive", "server_only": true,
+      "display_name": "Wall of Scrap", "description": "Layers scavenged plating over a set shield.", "icon_key": "icon_ability_wall_of_scrap",
+      "dice_slot_count": 0, "handler_id": "wall_of_scrap", "handler_config": { "stack_cap_bonus": 2 }
+    },
+    {
+      "id": "ability.unmoving", "type": "ability", "kind": "passive", "server_only": true,
+      "display_name": "Unmoving", "description": "Shrugs off a portion of every damaging hit.", "icon_key": "icon_ability_unmoving",
+      "dice_slot_count": 0, "handler_id": "unmoving", "handler_config": { "taunt_damage_reduction_flat": 2 }
+    },
+    {
+      "id": "ability.clean_shot", "type": "ability", "kind": "passive", "server_only": true,
+      "display_name": "Clean Shot", "description": "Deals additional damage to a disarmed target.", "icon_key": "icon_ability_clean_shot",
+      "dice_slot_count": 0, "handler_id": "clean_shot", "handler_config": { "status_bonus_target": "disarmed", "status_bonus_pct": 0.18 }
+    },
+    {
+      "id": "ability.patient_aim", "type": "ability", "kind": "passive", "server_only": true,
+      "display_name": "Patient Aim", "description": "Improves the damage of carefully aimed shots.", "icon_key": "icon_ability_patient_aim",
+      "dice_slot_count": 0, "handler_id": "patient_aim", "handler_config": { "aimed_shot_bonus_pct": 0.18 }
+    },
+    {
+      "id": "ability.dumb_luck", "type": "ability", "kind": "passive", "server_only": true,
+      "display_name": "Dumb Luck", "description": "Once per battle, turns a poor ability roll into a better one.", "icon_key": "icon_ability_dumb_luck",
+      "dice_slot_count": 0, "handler_id": "dumb_luck", "handler_config": { "low_roll_threshold": 2, "bonus_flat": 2 }
+    }
+  ]
+}

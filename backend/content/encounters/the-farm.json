@@ -3,6 +3,7 @@
     {
       "id": "encounter.the_farm_mud_combat_1",
       "type": "encounter",
+      "kind": "combat",
       "region_id": "region.the_farm",
       "display_name": "Mud Skirmish",
       "description": "A pair of pigs lurches out of the muck, giving the warband its first real skirmish.",
@@ -15,6 +16,7 @@
     {
       "id": "encounter.the_farm_mud_boss_1",
       "type": "encounter",
+      "kind": "boss",
       "region_id": "region.the_farm",
       "display_name": "The Mudking",
       "description": "The Mudking bars the path beyond the Farm.",

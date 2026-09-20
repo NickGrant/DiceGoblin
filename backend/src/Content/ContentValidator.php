@@ -381,9 +381,10 @@ final class ContentValidator
   private function validateEncounter(array $definition, string $location): void
   {
     $this->requireExactFieldSet($definition,
-      ['id', 'type', 'region_id', 'display_name', 'description', 'difficulty', 'combatants'], [], $location);
+      ['id', 'type', 'kind', 'region_id', 'display_name', 'description', 'difficulty', 'combatants'], [], $location);
     $this->requireNamespace($definition, 'encounter.', $location);
     $this->requireStableIdWithNamespace($definition, 'region_id', 'region.', $location);
+    $this->requireAllowedString($definition, 'kind', ['combat', 'boss'], $location);
     $this->requireBoundedNonEmptyString($definition, 'display_name', 128, $location);
     $this->requireBoundedNonEmptyString($definition, 'description', 512, $location);
     $this->requireIntegerInRange($definition, 'difficulty', 1, 100, $location);
@@ -441,7 +442,7 @@ final class ContentValidator
         CombatRules::validateTargetRule($handlerId, $definition['target_rule']);
         CombatRules::validateAbilityConfig($handlerId, $definition['handler_config']);
       }
-      if ($kind === 'passive' && in_array($handlerId, ['thick_hide', 'sharpshooter'], true)) {
+      if ($kind === 'passive' && in_array($handlerId, CombatRules::PASSIVE_HANDLERS, true)) {
         CombatRules::validatePassive($handlerId, $definition['handler_config']);
       }
     } catch (InvalidArgumentException $e) {

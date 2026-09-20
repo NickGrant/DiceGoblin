@@ -9,6 +9,9 @@ final class CombatStatMath
   public function attack(array $unit): int
   {
     [$flat, $pct] = $this->boundModifiers($unit, 'attack');
+    foreach ($unit['statuses'] as $status) {
+      if ($status['id'] === 'disarmed') $pct -= $status['params']['attack_reduction_pct'];
+    }
     return max(0, (int)floor(($unit['stats']['attack'] + $flat) * (1 + $pct)));
   }
 
@@ -25,6 +28,7 @@ final class CombatStatMath
     foreach ($unit['statuses'] as $status) {
       if ($status['id'] === 'cracked_armor') $statusFlat -= $status['params']['defense_reduction_flat'];
       if ($status['id'] === 'bolstered') $statusPct += $status['params']['defense_pct'];
+      if ($status['id'] === 'shield_set') $statusFlat += $status['params']['stacks'] * $status['params']['defense_flat_per_stack'];
     }
     return max(0, (int)floor(max(0, $base + $statusFlat) * (1 + $statusPct)));
   }

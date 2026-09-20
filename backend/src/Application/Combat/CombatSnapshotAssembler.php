@@ -137,13 +137,7 @@ final class CombatSnapshotAssembler
         if (($bindingCounts[$dieId] ?? 0) !== 1) throw new CombatConfigurationException('Physical combat die binding is invalid.');
       }
 
-      $encounter = $this->content->encounter($encounterId);
-      foreach ($encounter['combatants'] as $slot) {
-        $enemy = $this->content->enemyUnitType($slot['enemy_unit_type_id']);
-        $manifest[] = ['combatant_key' => $slot['key'], 'side' => 'enemy', 'unit_id' => null,
-          'unit_type_id' => null, 'enemy_unit_type_id' => $slot['enemy_unit_type_id'],
-          'display_name' => $enemy['display_name'], 'art_key' => $enemy['art_key']];
-      }
+      $manifest = [...$manifest, ...$this->normalizer->enemyManifest($encounterId)];
       return new AssembledCombat($this->normalizer->forEncounter($seed, $players, $encounterId), $manifest);
     } catch (CombatConfigurationException|CombatResolutionIntegrityException $e) {
       throw $e;

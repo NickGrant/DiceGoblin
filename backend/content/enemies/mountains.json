@@ -1,0 +1,36 @@
+{
+  "definitions": [
+    {
+      "id": "enemy_unit_type.kobold_skirmisher", "type": "enemy_unit_type", "display_name": "Kobold Skirmisher",
+      "description": "A mobile backline bomb-thrower.", "art_key": "kobold_skirmisher", "role": "backline",
+      "stats": { "hp": 18, "attack": 6, "defense": 2, "precision": 6, "resolve": 4 },
+      "active_ability_ids": ["ability.bomb_toss", "ability.basic_attack_ranged"],
+      "passive_ability_ids": ["ability.sharpshooter"],
+      "virtual_ability_dice": { "sides": 6, "profile_id": "dice_profile.cardboard_plain" }
+    },
+    {
+      "id": "enemy_unit_type.kobold_shieldbearer", "type": "enemy_unit_type", "display_name": "Kobold Shieldbearer",
+      "description": "A stubborn frontline guard clad in scrap.", "art_key": "kobold_shieldbearer", "role": "frontline",
+      "stats": { "hp": 28, "attack": 3, "defense": 6, "precision": 4, "resolve": 6 },
+      "active_ability_ids": ["ability.basic_attack_melee", "ability.taunting_guard"],
+      "passive_ability_ids": ["ability.shield_set", "ability.wall_of_scrap", "ability.unmoving"],
+      "virtual_ability_dice": { "sides": 6, "profile_id": "dice_profile.cardboard_plain" }
+    },
+    {
+      "id": "enemy_unit_type.kobold_sharpshooter", "type": "enemy_unit_type", "display_name": "Kobold Sharpshooter",
+      "description": "An elite marksman that dismantles enemy attacks.", "art_key": "kobold_sharpshooter", "role": "backline",
+      "stats": { "hp": 22, "attack": 9, "defense": 3, "precision": 7, "resolve": 4 },
+      "active_ability_ids": ["ability.basic_attack_ranged", "ability.disarming_shot", "ability.aimed_shot"],
+      "passive_ability_ids": ["ability.sharpshooter", "ability.clean_shot"],
+      "virtual_ability_dice": { "sides": 6, "profile_id": "dice_profile.cardboard_plain" }
+    },
+    {
+      "id": "enemy_unit_type.kobold_warchief", "type": "enemy_unit_type", "display_name": "Kobold Chief Engineer",
+      "description": "The explosive-minded commander of the mountain warbands.", "art_key": "kobold_warchief", "role": "backline",
+      "stats": { "hp": 42, "attack": 11, "defense": 4, "precision": 7, "resolve": 5 },
+      "active_ability_ids": ["ability.bomb_toss", "ability.basic_attack_ranged", "ability.aimed_shot"],
+      "passive_ability_ids": ["ability.sharpshooter", "ability.patient_aim", "ability.dumb_luck"],
+      "virtual_ability_dice": { "sides": 6, "profile_id": "dice_profile.cardboard_plain" }
+    }
+  ]
+}

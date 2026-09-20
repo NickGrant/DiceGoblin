@@ -35,9 +35,9 @@ final class ContentRegistryTest extends TestCase
     ], $registry->definition('region.the_farm'));
     $this->assertCount(2, $registry->definitionsOfType('kin'));
     $this->assertCount(20, $registry->definitionsOfType('unit_type'));
-    $this->assertCount(32, $registry->definitionsOfType('ability'));
-    $this->assertCount(3, $registry->definitionsOfType('enemy_unit_type'));
-    $this->assertCount(2, $registry->definitionsOfType('encounter'));
+    $this->assertCount(38, $registry->definitionsOfType('ability'));
+    $this->assertCount(7, $registry->definitionsOfType('enemy_unit_type'));
+    $this->assertCount(6, $registry->definitionsOfType('encounter'));
     $this->assertCount(5, $registry->definitionsOfType('dice_material'));
     $this->assertCount(6, $registry->definitionsOfType('dice_aspect'));
     $this->assertCount(11, $registry->definitionsOfType('dice_profile'));

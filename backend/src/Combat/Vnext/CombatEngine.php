@@ -23,6 +23,7 @@ final class CombatEngine implements CombatResolver
     $next = [];
     $indices = [];
     $sleepBlockedUntil = [];
+    $dumbLuckUsed = [];
     $events = new PlaybackRecorder();
     $events->add('battle_started', 0, 0, ['combatant_keys' => array_keys($units)]);
     foreach ($units as $key => $unit) {
@@ -84,10 +85,11 @@ final class CombatEngine implements CombatResolver
             ['actor_key' => $key, 'target_key' => $targetKey, 'result' => $hit['result'],
               'chance_percent' => $hit['chance'], 'check_roll' => $hit['roll']]);
         }
-        $rollTotal = $this->rollDice($ability, $key, $round, $tick, $rng, $events);
+        $rollTotal = $this->rollDice($ability, $units[$key], $key, $round, $tick, $rng, $events, $dumbLuckUsed);
         if ($hit['result'] !== 'miss') {
           if (CombatRules::isDamaging($ability['handler_id'])) {
-            $facts = $this->damage->calculate($units[$key], $units[$targetKey], $ability, $rollTotal, $hit['result'] === 'critical');
+            $facts = $this->damage->calculate($units[$key], $units[$targetKey], $ability, $rollTotal,
+              $hit['result'] === 'critical', $chosen['reason'] === 'taunting_guard');
             $before = $units[$targetKey]['current_hp'];
             $units[$targetKey]['current_hp'] = max(0, $before - $facts['amount']);
             $events->add('damage_dealt', $round, $tick,
@@ -100,10 +102,12 @@ final class CombatEngine implements CombatResolver
             }
             if ($units[$targetKey]['current_hp'] === 0) {
               $events->add('death', $round, $tick, ['combatant_key' => $targetKey]);
+            } else {
+              $this->chargeShieldSet($units, $targetKey, $round, $tick, $events, $sleepBlockedUntil);
             }
           }
           if (isset($ability['config']['status_id']) && $units[$targetKey]['current_hp'] > 0) {
-            $this->applyStatus($units, $key, $targetKey, $ability, $round, $tick, $rng, $events, $sleepBlockedUntil);
+            $this->applyStatus($units, $key, $targetKey, $ability, $rollTotal, $round, $tick, $rng, $events, $sleepBlockedUntil);
           }
         }
         $this->advance($units[$key], $key, $tick, $indices, $next);
@@ -157,7 +161,17 @@ final class CombatEngine implements CombatResolver
   {
     foreach ($units as $key => $unit) {
       foreach ($unit['statuses'] as $status) {
-        if ($status['expires_round'] <= $round) $this->removeStatus($units, $key, $status['id'], 'expired', $round, $tick, $events, $sleepBlockedUntil);
+        if ($status['expires_round'] > $round) continue;
+        if ($status['id'] === 'fuse_lit' && $units[$key]['current_hp'] > 0) {
+          $before = $units[$key]['current_hp'];
+          $units[$key]['current_hp'] = max(0, $before - $status['params']['bomb_damage']);
+          $events->add('damage_dealt', $round, $tick,
+            ['actor_key' => $status['source_key'], 'target_key' => $key, 'amount' => $status['params']['bomb_damage'],
+              'hp_before' => $before, 'hp_after' => $units[$key]['current_hp'], 'attack_component' => $status['params']['bomb_damage'],
+              'roll_total' => 0, 'target_defense' => 0, 'conditional_multiplier' => 1.0, 'position_multiplier' => 1.0]);
+          if ($units[$key]['current_hp'] === 0) $events->add('death', $round, $tick, ['combatant_key' => $key]);
+        }
+        $this->removeStatus($units, $key, $status['id'], 'expired', $round, $tick, $events, $sleepBlockedUntil);
       }
     }
   }
@@ -194,9 +208,11 @@ final class CombatEngine implements CombatResolver
   }
 
   /** @param array<string,mixed> $ability */
-  private function rollDice(array $ability, string $actor, int $round, int $tick, DeterministicRandom $rng, PlaybackRecorder $events): int
+  private function rollDice(array $ability, array $unit, string $actor, int $round, int $tick, DeterministicRandom $rng,
+    PlaybackRecorder $events, array &$dumbLuckUsed): int
   {
     $total = 0;
+    $rollFacts = [];
     foreach ($ability['dice'] as $slot => $die) {
       $initial = $rng->nextInt(1, $die['sides']);
       $extra = null;
@@ -208,20 +224,27 @@ final class CombatEngine implements CombatResolver
       }
       $value = $initial + ($extra ?? 0);
       $total += $value;
-      $events->add('dice_rolled', $round, $tick,
-        ['actor_key' => $actor, 'ability_id' => $ability['id'], 'slot' => $slot, 'die_key' => $die['key'],
-          'sides' => $die['sides'], 'initial_roll' => $initial, 'extra_roll' => $extra, 'roll_total' => $value]);
+      $rollFacts[] = ['actor_key' => $actor, 'ability_id' => $ability['id'], 'slot' => $slot, 'die_key' => $die['key'],
+        'sides' => $die['sides'], 'initial_roll' => $initial, 'extra_roll' => $extra, 'roll_total' => $value];
     }
+    foreach ($unit['passive_abilities'] as $passive) {
+      if ($passive['handler_id'] === 'dumb_luck' && !isset($dumbLuckUsed[$actor]) && $total <= $passive['config']['low_roll_threshold']) {
+        $total += $passive['config']['bonus_flat'];
+        $rollFacts[array_key_last($rollFacts)]['roll_total'] += $passive['config']['bonus_flat'];
+        $dumbLuckUsed[$actor] = true;
+      }
+    }
+    foreach ($rollFacts as $facts) $events->add('dice_rolled', $round, $tick, $facts);
     return $total;
   }
 
   /** @param array<string,array<string,mixed>> $units @param array<string,mixed> $ability @param array<string,int> $sleepBlockedUntil */
-  private function applyStatus(array &$units, string $source, string $target, array $ability, int $round, int $tick,
+  private function applyStatus(array &$units, string $source, string $target, array $ability, int $rollTotal, int $round, int $tick,
     DeterministicRandom $rng, PlaybackRecorder $events, array &$sleepBlockedUntil): void
   {
     $config = $ability['config'];
     $id = $config['status_id'];
-    $harmful = in_array($id, ['sleep', 'cracked_armor', 'wrestled'], true);
+    $harmful = in_array($id, ['sleep', 'cracked_armor', 'wrestled', 'disarmed'], true);
     if ($harmful && $units[$target]['stats']['resolve'] > $units[$source]['stats']['precision']) {
       $chance = min(45, ($units[$target]['stats']['resolve'] - $units[$source]['stats']['precision']) * 8);
       $roll = $rng->nextInt(1, 100);
@@ -234,6 +257,9 @@ final class CombatEngine implements CombatResolver
     $params = match ($id) {
       'bolstered' => ['defense_pct' => $config['bolster_defense_pct']],
       'cracked_armor' => ['defense_reduction_flat' => $config['defense_reduction_flat']],
+      'taunting_guard' => ['guard_reduction_flat' => min($config['guard_stack_cap'], max(1, $rollTotal)) * $config['guard_reduction_per_stack']],
+      'disarmed' => ['attack_reduction_pct' => $config['attack_reduction_pct']],
+      'fuse_lit' => ['bomb_damage' => max(1, (int)floor($this->damageAttack($units[$source]) * $config['bomb_damage_ratio']))],
       default => [],
     };
     $forced = $id === 'wrestled' ? $source : null;
@@ -244,5 +270,34 @@ final class CombatEngine implements CombatResolver
     $events->add('status_applied', $round, $tick,
       ['target_key' => $target, 'status_id' => $id, 'source_key' => $source,
         'expires_round' => $status['expires_round'], 'params' => $params, 'forced_target_key' => $forced]);
+  }
+
+  /** @param array<string,array<string,mixed>> $units @param array<string,int> $sleepBlockedUntil */
+  private function chargeShieldSet(array &$units, string $target, int $round, int $tick, PlaybackRecorder $events,
+    array &$sleepBlockedUntil): void
+  {
+    $shield = $wall = null;
+    foreach ($units[$target]['passive_abilities'] as $passive) {
+      if ($passive['handler_id'] === 'shield_set') $shield = $passive['config'];
+      if ($passive['handler_id'] === 'wall_of_scrap') $wall = $passive['config'];
+    }
+    if ($shield === null) return;
+    $stacks = 0;
+    foreach ($units[$target]['statuses'] as $status) if ($status['id'] === 'shield_set') $stacks = $status['params']['stacks'];
+    $cap = $shield['stack_cap'] + ($wall['stack_cap_bonus'] ?? 0);
+    $stacks = min($cap, $stacks + 1);
+    $this->removeStatus($units, $target, 'shield_set', 'replaced', $round, $tick, $events, $sleepBlockedUntil);
+    $params = ['stacks' => $stacks, 'defense_flat_per_stack' => $shield['defense_flat_per_stack']];
+    $units[$target]['statuses'][] = ['id' => 'shield_set', 'source_key' => $target, 'expires_round' => 401,
+      'params' => $params, 'forced_target_key' => null];
+    $events->add('status_applied', $round, $tick,
+      ['target_key' => $target, 'status_id' => 'shield_set', 'source_key' => $target,
+        'expires_round' => 401, 'params' => $params, 'forced_target_key' => null]);
+  }
+
+  /** @param array<string,mixed> $unit */
+  private function damageAttack(array $unit): int
+  {
+    return (new CombatStatMath())->attack($unit);
   }
 }
