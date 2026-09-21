@@ -5,7 +5,10 @@ describe('run contracts', () => {
   function content(): ClientContentRegistry {
     return new ClientContentRegistry({ revision: 'a'.repeat(64), content: {
       gameplay: { run_energy_cost: 10 },
-      regions: { 'region.the_farm': { id: 'region.the_farm', display_name: 'The Farm', art_key: 'farm' } },
+      regions: {
+        'region.the_farm': { id: 'region.the_farm', display_name: 'The Farm', art_key: 'farm' },
+        'region.mountains': { id: 'region.mountains', display_name: 'Mountains', art_key: 'mountains' },
+      },
       kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {},
       run_node_types: {
         'run_node_type.combat': { id: 'run_node_type.combat', display_name: 'Combat', description: 'Fight.', icon_key: 'combat' },
@@ -56,6 +59,26 @@ describe('run contracts', () => {
     expect(result.run?.nodes.map((node) => node.battleId)).toEqual(['31', null, null, '32', null]);
     expect(result.run?.nodes[3].battleId).toBe('32');
     expect(result.run?.regionId).toBe('region.the_farm');
+  });
+
+  it('accepts the authored seven-node Mountains graph without region-specific parsing', () => {
+    const value: any = currentEnvelope();
+    value.data.run.region_id = 'region.mountains';
+    const types = ['combat', 'loot', 'combat', 'rest', 'combat', 'boss', 'exit'];
+    value.data.run.nodes = types.map((type, index) => ({
+      id: String(20 + index), node_index: index, node_type_id: `run_node_type.${type}`,
+      status: index === 0 ? 'available' : 'locked', completed_at: null, battle_id: null,
+      position: { column: index, row: 1 },
+    }));
+    value.data.run.edges = types.slice(0, -1).map((_, index) => ({
+      from_node_id: String(20 + index), to_node_id: String(21 + index),
+    }));
+
+    const parsed = parseCurrentRunEnvelope(value, content());
+
+    expect(parsed.run?.regionId).toBe('region.mountains');
+    expect(parsed.run?.nodes.map((node) => node.nodeTypeId)).toEqual(types.map((type) => `run_node_type.${type}`));
+    expect(parsed.run?.edges.length).toBe(6);
   });
 
   it('rejects every invalid battle-bearing and non-battle-bearing node correspondence', () => {

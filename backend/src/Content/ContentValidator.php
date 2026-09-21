@@ -97,7 +97,22 @@ final class ContentValidator
     foreach ($definitions as $id => $definition) {
       if (($definition['type'] ?? null) === 'region') {
         if (isset($definition['run_generation_id'])) {
-          $this->requireReferenceType($definitions, $id, 'run_generation_id', $definition['run_generation_id'], 'run_generation');
+          $generation = $this->requireReferenceType(
+            $definitions, $id, 'run_generation_id', $definition['run_generation_id'], 'run_generation');
+          foreach ($generation['nodes'] as $node) {
+            if (!isset($node['encounter_id'])) continue;
+            $encounter = $this->requireReferenceType(
+              $definitions, $generation['id'], 'nodes.encounter_id', $node['encounter_id'], 'encounter');
+            $encounterRegionId = $encounter['region_id'] ?? null;
+            if (!is_string($encounterRegionId) || !isset($definitions[$encounterRegionId])
+              || ($definitions[$encounterRegionId]['type'] ?? null) !== 'region') {
+              continue;
+            }
+            if ($encounterRegionId !== $id) {
+              throw new ContentValidationException(
+                "{$generation['id']} encounter '{$node['encounter_id']}' is not compatible with region '{$id}'.");
+            }
+          }
         }
       }
 
@@ -174,6 +189,10 @@ final class ContentValidator
     $farm = $definitions['region.the_farm'] ?? null;
     if (is_array($farm)) {
       $this->validateFarmGenerationStructure($definitions[(string)$farm['run_generation_id']]);
+    }
+    $mountains = $definitions['region.mountains'] ?? null;
+    if (is_array($mountains) && isset($mountains['run_generation_id'])) {
+      $this->validateMountainsGenerationStructure($definitions[(string)$mountains['run_generation_id']]);
     }
   }
 
@@ -726,6 +745,42 @@ final class ContentValidator
     }
     if ($definition['edges'] !== $expectedEdges) {
       throw new ContentValidationException('region.the_farm generation must be one connected linear path through boss to exit.');
+    }
+  }
+
+  /** @param array<string, mixed> $definition */
+  private function validateMountainsGenerationStructure(array $definition): void
+  {
+    $nodes = $definition['nodes'];
+    $expected = [
+      ['combat_1', 'run_node_type.combat', 'encounter.mountains_kobold_combat_1', null, 0],
+      ['loot', 'run_node_type.loot', null, 'event.mountains_loot_completed', 1],
+      ['combat_2', 'run_node_type.combat', 'encounter.mountains_kobold_combat_2', null, 2],
+      ['rest', 'run_node_type.rest', null, null, 3],
+      ['combat_3', 'run_node_type.combat', 'encounter.mountains_kobold_combat_3', null, 4],
+      ['boss', 'run_node_type.boss', 'encounter.mountains_kobold_boss_1', 'event.mountains_boss_completed', 5],
+      ['exit', 'run_node_type.exit', null, null, 6],
+    ];
+    if (count($nodes) !== count($expected)) {
+      throw new ContentValidationException('region.mountains generation must contain exactly seven nodes.');
+    }
+    foreach ($expected as $index => [$key, $type, $encounter, $event, $column]) {
+      $node = $nodes[$index];
+      if (($node['key'] ?? null) !== $key || ($node['node_type_id'] ?? null) !== $type
+        || ($node['encounter_id'] ?? null) !== $encounter || ($node['event_id'] ?? null) !== $event
+        || ($node['position'] ?? null) !== ['column' => $column, 'row' => 1]) {
+        throw new ContentValidationException("region.mountains generation node '{$key}' is invalid.");
+      }
+    }
+    if (($definition['start_node_key'] ?? null) !== 'combat_1') {
+      throw new ContentValidationException('region.mountains generation must start at combat_1.');
+    }
+    $expectedEdges = [];
+    for ($index = 0; $index < count($nodes) - 1; $index++) {
+      $expectedEdges[] = ['from' => $nodes[$index]['key'], 'to' => $nodes[$index + 1]['key']];
+    }
+    if ($definition['edges'] !== $expectedEdges) {
+      throw new ContentValidationException('region.mountains generation must be the canonical connected linear path.');
     }
   }
 

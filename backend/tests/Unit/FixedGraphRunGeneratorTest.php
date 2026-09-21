@@ -40,6 +40,29 @@ final class FixedGraphRunGeneratorTest extends TestCase
     $this->assertStringNotContainsString('encounter_template_id', $encoded);
   }
 
+  public function testGeneratesExactDeterministicMountainsGraph(): void
+  {
+    $definition = ContentRegistry::load(dirname(__DIR__, 2) . '/content')
+      ->runGenerationForRegion('region.mountains');
+    $graph = (new FixedGraphRunGenerator())->generate($definition);
+
+    $this->assertSame([0, 1, 2, 3, 4, 5, 6], array_column($graph['nodes'], 'node_index'));
+    $this->assertSame([
+      'run_node_type.combat', 'run_node_type.loot', 'run_node_type.combat', 'run_node_type.rest',
+      'run_node_type.combat', 'run_node_type.boss', 'run_node_type.exit',
+    ], array_column($graph['nodes'], 'node_type_id'));
+    $this->assertSame([
+      'encounter.mountains_kobold_combat_1', null, 'encounter.mountains_kobold_combat_2', null,
+      'encounter.mountains_kobold_combat_3', 'encounter.mountains_kobold_boss_1', null,
+    ], array_column($graph['nodes'], 'encounter_id'));
+    $this->assertSame([null, 'event.mountains_loot_completed', null, null, null,
+      'event.mountains_boss_completed', null], array_column($graph['nodes'], 'event_id'));
+    $this->assertSame(['available', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked'],
+      array_column($graph['nodes'], 'status'));
+    $this->assertSame([0, 1, 2, 3, 4, 5], array_column($graph['edges'], 'from_node_index'));
+    $this->assertSame([1, 2, 3, 4, 5, 6], array_column($graph['edges'], 'to_node_index'));
+  }
+
   /** @dataProvider invalidGraphProvider */
   public function testGeneratedGraphValidatorRejectsMalformedOutput(array $graph, string $message): void
   {

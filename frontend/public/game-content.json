@@ -1,10 +1,15 @@
 {
-    "revision": "f27cf88bf18e8d397750a5c8bbf467872c12d44c8297235f7c3459c9a0f0624a",
+    "revision": "7c3fe94d7568a11955c0e0400a1d2316fad69082a622a0b1a044bda97f49e79f",
     "content": {
         "gameplay": {
             "run_energy_cost": 10
         },
         "regions": {
+            "region.mountains": {
+                "id": "region.mountains",
+                "display_name": "Mountains",
+                "art_key": "mountains"
+            },
             "region.the_farm": {
                 "id": "region.the_farm",
                 "display_name": "The Farm",

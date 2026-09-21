@@ -49,16 +49,29 @@ describe('run map model', () => {
       }
     }
   });
+
+  it('uses the shared authored labels for the seven-node Mountains sequence', () => {
+    const presentation = createRunMapPresentation(mountainsRun(), content());
+    expect(presentation.regionName).toBe('Mountains');
+    expect(presentation.nodes.map((node) => node.name)).toEqual([
+      'Authored Fight', 'Authored Cache', 'Authored Fight', 'Rest', 'Authored Fight', 'Boss', 'Authored Gate',
+    ]);
+  });
 });
 
 function content(): ClientContentRegistry {
   return new ClientContentRegistry({ revision: 'a'.repeat(64), content: {
     gameplay: { run_energy_cost: 10 },
-    regions: { 'region.the_farm': { id: 'region.the_farm', display_name: 'Authored Farm', art_key: 'farm' } },
+    regions: {
+      'region.the_farm': { id: 'region.the_farm', display_name: 'Authored Farm', art_key: 'farm' },
+      'region.mountains': { id: 'region.mountains', display_name: 'Mountains', art_key: 'mountains' },
+    },
     kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {},
     run_node_types: {
       'run_node_type.combat': { id: 'run_node_type.combat', display_name: 'Authored Fight', description: 'Authored fight description.', icon_key: 'fight' },
       'run_node_type.loot': { id: 'run_node_type.loot', display_name: 'Authored Cache', description: 'Authored cache description.', icon_key: 'cache' },
+      'run_node_type.rest': { id: 'run_node_type.rest', display_name: 'Rest', description: 'Recover.', icon_key: 'rest' },
+      'run_node_type.boss': { id: 'run_node_type.boss', display_name: 'Boss', description: 'Fight.', icon_key: 'boss' },
       'run_node_type.exit': { id: 'run_node_type.exit', display_name: 'Authored Gate', description: 'Authored gate description.', icon_key: 'gate' },
     },
   } });
@@ -74,5 +87,18 @@ function run(): CurrentRun {
     ]),
     edges: Object.freeze([Object.freeze({ fromNodeId: '91', toNodeId: '77' }), Object.freeze({ fromNodeId: '91', toNodeId: '92' })]),
     units: Object.freeze([Object.freeze({ unitId: '11', currentHp: null })]),
+  });
+}
+
+function mountainsRun(): CurrentRun {
+  const types = ['combat', 'loot', 'combat', 'rest', 'combat', 'boss', 'exit'];
+  return Object.freeze({ id: '42', regionId: 'region.mountains', squadId: '31', status: 'active',
+    createdAt: '2026-09-20T12:00:00Z',
+    nodes: Object.freeze(types.map((type, index) => Object.freeze({ id: String(101 + index), nodeIndex: index,
+      nodeTypeId: `run_node_type.${type}`, status: index === 0 ? 'available' as const : 'locked' as const,
+      completedAt: null, battleId: null, position: Object.freeze({ column: index, row: 1 }) }))),
+    edges: Object.freeze(types.slice(0, -1).map((_, index) => Object.freeze({
+      fromNodeId: String(101 + index), toNodeId: String(102 + index),
+    }))), units: Object.freeze([Object.freeze({ unitId: '11', currentHp: 20 })]),
   });
 }

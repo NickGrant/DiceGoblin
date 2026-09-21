@@ -30,6 +30,24 @@ final class RunContentValidationTest extends TestCase
     $this->assertSame('Combat', $registry->runNodeType('run_node_type.combat')['display_name']);
   }
 
+  public function testCanonicalMountainsRunContentUsesTheExactSevenNodeLinearGraph(): void
+  {
+    $registry = ContentRegistry::load($this->canonicalRoot());
+    $generation = $registry->runGenerationForRegion('region.mountains');
+
+    $this->assertSame('run_generation.mountains', $generation['id']);
+    $this->assertSame('combat_1', $generation['start_node_key']);
+    $this->assertSame(['combat_1', 'loot', 'combat_2', 'rest', 'combat_3', 'boss', 'exit'],
+      array_column($generation['nodes'], 'key'));
+    $this->assertSame([
+      'run_node_type.combat', 'run_node_type.loot', 'run_node_type.combat', 'run_node_type.rest',
+      'run_node_type.combat', 'run_node_type.boss', 'run_node_type.exit',
+    ], array_column($generation['nodes'], 'node_type_id'));
+    $this->assertSame([0, 1, 2, 3, 4, 5, 6], array_column(array_column($generation['nodes'], 'position'), 'column'));
+    $this->assertSame([1, 1, 1, 1, 1, 1, 1], array_column(array_column($generation['nodes'], 'position'), 'row'));
+    $this->assertCount(6, $generation['edges']);
+  }
+
   public function testProjectionExposesOnlySafeNodeTypePresentation(): void
   {
     $registry = ContentRegistry::load($this->canonicalRoot());
@@ -110,6 +128,9 @@ final class RunContentValidationTest extends TestCase
       'missing node type reference' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['nodes'][0]['node_type_id'] = 'run_node_type.missing'), 'references missing run_node_type'],
       'malformed node event reference' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['nodes'][1]['event_id'] = 'reward_definition.farm_loot_completed'), 'event. namespace'],
       'missing node event reference' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['nodes'][1]['event_id'] = 'event.missing'), 'references missing event'],
+      'cross-region Mountains encounter' => [fn(array &$definitions) => $this->mutate($definitions,
+        'encounter.mountains_kobold_combat_2', fn(array &$definition) => $definition['region_id'] = 'region.the_farm'),
+        'is not compatible with region'],
       'wrong node type namespace' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['nodes'][0]['node_type_id'] = 'region.the_farm'), 'run_node_type. namespace'],
       'duplicate local key' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['nodes'][1]['key'] = 'combat'), 'duplicate local node key'],
       'invalid start key' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['start_node_key'] = 'missing'), 'start_node_key references missing local node'],

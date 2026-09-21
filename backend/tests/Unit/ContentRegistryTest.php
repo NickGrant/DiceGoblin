@@ -43,7 +43,7 @@ final class ContentRegistryTest extends TestCase
     $this->assertCount(11, $registry->definitionsOfType('dice_profile'));
     $this->assertCount(5, $registry->definitionsOfType('run_node_type'));
     $this->assertCount(2, $registry->definitionsOfType('region'));
-    $this->assertCount(1, $registry->definitionsOfType('run_generation'));
+    $this->assertCount(2, $registry->definitionsOfType('run_generation'));
     $this->assertCount(1, $registry->definitionsOfType('unlock'));
     $this->assertSame('region.mountains', $registry->unlock('unlock.region.mountains')['target_id']);
     $this->assertSame('Pig Kin', $registry->kin('kin.pig')['display_name']);
@@ -145,6 +145,11 @@ final class ContentRegistryTest extends TestCase
       'display_name' => 'The Farm',
       'art_key' => 'farm',
     ], $projection['content']['regions']['region.the_farm']);
+    $this->assertSame([
+      'id' => 'region.mountains',
+      'display_name' => 'Mountains',
+      'art_key' => 'mountains',
+    ], $projection['content']['regions']['region.mountains']);
     $this->assertSame([
       'id' => 'ability.sleep_dart',
       'kind' => 'active',

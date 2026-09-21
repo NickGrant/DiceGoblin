@@ -1,0 +1,31 @@
+{
+  "definitions": [
+    {
+      "id": "reward_definition.mountains_loot_completed",
+      "type": "reward_definition",
+      "entries": [
+        {
+          "key": "teeth",
+          "probability_basis_points": 10000,
+          "reward_type": "currency",
+          "config": {
+            "currency_id": "teeth",
+            "amount": 8
+          }
+        }
+      ]
+    },
+    {
+      "id": "reward_definition.mountains_boss_completed",
+      "type": "reward_definition",
+      "entries": [
+        {
+          "key": "xp",
+          "probability_basis_points": 10000,
+          "reward_type": "unit_xp",
+          "config": { "target_scope": "participating_units", "amount": 16 }
+        }
+      ]
+    }
+  ]
+}

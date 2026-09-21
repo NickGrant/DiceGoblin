@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
 
 final class RewardContentValidationTest extends TestCase
 {
-  public function testCanonicalMountainsUnlockReferencesAuthoredButUnplayableRegion(): void
+  public function testCanonicalMountainsUnlockReferencesAuthoredRegionWithGeneration(): void
   {
     $registry = ContentRegistry::load($this->canonicalRoot());
     $this->assertSame([
@@ -20,9 +20,7 @@ final class RewardContentValidationTest extends TestCase
       'target_type' => 'region',
       'target_id' => 'region.mountains',
     ], $registry->unlock('unlock.region.mountains'));
-    $this->expectException(ContentValidationException::class);
-    $this->expectExceptionMessage('has no run generation definition');
-    $registry->runGenerationForRegion('region.mountains');
+    $this->assertSame('run_generation.mountains', $registry->runGenerationForRegion('region.mountains')['id']);
   }
 
   public function testValidEventAndRewardDefinitionRetainEntryOrderAndTypedAccess(): void
@@ -60,13 +58,32 @@ final class RewardContentValidationTest extends TestCase
     ], $registry->rewardDefinition('reward_definition.farm_boss_completed')['entries']);
   }
 
+  public function testCanonicalMountainsRewardsAreEightTeethAndXpOnly(): void
+  {
+    $registry = ContentRegistry::load($this->canonicalRoot());
+    $this->assertSame('reward_definition.mountains_loot_completed',
+      $registry->event('event.mountains_loot_completed')['reward_definition_id']);
+    $this->assertSame([[
+      'key' => 'teeth', 'probability_basis_points' => 10000, 'reward_type' => 'currency',
+      'config' => ['currency_id' => 'teeth', 'amount' => 8],
+    ]], $registry->rewardDefinition('reward_definition.mountains_loot_completed')['entries']);
+    $this->assertSame('reward_definition.mountains_boss_completed',
+      $registry->event('event.mountains_boss_completed')['reward_definition_id']);
+    $this->assertSame([[
+      'key' => 'xp', 'probability_basis_points' => 10000, 'reward_type' => 'unit_xp',
+      'config' => ['target_scope' => 'participating_units', 'amount' => 16],
+    ]], $registry->rewardDefinition('reward_definition.mountains_boss_completed')['entries']);
+  }
+
   public function testEventRewardAndUnlockDefinitionsRemainOutsideClientProjection(): void
   {
     $projection = (new ClientContentProjector())->project($this->registryWithRewardFixture());
     $encoded = json_encode($projection, JSON_THROW_ON_ERROR);
 
-    $this->assertArrayNotHasKey('region.mountains', $projection['content']['regions']);
-    foreach (['unlock.region.mountains', 'event.test_completed', 'reward_definition.test_completion', 'probability_basis_points', 'participating_units'] as $privateValue) {
+    $this->assertSame(['id' => 'region.mountains', 'display_name' => 'Mountains', 'art_key' => 'mountains'],
+      $projection['content']['regions']['region.mountains']);
+    foreach (['unlock.region.mountains', 'event.test_completed', 'event.mountains_loot_completed',
+      'reward_definition.test_completion', 'run_generation.mountains', 'probability_basis_points', 'participating_units'] as $privateValue) {
       $this->assertStringNotContainsString($privateValue, $encoded);
     }
   }

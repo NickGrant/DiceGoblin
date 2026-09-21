@@ -111,7 +111,8 @@ final class MountainsCombatContentValidationTest extends TestCase
       'guard_stack_cap', 'attack_reduction_pct'] as $private) {
       $this->assertStringNotContainsString($private, $encoded);
     }
-    $this->assertArrayNotHasKey('region.mountains', $projection['content']['regions']);
+    $this->assertSame(['id' => 'region.mountains', 'display_name' => 'Mountains', 'art_key' => 'mountains'],
+      $projection['content']['regions']['region.mountains']);
   }
 
   private function content(): ContentRegistry

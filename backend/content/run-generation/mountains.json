@@ -1,0 +1,61 @@
+{
+  "definitions": [
+    {
+      "id": "run_generation.mountains",
+      "type": "run_generation",
+      "algorithm": "fixed_graph_v1",
+      "start_node_key": "combat_1",
+      "nodes": [
+        {
+          "key": "combat_1",
+          "node_type_id": "run_node_type.combat",
+          "encounter_id": "encounter.mountains_kobold_combat_1",
+          "position": { "column": 0, "row": 1 }
+        },
+        {
+          "key": "loot",
+          "node_type_id": "run_node_type.loot",
+          "event_id": "event.mountains_loot_completed",
+          "position": { "column": 1, "row": 1 }
+        },
+        {
+          "key": "combat_2",
+          "node_type_id": "run_node_type.combat",
+          "encounter_id": "encounter.mountains_kobold_combat_2",
+          "position": { "column": 2, "row": 1 }
+        },
+        {
+          "key": "rest",
+          "node_type_id": "run_node_type.rest",
+          "position": { "column": 3, "row": 1 }
+        },
+        {
+          "key": "combat_3",
+          "node_type_id": "run_node_type.combat",
+          "encounter_id": "encounter.mountains_kobold_combat_3",
+          "position": { "column": 4, "row": 1 }
+        },
+        {
+          "key": "boss",
+          "node_type_id": "run_node_type.boss",
+          "encounter_id": "encounter.mountains_kobold_boss_1",
+          "event_id": "event.mountains_boss_completed",
+          "position": { "column": 5, "row": 1 }
+        },
+        {
+          "key": "exit",
+          "node_type_id": "run_node_type.exit",
+          "position": { "column": 6, "row": 1 }
+        }
+      ],
+      "edges": [
+        { "from": "combat_1", "to": "loot" },
+        { "from": "loot", "to": "combat_2" },
+        { "from": "combat_2", "to": "rest" },
+        { "from": "rest", "to": "combat_3" },
+        { "from": "combat_3", "to": "boss" },
+        { "from": "boss", "to": "exit" }
+      ]
+    }
+  ]
+}
