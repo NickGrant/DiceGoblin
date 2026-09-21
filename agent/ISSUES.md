@@ -7,16 +7,16 @@
 **Status:** In Progress
 **Priority:** High
 
+
 #### Current Architectural Review Finding
 
-The Package 3 authored Mountains content, rewards, lifecycle fixture, frontend graph acceptance, and public-start boundary at `f6c6fd329ea7f0fda13c92f552dc30e6595cb2e8` are otherwise consistent with the package. One architecture defect remains:
+The backend/content correction at `a8cb09cd457ecc34b22e5e25c140e8d36b16ed16` is accepted, including the reported Package 3 Docker/MySQL evidence. One focused frontend Package 3 defect remains:
 
-- **Do not duplicate the canonical Mountains graph in production PHP validation.** `ContentValidator::validateMountainsGenerationStructure()` hardcodes every Mountains node key, node type, encounter/event ID, position, start key, and edge sequence. That makes PHP a second source of truth for authored gameplay content and creates a per-region validator branch; adding a third region would require another production-code method even though JSON in Git is the canonical authored-content boundary. Remove the Mountains-specific production structure mirror. Retain the new generic validation that proves stable references, region/encounter compatibility, connectivity, exit presence, node/edge validity, etc. Keep the exact seven-node Mountains graph assertions in the content/run-generation tests, where canonical authored expectations belong.
+- **RunScene still contains two Farm-specific presentation assumptions.** In `frontend/src/app/game/scenes/runtime-scenes.ts`, the no-current-run/loading shell renders `THE FARM`, and the generic Exit action renders `LEAVE FARM`. A persisted Mountains run therefore still passes through Farm-labelled RunScene presentation. Replace these with region-neutral wording or derive the active region display name from authoritative/projected run content where that state is actually available. Do not add Camp region selection or public Mountains start in this correction.
 
-Do not broaden this correction into Package 4 or region-start work. The pre-existing Farm-specific validator is outside this focused correction unless removing a shared duplication is strictly necessary to keep the generic validator coherent. Package 5 can audit remaining Farm-specific architecture leaks.
+Add focused RunScene coverage proving a Mountains current run never renders Farm-specific copy for the loading/map/Exit-action states that Package 3 owns. Preserve the existing terminal reconciliation/idempotency behavior unchanged.
 
-After correction, rerun the standard package gate and the Package 3 MySQL/Docker verification requested below. Leave Package 3 **In Progress** and do not promote Package 4.
-
+No backend/content change is requested. Leave Package 3 **In Progress** and do not promote Package 4.
 
 #### Accepted baseline
 
