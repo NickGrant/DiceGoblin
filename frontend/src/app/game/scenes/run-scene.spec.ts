@@ -25,6 +25,37 @@ describe('RunScene lifecycle shell', () => {
     }
   });
 
+  it('renders a region-neutral loading shell for a Mountains current run', () => {
+    const api = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getCurrentRun']);
+    const startup = new RuntimeStartup(api, {} as ClientContentLoader);
+    const registry = content();
+    startup.store.hydrateBootstrap(activeBootstrap('region.mountains'));
+    (startup as unknown as { activeContentRegistry: ClientContentRegistry }).activeContentRegistry = registry;
+    (startup as unknown as { currentState: { status: 'ready' } }).currentState = { status: 'ready' };
+    api.getCurrentRun.and.returnValue(new Promise(() => undefined));
+    void startup.store.loadCurrentRun(api, registry);
+    const scene = new RunScene(new RuntimeLifecycleState(), startup, new RuntimeViewport());
+    const textValues = attachRenderHarness(scene);
+
+    (scene as unknown as { render(): void }).render();
+
+    expect(textValues).toContain('RUN IN PROGRESS');
+    expect(textValues).toContain('Loading your persisted run…');
+    expect(textValues.join(' ')).not.toContain('FARM');
+  });
+
+  it('renders the Mountains map and Exit action without Farm-specific copy', async () => {
+    const { scene } = await readyHarness(mountainsExitAvailableRun());
+    const textValues = attachRenderHarness(scene);
+    (scene as unknown as { selectedNodeId: string }).selectedNodeId = '107';
+
+    (scene as unknown as { render(): void }).render();
+
+    expect(textValues).toContain('Mountains');
+    expect(textValues).toContain('LEAVE REGION');
+    expect(textValues.join(' ')).not.toContain('FARM');
+  });
+
   it('returns to the real GameScene without clearing the active run or runtime store', () => {
     const startup = new RuntimeStartup(); const bootstrap = activeBootstrap(); startup.store.hydrateBootstrap(bootstrap);
     const scene = new RunScene(new RuntimeLifecycleState(), startup, new RuntimeViewport());
@@ -406,7 +437,7 @@ async function readyHarness(run: CurrentRun = currentRun(), createKey: () => str
   const api = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getBootstrap', 'getCurrentRun', 'abandonRun', 'resolveRunNode']);
   const startup = new RuntimeStartup(api, {} as ClientContentLoader);
   const registry = content();
-  startup.store.hydrateBootstrap(activeBootstrap());
+  startup.store.hydrateBootstrap(activeBootstrap(run.regionId));
   (startup as unknown as { activeContentRegistry: ClientContentRegistry }).activeContentRegistry = registry;
   (startup as unknown as { currentState: { status: 'ready' } }).currentState = { status: 'ready' };
   api.getCurrentRun.and.resolveTo({ run, playerRevision: 7 });
@@ -456,7 +487,10 @@ function exitResolutionSuccess() {
 
 function content(): ClientContentRegistry {
   return new ClientContentRegistry({ revision: 'a'.repeat(64), content: { gameplay: { run_energy_cost: 10 },
-    regions: { 'region.the_farm': { id: 'region.the_farm', display_name: 'The Farm', art_key: 'farm' } },
+    regions: {
+      'region.the_farm': { id: 'region.the_farm', display_name: 'The Farm', art_key: 'farm' },
+      'region.mountains': { id: 'region.mountains', display_name: 'Mountains', art_key: 'mountains' },
+    },
     kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {},
     run_node_types: {
       'run_node_type.combat': { id: 'run_node_type.combat', display_name: 'Combat', description: 'Fight.', icon_key: 'combat' },
@@ -494,7 +528,19 @@ function bossAvailableRun() {
 }
 function bossCompletedRun() { return farmRun(['completed', 'completed', 'completed', 'completed', 'available']); }
 
-function activeBootstrap(): GameBootstrapData {
+function mountainsExitAvailableRun(): CurrentRun {
+  const types = ['combat', 'loot', 'combat', 'rest', 'combat', 'boss', 'exit'];
+  return { id: '41', regionId: 'region.mountains', squadId: '31', status: 'active',
+    createdAt: '2026-09-20T12:00:00Z', nodes: types.map((type, index) => ({ id: String(101 + index), nodeIndex: index,
+      nodeTypeId: `run_node_type.${type}`, status: index === 6 ? 'available' as const : 'completed' as const,
+      completedAt: index === 6 ? null : `2026-09-20T12:0${index}:00Z`,
+      battleId: type === 'combat' || type === 'boss' ? String(201 + index) : null,
+      position: { column: index, row: 1 } })),
+    edges: types.slice(0, -1).map((_, index) => ({ fromNodeId: String(101 + index), toNodeId: String(102 + index) })),
+    units: [{ unitId: '11', currentHp: 20 }] };
+}
+
+function activeBootstrap(regionId = 'region.the_farm'): GameBootstrapData {
   return { account: { id: '1', display_name: 'Goblin', role: 'user' },
     player: { teeth: 0, raw_chaos: 0, player_revision: 7, energy: { current: 40, normal_max: 50,
       regeneration_per_hour: 12, regeneration_interval_seconds: 300, last_regeneration_at: '2026-09-13T12:00:00Z',
@@ -502,7 +548,31 @@ function activeBootstrap(): GameBootstrapData {
     server_time: '2026-09-13T12:00:00Z', content_revision: 'a'.repeat(64), progression: { unlock_ids: [] },
     active_squad: { id: '31', name: 'Raiders', is_active: true, formation: ['11', null, null, null, null, null, null, null, null],
       units: [{ id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active' }] },
-    active_run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active' } };
+    active_run: { id: '41', region_id: regionId, squad_id: '31', status: 'active' } };
+}
+
+function attachRenderHarness(scene: RunScene): string[] {
+  const textValues: string[] = [];
+  const chain = (): Record<string, unknown> => {
+    const value: Record<string, unknown> = {};
+    for (const method of ['setScale', 'destroy', 'fillGradientStyle', 'fillRect', 'fillStyle', 'fillCircle', 'fillRoundedRect',
+      'fillTriangle', 'lineStyle', 'lineBetween', 'strokeCircle', 'strokeRoundedRect', 'setInteractive', 'on', 'setOrigin']) {
+      value[method] = jasmine.createSpy(method).and.returnValue(value);
+    }
+    value['add'] = jasmine.createSpy('add').and.returnValue(value);
+    return value;
+  };
+  const parent = document.createElement('div');
+  const canvas = document.createElement('canvas');
+  parent.appendChild(canvas);
+  (scene as unknown as { add: unknown }).add = {
+    container: () => chain(),
+    graphics: () => chain(),
+    text: (_x: number, _y: number, value: string) => { textValues.push(value); return chain(); },
+  };
+  (scene as unknown as { textures: unknown }).textures = { exists: () => false };
+  (scene as unknown as { sys: unknown }).sys = { game: { canvas } };
+  return textValues;
 }
 
 function terminalBootstrap(): GameBootstrapData {

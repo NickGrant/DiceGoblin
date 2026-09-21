@@ -640,7 +640,7 @@ export class RunScene extends RuntimeScene {
       panel.fillStyle(0x342418, 0.97); panel.fillRoundedRect(shell.x, shell.y, shell.width, shell.height, 24);
       panel.lineStyle(5, 0xc9972b, 1); panel.strokeRoundedRect(shell.x, shell.y, shell.width, shell.height, 24);
       root.add(panel);
-      const title = this.add.text(shell.centerX, shell.y + 95, 'THE FARM', { color: '#f5e8c8', fontFamily: 'Georgia, serif',
+      const title = this.add.text(shell.centerX, shell.y + 95, 'RUN IN PROGRESS', { color: '#f5e8c8', fontFamily: 'Georgia, serif',
         fontSize: snapshot.layoutClass === 'compact' ? '48px' : '44px', fontStyle: 'bold' }).setOrigin(0.5);
       let detail = 'Loading your persisted run…';
       if (state.status === 'error') detail = state.error === 'network'
@@ -738,7 +738,7 @@ export class RunScene extends RuntimeScene {
       if (available || retrySync) this.addButton(root, layout.combatButton,
         retrySync ? 'RETRY SYNC' : submitting ? 'RESOLVING…' : this.nodeAttempt.state === 'retryable' ? 'RETRY RESOLVE'
           : selected.nodeTypeId === 'run_node_type.loot' ? 'COLLECT LOOT'
-          : selected.nodeTypeId === 'run_node_type.rest' ? 'REST' : 'LEAVE FARM',
+          : selected.nodeTypeId === 'run_node_type.rest' ? 'REST' : 'LEAVE REGION',
         () => void this.activateSelectedNonCombat(), selected.nodeTypeId === 'run_node_type.loot' ? 0x7a5a22 : 0x315d68, !submitting);
     }
     if (this.nodeMessage) {
