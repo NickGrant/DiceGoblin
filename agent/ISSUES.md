@@ -7,6 +7,21 @@
 **Status:** In Progress
 **Priority:** High
 
+#### Current Architectural Review Finding
+
+The Package 2 implementation at `a667ee703da5f868fd65218199ad271553110bc6` is accepted in code review. Generic Boss reward projection, structural non-Farm Exit validation, frontend Boss contracts/presentation, and Farm regressions are all consistent with the package scope. No implementation correction is requested.
+
+The only remaining blocker is **MySQL/Docker verification evidence**. This package changes DB-backed Boss/Exit integration coverage, but the standard GitHub `Full Verification` workflow runs `npm run verify:package` without `TEST_DB_DSN`, so its green backend gate does not prove the MySQL integration cases.
+
+Run and report the actual results for:
+1. `npm run test:db:provision:docker`
+2. `npm run test:db:reset:docker`
+3. focused MySQL-backed Boss/Exit integration tests covering the changed suites;
+4. `npm run test:backend:docker`
+
+Report test/assertion/skipped counts where available. Do not make implementation changes unless verification exposes a defect. Keep Package 2 **In Progress** and do not promote Package 3.
+
+
 #### Problem
 
 Package 1 established canonical Mountains/kobold combat and is approved at `4adff479b4c10af40057f1f93088c0930e5894d8`.
