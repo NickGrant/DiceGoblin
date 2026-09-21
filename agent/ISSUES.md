@@ -7,6 +7,17 @@
 **Status:** In Progress
 **Priority:** High
 
+#### Current Architectural Review Finding
+
+The Package 3 authored Mountains content, rewards, lifecycle fixture, frontend graph acceptance, and public-start boundary at `f6c6fd329ea7f0fda13c92f552dc30e6595cb2e8` are otherwise consistent with the package. One architecture defect remains:
+
+- **Do not duplicate the canonical Mountains graph in production PHP validation.** `ContentValidator::validateMountainsGenerationStructure()` hardcodes every Mountains node key, node type, encounter/event ID, position, start key, and edge sequence. That makes PHP a second source of truth for authored gameplay content and creates a per-region validator branch; adding a third region would require another production-code method even though JSON in Git is the canonical authored-content boundary. Remove the Mountains-specific production structure mirror. Retain the new generic validation that proves stable references, region/encounter compatibility, connectivity, exit presence, node/edge validity, etc. Keep the exact seven-node Mountains graph assertions in the content/run-generation tests, where canonical authored expectations belong.
+
+Do not broaden this correction into Package 4 or region-start work. The pre-existing Farm-specific validator is outside this focused correction unless removing a shared duplication is strictly necessary to keep the generic validator coherent. Package 5 can audit remaining Farm-specific architecture leaks.
+
+After correction, rerun the standard package gate and the Package 3 MySQL/Docker verification requested below. Leave Package 3 **In Progress** and do not promote Package 4.
+
+
 #### Accepted baseline
 
 Package 1 Mountains combat foundation is approved at `4adff479b4c10af40057f1f93088c0930e5894d8`.
