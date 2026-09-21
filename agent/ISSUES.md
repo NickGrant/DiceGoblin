@@ -2,139 +2,184 @@
 
 ## Milestone 6 - Prove Region Generalization
 
-### Milestone 6 Package 2 - Region-neutral Boss reward + terminal Exit resolution contracts
+### Milestone 6 Package 3 - Mountains authored run graph/events/rewards + terminal lifecycle
 
 **Status:** In Progress
 **Priority:** High
 
-#### Current Architectural Review Finding
+#### Accepted baseline
 
-The Package 2 implementation at `a667ee703da5f868fd65218199ad271553110bc6` is accepted in code review. Generic Boss reward projection, structural non-Farm Exit validation, frontend Boss contracts/presentation, and Farm regressions are all consistent with the package scope. No implementation correction is requested.
+Package 1 Mountains combat foundation is approved at `4adff479b4c10af40057f1f93088c0930e5894d8`.
 
-The only remaining blocker is **MySQL/Docker verification evidence**. This package changes DB-backed Boss/Exit integration coverage, but the standard GitHub `Full Verification` workflow runs `npm run verify:package` without `TEST_DB_DSN`, so its green backend gate does not prove the MySQL integration cases.
-
-Run and report the actual results for:
-1. `npm run test:db:provision:docker`
-2. `npm run test:db:reset:docker`
-3. focused MySQL-backed Boss/Exit integration tests covering the changed suites;
-4. `npm run test:backend:docker`
-
-Report test/assertion/skipped counts where available. Do not make implementation changes unless verification exposes a defect. Keep Package 2 **In Progress** and do not promote Package 3.
-
+Package 2 region-neutral Boss/Exit contracts are approved at `a667ee703da5f868fd65218199ad271553110bc6` with MySQL/Docker proof reported against planning head `bd7e39b609b1ebe95b1f99fee22c80d739e05114`:
+- DB provision passed;
+- DB reset from `backend/migrations/vnext_baseline.sql` passed;
+- Boss integration: 12 tests / 111 assertions / 0 skipped;
+- Exit/Loot/Rest integration: 17 tests / 143 assertions / 0 skipped;
+- full Docker backend: 590 tests / 2,475 assertions / 148 skipped;
+- no defects exposed.
 
 #### Problem
 
-Package 1 established canonical Mountains/kobold combat and is approved at `4adff479b4c10af40057f1f93088c0930e5894d8`.
-
-The reusable node-resolution path still contains Farm-only assumptions that prevent a second region from using the same Boss/Exit lifecycle:
-- `BossNodeResolutionHandler` requires `event.farm_boss_completed`;
-- Boss reward projection requires exactly 16 XP plus the Mountains unlock;
-- the strict frontend Boss contract and BattleScene summary are Mountains-specific;
-- `ExitNodeResolutionHandler` requires `region.the_farm`, node index `4`, and `isTerminalFarmExit()`;
-- RunScene's Exit progress text names the Farm.
-
-Loot and Rest are already sufficiently region-neutral for the current second-region requirement. Do not refactor them merely for symmetry.
+Mountains now has canonical kobold combat content, but it is not yet a playable authored run:
+- `region.mountains` has no `run_generation_id`;
+- there are no vNext Mountains event/reward definitions;
+- no persisted Mountains graph currently proves that Combat/Loot/Rest/Boss/Exit reuse the Farm-established lifecycle;
+- public run start intentionally still rejects Mountains until Package 4.
 
 #### Goal
 
-Remove only the Farm-specific assumptions required for a second authored region to reuse the accepted Boss reward and successful terminal Exit pipeline.
+Author the smallest complete Mountains run that proves the second region can use the existing content -> fixed graph -> persistence -> node resolution -> battle playback -> reward -> terminal Exit pipeline without a parallel region-specific implementation.
 
-Do **not** author the Mountains run graph/events/rewards yet. That is Package 3.
+Do **not** make Mountains selectable/startable from Camp yet. Package 4 owns unlock-aware start authorization and region selection.
 
-#### Backend - Boss
+#### Canonical Mountains run
 
-Keep the existing `run_node_type.boss` path and the existing Combat -> reward transaction ownership.
+Add `run_generation.mountains` using `fixed_graph_v1` and point `region.mountains.run_generation_id` to it.
 
-After a victorious Boss:
-- require a valid persisted stable `event.*` identity, but do not require the Farm event ID;
-- finalize/apply that authored event through the existing `RewardApplicationService`;
-- preserve participating-unit ownership/context validation;
-- project only player-safe finalized facts needed by the client;
-- support the reward types required by Farm and Mountains in this milestone: `unit_xp` and `unlock`;
-- do not hardcode XP amount, reward key names, Mountains, or a required unlock;
-- require `unit_xp` grants to target participating units and report the actual authored amount/transitions;
-- project unlock grants generically by stable `unlock_id` plus `granted | already_owned`;
-- return deterministic ordering for unit XP transitions and unlock entries;
-- successful Boss rewards may contain XP with zero unlock entries;
-- reject unsupported Boss reward types rather than silently dropping them;
-- a failed Boss still returns `rewards: null` and applies no reward event.
+Use this linear authored graph:
 
-Use a generic player-safe response shape:
+1. `combat_1`
+   - type: `run_node_type.combat`
+   - encounter: `encounter.mountains_kobold_combat_1`
+   - position: column 0, row 1
+2. `loot`
+   - type: `run_node_type.loot`
+   - event: `event.mountains_loot_completed`
+   - position: column 1, row 1
+3. `combat_2`
+   - type: `run_node_type.combat`
+   - encounter: `encounter.mountains_kobold_combat_2`
+   - position: column 2, row 1
+4. `rest`
+   - type: `run_node_type.rest`
+   - no encounter/event
+   - position: column 3, row 1
+5. `combat_3`
+   - type: `run_node_type.combat`
+   - encounter: `encounter.mountains_kobold_combat_3`
+   - position: column 4, row 1
+6. `boss`
+   - type: `run_node_type.boss`
+   - encounter: `encounter.mountains_kobold_boss_1`
+   - event: `event.mountains_boss_completed`
+   - position: column 5, row 1
+7. `exit`
+   - type: `run_node_type.exit`
+   - no encounter/event
+   - position: column 6, row 1
 
-`rewards: { unit_xp: [...], unlocks: [...] }`
+Edges are exactly:
+`combat_1 -> loot -> combat_2 -> rest -> combat_3 -> boss -> exit`.
 
-Each XP transition remains:
-`{ unit_id, amount, level_before, xp_before, level_after, xp_after }`
+The start node is `combat_1`.
 
-Each unlock remains:
-`{ unlock_id, outcome }`
+This is intentionally a simple fixed graph. Do not port the prototype pattern-V1/V2 branching generator or its hazards/chaos/shrine breadth in this milestone.
 
-Do not expose event IDs, reward definition IDs, probability/roll facts, handler config, or other authored-private data.
+#### Mountains authored events/rewards
 
-#### Backend - Exit
+Add stable Mountains event/reward definitions through the existing reward pipeline.
 
-Generalize Exit from Farm identity to structural terminal identity:
-- node type must be `run_node_type.exit`;
-- Exit must carry no encounter or event;
-- do not require a specific region ID;
-- do not require a specific node index;
-- preserve the accepted topology invariant needed by the current run model: zero outgoing edges, exactly one incoming edge, and that parent is a completed Boss node;
-- rename/refactor the repository predicate so it is not Farm-named;
-- completion still owns the same active run, sets `status = completed` + `ended_at`, unlocks no child nodes, increments revision once, and retains exact idempotent replay.
+**Loot**
+- event: `event.mountains_loot_completed`
+- reward definition: `reward_definition.mountains_loot_completed`
+- deterministic reward: **8 Teeth**
+- probability: 10000 basis points
 
-A structurally incoherent Exit must still fail atomically.
+The amount deliberately matches the current Farm proof; economy tuning is not a Milestone 6 objective.
 
-#### Frontend contract/presentation
+**Boss**
+- event: `event.mountains_boss_completed`
+- reward definition: `reward_definition.mountains_boss_completed`
+- deterministic reward: **16 XP per participating unit**
+- probability: 10000 basis points
+- **no unlock reward**
 
-Generalize the strict Boss parser/type to the backend shape:
-- `rewards.unit_xp` is a deterministic list of positive authored XP transitions; do not require amount `16`;
-- `rewards.unlocks` is a deterministic list of `{ unlock_id, outcome }`; it may be empty;
-- reject duplicate/unsorted identities, invalid outcomes, invalid XP transitions, private extra fields, or rewards on a failed Boss;
-- retain strict battle/run/node/revision semantics.
+Do not unlock Swamps here. Package 2 explicitly supports XP-only Boss results with `unlocks: []`; Mountains should exercise that real path.
 
-Make BattleScene Boss reward presentation generic:
-- show actual XP amounts/level changes;
-- summarize generic unlock grants without depending on a Mountains-specific property;
-- do not derive progression state locally.
+#### Runtime/lifecycle constraints
 
-Make RunScene's Exit progress copy region-neutral. The terminal bootstrap reconciliation, interaction lock, GET-only retry after committed Exit, and Camp transition must remain unchanged.
+Reuse the existing runtime without region-specific handlers:
+- Combat nodes use the existing authoritative combat-node resolution and persisted playback pipeline.
+- Loot uses the existing generic Loot handler.
+- Rest uses the existing generic full-recovery handler.
+- Boss uses the generic Package 2 Boss reward projection.
+- Exit uses the structural Package 2 terminal Exit validation.
+- Node completion/unlocking remains direct outgoing-edge progression.
+- Defeat/stalemate still fails the active run through the existing combat lifecycle.
+- Successful Exit completes the run and increments player revision once.
+- No Mountains-specific endpoint, controller, repository, scene, or handler is allowed.
+
+#### Start boundary
+
+Do not change `StartRunCommand::validateRegion()` in this package.
+
+Mountains must remain unavailable through the public `POST /api/v1/runs` path until Package 4 makes start authorization unlock-aware.
+
+For Package 3 integration coverage, construct/persist the Mountains graph through the existing authored content + `FixedGraphRunGenerator` + run persistence boundary (or an equivalent test fixture that does not weaken production authorization).
+
+#### Client/content projection
+
+Once `region.mountains` has a validated `run_generation_id`, it is expected to appear in the safe projected region catalog.
+
+That does **not** make it player-startable yet. Do not add a Camp Mountains button, region picker, or start request in this package.
+
+No private event/reward/run-generation definitions should be exposed to the browser.
 
 #### Required tests
 
-Backend:
-- current Farm Boss still grants exactly its authored 16 XP and `unlock.region.mountains`, now through the generic projection;
-- a valid Boss reward result with XP and no unlock is accepted by the generic projection path;
-- invalid/missing event identity fails atomically;
-- unsupported Boss reward type fails atomically rather than being omitted;
-- failed Boss applies no rewards;
-- structurally valid non-Farm Exit can complete a run without region/index checks;
-- Exit with outgoing children, invalid incoming topology, incomplete/non-Boss parent, event, or encounter fails atomically;
-- same-key Exit replay and different-key conflict remain unchanged;
-- Farm Boss/Exit regression remains green.
+Content/run generation:
+- Mountains region resolves `run_generation.mountains`;
+- generated graph has exactly the seven authored nodes and six edges above;
+- exact node identities, encounter/event IDs, positions, start availability, and locked descendants validate;
+- all three combat encounters and the Boss remain region-compatible;
+- client region projection contains Mountains while event/reward/run-generation internals remain private;
+- Farm authored content/run generation remains unchanged.
+
+MySQL-backed lifecycle:
+- persist a Mountains run through the existing generator/persistence boundary without relaxing public StartRun authorization;
+- prove `combat_1 -> loot -> combat_2 -> rest -> combat_3 -> boss -> exit` unlocks only the direct next node;
+- Loot grants exactly 8 Teeth once and same-key replay does not regrant;
+- Rest fully restores participating run HP;
+- each Combat/Boss persists battle identity/playback through the shared pipeline;
+- Mountains Boss grants exactly 16 XP per participant and returns `unlocks: []`;
+- Boss retry/replay does not regrant XP;
+- Exit completes the Mountains run through structural terminal validation, unlocks no child, and exact same-key replay is stable;
+- successful Mountains completion does not add a Swamps unlock;
+- failure in a Mountains combat/Boss follows the existing failed-run lifecycle;
+- ownership/idempotency/rollback invariants remain intact.
 
 Frontend:
-- generic Boss parser accepts Farm's 16-XP + Mountains unlock result;
-- parser also accepts a different positive XP amount with `unlocks: []`;
-- rejects hardcoded/private/duplicate/incoherent reward facts;
-- BattleScene generic summary handles XP-only and XP+unlock Boss results;
-- Exit terminal reconciliation/retry tests remain green;
-- RunScene contains no Farm-specific Exit message.
+- current-run parsing/rendering accepts the seven-node Mountains fixed graph without Farm-specific assumptions;
+- RunScene uses existing generic labels/actions for Combat, Loot, Rest, Boss, Exit;
+- BattleScene presents Mountains XP-only Boss rewards correctly;
+- no region-selection/start UI is added yet.
 
 #### Verification
 
-Run `npm run verify:package` plus focused Boss/Exit backend/frontend tests. If DB-backed integration coverage is touched, run the applicable Docker backend gate and report skipped counts.
+Run:
+- `npm run verify:package`;
+- focused content/run-generation tests;
+- focused Mountains lifecycle tests;
+- `npm run test:db:provision:docker`;
+- `npm run test:db:reset:docker`;
+- applicable MySQL-backed focused tests;
+- `npm run test:backend:docker`.
+
+Report test/assertion/skipped counts where available.
 
 #### Out of scope
 
-- Mountains run-generation definition;
-- Mountains events/reward definitions;
-- Mountains Loot/Rest/Boss tuning;
-- Camp region selector or run-start authorization;
-- Swamps unlock;
+- changing public run-start authorization;
+- Camp region selection;
+- Swamps unlock/content;
 - Lizard Kin;
-- unrelated reward-system expansion;
-- broad visual/UI work.
+- Wrong Machine recovery;
+- prototype branching run-pattern generator;
+- hazards/shrines/Chaos nodes;
+- economy tuning beyond the explicit deterministic rewards above;
+- broad UI/visual overhaul.
 
 #### Completion
 
-Implement only Package 2. Leave it **In Progress** for architectural review. Do not promote Package 3 or make Mountains startable.
+Implement only Package 3. Leave it **In Progress** for architectural review. Do not promote Package 4 or make Mountains publicly startable.
