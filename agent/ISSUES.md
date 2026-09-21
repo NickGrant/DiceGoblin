@@ -2,195 +2,199 @@
 
 ## Milestone 6 - Prove Region Generalization
 
-### Milestone 6 Package 3 - Mountains authored run graph/events/rewards + terminal lifecycle
+### Milestone 6 Package 4 - Unlock-aware multi-region run start + Camp region selection/resume
 
 **Status:** In Progress
 **Priority:** High
-
-
-#### Current Architectural Review Finding
-
-The backend/content correction at `a8cb09cd457ecc34b22e5e25c140e8d36b16ed16` is accepted, including the reported Package 3 Docker/MySQL evidence. One focused frontend Package 3 defect remains:
-
-- **RunScene still contains two Farm-specific presentation assumptions.** In `frontend/src/app/game/scenes/runtime-scenes.ts`, the no-current-run/loading shell renders `THE FARM`, and the generic Exit action renders `LEAVE FARM`. A persisted Mountains run therefore still passes through Farm-labelled RunScene presentation. Replace these with region-neutral wording or derive the active region display name from authoritative/projected run content where that state is actually available. Do not add Camp region selection or public Mountains start in this correction.
-
-Add focused RunScene coverage proving a Mountains current run never renders Farm-specific copy for the loading/map/Exit-action states that Package 3 owns. Preserve the existing terminal reconciliation/idempotency behavior unchanged.
-
-No backend/content change is requested. Leave Package 3 **In Progress** and do not promote Package 4.
 
 #### Accepted baseline
 
 Package 1 Mountains combat foundation is approved at `4adff479b4c10af40057f1f93088c0930e5894d8`.
 
-Package 2 region-neutral Boss/Exit contracts are approved at `a667ee703da5f868fd65218199ad271553110bc6` with MySQL/Docker proof reported against planning head `bd7e39b609b1ebe95b1f99fee22c80d739e05114`:
-- DB provision passed;
-- DB reset from `backend/migrations/vnext_baseline.sql` passed;
-- Boss integration: 12 tests / 111 assertions / 0 skipped;
-- Exit/Loot/Rest integration: 17 tests / 143 assertions / 0 skipped;
-- full Docker backend: 590 tests / 2,475 assertions / 148 skipped;
-- no defects exposed.
+Package 2 region-neutral Boss/Exit contracts are approved at `a667ee703da5f868fd65218199ad271553110bc6`, with focused and full MySQL/Docker verification completed without defects.
+
+Package 3 Mountains authored run graph/events/rewards + terminal lifecycle is approved at `f06e150e68ef39c7eeab1299a61d00a6dd2f9bea`. Its final state proves:
+- canonical seven-node Mountains fixed graph;
+- 8-Teeth Loot;
+- 16-XP-per-participant Boss with `unlocks: []`;
+- shared Combat/Loot/Rest/Boss/Exit lifecycle;
+- MySQL Mountains lifecycle 3 tests / 54 assertions / 0 skipped;
+- run-start boundary 26 / 229 / 0 skipped;
+- full Docker backend 596 / 2,497 / 150 skipped;
+- region-neutral RunScene loading/Exit copy;
+- GitHub Full Verification at the final correction: backend 789 / 1,622, frontend 466, all standard gates PASS.
 
 #### Problem
 
-Mountains now has canonical kobold combat content, but it is not yet a playable authored run:
-- `region.mountains` has no `run_generation_id`;
-- there are no vNext Mountains event/reward definitions;
-- no persisted Mountains graph currently proves that Combat/Loot/Rest/Boss/Exit reuse the Farm-established lifecycle;
-- public run start intentionally still rejects Mountains until Package 4.
+Mountains is now a complete authored/persistable run, but the production start boundary and Camp still assume Farm:
+- `StartRunCommand::validateRegion()` accepts only `startingRegionId()`;
+- bootstrap exposes owned `unlock_ids` but no authoritative derived region-availability set;
+- Camp has one hardcoded Farm start/resume action and hardcoded Farm-specific start/error copy;
+- ambiguous run-start retries retain only an idempotency key because the request region has never been selectable.
 
 #### Goal
 
-Author the smallest complete Mountains run that proves the second region can use the existing content -> fixed graph -> persistence -> node resolution -> battle playback -> reward -> terminal Exit pipeline without a parallel region-specific implementation.
+Make region availability authoritative and unlock-aware on the server, allow an unlocked player to start Mountains through the existing `POST /api/v1/runs` path, and make Camp offer a content-driven choice among the server-authorized regions.
 
-Do **not** make Mountains selectable/startable from Camp yet. Package 4 owns unlock-aware start authorization and region selection.
+Do not add a second region-start endpoint or a client-owned authorization rule.
 
-#### Canonical Mountains run
+#### One authoritative region-availability rule
 
-Add `run_generation.mountains` using `fixed_graph_v1` and point `region.mountains.run_generation_id` to it.
+Establish one shared backend policy used by both bootstrap presentation state and `StartRunCommand`.
 
-Use this linear authored graph:
+For a user:
+1. The authored `config.gameplay.starting_region_id` is always available, provided it is a valid playable region with run generation.
+2. Any other playable authored region is available only when the user owns an authored `unlock` definition whose:
+   - `target_type` is `region`;
+   - `target_id` is that region.
+3. Do **not** infer an unlock identity from a region identity or hardcode `unlock.region.mountains` in the availability policy.
+4. Persisted unknown/stale/unrelated unlock IDs must not grant region access.
+5. Regions without valid authored run generation are not startable.
+6. Return/order availability deterministically with the starting region first and remaining available region IDs sorted by stable ID.
 
-1. `combat_1`
-   - type: `run_node_type.combat`
-   - encounter: `encounter.mountains_kobold_combat_1`
-   - position: column 0, row 1
-2. `loot`
-   - type: `run_node_type.loot`
-   - event: `event.mountains_loot_completed`
-   - position: column 1, row 1
-3. `combat_2`
-   - type: `run_node_type.combat`
-   - encounter: `encounter.mountains_kobold_combat_2`
-   - position: column 2, row 1
-4. `rest`
-   - type: `run_node_type.rest`
-   - no encounter/event
-   - position: column 3, row 1
-5. `combat_3`
-   - type: `run_node_type.combat`
-   - encounter: `encounter.mountains_kobold_combat_3`
-   - position: column 4, row 1
-6. `boss`
-   - type: `run_node_type.boss`
-   - encounter: `encounter.mountains_kobold_boss_1`
-   - event: `event.mountains_boss_completed`
-   - position: column 5, row 1
-7. `exit`
-   - type: `run_node_type.exit`
-   - no encounter/event
-   - position: column 6, row 1
+The policy may be a dedicated service/value object or another single shared boundary, but bootstrap and run start must not independently reimplement the rule.
 
-Edges are exactly:
-`combat_1 -> loot -> combat_2 -> rest -> combat_3 -> boss -> exit`.
+#### Bootstrap contract
 
-The start node is `combat_1`.
+Keep `progression.unlock_ids` unchanged as the authoritative owned-unlock list.
 
-This is intentionally a simple fixed graph. Do not port the prototype pattern-V1/V2 branching generator or its hazards/chaos/shrine breadth in this milestone.
+Add:
+`progression.available_region_ids: string[]`
 
-#### Mountains authored events/rewards
+Requirements:
+- derived server-side from the shared availability policy;
+- non-empty for a valid player because the starting region is available;
+- deterministic order: starting region first, then other available region IDs sorted;
+- contains only authored playable regions;
+- no private unlock target/configuration or run-generation data is exposed.
 
-Add stable Mountains event/reward definitions through the existing reward pipeline.
+Update the strict frontend bootstrap contract:
+- require `available_region_ids`;
+- require canonical `region.*` identities, uniqueness, and a non-empty list;
+- Camp must resolve every available ID against the projected region catalog and treat disagreement as an integrity error;
+- do not derive authorization from `unlock_ids` in TypeScript.
 
-**Loot**
-- event: `event.mountains_loot_completed`
-- reward definition: `reward_definition.mountains_loot_completed`
-- deterministic reward: **8 Teeth**
-- probability: 10000 basis points
+#### StartRun authorization
 
-The amount deliberately matches the current Farm proof; economy tuning is not a Milestone 6 objective.
+Replace the current starting-region-only check with the shared authoritative availability policy.
 
-**Boss**
-- event: `event.mountains_boss_completed`
-- reward definition: `reward_definition.mountains_boss_completed`
-- deterministic reward: **16 XP per participating unit**
-- probability: 10000 basis points
-- **no unlock reward**
+Inside the existing start-run transaction:
+- retain exact request shape, CSRF, idempotency hash/receipt behavior, active-run checks, participation validation, Energy spend, generation, persistence, and response shape;
+- read authoritative user unlock ownership before authorizing a non-starting region; use the repository's locking form where appropriate for the mutation transaction;
+- starting Farm requires no unlock;
+- unlocked Mountains uses its existing authored `run_generation.mountains`;
+- a valid playable region that is not available to the user must fail with controlled error `run_region_locked` and HTTP 403;
+- an unknown/non-playable authored identity remains `run_region_unsupported` / 422;
+- locked/unsupported rejection must spend no Energy, create no run/nodes/participants, increment no revision, and finalize no idempotency receipt;
+- existing same-key replay semantics remain exact;
+- same key with a different region payload remains an idempotency conflict.
 
-Do not unlock Swamps here. Package 2 explicitly supports XP-only Boss results with `unlocks: []`; Mountains should exercise that real path.
+Do not special-case Farm/Mountains in the command beyond the authored starting-region rule.
 
-#### Runtime/lifecycle constraints
+#### Camp region selection
 
-Reuse the existing runtime without region-specific handlers:
-- Combat nodes use the existing authoritative combat-node resolution and persisted playback pipeline.
-- Loot uses the existing generic Loot handler.
-- Rest uses the existing generic full-recovery handler.
-- Boss uses the generic Package 2 Boss reward projection.
-- Exit uses the structural Package 2 terminal Exit validation.
-- Node completion/unlocking remains direct outgoing-edge progression.
-- Defeat/stalemate still fails the active run through the existing combat lifecycle.
-- Successful Exit completes the run and increments player revision once.
-- No Mountains-specific endpoint, controller, repository, scene, or handler is allowed.
+Replace the Farm-only start action with a minimal content-driven region selection using:
+- `bootstrap.progression.available_region_ids` for authoritative availability/order;
+- projected `regions` content for display name/art identity only.
 
-#### Start boundary
+When there is no active run:
+- show/select only server-authorized available regions; locked projected regions are not startable;
+- default selection to the first server-provided available region (the starting region);
+- with only Farm available, retain a simple one-region experience;
+- after `unlock.region.mountains` is present and bootstrap reports Mountains available, allow selection between The Farm and Mountains;
+- the action label/messages use the selected authored display name rather than hardcoded Farm text;
+- starting Mountains calls the existing `RuntimeApiClient.startRun('region.mountains', ...)`;
+- preserve the existing Energy-cost presentation and active-squad requirement;
+- keep the layout usable inside Compact, Standard, and Wide safe bounds. A simple selector/list is sufficient; broad Camp visual redesign is out of scope.
 
-Do not change `StartRunCommand::validateRegion()` in this package.
+When an active run exists:
+- do not offer a new region start;
+- resume the existing run without POSTing;
+- resolve the active run's projected region display name for generic `RESUME <REGION>` presentation;
+- active-run resume remains region-agnostic.
 
-Mountains must remain unavailable through the public `POST /api/v1/runs` path until Package 4 makes start authorization unlock-aware.
+#### Run-start retry identity
 
-For Package 3 integration coverage, construct/persist the Mountains graph through the existing authored content + `FixedGraphRunGenerator` + run persistence boundary (or an equivalent test fixture that does not weaken production authorization).
+Region selection adds request identity to the existing idempotent retry state.
 
-#### Client/content projection
+For every start attempt retain both:
+- the generated idempotency key;
+- the exact attempted `region_id`.
 
-Once `region.mountains` has a validated `run_generation_id`, it is expected to appear in the safe projected region catalog.
+After network failure, malformed success, HTTP 5xx, or any other ambiguous result:
+- retry only the same key **and same region**;
+- do not permit switching region while that ambiguous attempt is outstanding;
+- do not generate a second key until a definitive 4xx rejection clears the prior attempt or the user reloads;
+- a valid success whose returned `run.region_id` disagrees with the attempted region is recovery-required, not a reason to POST again.
 
-That does **not** make it player-startable yet. Do not add a Camp Mountains button, region picker, or start request in this package.
+Definitive 4xx rejection clears the attempt identity and allows a later selection/new attempt.
 
-No private event/reward/run-generation definitions should be exposed to the browser.
+#### Required backend tests
 
-#### Required tests
+Availability/bootstrap:
+- fresh account reports `available_region_ids = ['region.the_farm']`;
+- owning `unlock.region.mountains` reports Farm first, Mountains second;
+- an unrelated/unknown persisted unlock remains in `unlock_ids` if that is existing behavior but does not grant another region;
+- availability is derived from authored unlock target relationships, not unlock-ID naming convention;
+- no cross-user unlock leakage or writes.
 
-Content/run generation:
-- Mountains region resolves `run_generation.mountains`;
-- generated graph has exactly the seven authored nodes and six edges above;
-- exact node identities, encounter/event IDs, positions, start availability, and locked descendants validate;
-- all three combat encounters and the Boss remain region-compatible;
-- client region projection contains Mountains while event/reward/run-generation internals remain private;
-- Farm authored content/run generation remains unchanged.
+Run start:
+- Farm start remains valid without any region unlock;
+- locked Mountains returns `run_region_locked` / 403 atomically;
+- unlocked Mountains starts successfully through the public endpoint and persists the exact seven-node authored Mountains graph/participants;
+- Mountains spends the same authored Energy cost and increments revision once;
+- same-key Mountains replay returns the original result without second spend/run;
+- same key with Farm vs Mountains payload conflicts;
+- unknown/non-playable region remains unsupported;
+- active-run and participation protections remain unchanged;
+- Farm regressions remain green.
 
-MySQL-backed lifecycle:
-- persist a Mountains run through the existing generator/persistence boundary without relaxing public StartRun authorization;
-- prove `combat_1 -> loot -> combat_2 -> rest -> combat_3 -> boss -> exit` unlocks only the direct next node;
-- Loot grants exactly 8 Teeth once and same-key replay does not regrant;
-- Rest fully restores participating run HP;
-- each Combat/Boss persists battle identity/playback through the shared pipeline;
-- Mountains Boss grants exactly 16 XP per participant and returns `unlocks: []`;
-- Boss retry/replay does not regrant XP;
-- Exit completes the Mountains run through structural terminal validation, unlocks no child, and exact same-key replay is stable;
-- successful Mountains completion does not add a Swamps unlock;
-- failure in a Mountains combat/Boss follows the existing failed-run lifecycle;
-- ownership/idempotency/rollback invariants remain intact.
+#### Required frontend tests
 
-Frontend:
-- current-run parsing/rendering accepts the seven-node Mountains fixed graph without Farm-specific assumptions;
-- RunScene uses existing generic labels/actions for Combat, Loot, Rest, Boss, Exit;
-- BattleScene presents Mountains XP-only Boss rewards correctly;
-- no region-selection/start UI is added yet.
+Bootstrap/content:
+- strict bootstrap parser accepts/retains authoritative `available_region_ids`;
+- malformed, duplicate, empty, or invalid region identities are rejected;
+- Camp rejects availability IDs absent from projected content;
+- client does not infer availability from `unlock_ids`.
+
+Camp:
+- fresh player sees only The Farm as a start choice;
+- Mountains-unlocked bootstrap exposes both authored choices and can select Mountains;
+- selecting Mountains sends exactly `region.mountains`;
+- dynamic labels/messages contain the selected display name and no Farm hardcode for Mountains;
+- ambiguous retries retain one key + one region and prevent region switching;
+- definitive 4xx clears the attempt so a new region/key may be selected;
+- mismatched successful region response enters recovery-required and does not POST again;
+- active Mountains run resumes without start POST and presents Mountains;
+- Compact/Standard/Wide region-choice layout remains inside safe bounds.
+
+Existing RunScene/BattleScene behavior is unchanged except where test fixtures need the new bootstrap field.
 
 #### Verification
 
 Run:
 - `npm run verify:package`;
-- focused content/run-generation tests;
-- focused Mountains lifecycle tests;
+- focused bootstrap/availability/start-run backend tests;
+- focused Camp/runtime contract tests;
 - `npm run test:db:provision:docker`;
 - `npm run test:db:reset:docker`;
-- applicable MySQL-backed focused tests;
+- applicable MySQL-backed bootstrap/start-run integration tests;
 - `npm run test:backend:docker`.
 
 Report test/assertion/skipped counts where available.
 
 #### Out of scope
 
-- changing public run-start authorization;
-- Camp region selection;
-- Swamps unlock/content;
+- changing the Mountains graph/rewards;
+- unlocking Swamps;
 - Lizard Kin;
 - Wrong Machine recovery;
-- prototype branching run-pattern generator;
-- hazards/shrines/Chaos nodes;
-- economy tuning beyond the explicit deterministic rewards above;
-- broad UI/visual overhaul.
+- new run endpoints;
+- client-side authorization derived from unlock conventions;
+- prototype region page revival;
+- Angular gameplay region selection;
+- broad Camp/UI visual overhaul.
 
 #### Completion
 
-Implement only Package 3. Leave it **In Progress** for architectural review. Do not promote Package 4 or make Mountains publicly startable.
+Implement only Package 4. Leave it **In Progress** for architectural review. Do not promote Package 5.
