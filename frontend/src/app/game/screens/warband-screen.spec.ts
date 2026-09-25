@@ -22,7 +22,7 @@ describe('WarbandScreen', () => {
   }
 
   function bootstrap(): GameBootstrapData {
-    return { account: { id: '1', display_name: 'Goblin', role: 'user' }, player: { teeth: 1, raw_chaos: 2, player_revision: 9, energy: { current: 10, normal_max: 50, regeneration_per_hour: 12, regeneration_interval_seconds: 300, last_regeneration_at: '2026-01-01T00:00:00Z', next_regeneration_at: null, fully_regenerated_at: null } }, session: { authenticated: true, csrf_token: 'csrf' }, server_time: '2026-01-01T00:00:00Z', content_revision: 'a'.repeat(64), progression: { unlock_ids: [] }, active_squad: { id: '31', name: 'Raiders', is_active: true, formation: ['11', null, null, null, null, null, null, null, null], units: [{ id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 2, xp: 4, lifecycle_status: 'active' }] }, active_run: null };
+    return { account: { id: '1', display_name: 'Goblin', role: 'user' }, player: { teeth: 1, raw_chaos: 2, player_revision: 9, energy: { current: 10, normal_max: 50, regeneration_per_hour: 12, regeneration_interval_seconds: 300, last_regeneration_at: '2026-01-01T00:00:00Z', next_regeneration_at: null, fully_regenerated_at: null } }, session: { authenticated: true, csrf_token: 'csrf' }, server_time: '2026-01-01T00:00:00Z', content_revision: 'a'.repeat(64), progression: { unlock_ids: [], available_region_ids: ['region.the_farm'] }, active_squad: { id: '31', name: 'Raiders', is_active: true, formation: ['11', null, null, null, null, null, null, null, null], units: [{ id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 2, xp: 4, lifecycle_status: 'active' }] }, active_run: null };
   }
 
   function api(): jasmine.SpyObj<RuntimeApiClient> {

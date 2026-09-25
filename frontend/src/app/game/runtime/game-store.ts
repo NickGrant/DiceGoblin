@@ -55,6 +55,7 @@ export interface GameBootstrapData {
   readonly content_revision: string;
   readonly progression: {
     readonly unlock_ids: readonly string[];
+    readonly available_region_ids: readonly string[];
   };
   readonly active_squad: GameBootstrapActiveSquad | null;
   readonly active_run: GameBootstrapActiveRun | null;
@@ -236,6 +237,15 @@ export function parseGameBootstrapEnvelope(value: unknown): GameBootstrapData {
   const session = recordField(data, 'session');
   const progression = recordField(data, 'progression');
   const unlockIds = progression['unlock_ids'];
+  const availableRegionIds = progression['available_region_ids'];
+  if (!hasExactKeys(progression, ['unlock_ids', 'available_region_ids'])) {
+    throw new BootstrapContractError("Bootstrap field 'progression' is malformed.");
+  }
+  if (!Array.isArray(availableRegionIds) || availableRegionIds.length === 0
+    || availableRegionIds.some((id) => typeof id !== 'string' || !/^region\.[a-z][a-z0-9_]*$/.test(id))
+    || new Set(availableRegionIds).size !== availableRegionIds.length) {
+    throw new BootstrapContractError("Bootstrap field 'available_region_ids' must be a non-empty unique region ID array.");
+  }
 
   const parsed: GameBootstrapData = {
     account: {
@@ -272,6 +282,7 @@ export function parseGameBootstrapEnvelope(value: unknown): GameBootstrapData {
                 "Bootstrap field 'unlock_ids' must be a string array.",
               );
             })(),
+      available_region_ids: [...availableRegionIds],
     },
     active_squad: parseActiveSquad(data['active_squad']),
     active_run: parseActiveRun(data['active_run']),

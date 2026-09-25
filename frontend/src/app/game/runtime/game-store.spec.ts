@@ -7,7 +7,7 @@ describe('GameStore Warband cache', () => {
     return {
       account: { id: '1', display_name: 'Goblin', role: 'user' },
       player: { teeth: 0, raw_chaos: 0, player_revision: 7, energy: { current: 5, normal_max: 50, regeneration_per_hour: 12, regeneration_interval_seconds: 300, last_regeneration_at: '2026-01-01T00:00:00Z', next_regeneration_at: null, fully_regenerated_at: null } },
-      session: { authenticated: true, csrf_token: 'csrf' }, server_time: '2026-01-01T00:00:00Z', content_revision: 'a'.repeat(64), progression: { unlock_ids: [] },
+      session: { authenticated: true, csrf_token: 'csrf' }, server_time: '2026-01-01T00:00:00Z', content_revision: 'a'.repeat(64), progression: { unlock_ids: [], available_region_ids: ['region.the_farm'] },
       active_squad: activeSquadId ? { id: activeSquadId, name: 'Raiders', is_active: true, formation: ['11', null, null, null, null, null, null, null, null], units: [{ id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active' }] } : null,
       active_run: null,
     };
@@ -72,6 +72,25 @@ describe('GameStore Warband cache', () => {
     expect(() => parseGameBootstrapEnvelope({ ok: true, data: { ...bootstrap(),
       active_run: { id: '41', region_id: 'region.the_farm', squad_id: '99', status: 'active' } } }))
       .toThrowError(BootstrapContractError);
+  });
+
+  it('requires a non-empty unique canonical authoritative region-availability list', () => {
+    const valid = parseGameBootstrapEnvelope({ ok: true, data: { ...bootstrap(), progression: {
+      unlock_ids: ['unlock.region.mountains'],
+      available_region_ids: ['region.the_farm', 'region.mountains'],
+    } } });
+    expect(valid.progression.available_region_ids).toEqual(['region.the_farm', 'region.mountains']);
+    expect(valid.progression.unlock_ids).toEqual(['unlock.region.mountains']);
+
+    for (const available_region_ids of [undefined, null, [], ['region.the_farm', 'region.the_farm'],
+      ['the_farm'], ['region.TheFarm'], ['region.the_farm', 1]]) {
+      expect(() => parseGameBootstrapEnvelope({ ok: true, data: { ...bootstrap(), progression: {
+        unlock_ids: ['unlock.region.mountains'], available_region_ids,
+      } } })).toThrowError(BootstrapContractError);
+    }
+    expect(() => parseGameBootstrapEnvelope({ ok: true, data: { ...bootstrap(), progression: {
+      unlock_ids: [], available_region_ids: ['region.the_farm'], private_targets: {},
+    } } })).toThrowError(BootstrapContractError);
   });
 
   it('begins not-loaded after bootstrap and lazily loads each domain once while fresh', async () => {
@@ -483,7 +502,7 @@ describe('GameStore Warband cache', () => {
     const store = new GameStore(); store.hydrateBootstrap(active); const client = api(); const registry = content();
     await store.loadWarbandDomains(client, registry); await store.loadUnitDetail('11', client, registry);
     const terminal = { ...bootstrap(), player: { ...bootstrap().player, player_revision: 10 },
-      progression: { unlock_ids: ['unlock.region.mountains'] }, active_run: null,
+      progression: { unlock_ids: ['unlock.region.mountains'], available_region_ids: ['region.the_farm', 'region.mountains'] }, active_run: null,
       active_squad: { ...bootstrap().active_squad!, units: [{ ...bootstrap().active_squad!.units[0], level: 2, xp: 6 }] } };
 
     store.reconcileExitBootstrap(terminal, { resolutionType: 'exit',

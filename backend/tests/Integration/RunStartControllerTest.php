@@ -11,6 +11,7 @@ use DiceGoblins\Application\Commands\RunParticipationValidator;
 use DiceGoblins\Application\Commands\RunStartException;
 use DiceGoblins\Application\Commands\StartRunCommand;
 use DiceGoblins\Application\Commands\UnitConfigurationSupport;
+use DiceGoblins\Application\RegionAvailabilityPolicy;
 use DiceGoblins\Application\Queries\UnitDetailQuery;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Controllers\ControllerServiceFactory;
@@ -25,6 +26,7 @@ use DiceGoblins\Repositories\SquadRepository;
 use DiceGoblins\Repositories\WarbandDiceRepository;
 use DiceGoblins\Repositories\WarbandFixtureRepository;
 use DiceGoblins\Repositories\WarbandUnitRepository;
+use DiceGoblins\Repositories\UserUnlockRepository;
 use DiceGoblins\RunGeneration\FixedGraphRunGenerator;
 use DiceGoblins\RunGeneration\RunGraphGenerator;
 use DiceGoblins\Tests\Support\IntegrationTestCase;
@@ -301,7 +303,7 @@ final class RunStartControllerTest extends IntegrationTestCase
     ];
   }
 
-  public function testExistingActiveRunAndUnsupportedRegionFailBeforeSpend(): void
+  public function testExistingActiveRunAndLockedRegionFailBeforeSpend(): void
   {
     [$activeUser, $fixture] = $this->fixtureAccount('run-active@example.test');
     $this->pdo?->prepare("INSERT INTO `runs` (`user_id`, `region_id`, `squad_id`, `status`) VALUES (?, 'region.the_farm', ?, 'active')")
@@ -317,10 +319,46 @@ final class RunStartControllerTest extends IntegrationTestCase
     [$unsupportedUser] = $this->fixtureAccount('run-region@example.test');
     $unsupportedBefore = $this->stateSnapshot($unsupportedUser);
     $unsupported = $this->httpCommand($unsupportedUser, ['region_id' => 'region.mountains'], 'unsupported-key');
-    $this->assertSame(422, $unsupported['status']);
-    $this->assertSame('run_region_unsupported', $unsupported['body']['error']['code'] ?? null);
+    $this->assertSame(403, $unsupported['status']);
+    $this->assertSame('run_region_locked', $unsupported['body']['error']['code'] ?? null);
     $this->assertSame($unsupportedBefore, $this->stateSnapshot($unsupportedUser));
     $this->assertSame(0, $this->runCount($unsupportedUser));
+    $this->assertSame(0, $this->receiptCount($unsupportedUser));
+
+    $unknown = $this->httpCommand($unsupportedUser, ['region_id' => 'region.unknown'], 'unknown-key');
+    $this->assertSame(422, $unknown['status']);
+    $this->assertSame('run_region_unsupported', $unknown['body']['error']['code'] ?? null);
+  }
+
+  public function testUnlockedMountainsStartPersistsCanonicalGraphAndReplaysWithoutSecondSpend(): void
+  {
+    [$userId, $fixture] = $this->fixtureAccount('run-mountains@example.test');
+    (new UserUnlockRepository($this->pdo))->insertIfAbsent($userId, 'unlock.region.mountains');
+    $command = $this->commandAt($userId, '2026-09-20 13:00:00');
+
+    $first = $command->execute($userId, ['region_id' => 'region.mountains'], 'mountains-start-key');
+    $replay = $command->execute($userId, ['region_id' => 'region.mountains'], 'mountains-start-key');
+
+    $this->assertSame($first, $replay);
+    $this->assertSame('region.mountains', $first['run']['region_id']);
+    $this->assertSame($fixture['active_squad_id'], $first['run']['squad_id']);
+    $this->assertSame(40, $first['energy']['current']);
+    $this->assertSame(3, $first['player_revision']);
+    $runId = (int)$first['run']['id'];
+    $nodes = $this->rows('SELECT `node_index`, `node_type_id`, `encounter_id`, `event_id`, `status` FROM `run_nodes` WHERE `run_id` = ? ORDER BY `node_index`', [$runId]);
+    $this->assertSame([0, 1, 2, 3, 4, 5, 6], array_map('intval', array_column($nodes, 'node_index')));
+    $this->assertSame(['run_node_type.combat', 'run_node_type.loot', 'run_node_type.combat', 'run_node_type.rest',
+      'run_node_type.combat', 'run_node_type.boss', 'run_node_type.exit'], array_column($nodes, 'node_type_id'));
+    $this->assertSame(['available', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked'], array_column($nodes, 'status'));
+    $this->assertSame(['encounter.mountains_kobold_combat_1', null, 'encounter.mountains_kobold_combat_2', null,
+      'encounter.mountains_kobold_combat_3', 'encounter.mountains_kobold_boss_1', null], array_column($nodes, 'encounter_id'));
+    $this->assertSame([null, 'event.mountains_loot_completed', null, null, null, 'event.mountains_boss_completed', null],
+      array_column($nodes, 'event_id'));
+    $this->assertSame(5, (int)$this->scalar('SELECT COUNT(*) FROM `run_unit_state` WHERE `run_id` = ?', [$runId]));
+    $this->assertSame(1, $this->runCount($userId));
+    $this->assertSame(1, $this->receiptCount($userId));
+    $this->assertSame(40, (int)$this->scalar('SELECT `energy_current` FROM `user_state` WHERE `user_id` = ?', [$userId]));
+    $this->assertSame(3, $this->revision($userId));
   }
 
   public function testIdempotencyReplayConflictAndUserScoping(): void
@@ -522,7 +560,9 @@ final class RunStartControllerTest extends IntegrationTestCase
       $squads,
       new RunPersistenceRepository($this->pdo),
       new IdempotencyRequestRepository($this->pdo),
+      new UserUnlockRepository($this->pdo),
       $content,
+      new RegionAvailabilityPolicy($content),
       $generator ?? new FixedGraphRunGenerator(),
       new RunParticipationValidator($content, $unitConfiguration),
       new EnergySpendCalculator(),

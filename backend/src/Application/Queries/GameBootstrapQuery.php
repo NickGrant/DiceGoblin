@@ -5,6 +5,7 @@ namespace DiceGoblins\Application\Queries;
 
 use DateTimeImmutable;
 use DateTimeZone;
+use DiceGoblins\Application\RegionAvailabilityPolicy;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Domain\Energy\EnergyCalculator;
 use DiceGoblins\Repositories\PlayerStateRepository;
@@ -18,6 +19,7 @@ final class GameBootstrapQuery
     private readonly UserRepository $users,
     private readonly PlayerStateRepository $playerState,
     private readonly UserUnlockRepository $unlocks,
+    private readonly RegionAvailabilityPolicy $regionAvailability,
     private readonly ContentRegistry $content,
     private readonly CsrfService $csrf,
     private readonly EnergyCalculator $energyCalculator,
@@ -50,6 +52,8 @@ final class GameBootstrapQuery
       $now,
     );
 
+    $unlockIds = $this->unlocks->listIdsForUser($userId);
+
     return [
       'account' => [
         'id' => $account['id'],
@@ -69,7 +73,8 @@ final class GameBootstrapQuery
       'server_time' => $now->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d\TH:i:s\Z'),
       'content_revision' => $this->content->revision(),
       'progression' => [
-        'unlock_ids' => $this->unlocks->listIdsForUser($userId),
+        'unlock_ids' => $unlockIds,
+        'available_region_ids' => $this->regionAvailability->availableRegionIds($unlockIds),
       ],
       'active_squad' => $this->activeSquad->execute(
         $userId,

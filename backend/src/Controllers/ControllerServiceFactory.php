@@ -23,6 +23,7 @@ use DiceGoblins\Application\RunNodes\RestNodeResolutionHandler;
 use DiceGoblins\Application\RunNodes\ExitNodeResolutionHandler;
 use DiceGoblins\Application\Combat\CombatSnapshotAssembler;
 use DiceGoblins\Application\Commands\UnitConfigurationSupport;
+use DiceGoblins\Application\RegionAvailabilityPolicy;
 use DiceGoblins\Application\Commands\UpdateSquadCommand;
 use DiceGoblins\Application\Queries\ActiveSquadQuery;
 use DiceGoblins\Application\Queries\ActiveRunSummaryQuery;
@@ -133,6 +134,7 @@ final class ControllerServiceFactory
     $activeRunPolicy = new ActiveRunConfigurationPolicy($runRepository);
     $activeRunSummary = new ActiveRunSummaryQuery($runRepository, $content);
     $unlockRepository = new UserUnlockRepository($pdo);
+    $regionAvailability = new RegionAvailabilityPolicy($content);
     $nodeResolutionRepository = new RunNodeResolutionRepository($pdo);
     $rewardApplication = new RewardApplicationService(
       $pdo, $content, new RewardFinalizer(new CryptoRewardRollSource()), new ResolvedEventRepository($pdo),
@@ -162,6 +164,7 @@ final class ControllerServiceFactory
         $core['userRepo'],
         $core['playerStateRepo'],
         $unlockRepository,
+        $regionAvailability,
         $content,
         $core['csrfService'],
         new EnergyCalculator(),
@@ -187,7 +190,9 @@ final class ControllerServiceFactory
         $squadRepository,
         $runRepository,
         $idempotencyRepository,
+        $unlockRepository,
         $content,
+        $regionAvailability,
         new FixedGraphRunGenerator(),
         new RunParticipationValidator($content, $unitConfigurationSupport),
         new EnergySpendCalculator(),

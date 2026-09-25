@@ -216,7 +216,10 @@ async function installGameFixtureRoutes(page, options) {
         session: { authenticated: true, csrf_token: 'debug-csrf-token' },
         server_time: '2026-09-11T00:00:00Z',
         content_revision: revision,
-        progression: { unlock_ids: [] },
+        progression: {
+          unlock_ids: ['unlock.region.mountains'],
+          available_region_ids: ['region.the_farm', 'region.mountains'],
+        },
         active_squad: {
           id: '301', name: 'Bogbreakers', is_active: true, formation: activeFormation,
           units: unitRows.filter((unit) => activeFormation.includes(unit.id)),

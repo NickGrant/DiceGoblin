@@ -28,6 +28,8 @@ export interface CampViewModel {
   readonly runEnergyCost: number;
   readonly hasActiveRun: boolean;
   readonly hasActiveSquad: boolean;
+  readonly availableRegions: readonly { readonly id: string; readonly displayName: string; readonly artKey: string }[];
+  readonly activeRunRegionName: string | null;
 }
 
 export interface CampLayout {
@@ -37,6 +39,7 @@ export interface CampLayout {
   readonly panel: Bounds;
   readonly resourcePlaques: readonly [Bounds, Bounds, Bounds];
   readonly warbandButton: Bounds;
+  readonly regionSelector: Bounds;
   readonly runButton: Bounds;
   readonly headingY: number;
   readonly welcomeY: number;
@@ -51,8 +54,8 @@ export interface CampLayout {
 }
 
 export class CampStateUnavailableError extends Error {
-  constructor() {
-    super('Camp requires an authoritative bootstrap state.');
+  constructor(message = 'Camp requires an authoritative bootstrap state.') {
+    super(message);
     this.name = 'CampStateUnavailableError';
   }
 }
@@ -62,6 +65,15 @@ export function createCampViewModel(store: GameStore, content: ClientContentRegi
   if (!bootstrap) throw new CampStateUnavailableError();
 
   const { current, normal_max: normalMaximum } = bootstrap.player.energy;
+  const availableRegions = bootstrap.progression.available_region_ids.map((regionId) => {
+    const region = content.getRegion(regionId);
+    if (!region) throw new CampStateUnavailableError(`Available region '${regionId}' is absent from projected content.`);
+    return { id: region.id, displayName: region.display_name, artKey: region.art_key };
+  });
+  const activeRunRegion = bootstrap.active_run ? content.getRegion(bootstrap.active_run.region_id) : undefined;
+  if (bootstrap.active_run && !activeRunRegion) {
+    throw new CampStateUnavailableError(`Active region '${bootstrap.active_run.region_id}' is absent from projected content.`);
+  }
   return {
     displayName: bootstrap.account.display_name,
     teeth: bootstrap.player.teeth,
@@ -75,6 +87,8 @@ export function createCampViewModel(store: GameStore, content: ClientContentRegi
     runEnergyCost: content.runEnergyCost,
     hasActiveRun: bootstrap.active_run !== null,
     hasActiveSquad: bootstrap.active_squad !== null,
+    availableRegions,
+    activeRunRegionName: activeRunRegion?.display_name ?? null,
   };
 }
 
@@ -125,7 +139,9 @@ export function createCampLayout(snapshot: RuntimeViewportSnapshot): CampLayout 
       mode === 'compact' ? 250 : 220,
       mode === 'compact' ? 92 : 58,
     ),
-    runButton: box(centerX - (mode === 'compact' ? 230 : 190), panel.y + (mode === 'compact' ? 205 : 215),
+    regionSelector: box(centerX - (mode === 'compact' ? 310 : 260), panel.y + 195,
+      mode === 'compact' ? 620 : 520, mode === 'compact' ? 54 : 48),
+    runButton: box(centerX - (mode === 'compact' ? 230 : 190), panel.y + (mode === 'compact' ? 270 : 260),
       mode === 'compact' ? 460 : 380, mode === 'compact' ? 92 : 72),
     headingY: mode === 'compact' ? 43 : 50,
     welcomeY: mode === 'compact' ? 94 : 101,
@@ -148,7 +164,8 @@ export class CampScreen implements GameSceneScreen {
   private activeLayout: CampLayout | null = null;
   private startState: 'ready' | 'submitting' | 'retryable' | 'rejected' | 'recovery-required' = 'ready';
   private startMessage = '';
-  private startAttemptKey: string | null = null;
+  private selectedRegionId: string | null = null;
+  private startAttempt: { readonly key: string; readonly regionId: string } | null = null;
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -184,6 +201,7 @@ export class CampScreen implements GameSceneScreen {
   create(): void {
     if (!this.content) throw new CampStateUnavailableError();
     this.view = createCampViewModel(this.store, this.content);
+    this.selectedRegionId = this.view.availableRegions[0]?.id ?? null;
     this.reflow(this.viewport.snapshot);
   }
 
@@ -255,6 +273,7 @@ export class CampScreen implements GameSceneScreen {
 
     this.addPanel(root, layout.panel);
     this.addWarbandButton(root, layout);
+    this.addRegionSelector(root, layout, view);
     this.addRunButton(root, layout, view);
     const eyebrow = this.scene.add
       .text(layout.centerX, layout.eyebrowY, 'THE GOBLINS ARE PLOTTING', {
@@ -292,30 +311,47 @@ export class CampScreen implements GameSceneScreen {
   }
 
   get runActionState(): string { return this.startState; }
+  get selectedRunRegionId(): string | null { return this.selectedRegionId; }
 
-  resumeFarm(): void {
+  selectRegion(regionId: string): void {
+    if (this.store.bootstrap?.active_run || this.startState === 'submitting' || this.startState === 'retryable'
+      || this.startState === 'recovery-required' || !this.view?.availableRegions.some((region) => region.id === regionId)) return;
+    this.selectedRegionId = regionId;
+    this.startState = 'ready';
+    this.startMessage = '';
+    this.reflow(this.viewport.snapshot);
+  }
+
+  resumeRun(): void {
     if (this.store.bootstrap?.active_run) this.enterRun();
   }
 
-  async startFarm(): Promise<void> {
+  async startRun(): Promise<void> {
     if (this.startState === 'submitting' || this.startState === 'recovery-required'
       || this.store.bootstrap?.active_run || !this.api || !this.content) return;
     const bootstrap = this.store.bootstrap;
+    const view = this.view;
+    if (!view) throw new CampStateUnavailableError();
+    const selectedRegion = view.availableRegions.find((region) => region.id === this.selectedRegionId);
+    if (!selectedRegion) throw new CampStateUnavailableError('Camp has no selected authoritative region.');
     if (!bootstrap?.active_squad) {
-      this.startState = 'rejected'; this.startMessage = 'Choose an active squad before entering the Farm.';
+      this.startState = 'rejected'; this.startMessage = `Choose an active squad before entering ${selectedRegion.displayName}.`;
       this.reflow(this.viewport.snapshot); return;
     }
-    this.startAttemptKey ??= this.createIdempotencyKey();
-    this.startState = 'submitting'; this.startMessage = 'Preparing the Farm run…';
+    this.startAttempt ??= { key: this.createIdempotencyKey(), regionId: selectedRegion.id };
+    const attempt = this.startAttempt;
+    const attemptedRegion = view.availableRegions.find((region) => region.id === attempt.regionId);
+    if (!attemptedRegion) throw new CampStateUnavailableError('The retained start region is unavailable.');
+    this.startState = 'submitting'; this.startMessage = `Preparing ${attemptedRegion.displayName}…`;
     this.reflow(this.viewport.snapshot);
     let result: Awaited<ReturnType<RuntimeApiClient['startRun']>>;
     try {
-      result = await this.api.startRun('region.the_farm', bootstrap.session.csrf_token, this.startAttemptKey, this.content);
+      result = await this.api.startRun(attempt.regionId, bootstrap.session.csrf_token, attempt.key, this.content);
     } catch (error) {
       if (this.isDefinitiveStartRejection(error)) {
-        this.startAttemptKey = null;
+        this.startAttempt = null;
         this.startState = 'rejected';
-        this.startMessage = this.startErrorMessage(error);
+        this.startMessage = this.startErrorMessage(error, attemptedRegion.displayName);
       } else {
         this.startState = 'retryable';
         this.startMessage = 'The result is uncertain. Retry this same start attempt.';
@@ -324,18 +360,51 @@ export class CampScreen implements GameSceneScreen {
       return;
     }
 
+    if (result.run.region_id !== attempt.regionId) {
+      this.startState = 'recovery-required';
+      this.startMessage = 'The run started in a different region. Reload to recover it safely.';
+      this.reflow(this.viewport.snapshot);
+      return;
+    }
+
     try {
       this.store.reconcileRunStart(result);
     } catch {
-      this.startAttemptKey = null;
       this.startState = 'recovery-required';
       this.startMessage = 'The run started, but local state disagrees. Reload to recover it.';
       this.reflow(this.viewport.snapshot);
       return;
     }
 
-    this.startAttemptKey = null;
+    this.startAttempt = null;
     this.enterRun();
+  }
+
+  private addRegionSelector(root: Phaser.GameObjects.Container, layout: CampLayout, view: CampViewModel): void {
+    if (view.hasActiveRun || view.availableRegions.length < 2) return;
+    const gap = 12;
+    const width = (layout.regionSelector.width - gap * (view.availableRegions.length - 1)) / view.availableRegions.length;
+    view.availableRegions.forEach((region, index) => {
+      const bounds = box(layout.regionSelector.x + index * (width + gap), layout.regionSelector.y,
+        width, layout.regionSelector.height);
+      const selected = region.id === this.selectedRegionId;
+      const enabled = this.startState !== 'submitting' && this.startState !== 'retryable'
+        && this.startState !== 'recovery-required';
+      const button = this.scene.add.graphics();
+      button.fillStyle(selected ? 0x8f3e2e : 0x5b4631, 1);
+      button.fillRoundedRect(bounds.x, bounds.y, bounds.width, bounds.height, 12);
+      button.lineStyle(selected ? 4 : 2, 0xc9972b, 1);
+      button.strokeRoundedRect(bounds.x, bounds.y, bounds.width, bounds.height, 12);
+      if (enabled) {
+        button.setInteractive(new Phaser.Geom.Rectangle(bounds.x, bounds.y, bounds.width, bounds.height), Phaser.Geom.Rectangle.Contains)
+          .on('pointerup', () => this.selectRegion(region.id));
+        actionCursor(button);
+      }
+      const label = this.scene.add.text(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2,
+        region.displayName.toUpperCase(), { color: '#fff4d3', fontFamily: 'system-ui, sans-serif',
+          fontSize: layout.mode === 'compact' ? '20px' : '15px', fontStyle: 'bold' }).setOrigin(0.5);
+      root.add([button, label]);
+    });
   }
 
   private addRunButton(root: Phaser.GameObjects.Container, layout: CampLayout, view: CampViewModel): void {
@@ -350,12 +419,14 @@ export class CampScreen implements GameSceneScreen {
     if (!disabled) {
       button.setInteractive(new Phaser.Geom.Rectangle(region.x, region.y, region.width, region.height), Phaser.Geom.Rectangle.Contains);
       actionCursor(button);
-      button.on('pointerup', () => view.hasActiveRun ? this.resumeFarm() : void this.startFarm());
+      button.on('pointerup', () => view.hasActiveRun ? this.resumeRun() : void this.startRun());
     }
     const retry = this.startState === 'retryable';
-    const label = view.hasActiveRun ? 'RESUME FARM  ›' : retry ? 'RETRY START FARM'
+    const selectedRegionName = view.availableRegions.find((region) => region.id === this.selectedRegionId)?.displayName ?? 'RUN';
+    const activeRegionName = view.activeRunRegionName ?? 'RUN';
+    const label = view.hasActiveRun ? `RESUME ${activeRegionName.toUpperCase()}  ›` : retry ? `RETRY ${selectedRegionName.toUpperCase()}`
       : this.startState === 'submitting' ? 'STARTING…'
-      : this.startState === 'recovery-required' ? 'RELOAD TO RECOVER' : 'START FARM  ›';
+      : this.startState === 'recovery-required' ? 'RELOAD TO RECOVER' : `START ${selectedRegionName.toUpperCase()}  ›`;
     const action = this.scene.add.text(region.x + region.width / 2, region.y + region.height * 0.38, label, {
       color: '#fff4d3', fontFamily: 'system-ui, sans-serif', fontSize: layout.mode === 'compact' ? '30px' : '22px', fontStyle: 'bold',
     }).setOrigin(0.5);
@@ -366,13 +437,14 @@ export class CampScreen implements GameSceneScreen {
     root.add([button, action, detail]);
   }
 
-  private startErrorMessage(error: unknown): string {
+  private startErrorMessage(error: unknown, regionName: string): string {
     if (error instanceof RuntimeApiError) {
-      if (error.code === 'insufficient_energy') return 'Not enough Energy to enter the Farm.';
+      if (error.code === 'insufficient_energy') return `Not enough Energy to enter ${regionName}.`;
       if (error.code === 'active_squad_required' || error.code === 'active_squad_empty') return 'Choose a ready active squad first.';
       if (error.code === 'active_run_exists') return 'A run already exists. Reload to resume it.';
       if (error.kind === 'unauthorized') return 'Your session expired. Reload and sign in again.';
-      if (error.kind === 'http') return 'The Farm cannot be entered right now.';
+      if (error.code === 'run_region_locked') return `${regionName} is locked.`;
+      if (error.kind === 'http') return `${regionName} cannot be entered right now.`;
     }
     return 'The run response could not be verified safely.';
   }

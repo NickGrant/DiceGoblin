@@ -51,7 +51,7 @@ describe('CampScreen', () => {
       session: { authenticated: true, csrf_token: 'not-for-camp' },
       server_time: '2026-09-11T00:00:00Z',
       content_revision: 'a'.repeat(64),
-      progression: { unlock_ids: [] },
+      progression: { unlock_ids: [], available_region_ids: ['region.the_farm'] },
       active_squad: null,
       active_run: null,
     };
@@ -65,7 +65,10 @@ describe('CampScreen', () => {
 
   function content(): ClientContentRegistry {
     return new ClientContentRegistry({ revision: 'a'.repeat(64), content: { gameplay: { run_energy_cost: 10 },
-      regions: {}, kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {} } });
+      regions: {
+        'region.the_farm': { id: 'region.the_farm', display_name: 'The Farm', art_key: 'farm' },
+        'region.mountains': { id: 'region.mountains', display_name: 'Mountains', art_key: 'mountains' },
+      }, kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {} } });
   }
 
   function viewportSnapshot(width: number, height: number) {
@@ -76,6 +79,22 @@ describe('CampScreen', () => {
       coarsePointer: false,
       noHover: false,
     });
+  }
+
+  function sceneHarness(): { scene: Phaser.Scene; textValues: string[] } {
+    const textValues: string[] = [];
+    const chain = (): Record<string, unknown> => {
+      const value: Record<string, unknown> = {};
+      for (const method of ['setScale', 'destroy', 'fillGradientStyle', 'fillRect', 'fillStyle', 'fillCircle',
+        'fillRoundedRect', 'fillTriangle', 'lineStyle', 'lineBetween', 'strokeCircle', 'strokeRoundedRect', 'setInteractive', 'on', 'setOrigin',
+        'setDisplaySize', 'setAlpha']) value[method] = jasmine.createSpy(method).and.returnValue(value);
+      value['add'] = jasmine.createSpy('add').and.returnValue(value);
+      return value;
+    };
+    return { textValues, scene: { add: {
+      container: () => chain(), graphics: () => chain(), image: () => chain(),
+      text: (_x: number, _y: number, value: string) => { textValues.push(value); return chain(); },
+    } } as unknown as Phaser.Scene };
   }
 
   it('derives identity, Teeth, Raw Chaos, and Energy only from authoritative bootstrap state', () => {
@@ -120,6 +139,40 @@ describe('CampScreen', () => {
     expect(() => createCampViewModel(new GameStore(), content())).toThrowError(CampStateUnavailableError);
   });
 
+  it('rejects server availability that is absent from projected content', () => {
+    const data = bootstrap();
+    const store = storeWith({ ...data, progression: {
+      unlock_ids: ['unlock.region.missing'], available_region_ids: ['region.the_farm', 'region.missing'],
+    } });
+    expect(() => createCampViewModel(store, content())).toThrowError(CampStateUnavailableError);
+  });
+
+  it('renders authored region choices and dynamic Mountains start/resume labels', () => {
+    const available = bootstrap();
+    const unlocked = { ...available, progression: {
+      unlock_ids: ['unlock.region.mountains'], available_region_ids: ['region.the_farm', 'region.mountains'],
+    } };
+    const startHarness = sceneHarness();
+    const startScreen = new CampScreen(startHarness.scene, storeWith(unlocked), new RuntimeViewport(),
+      undefined, undefined, undefined, content());
+    startScreen.create();
+    expect(startHarness.textValues).toContain('THE FARM');
+    expect(startHarness.textValues).toContain('MOUNTAINS');
+    startScreen.selectRegion('region.mountains');
+    expect(startHarness.textValues).toContain('START MOUNTAINS  ›');
+
+    const active = { ...unlocked, active_squad: { id: '31', name: 'Raiders', is_active: true as const,
+      formation: ['11', null, null, null, null, null, null, null, null], units: [{ id: '11', display_name: 'Grub',
+        unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active' as const }] },
+      active_run: { id: '41', region_id: 'region.mountains', squad_id: '31', status: 'active' as const } };
+    const resumeHarness = sceneHarness();
+    const resumeScreen = new CampScreen(resumeHarness.scene, storeWith(active), new RuntimeViewport(),
+      undefined, undefined, undefined, content());
+    resumeScreen.create();
+    expect(resumeHarness.textValues).toContain('RESUME MOUNTAINS  ›');
+    expect(resumeHarness.textValues).not.toContain('RESUME FARM  ›');
+  });
+
   it('is a GameScene-owned screen boundary rather than another Phaser Scene', () => {
     const screen = new CampScreen(
       {} as Phaser.Scene,
@@ -151,7 +204,7 @@ describe('CampScreen', () => {
 
     for (const snapshot of snapshots) {
       const layout = createCampLayout(snapshot);
-      for (const region of [layout.panel, layout.warbandButton, layout.runButton, ...layout.resourcePlaques]) {
+      for (const region of [layout.panel, layout.warbandButton, layout.regionSelector, layout.runButton, ...layout.resourcePlaques]) {
         expect(region.x).toBeGreaterThanOrEqual(snapshot.safeBounds.x);
         expect(region.y).toBeGreaterThanOrEqual(snapshot.safeBounds.y);
         expect(region.right).toBeLessThanOrEqual(snapshot.safeBounds.right);

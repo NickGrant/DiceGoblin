@@ -5,8 +5,8 @@ namespace DiceGoblins\Application\Commands;
 
 use DateTimeImmutable;
 use DateTimeZone;
+use DiceGoblins\Application\RegionAvailabilityPolicy;
 use DiceGoblins\Content\ContentRegistry;
-use DiceGoblins\Content\ContentValidationException;
 use DiceGoblins\Domain\Energy\EnergySpendCalculator;
 use DiceGoblins\Domain\Energy\InsufficientEnergyException;
 use DiceGoblins\Infrastructure\Clock;
@@ -14,6 +14,7 @@ use DiceGoblins\Repositories\IdempotencyRequestRepository;
 use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Repositories\RunPersistenceRepository;
 use DiceGoblins\Repositories\SquadRepository;
+use DiceGoblins\Repositories\UserUnlockRepository;
 use DiceGoblins\RunGeneration\RunGraphGenerator;
 use JsonException;
 use PDO;
@@ -30,7 +31,9 @@ final class StartRunCommand
     private readonly SquadRepository $squads,
     private readonly RunPersistenceRepository $runs,
     private readonly IdempotencyRequestRepository $idempotency,
+    private readonly UserUnlockRepository $unlocks,
     private readonly ContentRegistry $content,
+    private readonly RegionAvailabilityPolicy $regionAvailability,
     private readonly RunGraphGenerator $generator,
     private readonly RunParticipationValidator $participation,
     private readonly EnergySpendCalculator $energy,
@@ -62,7 +65,7 @@ final class StartRunCommand
         return $prior['result'];
       }
 
-      $this->validateRegion($input->regionId);
+      $this->validateRegion($userId, $input->regionId);
       if ($this->runs->findActiveRunIdForUser($userId) !== null) {
         throw new RunStartException('active_run_exists', 'An active run already exists.', 409);
       }
@@ -128,15 +131,16 @@ final class StartRunCommand
     }
   }
 
-  private function validateRegion(string $regionId): void
+  private function validateRegion(int $userId, string $regionId): void
   {
-    if ($regionId !== $this->content->startingRegionId()) {
+    if (!$this->regionAvailability->isPlayable($regionId)) {
       throw new RunStartException('run_region_unsupported', 'The requested region is unavailable.', 422);
     }
-    try {
-      $this->content->region($regionId);
-    } catch (ContentValidationException $e) {
-      throw new RunStartException('run_region_unsupported', 'The requested region is unavailable.', 422);
+    if ($regionId !== $this->content->startingRegionId()) {
+      $available = $this->regionAvailability->availableRegionIds($this->unlocks->listIdsForUser($userId, true));
+      if (!in_array($regionId, $available, true)) {
+        throw new RunStartException('run_region_locked', 'The requested region is locked.', 403);
+      }
     }
   }
 }

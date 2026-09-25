@@ -5,7 +5,7 @@ describe('active run presentation lock', () => {
   const base = {
     account: { id: '1', display_name: 'Goblin', role: 'user' },
     player: { teeth: 0, raw_chaos: 0, player_revision: 7, energy: { current: 50, normal_max: 50, regeneration_per_hour: 12, regeneration_interval_seconds: 300, last_regeneration_at: '2026-01-01T00:00:00Z', next_regeneration_at: null, fully_regenerated_at: null } },
-    session: { authenticated: true as const, csrf_token: 'csrf' }, server_time: '2026-01-01T00:00:00Z', content_revision: 'a'.repeat(64), progression: { unlock_ids: [] },
+    session: { authenticated: true as const, csrf_token: 'csrf' }, server_time: '2026-01-01T00:00:00Z', content_revision: 'a'.repeat(64), progression: { unlock_ids: [], available_region_ids: ['region.the_farm'] },
     active_squad: { id: '31', name: 'Raiders', is_active: true as const,
       formation: ['11', null, '12', null, null, null, null, null, null],
       units: [
