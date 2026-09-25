@@ -105,6 +105,25 @@ final class RunStartControllerTest extends IntegrationTestCase
     $this->assertSame(3, $response['body']['data']['player_revision'] ?? null);
   }
 
+  public function testHttpEndpointStartsAndPersistsUnlockedMountainsRun(): void
+  {
+    [$userId, $fixture] = $this->fixtureAccount('run-http-mountains@example.test');
+    (new UserUnlockRepository($this->pdo))->insertIfAbsent($userId, 'unlock.region.mountains');
+
+    $response = $this->httpCommand($userId, ['region_id' => 'region.mountains'], 'http-mountains-key');
+
+    $this->assertSame(200, $response['status'], json_encode($response['body']));
+    $this->assertTrue($response['body']['ok'] ?? false);
+    $run = $response['body']['data']['run'] ?? [];
+    $this->assertSame('region.mountains', $run['region_id'] ?? null);
+    $this->assertSame($fixture['active_squad_id'], $run['squad_id'] ?? null);
+    $persisted = $this->row('SELECT `user_id`, `region_id`, `squad_id`, `status` FROM `runs` WHERE `id` = ?', [(int)($run['id'] ?? 0)]);
+    $this->assertSame((string)$userId, (string)($persisted['user_id'] ?? ''));
+    $this->assertSame('region.mountains', $persisted['region_id'] ?? null);
+    $this->assertSame($fixture['active_squad_id'], (string)($persisted['squad_id'] ?? ''));
+    $this->assertSame('active', $persisted['status'] ?? null);
+  }
+
   public function testSuccessfulFarmStartPersistsAuthoritativeAggregateAndResponse(): void
   {
     [$userId, $fixture] = $this->fixtureAccount('run-success@example.test');
