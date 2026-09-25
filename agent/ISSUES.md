@@ -7,6 +7,18 @@
 **Status:** In Progress
 **Priority:** High
 
+#### Current Architectural Review Finding
+
+The Package 4 implementation at `3a38398f5a966720a4febd29dff4048f558de665` is accepted in code review. The shared `RegionAvailabilityPolicy`, bootstrap projection, unlock-aware `StartRunCommand`, Camp region selection/resume, and retained region+idempotency-key retry identity all match the package architecture. GitHub Full Verification is green: backend 791 tests / 1,626 assertions; frontend 475 tests; all standard gates PASS.
+
+Two focused closure items remain before Package 4 can be approved:
+
+1. **Prove unlocked Mountains through the public HTTP start boundary.** The current Mountains success/replay integration test calls `StartRunCommand::execute()` directly. Add a focused integration assertion that an authenticated/CSRF-valid `POST /api/v1/runs` request for `region.mountains` succeeds after the user owns the authored Mountains unlock and returns/persists the Mountains run. Keep the existing direct command test if it remains useful for detailed persistence/replay assertions.
+2. **Provide MySQL/Docker verification evidence.** This package changes DB-backed bootstrap/unlock/start behavior, while the standard GitHub workflow does not prove those MySQL integration paths. Run the Package 4 Docker verification already specified below and report exact test/assertion/skipped counts where available.
+
+No production implementation correction is currently requested. Leave Package 4 **In Progress** and do not promote Package 5.
+
+
 #### Accepted baseline
 
 Package 1 Mountains combat foundation is approved at `4adff479b4c10af40057f1f93088c0930e5894d8`.
