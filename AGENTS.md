@@ -56,8 +56,3 @@ Before declaring a package complete:
 - leave later packages unimplemented.
 
 Final reports should be concise: changed behavior, verification run/results, and any unresolved/blocking decision. Do not restate loaded documentation or narrate routine implementation steps.
-
-## Headroom
-- Invoke the repository-scoped Headroom CLI with `npm run headroom -- <command>`; repository-specific Headroom configuration, logs, and runtime state stay under ignored `.headroom/`.
-- For local Codex CLI sessions, launch through `npm run headroom:codex -- -- [codex arguments]` so model traffic uses the Headroom proxy and compression markers remain retrievable through its MCP server.
-- Use `npm run headroom:tools` to verify the bundled token-efficient repository tools and `npm run headroom:doctor` while a wrapped session is running to verify proxy/client routing.
