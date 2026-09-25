@@ -119,7 +119,7 @@ export class SquadEditorScreen implements GameSceneScreen {
   async save(): Promise<void> {
     if (this.command !== 'idle' || this.integrityBlocked) return;
     if (this.formationLocked && this.draft.formationDirty) {
-      this.message = 'This squad is in an active Farm run. Discard formation edits before saving its name.';
+      this.message = 'This squad is in an active run. Discard formation edits before saving its name.';
       this.reflow(this.viewport.snapshot);
       return;
     }
@@ -196,7 +196,7 @@ export class SquadEditorScreen implements GameSceneScreen {
       if (error.code === 'active_squad_delete_forbidden') {
         this.message = 'Activate another squad before deleting this active squad.';
       } else if (error.code === 'active_run_configuration_locked') {
-        this.message = 'This squad\'s formation is locked while it is being used in an active Farm run. Your draft is preserved.';
+        this.message = 'This squad\'s formation is locked while it is being used in an active run. Your draft is preserved.';
       } else if (error.kind === 'unauthorized') {
         this.message = 'Your session expired. Your draft is still here.';
       } else if (error.kind === 'malformed-response') {
@@ -227,12 +227,12 @@ export class SquadEditorScreen implements GameSceneScreen {
       color: this.draft.isActive ? '#f2c14e' : '#c8b98f', fontFamily: 'system-ui, sans-serif', fontSize: '17px', fontStyle: 'bold',
     }).setOrigin(1, 0));
     if (this.formationLocked) root.add(this.scene.add.text(layout.title.x, layout.title.y + 58,
-      'IN ACTIVE FARM RUN · Formation locked until the run ends. You can still rename this squad.', {
+      'IN ACTIVE RUN · Formation locked until the run ends. You can still rename this squad.', {
         color: '#ffd69b', fontFamily: 'system-ui, sans-serif', fontSize: layout.mode === 'compact' ? '19px' : '16px', fontStyle: 'bold',
         wordWrap: { width: layout.title.width },
       }));
     else if (this.store.activeRunLock && this.draft.mode === 'edit') root.add(this.scene.add.text(layout.title.x, layout.title.y + 58,
-      'Another squad is in a Farm run. This formation is editable, but activation is unavailable.', {
+      'Another squad is in an active run. This formation is editable, but activation is unavailable.', {
         color: '#ffd69b', fontFamily: 'system-ui, sans-serif', fontSize: layout.mode === 'compact' ? '19px' : '16px', fontStyle: 'bold',
         wordWrap: { width: layout.title.width },
       }));

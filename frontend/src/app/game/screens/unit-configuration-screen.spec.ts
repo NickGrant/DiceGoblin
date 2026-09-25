@@ -48,6 +48,7 @@ describe('UnitConfigurationScreen', () => {
 
   function sceneHarness(): Phaser.Scene {
     const graphics: Array<{ hit: Phaser.Geom.Rectangle | null; input: { cursor: string } | null }> = [];
+    const textValues: string[] = [];
     const chain = (): Record<string, jasmine.Spy> => {
       const value: Record<string, jasmine.Spy> = {};
       for (const method of ['setScale', 'destroy', 'fillGradientStyle', 'fillRect', 'fillStyle', 'fillRoundedRect', 'lineStyle', 'strokeRoundedRect', 'on', 'setOrigin']) value[method] = jasmine.createSpy(method).and.returnValue(value);
@@ -62,7 +63,8 @@ describe('UnitConfigurationScreen', () => {
     const parent = document.createElement('div'); const canvas = document.createElement('canvas'); parent.appendChild(canvas);
     return { add: { container: () => chain(), graphics: () => {
       const graphic = chain(); graphics.push(graphic as unknown as typeof graphics[number]); return graphic;
-    }, text: () => chain() }, sys: { game: { canvas } }, graphics } as unknown as Phaser.Scene;
+    }, text: (_x: number, _y: number, text: string) => { textValues.push(text); return chain(); } },
+      sys: { game: { canvas } }, graphics, textValues } as unknown as Phaser.Scene;
   }
 
   async function readyHarness() {
@@ -160,9 +162,12 @@ describe('UnitConfigurationScreen', () => {
 
   it('keeps participating loadout/dice committed and non-mutable while allowing rename', async () => {
     const { screen, store, client, input, parent, scene } = await readyHarness();
-    store.hydrateBootstrap({ ...bootstrap(), active_run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active' } });
+    store.hydrateBootstrap({ ...bootstrap(), active_run: { id: '41', region_id: 'region.mountains', squad_id: '31', status: 'active' } });
     screen.reflow(new RuntimeViewport().snapshot);
     expect(parent.dataset['unitLoadoutLocked']).toBe('true');
+    const textValues = (scene as unknown as { textValues: string[] }).textValues;
+    expect(textValues.some((text) => text.includes('IN ACTIVE RUN'))).toBeTrue();
+    expect(textValues.join(' ')).not.toContain('FARM RUN');
     const original = screen.draft!.loadout.map((entry) => [entry.ability.id, [...entry.diceInstanceIds]]);
     screen.addAbility('ability.smash'); screen.removeAbility('ability.bash'); screen.moveAbility('ability.bash', 1);
     screen.selectSlot('ability.bash', 0); screen.assignDie('22');

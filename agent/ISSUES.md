@@ -24,7 +24,7 @@ Package 4 unlock-aware multi-region run start + Camp region selection/resume is 
 
 The subsequent branch changes through `9de8b8966b41f0be9f27202085a690792e72c48f` affect planning/tooling only and do not change Package 4 gameplay/application behavior. Full Verification remains green there.
 
-#### Purpose
+#### Problem
 
 Close Milestone 6 technically by proving the **integrated second-region path** through the accepted production composition, not by adding another feature.
 

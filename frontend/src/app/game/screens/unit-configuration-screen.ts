@@ -202,7 +202,7 @@ export class UnitConfigurationScreen implements GameSceneScreen {
   private showFailure(error: unknown, operation: 'rename' | 'loadout'): void {
     this.command = 'idle';
     if (error instanceof RuntimeApiError) {
-      if (error.code === 'active_run_configuration_locked') this.message = 'This goblin\'s loadout and dice are locked while it participates in an active Farm run. Your draft is preserved.';
+      if (error.code === 'active_run_configuration_locked') this.message = 'This goblin\'s loadout and dice are locked while it participates in an active run. Your draft is preserved.';
       else if (error.kind === 'unauthorized') this.message = 'Your session expired. Your local draft is preserved.';
       else if (error.kind === 'malformed-response') this.message = 'The response failed an integrity check. Nothing was committed locally.';
       else if (error.status === 404) this.message = 'This goblin is no longer available.';
@@ -234,7 +234,7 @@ export class UnitConfigurationScreen implements GameSceneScreen {
       return;
     }
     if (this.loadoutLocked) root.add(this.scene.add.text(layout.back.right + 28, layout.header.y + 64,
-      'IN FARM RUN · Loadout and dice locked until it ends. You can still rename.', {
+      'IN ACTIVE RUN · Loadout and dice locked until it ends. You can still rename.', {
         color: '#ffd69b', fontFamily: 'system-ui', fontSize: layout.mode === 'compact' ? '17px' : '15px', fontStyle: 'bold',
         wordWrap: { width: Math.max(300, layout.name.x - layout.back.right - 48) },
       }));

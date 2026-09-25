@@ -49,37 +49,91 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
 
   public function testAuthoredMountainsRunUsesSharedResolutionAndTerminalLifecycle(): void
   {
-    [$userId, $fixture] = $this->fixtureAccount('mountains-lifecycle');
-    $services = ControllerServiceFactory::buildContentAware($this->pdo);
+    [$userId] = $this->fixtureAccount('mountains-lifecycle');
+    $services = ControllerServiceFactory::buildContentAware(
+      $this->pdo, null, null, $this->fixedResolver('victory'));
+    $now = new DateTimeImmutable('2026-09-20 12:00:00', new DateTimeZone('UTC'));
+    $bootstrap = $services['gameBootstrapQuery']->execute($userId, $now);
+    $this->assertSame([], $bootstrap['progression']['unlock_ids']);
+    $this->assertSame(['region.the_farm'], $bootstrap['progression']['available_region_ids']);
+    $this->assertNull($bootstrap['active_run']);
+
     try {
-      $services['startRunCommand']->execute($userId, ['region_id' => 'region.mountains'], 'mountains-public-start');
-      $this->fail('Mountains public start must remain unavailable.');
+      $services['startRunCommand']->execute($userId, ['region_id' => 'region.mountains'], 'mountains-locked-start');
+      $this->fail('Mountains must remain locked before Farm completion.');
     } catch (RunStartException $e) {
-      $this->assertSame(['run_region_unsupported', 422], [$e->errorCode, $e->httpStatus]);
+      $this->assertSame(['run_region_locked', 403], [$e->errorCode, $e->httpStatus]);
     }
 
-    [$runId, $nodeIds] = $this->persistMountainsRun($userId, $fixture);
-    $current = (new CurrentRunQuery(new RunPersistenceRepository($this->pdo), new PlayerStateRepository($this->pdo),
-      $this->content()))->execute($userId)['run'];
+    $farm = $services['startRunCommand']->execute(
+      $userId, ['region_id' => 'region.the_farm'], 'integrated-farm-start');
+    $farmRunId = (int)$farm['run']['id'];
+    $farmCurrent = $services['currentRunQuery']->execute($userId)['run'];
+    $farmNodeIds = array_map('intval', array_column($farmCurrent['nodes'], 'id'));
+    $farmCombat = $services['resolveRunNodeCommand']->execute(
+      $userId, $farmRunId, $farmNodeIds[0], 'integrated-farm-combat');
+    $this->assertBattleResolution($farmCombat, $farmRunId, $farmNodeIds[0], $farmNodeIds[1]);
+    $services['resolveRunNodeCommand']->execute($userId, $farmRunId, $farmNodeIds[1], 'integrated-farm-loot');
+    $services['resolveRunNodeCommand']->execute($userId, $farmRunId, $farmNodeIds[2], 'integrated-farm-rest');
+    $farmBoss = $services['resolveRunNodeCommand']->execute(
+      $userId, $farmRunId, $farmNodeIds[3], 'integrated-farm-boss');
+    $this->assertBattleResolution($farmBoss, $farmRunId, $farmNodeIds[3], $farmNodeIds[4], 'boss');
+    $this->assertSame([['outcome' => 'granted', 'unlock_id' => 'unlock.region.mountains']],
+      $farmBoss['rewards']['unlocks']);
+    $this->assertSame($farmBoss, $services['resolveRunNodeCommand']->execute(
+      $userId, $farmRunId, $farmNodeIds[3], 'integrated-farm-boss'));
+    $farmExit = $services['resolveRunNodeCommand']->execute(
+      $userId, $farmRunId, $farmNodeIds[4], 'integrated-farm-exit');
+    $this->assertSame('completed', $farmExit['run']['status']);
+
+    $postFarm = $services['gameBootstrapQuery']->execute($userId, $now);
+    $this->assertNull($postFarm['active_run']);
+    $this->assertContains('unlock.region.mountains', $postFarm['progression']['unlock_ids']);
+    $this->assertSame(['region.the_farm', 'region.mountains'], $postFarm['progression']['available_region_ids']);
+
+    $mountainsProgressBefore = $this->unitProgress($userId);
+    $mountainsTeethBefore = (int)$postFarm['player']['teeth'];
+    $mountains = $services['startRunCommand']->execute(
+      $userId, ['region_id' => 'region.mountains'], 'mountains-public-start');
+    $this->assertSame($mountains, $services['startRunCommand']->execute(
+      $userId, ['region_id' => 'region.mountains'], 'mountains-public-start'));
+    $runId = (int)$mountains['run']['id'];
+    $current = $services['currentRunQuery']->execute($userId)['run'];
+    $nodeIds = array_map('intval', array_column($current['nodes'], 'id'));
     $this->assertSame('region.mountains', $current['region_id']);
     $this->assertSame([0, 1, 2, 3, 4, 5, 6], array_column($current['nodes'], 'node_index'));
     $this->assertSame([0, 1, 2, 3, 4, 5, 6], array_column(array_column($current['nodes'], 'position'), 'column'));
+    $this->assertSame([
+      'run_node_type.combat', 'run_node_type.loot', 'run_node_type.combat', 'run_node_type.rest',
+      'run_node_type.combat', 'run_node_type.boss', 'run_node_type.exit',
+    ], array_column($current['nodes'], 'node_type_id'));
+    $this->assertSame([
+      'encounter.mountains_kobold_combat_1', null, 'encounter.mountains_kobold_combat_2', null,
+      'encounter.mountains_kobold_combat_3', 'encounter.mountains_kobold_boss_1', null,
+    ], array_column($this->rows(
+      'SELECT `encounter_id` FROM `run_nodes` WHERE `run_id` = ? ORDER BY `node_index`', [$runId]), 'encounter_id'));
+    $this->assertSame([
+      null, 'event.mountains_loot_completed', null, null, null, 'event.mountains_boss_completed', null,
+    ], array_column($this->rows(
+      'SELECT `event_id` FROM `run_nodes` WHERE `run_id` = ? ORDER BY `node_index`', [$runId]), 'event_id'));
+    $this->assertSame(array_map(static fn(int $index): array => [
+      'from_node_id' => (string)$nodeIds[$index], 'to_node_id' => (string)$nodeIds[$index + 1],
+    ], range(0, 5)), $current['edges']);
     $this->assertSame(['available', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked'],
       array_column($current['nodes'], 'status'));
 
-    $command = $this->command($this->fixedResolver('victory'));
+    $command = $services['resolveRunNodeCommand'];
     $combatOne = $command->execute($userId, $runId, $nodeIds[0], 'mountains-combat-1');
     $this->assertBattleResolution($combatOne, $runId, $nodeIds[0], $nodeIds[1]);
     $this->assertStatuses($runId, ['completed', 'available', 'locked', 'locked', 'locked', 'locked', 'locked']);
 
-    $teethBefore = (int)$this->scalar('SELECT `teeth` FROM `user_state` WHERE `user_id` = ?', [$userId]);
     $loot = $command->execute($userId, $runId, $nodeIds[1], 'mountains-loot');
-    $this->assertSame([8, $teethBefore + 8, [(string)$nodeIds[2]]], [
+    $this->assertSame([8, $mountainsTeethBefore + 8, [(string)$nodeIds[2]]], [
       $loot['granted_rewards'][0]['amount'], $loot['wallet']['teeth'], $loot['newly_available_node_ids'],
     ]);
     $lootReplay = $command->execute($userId, $runId, $nodeIds[1], 'mountains-loot');
     $this->assertSame($loot, $lootReplay);
-    $this->assertSame($teethBefore + 8, (int)$this->scalar('SELECT `teeth` FROM `user_state` WHERE `user_id` = ?', [$userId]));
+    $this->assertSame($mountainsTeethBefore + 8, (int)$this->scalar('SELECT `teeth` FROM `user_state` WHERE `user_id` = ?', [$userId]));
 
     $combatTwo = $command->execute($userId, $runId, $nodeIds[2], 'mountains-combat-2');
     $this->assertBattleResolution($combatTwo, $runId, $nodeIds[2], $nodeIds[3]);
@@ -93,7 +147,6 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
 
     $combatThree = $command->execute($userId, $runId, $nodeIds[4], 'mountains-combat-3');
     $this->assertBattleResolution($combatThree, $runId, $nodeIds[4], $nodeIds[5]);
-    $progressBefore = $this->unitProgress($userId);
     $boss = $command->execute($userId, $runId, $nodeIds[5], 'mountains-boss');
     $this->assertBattleResolution($boss, $runId, $nodeIds[5], $nodeIds[6], 'boss');
     $this->assertSame([], $boss['rewards']['unlocks']);
@@ -102,6 +155,7 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
     $this->assertSame(array_map('strval', $participantIds), array_column($boss['rewards']['unit_xp'], 'unit_id'));
     $this->assertSame(array_fill(0, count($participantIds), 16), array_column($boss['rewards']['unit_xp'], 'amount'));
     $progressAfter = $this->unitProgress($userId);
+    $this->assertNotSame($mountainsProgressBefore, $progressAfter);
     $bossReplay = $command->execute($userId, $runId, $nodeIds[5], 'mountains-boss');
     $this->assertSame($boss, $bossReplay);
     $this->assertSame($progressAfter, $this->unitProgress($userId));
@@ -116,6 +170,12 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
     $this->assertSame('completed', $this->scalar('SELECT `status` FROM `runs` WHERE `id` = ?', [$runId]));
     $this->assertSame('0', (string)$this->scalar(
       "SELECT COUNT(*) FROM `user_unlocks` WHERE `user_id` = ? AND `unlock_id` = 'unlock.region.swamps'", [$userId]));
+    $final = $services['gameBootstrapQuery']->execute($userId, $now);
+    $this->assertNull($final['active_run']);
+    $this->assertSame(['region.the_farm', 'region.mountains'], $final['progression']['available_region_ids']);
+    $this->assertNotContains('unlock.region.swamps', $final['progression']['unlock_ids']);
+    $this->assertSame($mountainsTeethBefore + 8, $final['player']['teeth']);
+    $this->assertSame($progressAfter, $this->unitProgress($userId));
   }
 
   public function testMountainsCombatFailureUsesExistingFailedRunLifecycle(): void

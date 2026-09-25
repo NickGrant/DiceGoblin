@@ -148,20 +148,22 @@ describe('WarbandScreen', () => {
   });
 
   it('marks the participating squad/unit and blocks known-invalid squad actions without another request', async () => {
-    const active = { ...bootstrap(), active_run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active' as const } };
+    const active = { ...bootstrap(), active_run: { id: '41', region_id: 'region.mountains', squad_id: '31', status: 'active' as const } };
     const store = new GameStore(); store.hydrateBootstrap(active);
     const client = api(); const registry = content(); await store.loadWarbandDomains(client, registry);
     const harness = sceneHarness(); const openEditor = jasmine.createSpy('openEditor');
     const screen = new WarbandScreen(harness.scene, store, client, registry, new RuntimeViewport(), () => undefined, openEditor, 'squads');
     screen.create();
-    expect(harness.textValues.some((text) => text.includes('IN FARM RUN: FORMATION LOCKED'))).toBeTrue();
+    expect(harness.textValues.some((text) => text.includes('IN ACTIVE RUN: FORMATION LOCKED'))).toBeTrue();
+    expect(harness.textValues.join(' ')).not.toContain('FARM RUN');
     expect(harness.textValues).toContain('IN RUN');
     screen.activateSelectedSquad(); screen.deleteSelectedSquad();
     expect(openEditor).not.toHaveBeenCalled();
     screen.editSelectedSquad(); screen.createSquad();
     expect(openEditor).toHaveBeenCalledTimes(2);
     screen.selectTab('units');
-    expect(harness.textValues.some((text) => text.includes('IN FARM RUN: LOADOUT LOCKED'))).toBeTrue();
+    expect(harness.textValues.some((text) => text.includes('IN ACTIVE RUN: LOADOUT LOCKED'))).toBeTrue();
+    expect(harness.textValues.join(' ')).not.toContain('FARM RUN');
     expect(harness.textValues).toContain('VIEW / RENAME');
     expect(client.getUnitDetail).not.toHaveBeenCalled();
   });

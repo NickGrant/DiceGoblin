@@ -42,6 +42,7 @@ use DiceGoblins\Domain\Battles\CombatSeedDeriver;
 use DiceGoblins\Domain\CombatStats\BaseLevelStatResolver;
 use DiceGoblins\Domain\Rewards\RewardFinalizer;
 use DiceGoblins\Combat\Vnext\CombatEngine;
+use DiceGoblins\Combat\Vnext\CombatResolver;
 use DiceGoblins\Infrastructure\SystemClock;
 use DiceGoblins\Infrastructure\CryptoRewardRollSource;
 use DiceGoblins\Repositories\PlayerStateRepository;
@@ -112,7 +113,12 @@ final class ControllerServiceFactory
    * @param array<string,mixed>|null $core
    * @return array<string,mixed>
    */
-  public static function buildContentAware(PDO $pdo, ?array $core = null, ?ContentRegistry $content = null): array
+  public static function buildContentAware(
+    PDO $pdo,
+    ?array $core = null,
+    ?ContentRegistry $content = null,
+    ?CombatResolver $combatResolver = null,
+  ): array
   {
     $core ??= self::buildCore($pdo);
     $content ??= ContentRegistry::load(dirname(__DIR__, 2) . '/content');
@@ -144,7 +150,7 @@ final class ControllerServiceFactory
       $nodeResolutionRepository,
       new BattlePersistenceRepository($pdo),
       new CombatSnapshotAssembler($content, $squadRepository, $unitDetailQuery, $diceRepository, new BaseLevelStatResolver()),
-      new CombatEngine(),
+      $combatResolver ?? new CombatEngine(),
       new CombatSeedDeriver(),
     );
 

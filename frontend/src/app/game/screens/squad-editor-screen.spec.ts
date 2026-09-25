@@ -209,7 +209,7 @@ describe('SquadEditorScreen', () => {
     const { screen, store, returned } = harness(draft, client);
     store.hydrateBootstrap({ ...bootstrap(), active_squad: { id: '31', name: 'Raiders', is_active: true,
       formation, units: [{ id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active' }] },
-      active_run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active' } });
+      active_run: { id: '41', region_id: 'region.mountains', squad_id: '31', status: 'active' } });
     screen.requestDelete(); await screen.confirmDelete(); await screen.activate();
     expect(client.deleteSquad).not.toHaveBeenCalled(); expect(client.activateSquad).not.toHaveBeenCalled();
     draft.setName('Renamed Raiders');
@@ -226,7 +226,7 @@ describe('SquadEditorScreen', () => {
     const draft = SquadEditorDraft.edit({ id: '31', name: 'Raiders', isActive: true, formation });
     const store = new GameStore(); store.hydrateBootstrap({ ...bootstrap(), active_squad: { id: '31', name: 'Raiders', is_active: true,
       formation, units: [{ id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active' }] },
-      active_run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active' } });
+      active_run: { id: '41', region_id: 'region.mountains', squad_id: '31', status: 'active' } });
     const viewport = new RuntimeViewport(); const harness = interactionHarness();
     const screen = new SquadEditorScreen(harness.scene, store, api(), viewport, draft, () => undefined);
     screen.reflow(viewport.snapshot);
@@ -235,6 +235,8 @@ describe('SquadEditorScreen', () => {
       && graphic.hit.x < layout.formation.right && graphic.hit.y >= layout.formation.y && graphic.hit.y < layout.formation.bottom);
     expect(formationControls.length).toBe(0);
     expect(harness.textValues.some((text) => text.includes('You can still rename this squad'))).toBeTrue();
+    expect(harness.textValues.some((text) => text.includes('IN ACTIVE RUN'))).toBeTrue();
+    expect(harness.textValues.join(' ')).not.toContain('FARM RUN');
     expect(harness.graphics.some((graphic) => graphic.input?.cursor === 'pointer')).toBeTrue();
     expect(draft.formation).toEqual(formation);
     for (const [width, height] of [[844, 390], [2560, 1080], [390, 844]]) {

@@ -102,7 +102,7 @@ try {
   assert.equal(canvasBefore, true);
   const startResponse = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/v1/runs' && response.request().method() === 'POST');
   stage('starting-run');
-  await click(page, 800, 400); const start = await startResponse; const started = (await start.json()).data;
+  await click(page, 800, 450); const start = await startResponse; const started = (await start.json()).data;
   assert.equal(start.status(), 200); await screen(page, 'run'); await runMap(page);
   assert.equal(started.energy.current, beforeEnergy - 10); assert.equal(started.player_revision, beforeRevision + 1);
   assert.equal(started.run.squad_id, fixture.body.data.fixture.active_squad_id);
@@ -151,7 +151,7 @@ try {
   await click(page, 120, 79); await screen(page, 'camp');
   stage('active-run-warband-lock-agrees-with-backend');
   const postsBeforeResume = countApp('POST', '/api/v1/runs');
-  await click(page, 800, 400); await screen(page, 'run'); await runMap(page);
+  await click(page, 800, 450); await screen(page, 'run'); await runMap(page);
   assert.equal(countApp('POST', '/api/v1/runs'), postsBeforeResume);
   assert.equal(countApp('GET', '/api/v1/game/bootstrap'), transitionBootstrapCount);
   assert.equal(appRequests().filter((request) => request.path === '/game-content.json').length, transitionContentCount);

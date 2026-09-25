@@ -217,7 +217,7 @@ export class WarbandScreen implements GameSceneScreen {
     const items = this.pageItems('units', state.data ?? [], layout.pageSize);
     this.renderRows(root, layout, items.map((unit) => ({
       title: unit.displayName,
-      detail: `${unit.unitType.display_name} · ${unit.kin.display_name} · Level ${unit.level}${this.store.activeRunLock?.unitIds.has(unit.id) ? ' · IN FARM RUN: LOADOUT LOCKED' : ''}`,
+      detail: `${unit.unitType.display_name} · ${unit.kin.display_name} · Level ${unit.level}${this.store.activeRunLock?.unitIds.has(unit.id) ? ' · IN ACTIVE RUN: LOADOUT LOCKED' : ''}`,
       badge: this.store.activeRunLock?.unitIds.has(unit.id) ? 'VIEW / RENAME' : 'CONFIGURE',
     })), (state.data?.length ?? 0) > layout.pageSize, (index) => {
       const unit = items[index];
@@ -270,7 +270,7 @@ export class WarbandScreen implements GameSceneScreen {
     const rowsLayout = { ...layout, content: box(layout.content.x, layout.content.y, listWidth, layout.content.height) };
     this.renderRows(root, rowsLayout, squads.map((squad) => ({
       title: squad.name,
-      detail: `${squad.formation.filter(Boolean).length} of 9 positions filled${this.store.activeRunLock?.squadId === squad.id ? ' · IN FARM RUN: FORMATION LOCKED' : ''}`,
+      detail: `${squad.formation.filter(Boolean).length} of 9 positions filled${this.store.activeRunLock?.squadId === squad.id ? ' · IN ACTIVE RUN: FORMATION LOCKED' : ''}`,
       badge: this.store.activeRunLock?.squadId === squad.id ? 'IN RUN' : squad.isActive ? 'ACTIVE' : 'SAVED',
     })), (state.data?.length ?? 0) > Math.min(3, layout.pageSize), (index) => {
       this.selectedSquadId = squads[index]?.id ?? null;
@@ -297,7 +297,7 @@ export class WarbandScreen implements GameSceneScreen {
   ): void {
     const x = layout.content.x + listWidth + 28;
     const availableWidth = layout.content.right - x - 28;
-    const label = this.scene.add.text(x, layout.content.y + 22, `${this.store.activeRunLock?.squadId === squad.id ? 'IN FARM RUN · FORMATION LOCKED' : squad.isActive ? 'ACTIVE FORMATION' : 'FORMATION'} · ${squad.name}`, {
+    const label = this.scene.add.text(x, layout.content.y + 22, `${this.store.activeRunLock?.squadId === squad.id ? 'IN ACTIVE RUN · FORMATION LOCKED' : squad.isActive ? 'ACTIVE FORMATION' : 'FORMATION'} · ${squad.name}`, {
       color: '#6a321f', fontFamily: 'system-ui, sans-serif', fontSize: layout.mode === 'compact' ? '23px' : '18px', fontStyle: 'bold',
     });
     root.add(label);
