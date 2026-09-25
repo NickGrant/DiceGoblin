@@ -1,7 +1,20 @@
-param(
-    [Parameter(ValueFromRemainingArguments = $true)]
-    [string[]]$HeadroomArgs
-)
+$HeadroomArgs = $args
+
+$repositoryRoot = Split-Path -Parent $PSScriptRoot
+$headroomRoot = Join-Path $repositoryRoot ".headroom"
+
+if (-not $env:HEADROOM_CONFIG_DIR) {
+    $env:HEADROOM_CONFIG_DIR = Join-Path $headroomRoot "config"
+}
+if (-not $env:HEADROOM_WORKSPACE_DIR) {
+    $env:HEADROOM_WORKSPACE_DIR = Join-Path $headroomRoot "runtime"
+}
+if (-not $env:HEADROOM_TELEMETRY) {
+    $env:HEADROOM_TELEMETRY = "off"
+}
+if (-not $env:HEADROOM_BEACON) {
+    $env:HEADROOM_BEACON = "off"
+}
 
 $candidates = @()
 
@@ -10,10 +23,14 @@ if ($command) {
     $candidates += $command.Source
 }
 
-$candidates += @(
-    (Join-Path $env:APPDATA "Python\Python312\Scripts\headroom.exe"),
-    (Join-Path $env:LOCALAPPDATA "Programs\Python\Python312\Scripts\headroom.exe")
-)
+if ($env:APPDATA) {
+    $candidates += Get-ChildItem (Join-Path $env:APPDATA "Python\Python*\Scripts\headroom.exe") -ErrorAction SilentlyContinue |
+        Select-Object -ExpandProperty FullName
+}
+if ($env:LOCALAPPDATA) {
+    $candidates += Get-ChildItem (Join-Path $env:LOCALAPPDATA "Programs\Python\Python*\Scripts\headroom.exe") -ErrorAction SilentlyContinue |
+        Select-Object -ExpandProperty FullName
+}
 
 $headroom = $candidates |
     Where-Object { $_ -and (Test-Path $_) } |
@@ -24,5 +41,11 @@ if (-not $headroom) {
     exit 1
 }
 
-& $headroom @HeadroomArgs
-exit $LASTEXITCODE
+Push-Location $repositoryRoot
+try {
+    & $headroom @HeadroomArgs
+    exit $LASTEXITCODE
+}
+finally {
+    Pop-Location
+}

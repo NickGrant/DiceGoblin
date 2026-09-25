@@ -9,4 +9,5 @@ backend/.env*.local
 
 .env
 artifacts/
+.headroom/
 __pycache__/
