@@ -98,16 +98,34 @@ function parseStatus(value: unknown, keys: ReadonlySet<string>): Readonly<Record
   const status = object(value, 'Terminal status');
   exact(status, ['id', 'source_key', 'expires_round', 'params', 'forced_target_key'], 'Terminal status');
   const statusId = text(status['id'], 'Status id');
-  if (!['bolstered', 'sleep', 'cracked_armor', 'wrestled'].includes(statusId))
+  if (!['bolstered', 'sleep', 'cracked_armor', 'wrestled', 'taunting_guard', 'disarmed', 'fuse_lit',
+    'shield_set', 'marked'].includes(statusId))
     throw new BattlePlaybackContractError('Status id is unsupported.');
   const source = text(status['source_key'], 'Status source');
   if (!keys.has(source)) throw new BattlePlaybackContractError('Status source is unknown.');
   integer(status['expires_round'], 1, 'Status expiration'); const params = object(status['params'], 'Status params');
-  const paramFields = statusId === 'bolstered' ? ['defense_pct'] : statusId === 'cracked_armor' ? ['defense_reduction_flat'] : [];
+  const paramFields = statusId === 'bolstered' ? ['defense_pct']
+    : statusId === 'cracked_armor' ? ['defense_reduction_flat']
+    : statusId === 'taunting_guard' ? ['stack_count', 'per_stack_damage_reduction']
+    : statusId === 'disarmed' ? ['attack_reduction_pct']
+    : statusId === 'fuse_lit' ? ['bomb_damage']
+    : statusId === 'shield_set' ? ['stacks', 'defense_flat_per_stack'] : [];
   exact(params, paramFields, 'Status params');
   if (statusId === 'bolstered' && (finite(params['defense_pct'], 'Status defense percent') < 0 || (params['defense_pct'] as number) > 1))
     throw new BattlePlaybackContractError('Status defense percent is invalid.');
   if (statusId === 'cracked_armor') integer(params['defense_reduction_flat'], 0, 'Status defense reduction');
+  if (statusId === 'taunting_guard') {
+    integer(params['stack_count'], 1, 'Status guard stack count');
+    integer(params['per_stack_damage_reduction'], 0, 'Status guard damage reduction');
+  }
+  if (statusId === 'disarmed'
+    && (finite(params['attack_reduction_pct'], 'Status attack reduction') < 0 || (params['attack_reduction_pct'] as number) > 1))
+    throw new BattlePlaybackContractError('Status attack reduction is invalid.');
+  if (statusId === 'fuse_lit') integer(params['bomb_damage'], 1, 'Status bomb damage');
+  if (statusId === 'shield_set') {
+    integer(params['stacks'], 1, 'Status shield stack count');
+    integer(params['defense_flat_per_stack'], 0, 'Status shield defense');
+  }
   if (status['forced_target_key'] !== null
     && (typeof status['forced_target_key'] !== 'string' || !keys.has(status['forced_target_key'])))
     throw new BattlePlaybackContractError('Status forced target is unknown.');

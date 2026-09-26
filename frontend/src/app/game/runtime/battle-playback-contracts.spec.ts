@@ -36,6 +36,42 @@ describe('battle playback contracts', () => {
     expect(parsed.battle.events[3].facts).toEqual(envelope().data.battle.events[3].facts);
   });
 
+  it('accepts retained Mountains fuse and shield terminal statuses', () => {
+    const candidate = envelope();
+    candidate.data.battle.participants[0].terminal_statuses = [{
+      id: 'fuse_lit', source_key: 'mudwrestler', expires_round: 2,
+      params: { bomb_damage: 5 }, forced_target_key: null,
+    }];
+    candidate.data.battle.participants[1].terminal_statuses = [{
+      id: 'shield_set', source_key: 'mudwrestler', expires_round: 2,
+      params: { stacks: 1, defense_flat_per_stack: 1 }, forced_target_key: null,
+    }];
+
+    const parsed = parseBattlePlaybackEnvelope(candidate);
+
+    expect(parsed.battle.participants[0].terminalStatuses[0])
+      .toEqual(jasmine.objectContaining({ id: 'fuse_lit', params: { bomb_damage: 5 } }));
+    expect(parsed.battle.participants[1].terminalStatuses[0])
+      .toEqual(jasmine.objectContaining({ id: 'shield_set', params: { stacks: 1, defense_flat_per_stack: 1 } }));
+  });
+
+  it('rejects malformed Mountains terminal status parameters', () => {
+    const mutations = [
+      (v: any) => v.data.battle.participants[0].terminal_statuses = [{
+        id: 'fuse_lit', source_key: 'mudwrestler', expires_round: 2,
+        params: { bomb_damage: 0 }, forced_target_key: null,
+      }],
+      (v: any) => v.data.battle.participants[1].terminal_statuses = [{
+        id: 'shield_set', source_key: 'mudwrestler', expires_round: 2,
+        params: { stacks: 0, defense_flat_per_stack: 1 }, forced_target_key: null,
+      }],
+    ];
+    for (const mutate of mutations) {
+      const candidate = envelope(); mutate(candidate);
+      expect(() => parseBattlePlaybackEnvelope(candidate)).toThrowError(BattlePlaybackContractError);
+    }
+  });
+
   it('rejects fields, IDs, versions, identity, position, HP, and terminal outcome incoherence', () => {
     const mutations = [
       (v: any) => v.data.battle.seed = 'secret',
