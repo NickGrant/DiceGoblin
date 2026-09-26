@@ -1,196 +1,187 @@
 # Active Execution Issue
 
-## Milestone 6 - Prove Region Generalization
+## Milestone 7 - Economy and Inventory
 
-### Milestone 6 Package 6 - Focused manual UAT
+### Milestone 7 Package 1 - Authored item + inventory foundation
 
 **Status:** In Progress
 **Priority:** High
 
-#### Accepted technical baseline
+#### Accepted baseline
 
-Package 5 integrated Mountains verification/closure is architecturally approved at `5c8548d8b70f10d16470a564c53d13d48d10b3e2`.
+Milestone 6 - Prove Region Generalization is complete. Manual UAT passed the full Farm -> Mountains player path, and the final focused playback-contract correction is approved at `bb49a28b41381b8ececb7fb3cf74b3a346d2116a`.
 
-Technical closure evidence:
-- integrated Farm -> Mountains lifecycle: 3 tests / 84 assertions / 0 skipped;
-- bootstrap: 6 / 51 / 0 skipped;
-- run start: 28 / 255 / 0 skipped;
-- full Docker backend: 599 / 2,527 / 150 skipped;
-- focused frontend closure suites: 87 tests passed;
-- supported browser/runtime lifecycle probe passed;
-- GitHub Full Verification: backend 792 / 1,626 assertions, frontend 475, all standard gates PASS;
-- integrated proof now uses authorized normal Mountains start through production composition;
-- no Farm-specific assumption remains in the registered vNext execution surface.
+Final Milestone 6 verification at that SHA:
+- backend: 792 tests / 1,626 assertions;
+- frontend: 481 tests;
+- content, docs/context, production build, bundle, and diff checks PASS.
 
-The old `RegionRepository`/prototype region chain remains as migration evidence only. `backend/public/index.php` explicitly does not register those prototype gameplay controllers against the vNext schema, so it is not part of this milestone's production execution graph.
+Branching/route choice is deferred to Milestone 10. Die-size acquisition eligibility beyond d8 is deferred to Milestone 8.
 
-#### Problem
+#### Milestone 7 outcome
 
-Perform the final human-facing proof that Mountains behaves like a genuine second playable region rather than a Farm-specific technical adaptation.
+Build the repeatable ordinary economy around:
+- Teeth spending;
+- stackable item inventory;
+- Shop acquisition;
+- contextual consumables;
+- dice sale/salvage;
+- repeatable basic goods.
 
-This package is manual UAT only. Do not add implementation work unless UAT exposes a concrete defect.
+Raw Chaos remains the scarce progression currency, but Milestone 7 does **not** implement Academy/permanent progression or the >d8 acquisition capability.
 
-#### Preconditions
+Until Milestone 8:
+> no Milestone 7 Shop, loot, reward, or other acquisition path may create a die larger than d8.
 
-Use the current `vnext-game-overhaul` build with a test player that:
-- has a ready active warband/squad;
-- has enough Energy to start both Farm and Mountains;
-- does **not** already own the Mountains unlock at the beginning of the test.
+#### Package 1 purpose
 
-A fresh test account plus the supported warband fixture is appropriate.
+Establish the vNext authored-item and mutable stackable-inventory boundary without importing prototype catalog/database architecture.
 
-Do not manually grant the Mountains unlock or manually create a Mountains run.
+This package is intentionally foundational. It should make item definitions safe/authored and player inventory queryable so later Shop/consumable packages have one accepted storage/content contract.
 
-#### UAT flow
+Do not implement Shop purchase, consumable use, dice sale/salvage, or final UI in this package.
 
-##### 1. Fresh Camp / locked Mountains
+#### Authored item model
 
-From Camp before Farm completion:
+Add a canonical authored `item` definition family to Git-tracked content.
 
-- only The Farm is offered as a startable region;
-- Mountains is not selectable/startable;
-- starting Farm uses the normal Camp action;
-- no stale/duplicate active-run state appears.
+The production schema should support the information later economy packages actually need, without copying the broad prototype item table.
 
-If only one region is available, the Camp should remain simple rather than presenting a meaningless locked selector.
+Minimum safe authored concerns:
+- stable `item.*` ID;
+- display name;
+- description;
+- category;
+- rarity/presentation classification where useful;
+- art/icon key;
+- stackability;
+- effect metadata only when the item is a concrete consumable and the effect can be strictly validated.
 
-##### 2. Complete Farm and unlock Mountains
+Do not add MySQL item catalogs.
 
-Play the complete Farm run through:
+Do not invent Shop prices or permanent-progression semantics in item definitions. Shop offer/cost data belongs to the later Shop package.
 
-`Combat -> Loot -> Rest -> Mudking Boss -> Exit`
+For consumable effects, support only concrete accepted effect shapes when/if authored definitions are added. Do not create an arbitrary scriptable effect blob.
 
-Confirm during the run:
-- Combat and Boss playback still behave normally;
-- Loot grants the expected 8 Teeth once;
-- Rest behaves normally;
-- no duplicate reward occurs if a completed result is revisited/replayed.
+It is acceptable for the production item catalog to be empty at the end of Package 1 if no specific item has been product-approved. Tests may use focused fixture definitions rather than promoting prototype consumable names by accident.
 
-After the Mudking Boss and Exit return to Camp:
-- there is no active run;
-- The Farm remains available;
-- Mountains is now offered as an available region;
-- the region selection/start presentation is understandable without a reload;
-- Warband editing is available again after the Farm run ends.
+#### Content registry / validation
 
-##### 3. Start Mountains from Camp
+Extend the existing content loading/validation boundary so:
+- item IDs are stable/canonical;
+- duplicate IDs are rejected;
+- required presentation fields are validated;
+- category/effect combinations are coherent;
+- unknown effect types/fields are rejected;
+- any referenced authored IDs are validated;
+- private economy configuration is not accidentally exposed through the client projection.
 
-Select Mountains and start it from the normal Camp UI.
+If items are included in the safe client projection, expose presentation/mechanics fields needed for local rendering only. Do not expose future Shop pricing/randomization/private offer configuration through item definitions.
 
-Confirm:
-- the selected region visibly reads Mountains;
-- the action starts Mountains, not Farm;
-- no Farm-specific run copy appears;
-- the Mountains map contains exactly seven nodes in this order:
+#### Mutable inventory storage
 
-`Combat -> Loot -> Combat -> Rest -> Combat -> Boss -> Exit`
+Update `backend/migrations/vnext_baseline.sql` using the fresh-baseline policy.
 
-##### 4. Mountains combat/content identity
+Add `user_items` consistent with the accepted storage decision:
+- `user_id`;
+- stable authored `item_id`;
+- non-negative quantity;
+- unique (`user_id`, `item_id`);
+- FK to `users` only; authored item IDs are validated by PHP/content, not MySQL catalog FKs.
 
-Across the Mountains run, confirm the player-facing encounter identity feels like Mountains/kobolds rather than Farm/pigs.
+Do not create prototype-style `items` or inventory catalog tables.
 
-At minimum observe:
-- kobold combatants in the three Combat nodes;
-- the final Boss is the Kobold Chief Engineer;
-- battle playback works through the same interaction flow as Farm;
-- no Farm-specific labels or lock messages appear while the Mountains run is active.
+Add a persistence-only repository for:
+- deterministic list-by-user;
+- lock/read one owned stack;
+- increment/grant within an existing caller-owned transaction;
+- decrement/spend with exact quantity validation and insufficient-inventory rejection;
+- removing/normalizing zero-quantity rows according to one documented repository rule.
 
-##### 5. Mountains resume/reload behavior
+Repository methods must not start/commit their own transaction.
 
-Partway through Mountains, after at least one node has completed:
+#### Inventory query
 
-1. return to Camp through the normal navigation path;
-2. confirm Camp offers **Resume Mountains** rather than a new start;
-3. resume and confirm the same run/progress is retained;
-4. hard reload the application while the Mountains run is still active;
-5. confirm startup returns to/resumes the same Mountains run with the same completed/available node state.
+Implement and register:
 
-While Mountains is active, spot-check Warband:
-- participating configuration remains locked as expected;
-- copy says active run rather than Farm run;
-- viewing/renaming behavior remains consistent with the existing active-run lock rules.
+`GET /api/v1/items`
 
-##### 6. Complete Mountains
+Contract:
+- authenticated read;
+- no mutation or revision increment;
+- returns the player's owned positive-quantity stacks only;
+- stable deterministic ordering by `item_id`;
+- each entry contains only mutable ownership state, minimally `item_id` and `quantity`;
+- authored display/effect information resolves from the safe local content projection rather than being duplicated in the response;
+- unknown/stale authored item IDs in mutable storage are treated as an integrity failure, not silently rendered.
 
-Finish the remaining path:
+Follow existing vNext response-envelope and non-disclosing auth patterns.
 
-`Combat -> Loot -> Combat -> Rest -> Combat -> Kobold Chief Engineer -> Exit`
+Add the corresponding runtime API/parser/store boundary only as needed to make the inventory query usable later. Do not build the final Inventory screen in Package 1.
 
-Confirm:
-- Mountains Loot grants exactly 8 Teeth once;
-- Rest visibly returns injured participating goblins to full HP;
-- all three Combat nodes and the Boss resolve/play back normally;
-- Boss completion grants XP to participating units;
-- Mountains Boss does **not** announce or expose a Swamps unlock;
-- Exit returns cleanly to Camp.
+#### Currency boundary
 
-##### 7. Final Camp / persistence
+Do not redesign currency storage. `user_state.teeth` and `raw_chaos` remain the accepted explicit wallet fields.
 
-After Mountains Exit:
+Package 1 may add/refine a shared currency transition primitive only if required by the inventory foundation, but:
+- reward grants must keep working exactly as today;
+- a later Shop package will own Teeth debit semantics and idempotent purchase transactions;
+- Energy remains outside generic currency handling.
 
-- there is no active run;
-- both The Farm and Mountains remain selectable;
-- Swamps is not available;
-- Mountains Teeth/XP effects are still present;
-- Warband editing is unlocked;
-- hard reload preserves the same final state;
-- no Farm-specific text appears in Mountains-related Camp/run/active-lock presentation.
+#### Tests
 
-##### 8. Responsive spot check
+Content:
+- valid item definition loads;
+- malformed ID/presentation/category/effect shape rejects;
+- duplicate/unknown fields reject;
+- safe projection does not leak future private Shop configuration;
+- empty production item catalog remains valid if no item content is yet approved.
 
-At least once while both regions are available, perform a quick visual check at:
-- normal desktop/reference landscape;
-- a compact landscape viewport.
+MySQL/repository:
+- fresh baseline contains `user_items`;
+- list returns only the caller's stacks in stable order;
+- grant/increment is exact;
+- spend/decrement is exact;
+- insufficient spend rejects atomically;
+- zero-quantity behavior matches the chosen rule;
+- cross-user isolation;
+- stale/unknown authored item identity is caught at the application/query boundary.
 
-Confirm the region choice and start/resume action remain readable, clickable, and inside the usable game area.
+API/client:
+- authenticated `GET /api/v1/items` returns deterministic owned stacks;
+- empty inventory returns an empty collection;
+- query is read-only and does not increment `player_revision`;
+- unauthorized request follows existing policy;
+- strict frontend parser rejects malformed/duplicate/unknown item identities if client parsing is added.
 
-#### Pass criteria
+#### Verification
 
-Milestone 6 UAT passes when the complete player-facing progression works without a blocking defect:
+Run:
+- `npm run verify:package`;
+- focused item-content tests;
+- focused inventory repository/query/controller tests;
+- `npm run test:db:provision:docker`;
+- `npm run test:db:reset:docker`;
+- applicable MySQL focused tests;
+- `npm run test:backend:docker`.
 
-`Farm locked-state -> Farm completion -> Mountains unlock -> Mountains selection/start -> resume/reload -> complete Mountains -> Camp`
+Report test/assertion/skipped counts where available.
 
-Report either:
-- **UAT passed with no issues**, or
-- each observed issue with the screen/state, expected behavior, and actual behavior.
+#### Out of scope
 
-If a defect is found, keep Package 6 In Progress and fix only the demonstrated issue before rechecking it.
-
-#### Architectural review of UAT correction commits
-
-The UAT reset workflow at `8820470422cf8b0b59cd754bf27d7c1c0d63cf64` and Mountains status-playback changes through `48dc4e3bee6a3ebbf0a28321880d3504e6c35cae` are otherwise accepted. One focused client-contract defect remains:
-
-- `BattlePlaybackController` now derives player-visible status descriptions from `status_applied.facts.params`, but `parseBattlePlaybackEnvelope()` validates only that event `params` is an object. It does not validate the event status ID/parameter schema the way `parseStatus()` validates terminal statuses. A malformed or drifted event can therefore pass the strict playback contract and produce invalid presentation such as `NaN` defense/damage. Reuse one status-schema validator for both terminal statuses and `status_applied` event facts (including supported ID, exact parameter fields/ranges, source/forced-target coherence where applicable). Add focused rejection tests for malformed event params and preserve valid replacement/refresh playback.
-
-Do not broaden this correction into combat mechanics or new status behavior.
-
-#### Current UAT status
-
-Manual Milestone 6 UAT has otherwise passed. The user confirmed the complete player-facing path works:
-
-`Farm locked-state -> Farm completion -> Mountains unlock -> Mountains selection/start -> resume/reload -> complete Mountains -> Camp`.
-
-Clarifications from UAT review:
-- The stale “four Basic Goblins” starter reference is **not** a Milestone 6 requirement. Do not add a bespoke starter-warband shape here. UAT should use the supported current account/UAT provisioning flow; the broad Warband fixture may remain test support.
-- Branching Mountains paths are **not** required to close Milestone 6. The approved seven-node linear Mountains graph remains valid for this milestone. Branch-capable run topology/route choice is deferred explicitly to Milestone 10.
-- Die-size acquisition eligibility is **not** a Milestone 7 requirement. Until Milestone 8 introduces the authoritative progression capability/policy, any Milestone 7 loot/shop acquisition tables must simply avoid granting dice larger than d8.
-
-The only remaining Milestone 6 technical blocker is the focused battle-playback event-status contract finding above. After that correction passes architectural review and focused playback verification, no broad UAT rerun is required unless the correction changes observed behavior beyond status presentation.
-
-
-#### Scope boundary
-
-Do not use this UAT to add:
-- Swamps;
-- Lizard Kin;
-- Wrong Machine;
-- economy/inventory;
-- Academy/progression breadth;
-- new encounters/node types;
-- visual redesign.
-
-Those remain later milestones.
+- Shop offers/prices/purchases;
+- daily deals;
+- basic dice/unit purchase;
+- consumable use;
+- Energy restore/healing commands;
+- dice selling;
+- dice salvage;
+- Raw Chaos progression spending;
+- Academy;
+- >d8 acquisition;
+- final Inventory/Shop Phaser screens;
+- prototype DB catalogs.
 
 #### Completion
 
-Do not promote Milestone 7 until the user reports this manual UAT passed.
+Implement only Milestone 7 Package 1. Leave it **In Progress** for architectural review. Do not promote Package 2 yourself.
