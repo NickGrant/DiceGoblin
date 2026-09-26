@@ -64,7 +64,7 @@ Milestone 6 makes Mountains/kobolds the second playable authored region and prov
 | 4 | Combat | Authoritative combat adaptation, run HP/state, persisted playback, `BattleScene`, reconnect-safe result. **Complete; UAT passed.** |
 | 5 | Complete Farm | Event/reward pipeline, XP/progression, Mudking, terminal run flow, Mountains unlock; no claim/reroll/double-grant path. **Complete; UAT passed.** |
 | 6 | Prove region generalization | Mountains/kobolds operate through the same region/run architecture without Farm-specific duplication. **Active.** |
-| 7 | Economy and inventory | Shop, Teeth, inventory/consumables, dice sale/salvage, recharge items and repeatable economy. |
+| 7 | Economy and inventory | Shop, Teeth, inventory/consumables, dice sale/salvage, recharge items and repeatable economy. Before any dice acquisition path ships, establish one authoritative player-eligibility policy that prevents acquisition of dice larger than d8 until the corresponding progression capability is owned. |
 | 8 | Permanent progression | Academy, Raw Chaos capability upgrades, promotion/ability progression, derived upgrades such as Energy max. |
 | 9 | Kin and Wrong Machine | Kin unlock/restoration, Pig/Lizard reconstruction, first-unlock vs deterministic repeat behavior. |
 | 10 | Run encounter depth | Rest, hazards, shrines, Chaos, run modifiers, contextual consumables, multi-step node interactions where needed. |

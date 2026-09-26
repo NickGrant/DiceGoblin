@@ -24,7 +24,7 @@ Technical closure evidence:
 
 The old `RegionRepository`/prototype region chain remains as migration evidence only. `backend/public/index.php` explicitly does not register those prototype gameplay controllers against the vNext schema, so it is not part of this milestone's production execution graph.
 
-#### Purpose
+#### Problem
 
 Perform the final human-facing proof that Mountains behaves like a genuine second playable region rather than a Farm-specific technical adaptation.
 
@@ -155,6 +155,12 @@ Report either:
 - each observed issue with the screen/state, expected behavior, and actual behavior.
 
 If a defect is found, keep Package 6 In Progress and fix only the demonstrated issue before rechecking it.
+
+#### Current UAT findings
+
+- The supported fresh-account UAT reset currently provisions Pig Kin units and dice larger than d8 through the broad Warband coverage fixture. Correct the UAT reset fixture to provision four Basic Goblins in one ready warband with no die larger than d8; retain the broader fixture for integration coverage.
+- Mountains currently uses the approved linear seven-node fixed graph. Branch-capable generation remains only as retained prototype evidence and no later roadmap package restores it. Branching paths are required before this UAT can pass, but the authored topology and route-choice semantics must be defined without inventing unrelated encounter or progression behavior.
+- Dice reward/acquisition eligibility is deferred to Milestone 7. The roadmap now requires an authoritative eligibility policy before any dice acquisition path ships; do not implement that policy in this UAT package.
 
 #### Scope boundary
 
