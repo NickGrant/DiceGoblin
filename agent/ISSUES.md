@@ -241,22 +241,33 @@ Report test/assertion/skipped counts where available.
 
 #### Current architectural review finding
 
-The Package 2 implementation at `87820a2971bd4228623bbe10cdaf612c7a994ab6` is otherwise aligned with the accepted Shop read architecture. GitHub Full Verification is green at that SHA (backend 829 tests / 1,675 assertions; frontend 490 tests; all standard gates PASS).
+The correction at `af021b6ac317384775e49b778369bcfb4eec44b6` correctly establishes `9_007_199_254_740_991` as the Shop client-safe maximum for authored price, authoritative Teeth, and `player_revision`. The focused maximum/+1 tests are appropriate.
 
-Two closure issues remain:
+The adjacent test-harness repairs are also accepted:
+- `BattlePersistenceRepositoryTest` now checks that battle persistence does not create resolved-event rows instead of incorrectly asserting the legitimate vNext `resolved_events` table does not exist.
+- `GrantServiceStarterPackInvariantsTest` is a retained prototype-schema test and is skipped when the fresh vNext schema is detected rather than executing prototype table assumptions against vNext.
 
-1. **Shop numeric range contract mismatch.**
-   - Authored Shop price validation currently permits `price.amount` through `PHP_INT_MAX`, while `parseShopCatalogEnvelope()` correctly requires JavaScript-safe integers.
-   - The Shop query likewise returns `teeth` and `player_revision` without proving they are JavaScript-safe, while the frontend parser requires safe non-negative integers.
-   - A backend-valid authored offer/player state can therefore produce a response that the strict client must reject or cannot represent exactly.
-   - Establish one explicit client-safe integer ceiling for all Shop response numeric fields that cross this boundary (at minimum price amount, Teeth balance, and player revision). Reject incoherent authored/state data server-side rather than relaxing the client to imprecise numbers. Add focused boundary tests proving the accepted maximum and rejection above it.
+GitHub Full Verification at this SHA is green:
+- backend: 832 tests / 1,677 assertions;
+- frontend: 490 tests;
+- all standard gates PASS.
 
-2. **Full Docker backend evidence is inconsistent.**
-   - Package 1's unchanged `npm run test:backend:docker` command reported 613 tests / 2,554 assertions / 150 skipped.
-   - Package 2 reports only 242 tests / 942 assertions / 150 skipped even though this package removes no tests and the command in `package.json` is unchanged.
-   - Determine why the run was partial/mislabeled, then rerun the actual `npm run test:backend:docker` command from the current branch after DB provision/reset. Report the exact full-suite counts. Do not treat the 242-test result as full-backend closure evidence unless the discrepancy is explained by an intentional, documented test-selection change.
+Two closure items remain:
+
+1. **One authored Shop numeric mismatch remains.**
+   - Item-offer `grant.quantity` is still validated server-side through `PHP_INT_MAX`.
+   - The projected `ClientContentRegistry` correctly requires the quantity to be a JavaScript-safe integer.
+   - Therefore an authored Shop offer can still pass canonical PHP validation but generate client content that the browser must reject.
+   - Apply the same client-safe authored integer ceiling to `shop_offer` item grant quantity and add focused maximum/+1 validation coverage.
+   - While touching this shared projection boundary, also correct the pre-existing analogous `item.effect.amount` mismatch introduced in Package 1: it is projected to the browser and the client already requires a safe integer, while PHP currently permits `PHP_INT_MAX`. Prefer one reusable client-safe integer contract rather than separate divergent constants if that can be done without broad refactoring.
+
+2. **Full Docker backend closure evidence is still required.**
+   - The previously reported 242-test run was not credible as the full suite because the unchanged `test:backend:docker` command previously executed 613 tests and this package removed no tests.
+   - After the numeric correction, run DB provision/reset and the actual `npm run test:backend:docker` command from the current branch.
+   - Report exact tests / assertions / skipped counts and explain the prior 242-test result as partial/mislabeled if that is what occurred.
 
 Do not broaden this correction into purchase behavior or later Shop features. Leave Package 2 **In Progress** and do not promote Package 3.
+
 
 #### Completion
 
