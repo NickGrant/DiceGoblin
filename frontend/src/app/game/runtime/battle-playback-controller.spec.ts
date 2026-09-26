@@ -40,4 +40,41 @@ describe('BattlePlaybackController', () => {
     expect(controller.advance()).toBeNull(); expect(controller.snapshot.nextSequence).toBe(1);
     controller.resume(); expect(controller.advance()?.sequence).toBe(1);
   });
+
+  it('keeps replaced statuses visible, explains their values, and presents reapplication as a refresh', () => {
+    const playback = result() as any;
+    playback.battle.events = [
+      playback.battle.events[0],
+      { sequence: 1, type: 'status_applied', round: 1, tick: 1, facts: { target_key: 'hero', status_id: 'fuse_lit',
+        source_key: 'mud', expires_round: 2, params: { bomb_damage: 5 }, forced_target_key: null } },
+      { sequence: 2, type: 'status_removed', round: 1, tick: 1,
+        facts: { target_key: 'hero', status_id: 'fuse_lit', reason: 'replaced' } },
+      { sequence: 3, type: 'status_applied', round: 1, tick: 1, facts: { target_key: 'hero', status_id: 'fuse_lit',
+        source_key: 'mud', expires_round: 2, params: { bomb_damage: 7 }, forced_target_key: null } },
+      { sequence: 4, type: 'battle_ended', round: 1, tick: 1, facts: { outcome: 'victory' } },
+    ];
+    const controller = new BattlePlaybackController(playback);
+    controller.advance(); controller.advance();
+    let hero = controller.snapshot.participants.find((unit) => unit.combatantKey === 'hero')!;
+    expect(hero.statusDescriptions.get('fuse_lit')).toBe('Fuse Lit — takes 5 damage when the fuse expires');
+
+    controller.advance(); hero = controller.snapshot.participants.find((unit) => unit.combatantKey === 'hero')!;
+    expect(hero.statuses.has('fuse_lit')).toBeTrue();
+    expect(controller.snapshot.caption).toBe('Historical Bash: Fuse Lit updating');
+
+    controller.advance(); hero = controller.snapshot.participants.find((unit) => unit.combatantKey === 'hero')!;
+    expect(hero.statuses.has('fuse_lit')).toBeTrue();
+    expect(hero.statusDescriptions.get('fuse_lit')).toBe('Fuse Lit — takes 7 damage when the fuse expires');
+    expect(controller.snapshot.caption).toBe('Historical Bash: Fuse Lit refreshed');
+  });
+
+  it('explains Mountains shield stacks with their current total defense', () => {
+    const playback = result() as any;
+    playback.battle.events = [playback.battle.events[0],
+      { sequence: 1, type: 'status_applied', round: 1, tick: 1, facts: { target_key: 'mud', status_id: 'shield_set',
+        source_key: 'mud', expires_round: 2, params: { stacks: 2, defense_flat_per_stack: 1 }, forced_target_key: null } }];
+    const controller = new BattlePlaybackController(playback); controller.advance(); controller.advance();
+    const mud = controller.snapshot.participants.find((unit) => unit.combatantKey === 'mud')!;
+    expect(mud.statusDescriptions.get('shield_set')).toBe('Shield Set — +2 Defense (2 stacks)');
+  });
 });

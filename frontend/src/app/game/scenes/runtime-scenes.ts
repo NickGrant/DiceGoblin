@@ -1009,10 +1009,14 @@ export class BattleScene extends RuntimeScene {
     const playerResult = completed ? state.participants.filter((participant) => participant.side === 'player')
       .map((participant) => `${participant.displayName}: ${participant.currentHp}/${participant.maxHp} HP${participant.defeated ? ' · DEFEATED' : ''}`).join('   ·   ') : null;
     const rewardResult = this.bossRewardSummary;
+    const statusHelp = completed ? [] : [...new Set(state.participants.flatMap((participant) =>
+      [...participant.statusDescriptions.values()]))];
     const facts = completed ? [playerResult, rewardResult].filter(Boolean).join('   ·   ')
-      : [state.dice, state.hit, `EVENT ${state.nextSequence}`].filter(Boolean).join('   ·   ');
+      : [[state.dice, state.hit, `EVENT ${state.nextSequence}`].filter(Boolean).join('   ·   '), ...statusHelp]
+        .filter(Boolean).join('\n');
     const factText = this.add.text(safe.x + safe.width / 2, captionY + (compact ? 42 : 38), facts,
-      { color: '#d1c7ac', fontFamily: 'system-ui, sans-serif', fontSize: compact ? '20px' : '16px' }).setOrigin(0.5); root.add(factText);
+      { color: '#d1c7ac', fontFamily: 'system-ui, sans-serif', fontSize: compact ? '18px' : '15px', align: 'center',
+        lineSpacing: compact ? 2 : 1, wordWrap: { width: safe.width - 100 } }).setOrigin(0.5); root.add(factText);
     if (completed) {
       const feedback = this.add.text(safe.x + safe.width / 2, safe.bottom - (compact ? 105 : 108), this.continueMessage,
         { color: this.continueState === 'error' ? '#ffb0a7' : '#d1c7ac', fontFamily: 'system-ui, sans-serif',
