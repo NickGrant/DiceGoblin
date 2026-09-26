@@ -239,6 +239,25 @@ Report test/assertion/skipped counts where available.
 - >d8 acquisition;
 - final Shop/Inventory screens.
 
+#### Current architectural review finding
+
+The Package 2 implementation at `87820a2971bd4228623bbe10cdaf612c7a994ab6` is otherwise aligned with the accepted Shop read architecture. GitHub Full Verification is green at that SHA (backend 829 tests / 1,675 assertions; frontend 490 tests; all standard gates PASS).
+
+Two closure issues remain:
+
+1. **Shop numeric range contract mismatch.**
+   - Authored Shop price validation currently permits `price.amount` through `PHP_INT_MAX`, while `parseShopCatalogEnvelope()` correctly requires JavaScript-safe integers.
+   - The Shop query likewise returns `teeth` and `player_revision` without proving they are JavaScript-safe, while the frontend parser requires safe non-negative integers.
+   - A backend-valid authored offer/player state can therefore produce a response that the strict client must reject or cannot represent exactly.
+   - Establish one explicit client-safe integer ceiling for all Shop response numeric fields that cross this boundary (at minimum price amount, Teeth balance, and player revision). Reject incoherent authored/state data server-side rather than relaxing the client to imprecise numbers. Add focused boundary tests proving the accepted maximum and rejection above it.
+
+2. **Full Docker backend evidence is inconsistent.**
+   - Package 1's unchanged `npm run test:backend:docker` command reported 613 tests / 2,554 assertions / 150 skipped.
+   - Package 2 reports only 242 tests / 942 assertions / 150 skipped even though this package removes no tests and the command in `package.json` is unchanged.
+   - Determine why the run was partial/mislabeled, then rerun the actual `npm run test:backend:docker` command from the current branch after DB provision/reset. Report the exact full-suite counts. Do not treat the 242-test result as full-backend closure evidence unless the discrepancy is explained by an intentional, documented test-selection change.
+
+Do not broaden this correction into purchase behavior or later Shop features. Leave Package 2 **In Progress** and do not promote Package 3.
+
 #### Completion
 
 Implement only Milestone 7 Package 2. Leave it **In Progress** for architectural review. Do not promote Package 3 yourself.
