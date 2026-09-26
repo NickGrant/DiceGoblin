@@ -164,11 +164,19 @@ The UAT reset workflow at `8820470422cf8b0b59cd754bf27d7c1c0d63cf64` and Mountai
 
 Do not broaden this correction into combat mechanics or new status behavior.
 
-#### Current UAT findings
+#### Current UAT status
 
-- The supported fresh-account UAT reset currently provisions Pig Kin units and dice larger than d8 through the broad Warband coverage fixture. Correct the UAT reset fixture to provision four Basic Goblins in one ready warband with no die larger than d8; retain the broader fixture for integration coverage.
-- Mountains currently uses the approved linear seven-node fixed graph. Branch-capable generation remains only as retained prototype evidence and no later roadmap package restores it. Branching paths are required before this UAT can pass, but the authored topology and route-choice semantics must be defined without inventing unrelated encounter or progression behavior.
-- Dice reward/acquisition eligibility is deferred to Milestone 7. The roadmap now requires an authoritative eligibility policy before any dice acquisition path ships; do not implement that policy in this UAT package.
+Manual Milestone 6 UAT has otherwise passed. The user confirmed the complete player-facing path works:
+
+`Farm locked-state -> Farm completion -> Mountains unlock -> Mountains selection/start -> resume/reload -> complete Mountains -> Camp`.
+
+Clarifications from UAT review:
+- The stale “four Basic Goblins” starter reference is **not** a Milestone 6 requirement. Do not add a bespoke starter-warband shape here. UAT should use the supported current account/UAT provisioning flow; the broad Warband fixture may remain test support.
+- Branching Mountains paths are **not** required to close Milestone 6. The approved seven-node linear Mountains graph remains valid for this milestone. Branch-capable run topology/route choice is deferred explicitly to Milestone 10.
+- Die-size acquisition eligibility is **not** a Milestone 7 requirement. Until Milestone 8 introduces the authoritative progression capability/policy, any Milestone 7 loot/shop acquisition tables must simply avoid granting dice larger than d8.
+
+The only remaining Milestone 6 technical blocker is the focused battle-playback event-status contract finding above. After that correction passes architectural review and focused playback verification, no broad UAT rerun is required unless the correction changes observed behavior beyond status presentation.
+
 
 #### Scope boundary
 
