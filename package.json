@@ -57,6 +57,7 @@
     "verify:run-lifecycle": "node scripts/verify-run-lifecycle.mjs",
     "verify:combat-playback": "node scripts/verify-combat-playback.mjs",
     "uat:warband:seed": "docker compose exec -T backend php bin/seed-warband-uat.php",
+    "uat:account:reset": "docker compose exec -T backend php bin/reset-uat-account.php",
     "startup:check": "node scripts/startup-check.mjs",
     "llm:check": "npm run startup:check && npm run backlog:validate",
     "verify:package": "node scripts/verify-package.mjs"
