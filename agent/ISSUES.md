@@ -188,13 +188,24 @@ Report test/assertion/skipped counts where available.
 
 #### Current architectural review finding
 
-The Package 1 implementation at `0534ac99ca43fe7a0ac08bc71b4d2efd2d054c7f` is otherwise aligned with the package architecture, but one client/server ordering defect remains:
+The inventory-ordering correction at `3b15fc3024ef12499624e71df8740f3d5912fadb` is accepted. The client now validates authoritative item order using ordinal/code-unit comparison compatible with the server's ASCII-binary `item_id` ordering, and focused regression coverage proves a legal digit/underscore case where `localeCompare()` disagrees.
 
-- `UserItemRepository::listPositiveForUser()` returns `item_id` in MySQL `ascii_bin` order, while `parseItemCollectionEnvelope()` validates ascending order with JavaScript `localeCompare()`. Those orderings differ for legal stable IDs containing punctuation such as `_` (and can differ around digits), so an authoritative correctly sorted response can be rejected as non-deterministic. Validate inventory ordering using the same ordinal/code-unit ordering represented by the server contract rather than locale-sensitive collation. Add a focused regression test with legal item IDs whose ASCII order differs from `localeCompare`.
+GitHub Full Verification is green at that SHA:
+- backend: 812 tests / 1,648 assertions;
+- frontend: 486 tests;
+- all standard gates PASS.
 
-Do not change the server persistence collation or broaden the item model to fix this. Preserve strict duplicate/order validation.
+The only remaining Package 1 blocker is **MySQL/Docker verification evidence**. The standard GitHub workflow does not prove the DB-backed `user_items` repository/controller paths.
 
-After correction, run the Package 1 verification already specified, including focused MySQL inventory tests and full Docker backend proof. Leave Package 1 **In Progress** and do not promote Package 2.
+Run and report:
+- `npm run test:db:provision:docker`;
+- `npm run test:db:reset:docker`;
+- focused `InventoryFoundationTest.php`;
+- focused `VnextDatabaseBaselineTest.php` if not already included in the focused inventory command;
+- `npm run test:backend:docker`.
+
+Report exact test/assertion/skipped counts where available. No implementation change is requested unless verification exposes a defect. Leave Package 1 **In Progress** and do not promote Package 2.
+
 
 #### Completion
 
