@@ -186,6 +186,16 @@ Report test/assertion/skipped counts where available.
 - final Inventory/Shop Phaser screens;
 - prototype DB catalogs.
 
+#### Current architectural review finding
+
+The Package 1 implementation at `0534ac99ca43fe7a0ac08bc71b4d2efd2d054c7f` is otherwise aligned with the package architecture, but one client/server ordering defect remains:
+
+- `UserItemRepository::listPositiveForUser()` returns `item_id` in MySQL `ascii_bin` order, while `parseItemCollectionEnvelope()` validates ascending order with JavaScript `localeCompare()`. Those orderings differ for legal stable IDs containing punctuation such as `_` (and can differ around digits), so an authoritative correctly sorted response can be rejected as non-deterministic. Validate inventory ordering using the same ordinal/code-unit ordering represented by the server contract rather than locale-sensitive collation. Add a focused regression test with legal item IDs whose ASCII order differs from `localeCompare`.
+
+Do not change the server persistence collation or broaden the item model to fix this. Preserve strict duplicate/order validation.
+
+After correction, run the Package 1 verification already specified, including focused MySQL inventory tests and full Docker backend proof. Leave Package 1 **In Progress** and do not promote Package 2.
+
 #### Completion
 
 Implement only Milestone 7 Package 1. Leave it **In Progress** for architectural review. Do not promote Package 2 yourself.
