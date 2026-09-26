@@ -7,7 +7,7 @@ Read this for sequencing/planning or when closing/promoting an execution package
 **Status:** Active
 
 ### Related Issues
-- Milestone 7 Package 1 - Authored item + inventory foundation
+- Milestone 7 Package 2 - Shop authored-offer model + authoritative Shop read contract
 
 Milestone 1 - Walking Skeleton is complete and passed manual user UAT.
 
@@ -53,8 +53,8 @@ Until Milestone 8 introduces authoritative die-size eligibility, no Milestone 7 
 
 ### Package Queue
 
-1. **Authored item + inventory foundation.** Current.
-2. Shop authored-offer model + authoritative Shop read contract.
+1. ~~Authored item + inventory foundation.~~ Complete and architecturally approved at `3b15fc3024ef12499624e71df8740f3d5912fadb`; MySQL inventory 6/20, baseline 8/66, full backend 613/2,554/150 skipped.
+2. **Shop authored-offer model + authoritative Shop read contract.** Current.
 3. Idempotent Teeth purchase transaction + ordinary item/basic-die acquisition (d8 maximum).
 4. Base-unit purchase through unlocked authored unit types + shared unit creation.
 5. Contextual consumables: Energy restore + active-run unit healing.
@@ -65,7 +65,7 @@ Until Milestone 8 introduces authoritative die-size eligibility, no Milestone 7 
 
 ### Sequencing Notes
 
-- Package 1 establishes only the authored-item, `user_items`, inventory query, and strict content/runtime boundary.
+- Package 1 established the authored-item, `user_items`, inventory query, and strict content/runtime boundary and was approved at `3b15fc3024ef12499624e71df8740f3d5912fadb` after MySQL/Docker proof.
 - Package 2 defines Shop offers as authored content and the player-specific read model before any spending mutation exists.
 - Package 3 proves the common repeatable Teeth transaction with items/basic dice and explicitly caps all dice acquisition at d8 pending Milestone 8.
 - Package 4 adds repeatable base-unit acquisition only after unit-type availability can be enforced through existing authoritative unlock state.
