@@ -156,6 +156,14 @@ Report either:
 
 If a defect is found, keep Package 6 In Progress and fix only the demonstrated issue before rechecking it.
 
+#### Architectural review of UAT correction commits
+
+The UAT reset workflow at `8820470422cf8b0b59cd754bf27d7c1c0d63cf64` and Mountains status-playback changes through `48dc4e3bee6a3ebbf0a28321880d3504e6c35cae` are otherwise accepted. One focused client-contract defect remains:
+
+- `BattlePlaybackController` now derives player-visible status descriptions from `status_applied.facts.params`, but `parseBattlePlaybackEnvelope()` validates only that event `params` is an object. It does not validate the event status ID/parameter schema the way `parseStatus()` validates terminal statuses. A malformed or drifted event can therefore pass the strict playback contract and produce invalid presentation such as `NaN` defense/damage. Reuse one status-schema validator for both terminal statuses and `status_applied` event facts (including supported ID, exact parameter fields/ranges, source/forced-target coherence where applicable). Add focused rejection tests for malformed event params and preserve valid replacement/refresh playback.
+
+Do not broaden this correction into combat mechanics or new status behavior.
+
 #### Current UAT findings
 
 - The supported fresh-account UAT reset currently provisions Pig Kin units and dice larger than d8 through the broad Warband coverage fixture. Correct the UAT reset fixture to provision four Basic Goblins in one ready warband with no die larger than d8; retain the broader fixture for integration coverage.
