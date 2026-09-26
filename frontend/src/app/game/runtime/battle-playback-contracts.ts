@@ -94,16 +94,21 @@ function finite(value: unknown, context: string): number {
   return value;
 }
 
-function parseStatus(value: unknown, keys: ReadonlySet<string>): Readonly<Record<string, unknown>> {
-  const status = object(value, 'Terminal status');
-  exact(status, ['id', 'source_key', 'expires_round', 'params', 'forced_target_key'], 'Terminal status');
-  const statusId = text(status['id'], 'Status id');
+function parseStatusSchema(
+  statusIdValue: unknown,
+  sourceValue: unknown,
+  expiresRoundValue: unknown,
+  paramsValue: unknown,
+  forcedTargetValue: unknown,
+  keys: ReadonlySet<string>,
+): Readonly<Record<string, unknown>> {
+  const statusId = text(statusIdValue, 'Status id');
   if (!['bolstered', 'sleep', 'cracked_armor', 'wrestled', 'taunting_guard', 'disarmed', 'fuse_lit',
     'shield_set', 'marked'].includes(statusId))
     throw new BattlePlaybackContractError('Status id is unsupported.');
-  const source = text(status['source_key'], 'Status source');
+  const source = text(sourceValue, 'Status source');
   if (!keys.has(source)) throw new BattlePlaybackContractError('Status source is unknown.');
-  integer(status['expires_round'], 1, 'Status expiration'); const params = object(status['params'], 'Status params');
+  integer(expiresRoundValue, 1, 'Status expiration'); const params = object(paramsValue, 'Status params');
   const paramFields = statusId === 'bolstered' ? ['defense_pct']
     : statusId === 'cracked_armor' ? ['defense_reduction_flat']
     : statusId === 'taunting_guard' ? ['stack_count', 'per_stack_damage_reduction']
@@ -126,11 +131,19 @@ function parseStatus(value: unknown, keys: ReadonlySet<string>): Readonly<Record
     integer(params['stacks'], 1, 'Status shield stack count');
     integer(params['defense_flat_per_stack'], 0, 'Status shield defense');
   }
-  if (status['forced_target_key'] !== null
-    && (typeof status['forced_target_key'] !== 'string' || !keys.has(status['forced_target_key'])))
+  if (forcedTargetValue !== null
+    && (typeof forcedTargetValue !== 'string' || !keys.has(forcedTargetValue)))
     throw new BattlePlaybackContractError('Status forced target is unknown.');
-  if ((statusId === 'wrestled') !== (status['forced_target_key'] !== null))
+  if ((statusId === 'wrestled') !== (forcedTargetValue !== null))
     throw new BattlePlaybackContractError('Status forced target is incoherent.');
+  return Object.freeze({ ...params });
+}
+
+function parseStatus(value: unknown, keys: ReadonlySet<string>): Readonly<Record<string, unknown>> {
+  const status = object(value, 'Terminal status');
+  exact(status, ['id', 'source_key', 'expires_round', 'params', 'forced_target_key'], 'Terminal status');
+  const params = parseStatusSchema(status['id'], status['source_key'], status['expires_round'], status['params'],
+    status['forced_target_key'], keys);
   return Object.freeze({ ...status, params: Object.freeze({ ...params }) });
 }
 
@@ -160,7 +173,10 @@ function parseEvent(value: unknown, index: number, keys: ReadonlySet<string>): B
   for (const field of ['conditional_multiplier', 'position_multiplier']) if (field in facts) finite(facts[field], `Playback ${field}`);
   if ('result' in facts && !['hit', 'miss', 'critical'].includes(facts['result'] as string)) throw new BattlePlaybackContractError('Playback hit result is invalid.');
   if ('outcome' in facts) outcome(facts['outcome']);
-  if ('params' in facts) object(facts['params'], 'Playback status params');
+  const statusParams = type === 'status_applied'
+    ? parseStatusSchema(facts['status_id'], facts['source_key'], facts['expires_round'], facts['params'],
+      facts['forced_target_key'], keys)
+    : null;
   if ('combatant_keys' in facts) {
     if (!Array.isArray(facts['combatant_keys'])) throw new BattlePlaybackContractError('Battle start keys are invalid.');
     const started = facts['combatant_keys'];
@@ -169,7 +185,8 @@ function parseEvent(value: unknown, index: number, keys: ReadonlySet<string>): B
       throw new BattlePlaybackContractError('Battle start keys do not match participants.');
   }
   return Object.freeze({ sequence: index, type, round: integer(event['round'], 0, 'Event round'),
-    tick: integer(event['tick'], 0, 'Event tick'), facts: Object.freeze({ ...facts }) });
+    tick: integer(event['tick'], 0, 'Event tick'),
+    facts: Object.freeze(statusParams === null ? { ...facts } : { ...facts, params: statusParams }) });
 }
 
 export function parseBattlePlaybackEnvelope(value: unknown): BattlePlaybackResult {

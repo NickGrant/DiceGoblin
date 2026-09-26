@@ -72,6 +72,46 @@ describe('battle playback contracts', () => {
     }
   });
 
+  it('validates status-applied event facts with the terminal status schema', () => {
+    const candidate = envelope();
+    candidate.data.battle.events.splice(4, 0,
+      { sequence: 4, type: 'status_applied', round: 1, tick: 1, facts: {
+        target_key: 'player_bruiser', status_id: 'wrestled', source_key: 'mudwrestler', expires_round: 2,
+        params: {}, forced_target_key: 'mudwrestler',
+      } });
+    candidate.data.battle.events[5].sequence = 5;
+    candidate.data.battle.events[6].sequence = 6;
+
+    const parsed = parseBattlePlaybackEnvelope(candidate);
+
+    expect(parsed.battle.events[4].facts).toEqual(jasmine.objectContaining({
+      status_id: 'wrestled', params: {}, forced_target_key: 'mudwrestler',
+    }));
+  });
+
+  it('rejects malformed status-applied event schemas', () => {
+    const mutations = [
+      (facts: any) => facts.status_id = 'unknown',
+      (facts: any) => facts.params = { bomb_damage: 0 },
+      (facts: any) => facts.params = { bomb_damage: 5, extra: true },
+      (facts: any) => facts.expires_round = 0,
+      (facts: any) => facts.source_key = 'unknown',
+      (facts: any) => facts.forced_target_key = 'mudwrestler',
+    ];
+    for (const mutate of mutations) {
+      const candidate = envelope();
+      const event = { sequence: 4, type: 'status_applied', round: 1, tick: 1, facts: {
+        target_key: 'player_bruiser', status_id: 'fuse_lit', source_key: 'mudwrestler', expires_round: 2,
+        params: { bomb_damage: 5 }, forced_target_key: null,
+      } };
+      mutate(event.facts);
+      candidate.data.battle.events.splice(4, 0, event);
+      candidate.data.battle.events[5].sequence = 5;
+      candidate.data.battle.events[6].sequence = 6;
+      expect(() => parseBattlePlaybackEnvelope(candidate)).toThrowError(BattlePlaybackContractError);
+    }
+  });
+
   it('rejects fields, IDs, versions, identity, position, HP, and terminal outcome incoherence', () => {
     const mutations = [
       (v: any) => v.data.battle.seed = 'secret',
