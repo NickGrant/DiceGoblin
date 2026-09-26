@@ -37,8 +37,12 @@ final class BattlePersistenceRepositoryTest extends IntegrationTestCase
     $this->assertEquals(VnextBattleFixture::result(), $byId?->battle->result);
     $this->assertSame($before, $this->mutableState($userId, $runId, $nodeId, $unitId));
     $this->assertSame('0', (string)$this->scalar(
-      "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN ('battle_rewards', 'resolved_events')",
+      "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'battle_rewards'",
       [],
+    ));
+    $this->assertSame('0', (string)$this->scalar(
+      'SELECT COUNT(*) FROM `resolved_events` WHERE `user_id` = ?',
+      [$userId],
     ));
   }
 

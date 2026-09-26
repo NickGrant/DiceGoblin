@@ -6,6 +6,7 @@ namespace DiceGoblins\Tests\Unit;
 use DiceGoblins\Content\ClientContentProjector;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Content\ContentValidationException;
+use DiceGoblins\Domain\Shop\ShopNumericContract;
 use PHPUnit\Framework\TestCase;
 
 final class ShopOfferContentValidationTest extends TestCase
@@ -35,6 +36,21 @@ final class ShopOfferContentValidationTest extends TestCase
     foreach (['price', 'currency_id', 'amount', 'limit', 'random', 'weight'] as $private) {
       $this->assertStringNotContainsString($private, $encoded);
     }
+  }
+
+  public function testPriceAcceptsClientSafeMaximumAndRejectsTheNextInteger(): void
+  {
+    $maximum = $this->itemOffer();
+    $maximum['price']['amount'] = ShopNumericContract::MAX_CLIENT_SAFE_INTEGER;
+    $this->assertSame(
+      ShopNumericContract::MAX_CLIENT_SAFE_INTEGER,
+      $this->registry([$maximum], true)->shopOffer('shop_offer.scrap')['price']['amount'],
+    );
+
+    $tooLarge = $this->itemOffer();
+    $tooLarge['price']['amount'] = ShopNumericContract::MAX_CLIENT_SAFE_INTEGER + 1;
+    $this->expectException(ContentValidationException::class);
+    $this->registry([$tooLarge], true);
   }
 
   /** @dataProvider malformedOfferProvider */

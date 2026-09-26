@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace DiceGoblins\Content;
 
+use DiceGoblins\Domain\Shop\ShopNumericContract;
+
 use DiceGoblins\Combat\Vnext\CombatRules;
 use InvalidArgumentException;
 
@@ -351,7 +353,13 @@ final class ContentValidator
     }
     $this->requireExactFieldSet($price, ['currency_id', 'amount'], [], "{$location} field 'price'");
     $this->requireAllowedString($price, 'currency_id', ['teeth'], "{$location} field 'price'");
-    $this->requireIntegerInRange($price, 'amount', 1, PHP_INT_MAX, "{$location} field 'price'");
+    $this->requireIntegerInRange(
+      $price,
+      'amount',
+      1,
+      ShopNumericContract::MAX_CLIENT_SAFE_INTEGER,
+      "{$location} field 'price'",
+    );
   }
 
   /** @param array<string, mixed> $definition */

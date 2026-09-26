@@ -7,6 +7,7 @@ use DiceGoblins\Application\Queries\ShopCatalogQuery;
 use DiceGoblins\Application\Queries\ShopIntegrityException;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Controllers\ShopCatalogController;
+use DiceGoblins\Domain\Shop\ShopNumericContract;
 use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Tests\Support\IntegrationTestCase;
 
@@ -57,6 +58,33 @@ final class ShopCatalogFoundationTest extends IntegrationTestCase
     (new ShopCatalogQuery(new PlayerStateRepository($this->pdo), $this->content()))->execute(999999999);
   }
 
+  public function testClientSafeMaximumWalletRevisionAndPriceAreReturnedExactly(): void
+  {
+    $maximum = ShopNumericContract::MAX_CLIENT_SAFE_INTEGER;
+    $userId = $this->user('Shop Maximum', $maximum, $maximum);
+    $result = (new ShopCatalogQuery(new PlayerStateRepository($this->pdo), $this->content($maximum)))->execute($userId);
+
+    $this->assertSame($maximum, $result['teeth']);
+    $this->assertSame($maximum, $result['player_revision']);
+    $this->assertSame($maximum, $result['offers'][0]['price']['amount']);
+    $this->assertTrue($result['offers'][0]['can_afford']);
+  }
+
+  public function testWalletAndRevisionAboveClientSafeMaximumAreIntegrityFailures(): void
+  {
+    $tooLarge = ShopNumericContract::MAX_CLIENT_SAFE_INTEGER + 1;
+    $query = new ShopCatalogQuery(new PlayerStateRepository($this->pdo), $this->content());
+    foreach ([[$tooLarge, 1], [1, $tooLarge]] as [$teeth, $revision]) {
+      $userId = $this->user('Shop Unsafe', $teeth, $revision);
+      try {
+        $query->execute($userId);
+        $this->fail('Expected unsafe Shop state to fail integrity validation.');
+      } catch (ShopIntegrityException) {
+        $this->addToAssertionCount(1);
+      }
+    }
+  }
+
   private function user(string $name, int $teeth, int $revision): int
   {
     $stmt = $this->pdo?->prepare('INSERT INTO `users` (`display_name`) VALUES (?)'); $stmt?->execute([$name]);
@@ -65,7 +93,7 @@ final class ShopCatalogFoundationTest extends IntegrationTestCase
     return $id;
   }
 
-  private function content(): ContentRegistry
+  private function content(int $firstPrice = 7): ContentRegistry
   {
     $root = $this->copyCanonicalRoot();
     file_put_contents($root . '/items/test-shop.json', json_encode(['definitions' => [[
@@ -75,7 +103,7 @@ final class ShopCatalogFoundationTest extends IntegrationTestCase
     file_put_contents($root . '/shop_offers/test.json', json_encode(['definitions' => [[
       'id' => 'shop_offer.a_', 'type' => 'shop_offer', 'grant' => ['type' => 'die', 'dice_profile_id' => 'dice_profile.cardboard_plain', 'size' => 8], 'price' => ['currency_id' => 'teeth', 'amount' => 10],
     ], [
-      'id' => 'shop_offer.a1', 'type' => 'shop_offer', 'grant' => ['type' => 'item', 'item_id' => 'item.test.scrap', 'quantity' => 2], 'price' => ['currency_id' => 'teeth', 'amount' => 7],
+      'id' => 'shop_offer.a1', 'type' => 'shop_offer', 'grant' => ['type' => 'item', 'item_id' => 'item.test.scrap', 'quantity' => 2], 'price' => ['currency_id' => 'teeth', 'amount' => $firstPrice],
     ]]], JSON_THROW_ON_ERROR));
     return ContentRegistry::load($root);
   }
