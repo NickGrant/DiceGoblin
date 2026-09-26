@@ -36,7 +36,7 @@ export function parseItemCollectionEnvelope(
       || typeof candidate['item_id'] !== 'string'
       || !/^item\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/.test(candidate['item_id'])
       || !Number.isSafeInteger(candidate['quantity']) || (candidate['quantity'] as number) <= 0
-      || seen.has(candidate['item_id']) || candidate['item_id'].localeCompare(prior) <= 0) {
+      || seen.has(candidate['item_id']) || candidate['item_id'] <= prior) {
       throw new InventoryContractError('Inventory contains an invalid or non-deterministic item stack.');
     }
     const item = content.getItem(candidate['item_id']);
