@@ -75,6 +75,10 @@ export class RuntimeApiClient {
     return this.get('/api/v1/squads');
   }
 
+  async getItems(): Promise<unknown> {
+    return this.get('/api/v1/items');
+  }
+
   async getCurrentRun(content: ClientContentRegistry): Promise<CurrentRunResult> {
     const value = await this.get('/api/v1/runs/current');
     try {

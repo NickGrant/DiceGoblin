@@ -17,7 +17,7 @@ describe('WarbandScreen', () => {
       abilities: { 'ability.bash': { id: 'ability.bash', kind: 'active', display_name: 'Bash', description: 'Bonk.', icon_key: 'bash', dice_slot_count: 1 } },
       dice_materials: { 'dice_material.bone': { id: 'dice_material.bone', display_name: 'Bone', description: 'Bone.', art_key: 'bone', allowed_sizes: [6] } }, dice_aspects: {},
       dice_profiles: { 'dice_profile.bone': { id: 'dice_profile.bone', display_name: 'Knucklebone', material_id: 'dice_material.bone', rarity: 'rare', aspect_ids: [], allowed_sizes: [6] } },
-      run_node_types: {},
+      run_node_types: {}, items: {},
     } });
   }
 

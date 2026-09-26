@@ -73,6 +73,16 @@ CREATE TABLE `user_unlocks` (
   CONSTRAINT `fk_user_unlocks_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE `user_items` (
+  `user_id` BIGINT UNSIGNED NOT NULL,
+  `item_id` VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `quantity` BIGINT UNSIGNED NOT NULL,
+  PRIMARY KEY (`user_id`, `item_id`),
+  CONSTRAINT `chk_user_items_id` CHECK (CHAR_LENGTH(`item_id`) > 0),
+  CONSTRAINT `chk_user_items_quantity` CHECK (`quantity` >= 0),
+  CONSTRAINT `fk_user_items_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE `idempotency_requests` (
   `user_id` BIGINT UNSIGNED NOT NULL,
   `idempotency_key` VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,

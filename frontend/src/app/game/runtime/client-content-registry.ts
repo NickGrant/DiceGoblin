@@ -21,6 +21,20 @@ export interface ClientRunNodeTypeDefinition {
   readonly icon_key: string;
 }
 
+export interface ClientItemDefinition {
+  readonly id: string;
+  readonly display_name: string;
+  readonly description: string;
+  readonly category: 'consumable' | 'material';
+  readonly rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+  readonly icon_key: string;
+  readonly stackable: boolean;
+  readonly effect?: {
+    readonly type: 'energy_restore';
+    readonly amount: number;
+  };
+}
+
 export interface ClientKinDefinition {
   readonly id: string;
   readonly display_name: string;
@@ -83,7 +97,8 @@ export type ClientContentDefinition =
   | ClientDiceMaterialDefinition
   | ClientDiceAspectDefinition
   | ClientDiceProfileDefinition
-  | ClientRunNodeTypeDefinition;
+  | ClientRunNodeTypeDefinition
+  | ClientItemDefinition;
 
 export interface ClientContentProjection {
   readonly revision: string;
@@ -99,6 +114,7 @@ export interface ClientContentProjection {
     readonly dice_aspects: Readonly<Record<string, ClientDiceAspectDefinition>>;
     readonly dice_profiles: Readonly<Record<string, ClientDiceProfileDefinition>>;
     readonly run_node_types: Readonly<Record<string, ClientRunNodeTypeDefinition>>;
+    readonly items: Readonly<Record<string, ClientItemDefinition>>;
   };
 }
 
@@ -131,6 +147,7 @@ const catalogFields = [
   'dice_aspects',
   'dice_profiles',
   'run_node_types',
+  'items',
 ] as const;
 const contentFields = ['gameplay', ...catalogFields] as const;
 
@@ -268,6 +285,7 @@ export class ClientContentRegistry {
   private readonly diceAspects = new Map<string, ClientDiceAspectDefinition>();
   private readonly diceProfiles = new Map<string, ClientDiceProfileDefinition>();
   private readonly runNodeTypes = new Map<string, ClientRunNodeTypeDefinition>();
+  private readonly items = new Map<string, ClientItemDefinition>();
 
   constructor(projection: unknown) {
     if (!isRecord(projection))
@@ -319,6 +337,9 @@ export class ClientContentRegistry {
     this.loadCatalog(catalogs.run_node_types, this.runNodeTypes, (id, value) =>
       this.runNodeTypeDefinition(id, value),
     );
+    this.loadCatalog(catalogs.items, this.items, (id, value) =>
+      this.itemDefinition(id, value),
+    );
     this.validateReferences();
     this.revision = revision;
   }
@@ -355,6 +376,12 @@ export class ClientContentRegistry {
   }
   listRunNodeTypes(): readonly ClientRunNodeTypeDefinition[] {
     return Object.freeze([...this.runNodeTypes.values()]);
+  }
+  getItem(stableId: string): ClientItemDefinition | undefined {
+    return this.items.get(stableId);
+  }
+  listItems(): readonly ClientItemDefinition[] {
+    return Object.freeze([...this.items.values()]);
   }
 
   private loadCatalog<T extends ClientContentDefinition>(
@@ -549,6 +576,45 @@ export class ClientContentRegistry {
       display_name: requireNonEmptyString(value, 'display_name'),
       description: requireNonEmptyString(value, 'description'),
       icon_key: requireNonEmptyString(value, 'icon_key'),
+    });
+  }
+
+  private itemDefinition(catalogId: string, value: unknown): ClientItemDefinition {
+    if (!isRecord(value))
+      throw new ClientContentError('Client content contains an invalid item definition.');
+    const category = requireNonEmptyString(value, 'category');
+    if (category !== 'consumable' && category !== 'material')
+      throw new ClientContentError(`Item '${catalogId}' has an invalid category.`);
+    requireExactFields(
+      value,
+      category === 'consumable'
+        ? ['id', 'display_name', 'description', 'category', 'rarity', 'icon_key', 'stackable', 'effect']
+        : ['id', 'display_name', 'description', 'category', 'rarity', 'icon_key', 'stackable'],
+      `Item '${catalogId}'`,
+    );
+    const rarity = requireNonEmptyString(value, 'rarity');
+    if (!['common', 'uncommon', 'rare', 'epic', 'legendary'].includes(rarity))
+      throw new ClientContentError(`Item '${catalogId}' has an invalid rarity.`);
+    if (typeof value['stackable'] !== 'boolean')
+      throw new ClientContentError(`Item '${catalogId}' has an invalid stackable flag.`);
+    let effect: ClientItemDefinition['effect'];
+    if (category === 'consumable') {
+      const candidate = value['effect'];
+      if (!isRecord(candidate)) throw new ClientContentError(`Item '${catalogId}' has an invalid effect.`);
+      requireExactFields(candidate, ['type', 'amount'], `Item '${catalogId}' effect`);
+      if (candidate['type'] !== 'energy_restore')
+        throw new ClientContentError(`Item '${catalogId}' has an unsupported effect.`);
+      effect = Object.freeze({ type: 'energy_restore', amount: requireInteger(candidate, 'amount', 1, Number.MAX_SAFE_INTEGER) });
+    }
+    return Object.freeze({
+      id: requireIdentity(value, catalogId, 'item.', 'item'),
+      display_name: requireNonEmptyString(value, 'display_name'),
+      description: requireNonEmptyString(value, 'description'),
+      category,
+      rarity: rarity as ClientItemDefinition['rarity'],
+      icon_key: requireNonEmptyString(value, 'icon_key'),
+      stackable: value['stackable'],
+      ...(effect ? { effect } : {}),
     });
   }
 

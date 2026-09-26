@@ -499,6 +499,7 @@ function content(): ClientContentRegistry {
       'run_node_type.boss': { id: 'run_node_type.boss', display_name: 'Boss', description: 'Boss.', icon_key: 'boss' },
       'run_node_type.exit': { id: 'run_node_type.exit', display_name: 'Exit', description: 'Exit.', icon_key: 'exit' },
     },
+    items: {},
   } });
 }
 

@@ -26,11 +26,12 @@ describe('GameStore Warband cache', () => {
       dice_aspects: {},
       dice_profiles: { 'dice_profile.bone': { id: 'dice_profile.bone', display_name: 'Bone Die', material_id: 'dice_material.bone', rarity: 'common', aspect_ids: [], allowed_sizes: [6] } },
       run_node_types: { 'run_node_type.combat': { id: 'run_node_type.combat', display_name: 'Combat', description: 'Fight.', icon_key: 'combat' } },
+      items: { 'item.test.tonic': { id: 'item.test.tonic', display_name: 'Tonic', description: 'Restores energy.', category: 'consumable', rarity: 'common', icon_key: 'tonic', stackable: true, effect: { type: 'energy_restore', amount: 5 } } },
     } });
   }
 
   function api(): jasmine.SpyObj<RuntimeApiClient> {
-    const result = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getBootstrap', 'getUnits', 'getUnitDetail', 'getDice', 'getSquads', 'getCurrentRun', 'startRun', 'abandonRun', 'renameUnit', 'replaceUnitLoadout']);
+    const result = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getBootstrap', 'getUnits', 'getUnitDetail', 'getDice', 'getSquads', 'getItems', 'getCurrentRun', 'startRun', 'abandonRun', 'renameUnit', 'replaceUnitLoadout']);
     result.getUnits.and.resolveTo({ ok: true, data: { units: [{ id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active' }] } });
     result.getDice.and.resolveTo({ ok: true, data: { dice: [
       { id: '21', size: 6, profile_id: 'dice_profile.bone', lifecycle_status: 'active', bindings: [{ unit_id: '11', ability_id: 'ability.bash', slot_index: 0 }] },
@@ -38,6 +39,7 @@ describe('GameStore Warband cache', () => {
       { id: '23', size: 6, profile_id: 'dice_profile.bone', lifecycle_status: 'active', bindings: [{ unit_id: '99', ability_id: 'ability.smash', slot_index: 0 }] },
     ] } });
     result.getSquads.and.resolveTo({ ok: true, data: { squads: [{ id: '31', name: 'Raiders', is_active: true, formation: ['11', null, null, null, null, null, null, null, null] }] } });
+    result.getItems.and.resolveTo({ ok: true, data: { items: [{ item_id: 'item.test.tonic', quantity: 2 }] } });
     result.getUnitDetail.and.resolveTo({ ok: true, data: { unit: {
       id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active', promotion_history: [],
       owned_ability_ids: ['ability.bash', 'ability.smash'], ability_loadout: [{ ability_id: 'ability.bash', equip_order: 0 }],
@@ -131,6 +133,28 @@ describe('GameStore Warband cache', () => {
     resolve({ ok: true, data: { units: [] } });
     await first;
     expect(store.warband.units.status).toBe('fresh');
+  });
+
+  it('loads, caches, retries, and clears the authored item inventory read model', async () => {
+    const store = new GameStore(); const client = api(); const registry = content();
+    const first = store.loadItems(client, registry);
+    const duplicate = store.loadItems(client, registry);
+    expect(first).toBe(duplicate);
+    await first;
+    expect(store.inventory.status).toBe('fresh');
+    expect(store.inventory.data?.map((stack) => [stack.item.id, stack.quantity]))
+      .toEqual([['item.test.tonic', 2]]);
+    await store.loadItems(client, registry);
+    expect(client.getItems).toHaveBeenCalledTimes(1);
+
+    client.getItems.and.resolveTo({ ok: true, data: { items: [{ item_id: 'item.missing', quantity: 1 }] } });
+    await store.retryItems(client, registry);
+    expect(store.inventory.status).toBe('error');
+    expect(store.inventory.error).toBe('integrity');
+    expect(store.inventory.data?.[0].quantity).toBe(2);
+
+    store.clear();
+    expect(store.inventory).toEqual({ status: 'not-loaded', data: null, error: null });
   });
 
   it('keeps full unit detail lazy, deduplicates first open, reuses fresh cache, and clears it', async () => {

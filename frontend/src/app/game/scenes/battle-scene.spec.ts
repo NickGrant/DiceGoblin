@@ -339,6 +339,7 @@ function content(): ClientContentRegistry {
       'run_node_type.rest': node('run_node_type.rest'), 'run_node_type.boss': node('run_node_type.boss'),
       'run_node_type.exit': node('run_node_type.exit'),
     },
+    items: {},
   } });
 }
 

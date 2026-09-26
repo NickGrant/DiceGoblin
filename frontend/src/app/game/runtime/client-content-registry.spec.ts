@@ -34,6 +34,7 @@ describe('ClientContentRegistry', () => {
     expect(registry.getDiceAspect('dice_aspect.striking')?.display_name).toBe('Striking');
     expect(registry.getDiceProfile('dice_profile.cardboard_striking')?.rarity).toBe('common');
     expect(registry.getRunNodeType('run_node_type.combat')?.icon_key).toBe('icon_encounter_combat');
+    expect(registry.getItem('item.test.tonic')?.effect).toEqual({ type: 'energy_restore', amount: 5 });
     expect(registry.has('region.missing')).toBeFalse();
   });
 
@@ -89,6 +90,16 @@ describe('ClientContentRegistry', () => {
     const wrongIdentity = validProjection();
     wrongIdentity.content.run_node_types['run_node_type.combat'].id = 'run_node_type.loot';
     expect(() => new ClientContentRegistry(wrongIdentity)).toThrowError(ClientContentError);
+  });
+
+  it('strictly rejects unsupported or private item effect fields', () => {
+    const unsupported = validProjection();
+    unsupported.content.items['item.test.tonic'].effect.type = 'mystery' as 'energy_restore';
+    expect(() => new ClientContentRegistry(unsupported)).toThrowError(ClientContentError);
+
+    const privateField = validProjection();
+    (privateField.content.items['item.test.tonic'] as unknown as Record<string, unknown>)['grant_config'] = {};
+    expect(() => new ClientContentRegistry(privateField)).toThrowError(ClientContentError);
   });
 
   it('strictly rejects missing, non-positive, or expanded gameplay presentation', () => {
@@ -174,6 +185,13 @@ function validProjection() {
           display_name: 'Combat',
           description: 'Fight enemies guarding the path.',
           icon_key: 'icon_encounter_combat',
+        },
+      },
+      items: {
+        'item.test.tonic': {
+          id: 'item.test.tonic', display_name: 'Tonic', description: 'Restores energy.',
+          category: 'consumable', rarity: 'common', icon_key: 'tonic', stackable: true,
+          effect: { type: 'energy_restore', amount: 5 },
         },
       },
     },

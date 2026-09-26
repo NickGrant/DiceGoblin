@@ -12,7 +12,7 @@ describe('Camp run lifecycle', () => {
         'region.the_farm': { id: 'region.the_farm', display_name: 'The Farm', art_key: 'farm' },
         'region.mountains': { id: 'region.mountains', display_name: 'Mountains', art_key: 'mountains' },
       },
-      kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {} } });
+      kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {}, items: {} } });
   }
   function bootstrap(active = false, mountains = false): GameBootstrapData { return {
     account: { id: '1', display_name: 'Goblin', role: 'user' }, player: { teeth: 0, raw_chaos: 0, player_revision: 7,

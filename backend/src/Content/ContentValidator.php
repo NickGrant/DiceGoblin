@@ -78,6 +78,7 @@ final class ContentValidator
       'unlock' => $this->validateUnlock($definition, $location),
       'event' => $this->validateEvent($definition, $location),
       'reward_definition' => $this->validateRewardDefinition($definition, $location),
+      'item' => $this->validateItem($definition, $location),
       default => throw new ContentValidationException("{$location} has unsupported type '{$type}'."),
     };
   }
@@ -274,6 +275,35 @@ final class ContentValidator
         $this->requireStableIdWithNamespace($config, 'unlock_id', 'unlock.', $configLocation);
       }
     }
+  }
+
+  /** @param array<string, mixed> $definition */
+  private function validateItem(array $definition, string $location): void
+  {
+    $this->requireExactFieldSet($definition,
+      ['id', 'type', 'display_name', 'description', 'category', 'rarity', 'icon_key', 'stackable'],
+      ['effect'], $location);
+    $this->requireNamespace($definition, 'item.', $location);
+    $this->requireBoundedNonEmptyString($definition, 'display_name', 128, $location);
+    $this->requireBoundedNonEmptyString($definition, 'description', 512, $location);
+    $category = $this->requireAllowedString($definition, 'category', ['consumable', 'material'], $location);
+    $this->requireAllowedString($definition, 'rarity', self::RARITIES, $location);
+    $this->requireBoundedNonEmptyString($definition, 'icon_key', 128, $location);
+    if (!is_bool($definition['stackable'] ?? null)) {
+      throw new ContentValidationException("{$location} field 'stackable' must be a boolean.");
+    }
+
+    $effect = $definition['effect'] ?? null;
+    if ($category === 'material') {
+      if ($effect !== null) throw new ContentValidationException("{$location} material items must not define an effect.");
+      return;
+    }
+    if (!is_array($effect) || array_is_list($effect)) {
+      throw new ContentValidationException("{$location} consumable items must define an effect object.");
+    }
+    $this->requireExactFieldSet($effect, ['type', 'amount'], [], "{$location} field 'effect'");
+    $this->requireAllowedString($effect, 'type', ['energy_restore'], "{$location} field 'effect'");
+    $this->requireIntegerInRange($effect, 'amount', 1, PHP_INT_MAX, "{$location} field 'effect'");
   }
 
   /** @param array<string, mixed> $definition */

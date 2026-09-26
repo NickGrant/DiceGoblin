@@ -33,6 +33,10 @@ Raw Chaos remains the scarce progression currency, but Milestone 7 does **not** 
 Until Milestone 8:
 > no Milestone 7 Shop, loot, reward, or other acquisition path may create a die larger than d8.
 
+#### Problem
+
+The accepted economy needs one canonical authored-item family and one mutable stackable-inventory read boundary before later packages can add acquisition or use commands safely.
+
 #### Package 1 purpose
 
 Establish the vNext authored-item and mutable stackable-inventory boundary without importing prototype catalog/database architecture.

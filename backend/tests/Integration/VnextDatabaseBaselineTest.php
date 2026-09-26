@@ -41,6 +41,7 @@ final class VnextDatabaseBaselineTest extends IntegrationTestCase
       'unit_instances',
       'unit_promotions',
       'user_external_identities',
+      'user_items',
       'user_local_credentials',
       'user_state',
       'user_unlocks',
@@ -72,6 +73,13 @@ final class VnextDatabaseBaselineTest extends IntegrationTestCase
 
     $unlockColumns = $this->pdo?->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user_unlocks' ORDER BY ORDINAL_POSITION")->fetchAll(\PDO::FETCH_COLUMN);
     $this->assertSame(['user_id', 'unlock_id', 'granted_at'], $unlockColumns);
+    $itemColumns = $this->pdo?->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user_items' ORDER BY ORDINAL_POSITION")->fetchAll(\PDO::FETCH_COLUMN);
+    $this->assertSame(['user_id', 'item_id', 'quantity'], $itemColumns);
+    $this->assertSame('2', (string)$this->scalar("SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user_items' AND INDEX_NAME = 'PRIMARY' AND NON_UNIQUE = 0", []));
+    $this->assertSame('1', (string)$this->scalar("SELECT COUNT(*) FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS
+      WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'user_items' AND CONSTRAINT_NAME = 'fk_user_items_user'
+        AND DELETE_RULE = 'CASCADE'", []));
     $resolvedEventColumns = $this->pdo?->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'resolved_events' ORDER BY ORDINAL_POSITION")->fetchAll(\PDO::FETCH_COLUMN);
     $this->assertSame(['id', 'user_id', 'event_id', 'source_type', 'source_id', 'result_json', 'status', 'resolved_at', 'applied_at'], $resolvedEventColumns);
     foreach (['reward_claims', 'reward_entries', 'event_history', 'player_events'] as $rejectedTable) {
@@ -95,6 +103,8 @@ final class VnextDatabaseBaselineTest extends IntegrationTestCase
     $this->assertArrayHasKey('contentRegistry', $contentAware);
     $this->assertArrayHasKey('accountCreationService', $contentAware);
     $this->assertArrayHasKey('gameBootstrapQuery', $contentAware);
+    $this->assertArrayHasKey('userItemRepository', $contentAware);
+    $this->assertArrayHasKey('itemCollectionQuery', $contentAware);
   }
 
   public function testLocalAccountCreationAtomicallyPersistsCredentialsAndPlayerState(): void

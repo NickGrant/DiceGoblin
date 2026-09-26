@@ -31,6 +31,7 @@ use DiceGoblins\Application\Queries\BattlePlaybackQuery;
 use DiceGoblins\Application\Queries\CurrentRunQuery;
 use DiceGoblins\Application\Queries\DiceCollectionQuery;
 use DiceGoblins\Application\Queries\GameBootstrapQuery;
+use DiceGoblins\Application\Queries\ItemCollectionQuery;
 use DiceGoblins\Application\Queries\SquadCollectionQuery;
 use DiceGoblins\Application\Queries\UnitCollectionQuery;
 use DiceGoblins\Application\Queries\UnitDetailQuery;
@@ -54,6 +55,7 @@ use DiceGoblins\Repositories\IdempotencyRequestRepository;
 use DiceGoblins\Repositories\SquadRepository;
 use DiceGoblins\Repositories\UserRepository;
 use DiceGoblins\Repositories\UserUnlockRepository;
+use DiceGoblins\Repositories\UserItemRepository;
 use DiceGoblins\Repositories\WarbandDiceRepository;
 use DiceGoblins\Repositories\WarbandFixtureRepository;
 use DiceGoblins\Repositories\WarbandUnitRepository;
@@ -140,6 +142,7 @@ final class ControllerServiceFactory
     $activeRunPolicy = new ActiveRunConfigurationPolicy($runRepository);
     $activeRunSummary = new ActiveRunSummaryQuery($runRepository, $content);
     $unlockRepository = new UserUnlockRepository($pdo);
+    $itemRepository = new UserItemRepository($pdo);
     $regionAvailability = new RegionAvailabilityPolicy($content);
     $nodeResolutionRepository = new RunNodeResolutionRepository($pdo);
     $rewardApplication = new RewardApplicationService(
@@ -160,6 +163,7 @@ final class ControllerServiceFactory
       'warbandDiceRepository' => $diceRepository,
       'squadRepository' => $squadRepository,
       'userUnlockRepository' => $unlockRepository,
+      'userItemRepository' => $itemRepository,
       'accountCreationService' => new AccountCreationService(
         $pdo,
         $core['userRepo'],
@@ -180,6 +184,7 @@ final class ControllerServiceFactory
       'unitCollectionQuery' => new UnitCollectionQuery($unitRepository, $content),
       'unitDetailQuery' => $unitDetailQuery,
       'diceCollectionQuery' => new DiceCollectionQuery($diceRepository, $content),
+      'itemCollectionQuery' => new ItemCollectionQuery($itemRepository, $content),
       'squadCollectionQuery' => new SquadCollectionQuery($squadRepository),
       'createSquadCommand' => new CreateSquadCommand($pdo, $core['playerStateRepo'], $squadRepository,
         $idempotencyRepository, $squadCommandSupport),

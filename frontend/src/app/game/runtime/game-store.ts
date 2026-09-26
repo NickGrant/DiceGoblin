@@ -114,7 +114,7 @@ function emptyDomain<T>(): WarbandDomainState<T> {
 
 function domainErrorKind(error: unknown): WarbandDomainErrorKind {
   if (error instanceof RuntimeApiError) return error.kind;
-  if (error instanceof WarbandContractError) return 'integrity';
+  if (error instanceof WarbandContractError || error instanceof InventoryContractError) return 'integrity';
   return 'unexpected';
 }
 
@@ -314,6 +314,8 @@ export class GameStore {
   private readonly runListeners = new Set<(state: CurrentRunState) => void>();
   private currentRunState: CurrentRunState = Object.freeze({ status: 'not-loaded', data: null, error: null });
   private currentRunInFlight: Promise<void> | null = null;
+  private itemInventoryState: WarbandDomainState<OwnedItemStack> = emptyDomain<OwnedItemStack>();
+  private itemInventoryInFlight: Promise<void> | null = null;
   private cacheGeneration = 0;
 
   get bootstrap(): GameBootstrapData | null {
@@ -330,6 +332,10 @@ export class GameStore {
 
   get currentRun(): CurrentRunState {
     return this.currentRunState;
+  }
+
+  get inventory(): WarbandDomainState<OwnedItemStack> {
+    return this.itemInventoryState;
   }
 
   get activeRunLock(): ActiveRunLock | null {
@@ -502,6 +508,38 @@ export class GameStore {
       requireActiveSquadAgreement(squads, this.cachedBootstrap?.active_squad?.id ?? null);
       return squads;
     }, reload);
+  }
+
+  loadItems(api: RuntimeApiClient, content: ClientContentRegistry, reload = false): Promise<void> {
+    const state = this.itemInventoryState;
+    if (!reload && state.status === 'fresh') return Promise.resolve();
+    if (this.itemInventoryInFlight) return this.itemInventoryInFlight;
+    const generation = this.cacheGeneration;
+    this.itemInventoryState = Object.freeze({ status: 'loading', data: state.data, error: null });
+    const promise = api.getItems()
+      .then((value) => {
+        if (generation === this.cacheGeneration) {
+          this.itemInventoryState = Object.freeze({
+            status: 'fresh', data: parseItemCollectionEnvelope(value, content), error: null,
+          });
+        }
+      })
+      .catch((error: unknown) => {
+        if (generation === this.cacheGeneration) {
+          this.itemInventoryState = Object.freeze({
+            status: 'error', data: state.data, error: domainErrorKind(error),
+          });
+        }
+      })
+      .finally(() => {
+        if (this.itemInventoryInFlight === promise) this.itemInventoryInFlight = null;
+      });
+    this.itemInventoryInFlight = promise;
+    return promise;
+  }
+
+  retryItems(api: RuntimeApiClient, content: ClientContentRegistry): Promise<void> {
+    return this.loadItems(api, content, true);
   }
 
   retryWarbandDomain(
@@ -693,6 +731,8 @@ export class GameStore {
     this.unitDetailInFlight.clear();
     this.currentRunState = Object.freeze({ status: 'not-loaded', data: null, error: null });
     this.currentRunInFlight = null;
+    this.itemInventoryState = emptyDomain<OwnedItemStack>();
+    this.itemInventoryInFlight = null;
     for (const key of Object.keys(this.inFlight) as WarbandDomainName[]) delete this.inFlight[key];
     this.emit();
     this.emitRun();
@@ -918,6 +958,7 @@ import {
 import { CurrentRun, CurrentRunResult, RunAbandonResult, RunContractError, RunStartResult } from './run-contracts';
 import { activeRunLock, ActiveRunLock } from './active-run-lock';
 import { ExitRunNodeResolutionResult, LootRunNodeResolutionResult, RestRunNodeResolutionResult } from './run-node-resolution-contracts';
+import { InventoryContractError, OwnedItemStack, parseItemCollectionEnvelope } from './inventory-contracts';
 
 function unitDetailErrorKind(error: unknown): WarbandDomainErrorKind {
   if (error instanceof RuntimeApiError) return error.kind;
