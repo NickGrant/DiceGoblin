@@ -14,6 +14,7 @@ final class ClientContentProjector
   private const DICE_PROFILE_FIELDS = ['id', 'display_name', 'material_id', 'rarity', 'aspect_ids', 'allowed_sizes'];
   private const RUN_NODE_TYPE_FIELDS = ['id', 'display_name', 'description', 'icon_key'];
   private const ITEM_FIELDS = ['id', 'display_name', 'description', 'category', 'rarity', 'icon_key', 'stackable', 'effect'];
+  private const SHOP_OFFER_FIELDS = ['id', 'grant'];
 
   /** @return array{revision:string,content:array<string,mixed>} */
   public function project(ContentRegistry $registry): array
@@ -31,6 +32,7 @@ final class ClientContentProjector
         'dice_profiles' => $this->projectType($registry, 'dice_profile', self::DICE_PROFILE_FIELDS),
         'run_node_types' => $this->projectType($registry, 'run_node_type', self::RUN_NODE_TYPE_FIELDS),
         'items' => $this->projectType($registry, 'item', self::ITEM_FIELDS),
+        'shop_offers' => $this->projectType($registry, 'shop_offer', self::SHOP_OFFER_FIELDS),
       ],
     ];
   }

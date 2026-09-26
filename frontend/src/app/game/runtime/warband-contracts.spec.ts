@@ -34,7 +34,7 @@ describe('Warband collection contracts', () => {
         dice_profiles: {
           'dice_profile.bone_heavy': { id: 'dice_profile.bone_heavy', display_name: 'Knucklebone', material_id: 'dice_material.bone', rarity: 'uncommon', aspect_ids: ['dice_aspect.heavy'], allowed_sizes: [6] },
         },
-        run_node_types: {}, items: {},
+        run_node_types: {}, items: {}, shop_offers: {},
       },
     });
   }

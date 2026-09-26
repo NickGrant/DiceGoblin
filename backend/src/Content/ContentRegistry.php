@@ -175,6 +175,12 @@ final class ContentRegistry
   }
 
   /** @return array<string, mixed> */
+  public function shopOffer(string $id): array
+  {
+    return $this->definitionOfType($id, 'shop_offer');
+  }
+
+  /** @return array<string, mixed> */
   public function runNodeType(string $id): array
   {
     return $this->definitionOfType($id, 'run_node_type');

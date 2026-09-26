@@ -79,6 +79,7 @@ final class ContentValidator
       'event' => $this->validateEvent($definition, $location),
       'reward_definition' => $this->validateRewardDefinition($definition, $location),
       'item' => $this->validateItem($definition, $location),
+      'shop_offer' => $this->validateShopOffer($definition, $location),
       default => throw new ContentValidationException("{$location} has unsupported type '{$type}'."),
     };
   }
@@ -129,6 +130,22 @@ final class ContentValidator
         foreach ($definition['entries'] as $entry) {
           if ($entry['reward_type'] === 'unlock') {
             $this->requireReferenceType($definitions, $id, 'entries.config.unlock_id', $entry['config']['unlock_id'], 'unlock');
+          }
+        }
+      }
+
+      if (($definition['type'] ?? null) === 'shop_offer') {
+        $grant = $definition['grant'];
+        if ($grant['type'] === 'item') {
+          $item = $this->requireReferenceType($definitions, $id, 'grant.item_id', $grant['item_id'], 'item');
+          if (($item['stackable'] ?? null) !== true) {
+            throw new ContentValidationException("{$id} grant.item_id must reference a stackable item.");
+          }
+        } else {
+          $profile = $this->requireReferenceType(
+            $definitions, $id, 'grant.dice_profile_id', $grant['dice_profile_id'], 'dice_profile');
+          if (!in_array($grant['size'], $profile['allowed_sizes'], true)) {
+            throw new ContentValidationException("{$id} grant size is not allowed by its dice profile.");
           }
         }
       }
@@ -304,6 +321,37 @@ final class ContentValidator
     $this->requireExactFieldSet($effect, ['type', 'amount'], [], "{$location} field 'effect'");
     $this->requireAllowedString($effect, 'type', ['energy_restore'], "{$location} field 'effect'");
     $this->requireIntegerInRange($effect, 'amount', 1, PHP_INT_MAX, "{$location} field 'effect'");
+  }
+
+  /** @param array<string, mixed> $definition */
+  private function validateShopOffer(array $definition, string $location): void
+  {
+    $this->requireExactFieldSet($definition, ['id', 'type', 'grant', 'price'], [], $location);
+    $this->requireNamespace($definition, 'shop_offer.', $location);
+    $grant = $definition['grant'] ?? null;
+    if (!is_array($grant) || array_is_list($grant)) {
+      throw new ContentValidationException("{$location} field 'grant' must be an object.");
+    }
+    $grantType = $this->requireAllowedString($grant, 'type', ['item', 'die'], "{$location} field 'grant'");
+    if ($grantType === 'item') {
+      $this->requireExactFieldSet($grant, ['type', 'item_id', 'quantity'], [], "{$location} field 'grant'");
+      $this->requireStableIdWithNamespace($grant, 'item_id', 'item.', "{$location} field 'grant'");
+      $this->requireIntegerInRange($grant, 'quantity', 1, PHP_INT_MAX, "{$location} field 'grant'");
+    } else {
+      $this->requireExactFieldSet($grant, ['type', 'dice_profile_id', 'size'], [], "{$location} field 'grant'");
+      $this->requireStableIdWithNamespace($grant, 'dice_profile_id', 'dice_profile.', "{$location} field 'grant'");
+      $this->requireIntegerInRange($grant, 'size', 4, 8, "{$location} field 'grant'");
+      if (!in_array($grant['size'], [4, 6, 8], true)) {
+        throw new ContentValidationException("{$location} field 'grant.size' must be d4, d6, or d8.");
+      }
+    }
+    $price = $definition['price'] ?? null;
+    if (!is_array($price) || array_is_list($price)) {
+      throw new ContentValidationException("{$location} field 'price' must be an object.");
+    }
+    $this->requireExactFieldSet($price, ['currency_id', 'amount'], [], "{$location} field 'price'");
+    $this->requireAllowedString($price, 'currency_id', ['teeth'], "{$location} field 'price'");
+    $this->requireIntegerInRange($price, 'amount', 1, PHP_INT_MAX, "{$location} field 'price'");
   }
 
   /** @param array<string, mixed> $definition */

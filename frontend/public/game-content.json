@@ -1207,6 +1207,7 @@
                 "icon_key": "icon_encounter_rest"
             }
         },
-        "items": {}
+        "items": {},
+        "shop_offers": {}
     }
 }

@@ -12,6 +12,7 @@ describe('inventory contracts', () => {
         'item.test.dust': { id: 'item.test.dust', display_name: 'Dust', description: 'Useful dust.', category: 'material', rarity: 'common', icon_key: 'dust', stackable: true },
         'item.test.tonic': { id: 'item.test.tonic', display_name: 'Tonic', description: 'Restores energy.', category: 'consumable', rarity: 'uncommon', icon_key: 'tonic', stackable: true, effect: { type: 'energy_restore', amount: 5 } },
       },
+      shop_offers: {},
     } });
   }
 

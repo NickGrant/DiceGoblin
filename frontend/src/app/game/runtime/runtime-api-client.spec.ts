@@ -48,10 +48,11 @@ describe('RuntimeApiClient', () => {
     await client.getDice();
     await client.getSquads();
     await client.getItems();
+    await client.getShop();
     await client.getUnitDetail('11/unsafe');
 
     expect(fetchRequest.calls.allArgs().map(([url]) => url)).toEqual([
-      '/root/api/v1/units', '/root/api/v1/dice', '/root/api/v1/squads', '/root/api/v1/items', '/root/api/v1/units/11%2Funsafe',
+      '/root/api/v1/units', '/root/api/v1/dice', '/root/api/v1/squads', '/root/api/v1/items', '/root/api/v1/shop', '/root/api/v1/units/11%2Funsafe',
     ]);
     for (const [, init] of fetchRequest.calls.allArgs()) {
       expect(init).toEqual(jasmine.objectContaining({ method: 'GET', credentials: 'include', headers: { Accept: 'application/json' } }));
@@ -122,7 +123,7 @@ describe('RuntimeApiClient', () => {
       abilities: { 'ability.bash': { id: 'ability.bash', kind: 'active', display_name: 'Bash', description: 'Bash.', icon_key: 'bash', dice_slot_count: 1 } },
       dice_materials: { 'dice_material.bone': { id: 'dice_material.bone', display_name: 'Bone', description: 'Bone.', art_key: 'bone', allowed_sizes: [6] } }, dice_aspects: {},
       dice_profiles: { 'dice_profile.bone': { id: 'dice_profile.bone', display_name: 'Bone Die', material_id: 'dice_material.bone', rarity: 'common', aspect_ids: [], allowed_sizes: [6] } },
-      run_node_types: {}, items: {},
+      run_node_types: {}, items: {}, shop_offers: {},
     } });
     const dice = parseDiceCollectionEnvelope({ ok: true, data: { dice: [
       { id: '21', size: 6, profile_id: 'dice_profile.bone', lifecycle_status: 'active', bindings: [{ unit_id: '11', ability_id: 'ability.bash', slot_index: 0 }] },
@@ -186,7 +187,7 @@ describe('RuntimeApiClient', () => {
   it('sends strict run start and current requests with the required security boundaries', async () => {
     const content = new ClientContentRegistry({ revision: 'a'.repeat(64), content: {
       gameplay: { run_energy_cost: 10 }, regions: { 'region.the_farm': { id: 'region.the_farm', display_name: 'The Farm', art_key: 'farm' } },
-      kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {}, items: {},
+      kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {}, items: {}, shop_offers: {},
     } });
     const energy = { current: 40, normal_max: 50, regeneration_per_hour: 12, regeneration_interval_seconds: 300,
       last_regeneration_at: '2026-09-13T12:00:00Z', next_regeneration_at: null, fully_regenerated_at: null };
@@ -226,6 +227,7 @@ describe('RuntimeApiClient', () => {
         'run_node_type.exit': node('run_node_type.exit'),
       },
       items: {},
+      shop_offers: {},
     } });
     const raw = { ok: true, data: { run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active',
       created_at: '2026-09-19T12:00:00Z', nodes: [
@@ -263,7 +265,7 @@ describe('RuntimeApiClient', () => {
   it('preserves malformed and HTTP 5xx run-start outcomes for ambiguous retry handling', async () => {
     const content = new ClientContentRegistry({ revision: 'a'.repeat(64), content: {
       gameplay: { run_energy_cost: 10 }, regions: { 'region.the_farm': { id: 'region.the_farm', display_name: 'The Farm', art_key: 'farm' } },
-      kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {}, items: {},
+      kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {}, items: {}, shop_offers: {},
     } });
     const malformed = jasmine.createSpy<RuntimeFetch>('malformed').and.resolveTo(
       new Response(JSON.stringify({ ok: true, data: {} }), { status: 200 }),

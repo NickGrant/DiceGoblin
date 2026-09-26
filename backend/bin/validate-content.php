@@ -13,6 +13,7 @@ $registry = ContentRegistry::load(dirname(__DIR__) . '/content');
 $projection = (new ClientContentProjector())->project($registry);
 // Preserve the client catalog object contract when no production items are approved yet.
 if ($projection['content']['items'] === []) $projection['content']['items'] = (object)[];
+if ($projection['content']['shop_offers'] === []) $projection['content']['shop_offers'] = (object)[];
 $encoded = json_encode($projection, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . PHP_EOL;
 $target = $root . '/frontend/public/game-content.json';
 

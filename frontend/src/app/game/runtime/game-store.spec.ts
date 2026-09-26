@@ -27,11 +27,12 @@ describe('GameStore Warband cache', () => {
       dice_profiles: { 'dice_profile.bone': { id: 'dice_profile.bone', display_name: 'Bone Die', material_id: 'dice_material.bone', rarity: 'common', aspect_ids: [], allowed_sizes: [6] } },
       run_node_types: { 'run_node_type.combat': { id: 'run_node_type.combat', display_name: 'Combat', description: 'Fight.', icon_key: 'combat' } },
       items: { 'item.test.tonic': { id: 'item.test.tonic', display_name: 'Tonic', description: 'Restores energy.', category: 'consumable', rarity: 'common', icon_key: 'tonic', stackable: true, effect: { type: 'energy_restore', amount: 5 } } },
+      shop_offers: { 'shop_offer.test.tonic': { id: 'shop_offer.test.tonic', grant: { type: 'item', item_id: 'item.test.tonic', quantity: 2 } } },
     } });
   }
 
   function api(): jasmine.SpyObj<RuntimeApiClient> {
-    const result = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getBootstrap', 'getUnits', 'getUnitDetail', 'getDice', 'getSquads', 'getItems', 'getCurrentRun', 'startRun', 'abandonRun', 'renameUnit', 'replaceUnitLoadout']);
+    const result = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getBootstrap', 'getUnits', 'getUnitDetail', 'getDice', 'getSquads', 'getItems', 'getShop', 'getCurrentRun', 'startRun', 'abandonRun', 'renameUnit', 'replaceUnitLoadout']);
     result.getUnits.and.resolveTo({ ok: true, data: { units: [{ id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active' }] } });
     result.getDice.and.resolveTo({ ok: true, data: { dice: [
       { id: '21', size: 6, profile_id: 'dice_profile.bone', lifecycle_status: 'active', bindings: [{ unit_id: '11', ability_id: 'ability.bash', slot_index: 0 }] },
@@ -40,6 +41,9 @@ describe('GameStore Warband cache', () => {
     ] } });
     result.getSquads.and.resolveTo({ ok: true, data: { squads: [{ id: '31', name: 'Raiders', is_active: true, formation: ['11', null, null, null, null, null, null, null, null] }] } });
     result.getItems.and.resolveTo({ ok: true, data: { items: [{ item_id: 'item.test.tonic', quantity: 2 }] } });
+    result.getShop.and.resolveTo({ ok: true, data: { teeth: 7, player_revision: 7, offers: [
+      { offer_id: 'shop_offer.test.tonic', price: { currency_id: 'teeth', amount: 7 }, available: true, can_afford: true },
+    ] } });
     result.getUnitDetail.and.resolveTo({ ok: true, data: { unit: {
       id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active', promotion_history: [],
       owned_ability_ids: ['ability.bash', 'ability.smash'], ability_loadout: [{ ability_id: 'ability.bash', equip_order: 0 }],
@@ -155,6 +159,22 @@ describe('GameStore Warband cache', () => {
 
     store.clear();
     expect(store.inventory).toEqual({ status: 'not-loaded', data: null, error: null });
+  });
+
+  it('loads, caches, retries, and preserves prior good Shop data on integrity failure', async () => {
+    const store = new GameStore(); const client = api(); const registry = content();
+    const first = store.loadShop(client, registry); const duplicate = store.loadShop(client, registry);
+    expect(first).toBe(duplicate); await first;
+    expect(store.shop.status).toBe('fresh');
+    expect(store.shop.data?.offers[0].offer.id).toBe('shop_offer.test.tonic');
+    await store.loadShop(client, registry); expect(client.getShop).toHaveBeenCalledTimes(1);
+    client.getShop.and.resolveTo({ ok: true, data: { teeth: 0, player_revision: 7, offers: [
+      { offer_id: 'shop_offer.missing', price: { currency_id: 'teeth', amount: 7 }, available: true, can_afford: false },
+    ] } });
+    await store.retryShop(client, registry);
+    expect(store.shop.status).toBe('error'); expect(store.shop.error).toBe('integrity');
+    expect(store.shop.data?.offers[0].offer.id).toBe('shop_offer.test.tonic');
+    store.clear(); expect(store.shop).toEqual({ status: 'not-loaded', data: null, error: null });
   });
 
   it('keeps full unit detail lazy, deduplicates first open, reuses fresh cache, and clears it', async () => {

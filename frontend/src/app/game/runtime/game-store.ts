@@ -99,6 +99,12 @@ export interface CurrentRunState {
   readonly error: WarbandDomainErrorKind | null;
 }
 
+export interface ShopState {
+  readonly status: WarbandDomainStatus;
+  readonly data: ShopCatalogResult | null;
+  readonly error: WarbandDomainErrorKind | null;
+}
+
 export interface BattleReturnIdentity {
   readonly battleId: string;
   readonly runId: string;
@@ -114,7 +120,7 @@ function emptyDomain<T>(): WarbandDomainState<T> {
 
 function domainErrorKind(error: unknown): WarbandDomainErrorKind {
   if (error instanceof RuntimeApiError) return error.kind;
-  if (error instanceof WarbandContractError || error instanceof InventoryContractError) return 'integrity';
+  if (error instanceof WarbandContractError || error instanceof InventoryContractError || error instanceof ShopContractError) return 'integrity';
   return 'unexpected';
 }
 
@@ -316,6 +322,8 @@ export class GameStore {
   private currentRunInFlight: Promise<void> | null = null;
   private itemInventoryState: WarbandDomainState<OwnedItemStack> = emptyDomain<OwnedItemStack>();
   private itemInventoryInFlight: Promise<void> | null = null;
+  private shopState: ShopState = Object.freeze({ status: 'not-loaded', data: null, error: null });
+  private shopInFlight: Promise<void> | null = null;
   private cacheGeneration = 0;
 
   get bootstrap(): GameBootstrapData | null {
@@ -336,6 +344,10 @@ export class GameStore {
 
   get inventory(): WarbandDomainState<OwnedItemStack> {
     return this.itemInventoryState;
+  }
+
+  get shop(): ShopState {
+    return this.shopState;
   }
 
   get activeRunLock(): ActiveRunLock | null {
@@ -542,6 +554,28 @@ export class GameStore {
     return this.loadItems(api, content, true);
   }
 
+  loadShop(api: RuntimeApiClient, content: ClientContentRegistry, reload = false): Promise<void> {
+    const state = this.shopState;
+    if (!reload && state.status === 'fresh') return Promise.resolve();
+    if (this.shopInFlight) return this.shopInFlight;
+    const generation = this.cacheGeneration;
+    this.shopState = Object.freeze({ status: 'loading', data: state.data, error: null });
+    const promise = api.getShop().then((value) => {
+      if (generation === this.cacheGeneration) this.shopState = Object.freeze({
+        status: 'fresh', data: parseShopCatalogEnvelope(value, content), error: null,
+      });
+    }).catch((error: unknown) => {
+      if (generation === this.cacheGeneration) this.shopState = Object.freeze({
+        status: 'error', data: state.data, error: domainErrorKind(error),
+      });
+    }).finally(() => { if (this.shopInFlight === promise) this.shopInFlight = null; });
+    this.shopInFlight = promise; return promise;
+  }
+
+  retryShop(api: RuntimeApiClient, content: ClientContentRegistry): Promise<void> {
+    return this.loadShop(api, content, true);
+  }
+
   retryWarbandDomain(
     domain: WarbandDomainName,
     api: RuntimeApiClient,
@@ -733,6 +767,8 @@ export class GameStore {
     this.currentRunInFlight = null;
     this.itemInventoryState = emptyDomain<OwnedItemStack>();
     this.itemInventoryInFlight = null;
+    this.shopState = Object.freeze({ status: 'not-loaded', data: null, error: null });
+    this.shopInFlight = null;
     for (const key of Object.keys(this.inFlight) as WarbandDomainName[]) delete this.inFlight[key];
     this.emit();
     this.emitRun();
@@ -959,6 +995,7 @@ import { CurrentRun, CurrentRunResult, RunAbandonResult, RunContractError, RunSt
 import { activeRunLock, ActiveRunLock } from './active-run-lock';
 import { ExitRunNodeResolutionResult, LootRunNodeResolutionResult, RestRunNodeResolutionResult } from './run-node-resolution-contracts';
 import { InventoryContractError, OwnedItemStack, parseItemCollectionEnvelope } from './inventory-contracts';
+import { ShopCatalogResult, ShopContractError, parseShopCatalogEnvelope } from './shop-contracts';
 
 function unitDetailErrorKind(error: unknown): WarbandDomainErrorKind {
   if (error instanceof RuntimeApiError) return error.kind;

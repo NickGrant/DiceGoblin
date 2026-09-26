@@ -35,6 +35,14 @@ export interface ClientItemDefinition {
   };
 }
 
+export type ClientShopOfferDefinition = {
+  readonly id: string;
+  readonly grant: { readonly type: 'item'; readonly item_id: string; readonly quantity: number };
+} | {
+  readonly id: string;
+  readonly grant: { readonly type: 'die'; readonly dice_profile_id: string; readonly size: 4 | 6 | 8 };
+};
+
 export interface ClientKinDefinition {
   readonly id: string;
   readonly display_name: string;
@@ -115,6 +123,7 @@ export interface ClientContentProjection {
     readonly dice_profiles: Readonly<Record<string, ClientDiceProfileDefinition>>;
     readonly run_node_types: Readonly<Record<string, ClientRunNodeTypeDefinition>>;
     readonly items: Readonly<Record<string, ClientItemDefinition>>;
+    readonly shop_offers: Readonly<Record<string, ClientShopOfferDefinition>>;
   };
 }
 
@@ -148,6 +157,7 @@ const catalogFields = [
   'dice_profiles',
   'run_node_types',
   'items',
+  'shop_offers',
 ] as const;
 const contentFields = ['gameplay', ...catalogFields] as const;
 
@@ -286,6 +296,7 @@ export class ClientContentRegistry {
   private readonly diceProfiles = new Map<string, ClientDiceProfileDefinition>();
   private readonly runNodeTypes = new Map<string, ClientRunNodeTypeDefinition>();
   private readonly items = new Map<string, ClientItemDefinition>();
+  private readonly shopOffers = new Map<string, ClientShopOfferDefinition>();
 
   constructor(projection: unknown) {
     if (!isRecord(projection))
@@ -340,6 +351,12 @@ export class ClientContentRegistry {
     this.loadCatalog(catalogs.items, this.items, (id, value) =>
       this.itemDefinition(id, value),
     );
+    this.loadCatalog(
+      catalogs.shop_offers,
+      this.shopOffers,
+      (id, value) => this.shopOfferDefinition(id, value),
+      false,
+    );
     this.validateReferences();
     this.revision = revision;
   }
@@ -383,18 +400,25 @@ export class ClientContentRegistry {
   listItems(): readonly ClientItemDefinition[] {
     return Object.freeze([...this.items.values()]);
   }
+  getShopOffer(stableId: string): ClientShopOfferDefinition | undefined {
+    return this.shopOffers.get(stableId);
+  }
+  listShopOffers(): readonly ClientShopOfferDefinition[] {
+    return Object.freeze([...this.shopOffers.values()]);
+  }
 
-  private loadCatalog<T extends ClientContentDefinition>(
+  private loadCatalog<T extends { readonly id: string }>(
     catalog: Record<string, unknown>,
     target: Map<string, T>,
     validator: (id: string, value: unknown) => T,
+    includeInGenericIndex = true,
   ): void {
     for (const [id, candidate] of Object.entries(catalog)) {
       const definition = validator(id, candidate);
-      if (this.definitionsById.has(id))
+      if (includeInGenericIndex && this.definitionsById.has(id))
         throw new ClientContentError(`Client content contains duplicate stable ID '${id}'.`);
       target.set(id, definition);
-      this.definitionsById.set(id, definition);
+      if (includeInGenericIndex) this.definitionsById.set(id, definition as unknown as ClientContentDefinition);
     }
   }
 
@@ -618,6 +642,32 @@ export class ClientContentRegistry {
     });
   }
 
+  private shopOfferDefinition(catalogId: string, value: unknown): ClientShopOfferDefinition {
+    if (!isRecord(value)) throw new ClientContentError('Client content contains an invalid Shop offer.');
+    requireExactFields(value, ['id', 'grant'], `Shop offer '${catalogId}'`);
+    const id = requireIdentity(value, catalogId, 'shop_offer.', 'Shop offer');
+    const grant = value['grant'];
+    if (!isRecord(grant)) throw new ClientContentError(`Shop offer '${catalogId}' has an invalid grant.`);
+    const type = requireNonEmptyString(grant, 'type');
+    if (type === 'item') {
+      requireExactFields(grant, ['type', 'item_id', 'quantity'], `Shop offer '${catalogId}' grant`);
+      const itemId = requireNonEmptyString(grant, 'item_id');
+      if (!stableIdPattern.test(itemId) || !itemId.startsWith('item.'))
+        throw new ClientContentError(`Shop offer '${catalogId}' has an invalid item reference.`);
+      return Object.freeze({ id, grant: Object.freeze({ type, item_id: itemId,
+        quantity: requireInteger(grant, 'quantity', 1, Number.MAX_SAFE_INTEGER) }) });
+    }
+    if (type === 'die') {
+      requireExactFields(grant, ['type', 'dice_profile_id', 'size'], `Shop offer '${catalogId}' grant`);
+      const profileId = requireNonEmptyString(grant, 'dice_profile_id');
+      const size = requireInteger(grant, 'size', 4, 8);
+      if (!stableIdPattern.test(profileId) || !profileId.startsWith('dice_profile.') || ![4, 6, 8].includes(size))
+        throw new ClientContentError(`Shop offer '${catalogId}' has an invalid die grant.`);
+      return Object.freeze({ id, grant: Object.freeze({ type, dice_profile_id: profileId, size: size as 4 | 6 | 8 }) });
+    }
+    throw new ClientContentError(`Shop offer '${catalogId}' has an unsupported grant.`);
+  }
+
   private validateReferences(): void {
     for (const unitType of this.unitTypes.values()) {
       for (const abilityId of unitType.ability_ids) {
@@ -650,6 +700,17 @@ export class ClientContentRegistry {
             `Dice profile '${profile.id}' declares an incompatible die size.`,
           );
         }
+      }
+    }
+    for (const offer of this.shopOffers.values()) {
+      if (offer.grant.type === 'item') {
+        const item = this.items.get(offer.grant.item_id);
+        if (!item || !item.stackable)
+          throw new ClientContentError(`Shop offer '${offer.id}' references an unavailable item.`);
+      } else {
+        const profile = this.diceProfiles.get(offer.grant.dice_profile_id);
+        if (!profile || !profile.allowed_sizes.includes(offer.grant.size))
+          throw new ClientContentError(`Shop offer '${offer.id}' references an incompatible die profile.`);
       }
     }
   }

@@ -32,6 +32,7 @@ use DiceGoblins\Application\Queries\CurrentRunQuery;
 use DiceGoblins\Application\Queries\DiceCollectionQuery;
 use DiceGoblins\Application\Queries\GameBootstrapQuery;
 use DiceGoblins\Application\Queries\ItemCollectionQuery;
+use DiceGoblins\Application\Queries\ShopCatalogQuery;
 use DiceGoblins\Application\Queries\SquadCollectionQuery;
 use DiceGoblins\Application\Queries\UnitCollectionQuery;
 use DiceGoblins\Application\Queries\UnitDetailQuery;
@@ -185,6 +186,7 @@ final class ControllerServiceFactory
       'unitDetailQuery' => $unitDetailQuery,
       'diceCollectionQuery' => new DiceCollectionQuery($diceRepository, $content),
       'itemCollectionQuery' => new ItemCollectionQuery($itemRepository, $content),
+      'shopCatalogQuery' => new ShopCatalogQuery($core['playerStateRepo'], $content),
       'squadCollectionQuery' => new SquadCollectionQuery($squadRepository),
       'createSquadCommand' => new CreateSquadCommand($pdo, $core['playerStateRepo'], $squadRepository,
         $idempotencyRepository, $squadCommandSupport),

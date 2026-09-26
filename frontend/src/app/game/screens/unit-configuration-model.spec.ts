@@ -17,7 +17,7 @@ describe('UnitConfigurationDraft', () => {
       },
       dice_materials: { 'dice_material.bone': { id: 'dice_material.bone', display_name: 'Bone', description: 'Bone.', art_key: 'bone', allowed_sizes: [6] } }, dice_aspects: {},
       dice_profiles: { 'dice_profile.bone': { id: 'dice_profile.bone', display_name: 'Bone Die', material_id: 'dice_material.bone', rarity: 'common', aspect_ids: [], allowed_sizes: [6] } },
-      run_node_types: {}, items: {},
+      run_node_types: {}, items: {}, shop_offers: {},
     } });
     const bash = content.getAbility('ability.bash')!; const volley = content.getAbility('ability.volley')!; const passive = content.getAbility('ability.passive')!;
     const material = content.getDiceMaterial('dice_material.bone')!; const profile = content.getDiceProfile('dice_profile.bone')!;

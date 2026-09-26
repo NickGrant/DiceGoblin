@@ -2,10 +2,14 @@
 
 ## Milestone 7 - Economy and Inventory
 
-### Milestone 7 Package 2 - Shop authored-offer model + authoritative read contract
+### Milestone 7 Package 2 - Shop authored-offer model + authoritative Shop read contract
 
 **Status:** In Progress
 **Priority:** High
+
+#### Problem
+
+The vNext runtime has no canonical authored Shop-offer model or authoritative read contract, so later purchase work has no safe source for offer identity, current price, availability, or affordability.
 
 #### Accepted baseline
 

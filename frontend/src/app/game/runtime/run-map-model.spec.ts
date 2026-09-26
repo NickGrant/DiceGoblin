@@ -75,6 +75,7 @@ function content(): ClientContentRegistry {
       'run_node_type.exit': { id: 'run_node_type.exit', display_name: 'Authored Gate', description: 'Authored gate description.', icon_key: 'gate' },
     },
     items: {},
+    shop_offers: {},
   } });
 }
 

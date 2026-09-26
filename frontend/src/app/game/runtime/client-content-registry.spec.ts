@@ -35,6 +35,7 @@ describe('ClientContentRegistry', () => {
     expect(registry.getDiceProfile('dice_profile.cardboard_striking')?.rarity).toBe('common');
     expect(registry.getRunNodeType('run_node_type.combat')?.icon_key).toBe('icon_encounter_combat');
     expect(registry.getItem('item.test.tonic')?.effect).toEqual({ type: 'energy_restore', amount: 5 });
+    expect(registry.getShopOffer('shop_offer.test_tonic')?.grant.type).toBe('item');
     expect(registry.has('region.missing')).toBeFalse();
   });
 
@@ -100,6 +101,18 @@ describe('ClientContentRegistry', () => {
     const privateField = validProjection();
     (privateField.content.items['item.test.tonic'] as unknown as Record<string, unknown>)['grant_config'] = {};
     expect(() => new ClientContentRegistry(privateField)).toThrowError(ClientContentError);
+  });
+
+  it('strictly validates projected Shop grants and excludes price authority', () => {
+    const privatePrice = validProjection();
+    (privatePrice.content.shop_offers['shop_offer.test_tonic'] as unknown as Record<string, unknown>)['price'] = { currency_id: 'teeth', amount: 1 };
+    expect(() => new ClientContentRegistry(privatePrice)).toThrowError(ClientContentError);
+    const missingItem = validProjection();
+    missingItem.content.shop_offers['shop_offer.test_tonic'].grant.item_id = 'item.missing';
+    expect(() => new ClientContentRegistry(missingItem)).toThrowError(ClientContentError);
+    const incompatibleDie = validProjection();
+    incompatibleDie.content.shop_offers['shop_offer.test_die'].grant.size = 8;
+    expect(() => new ClientContentRegistry(incompatibleDie)).toThrowError(ClientContentError);
   });
 
   it('strictly rejects missing, non-positive, or expanded gameplay presentation', () => {
@@ -193,6 +206,10 @@ function validProjection() {
           category: 'consumable', rarity: 'common', icon_key: 'tonic', stackable: true,
           effect: { type: 'energy_restore', amount: 5 },
         },
+      },
+      shop_offers: {
+        'shop_offer.test_tonic': { id: 'shop_offer.test_tonic', grant: { type: 'item', item_id: 'item.test.tonic', quantity: 2 } },
+        'shop_offer.test_die': { id: 'shop_offer.test_die', grant: { type: 'die', dice_profile_id: 'dice_profile.cardboard_striking', size: 6 } },
       },
     },
   };
