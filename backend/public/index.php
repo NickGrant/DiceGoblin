@@ -131,6 +131,8 @@ $router->get('/api/v1/units/:unitId', [$warband, 'unitDetail']);
 $router->patch('/api/v1/units/:unitId/name', [$warband, 'renameUnit']);
 $router->put('/api/v1/units/:unitId/loadout', [$warband, 'replaceUnitLoadout']);
 $router->get('/api/v1/dice', [$warband, 'dice']);
+$router->post('/api/v1/dice/:diceId/sell', [$warband, 'sellDie']);
+$router->post('/api/v1/dice/:diceId/salvage', [$warband, 'salvageDie']);
 $router->get('/api/v1/squads', [$warband, 'squads']);
 $router->post('/api/v1/squads', [$warband, 'createSquad']);
 $router->put('/api/v1/squads/:squadId', [$warband, 'updateSquad']);

@@ -29,6 +29,8 @@ import { RunNodeResolutionContractError, RunNodeResolutionResult, parseRunNodeRe
 import { ShopContractError, ShopPurchasePayload, ShopPurchaseResult, parseShopPurchaseEnvelope } from './shop-contracts';
 import { ConsumableContractError, ConsumableUsePayload, EnergyRestoreResult, RunUnitHealResult,
   parseEnergyRestoreEnvelope, parseRunUnitHealEnvelope } from './consumable-contracts';
+import { DiceLifecycleContractError, DiceSellResult, DiceSalvageResult,
+  parseDiceSellEnvelope, parseDiceSalvageEnvelope } from './dice-lifecycle-contracts';
 
 export type RuntimeFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
@@ -84,6 +86,20 @@ export class RuntimeApiClient {
 
   async getShop(): Promise<unknown> {
     return this.get('/api/v1/shop');
+  }
+
+  async sellDie(diceId: string, csrfToken: string, idempotencyKey: string): Promise<DiceSellResult> {
+    if (!/^[1-9][0-9]*$/.test(diceId) || idempotencyKey.trim() === '')
+      throw new RuntimeApiError('malformed-response');
+    return this.mutate(`/api/v1/dice/${diceId}/sell`, 'POST', csrfToken, undefined, idempotencyKey,
+      (value) => parseDiceSellEnvelope(value, diceId));
+  }
+
+  async salvageDie(diceId: string, csrfToken: string, idempotencyKey: string): Promise<DiceSalvageResult> {
+    if (!/^[1-9][0-9]*$/.test(diceId) || idempotencyKey.trim() === '')
+      throw new RuntimeApiError('malformed-response');
+    return this.mutate(`/api/v1/dice/${diceId}/salvage`, 'POST', csrfToken, undefined, idempotencyKey,
+      (value) => parseDiceSalvageEnvelope(value, diceId));
   }
 
   async purchaseShopOffer(
@@ -275,7 +291,7 @@ export class RuntimeApiClient {
     } catch (error) {
       if (error instanceof WarbandContractError || error instanceof UnitDetailContractError || error instanceof RunContractError
         || error instanceof RunNodeResolutionContractError || error instanceof ShopContractError
-        || error instanceof ConsumableContractError) {
+        || error instanceof ConsumableContractError || error instanceof DiceLifecycleContractError) {
         throw new RuntimeApiError('malformed-response', response.status);
       }
       throw error;

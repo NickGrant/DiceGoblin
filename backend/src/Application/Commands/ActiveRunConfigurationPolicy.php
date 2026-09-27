@@ -36,6 +36,17 @@ final class ActiveRunConfigurationPolicy
     if ($active !== null && isset($active['unit_ids'][$unitId])) throw new ActiveRunConfigurationLockedException();
   }
 
+  /** @param list<int> $boundUnitIds */
+  public function assertDiceLifecycleAllowed(int $userId, array $boundUnitIds): void
+  {
+    if ($boundUnitIds === []) return;
+    $active = $this->activeParticipation($userId);
+    if ($active === null) return;
+    foreach ($boundUnitIds as $unitId) {
+      if (isset($active['unit_ids'][$unitId])) throw new ActiveRunConfigurationLockedException();
+    }
+  }
+
   /** @return array{squad_id:int,unit_ids:array<int,true>}|null */
   private function activeParticipation(int $userId): ?array
   {

@@ -55,4 +55,16 @@ final class DiceValuationServiceTest extends TestCase
       ])
     );
   }
+
+  public function testVnextLifecycleValuesUseRepresentativeSizeAndProfileRarityPairsWithoutAffixes(): void
+  {
+    $this->assertSame([6, 10, 19, 34, 57], array_map(
+      static fn(array $pair): int => DiceValuationService::calculateSellValue($pair[0], $pair[1], []),
+      [[4, 'common'], [6, 'uncommon'], [8, 'rare'], [12, 'epic'], [20, 'legendary']],
+    ));
+    $this->assertSame([2, 4, 7, 13, 20], array_map(
+      static fn(array $pair): int => DiceValuationService::calculateRawChaosSalvageValue($pair[0], $pair[1], []),
+      [[4, 'common'], [6, 'uncommon'], [8, 'rare'], [12, 'epic'], [20, 'legendary']],
+    ));
+  }
 }

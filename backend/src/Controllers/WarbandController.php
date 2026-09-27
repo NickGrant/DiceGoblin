@@ -10,6 +10,8 @@ use DiceGoblins\Application\Commands\SquadActiveDeletionException;
 use DiceGoblins\Application\Commands\SquadNotFoundException;
 use DiceGoblins\Application\Commands\SquadValidationException;
 use DiceGoblins\Application\Commands\UnitConfigurationValidationException;
+use DiceGoblins\Application\Commands\DiceLifecycleException;
+use DiceGoblins\Application\Commands\DiceLifecycleIntegrityException;
 use DiceGoblins\Application\Queries\UnitNotFoundException;
 use DiceGoblins\Application\WarbandIntegrityException;
 use DiceGoblins\Controllers\Concerns\RequiresCsrf;
@@ -55,6 +57,18 @@ final class WarbandController
   public function dice(): void
   {
     $this->collection('dice', 'diceCollectionQuery');
+  }
+
+  /** POST /api/v1/dice/:diceId/sell */
+  public function sellDie(?string $diceId): void
+  {
+    $this->runDieLifecycleCommand($diceId, 'sell');
+  }
+
+  /** POST /api/v1/dice/:diceId/salvage */
+  public function salvageDie(?string $diceId): void
+  {
+    $this->runDieLifecycleCommand($diceId, 'salvage');
   }
 
   /** PATCH /api/v1/units/:unitId/name */
@@ -239,6 +253,33 @@ final class WarbandController
     }
   }
 
+  private function runDieLifecycleCommand(?string $diceId, string $operation): void
+  {
+    $services = $this->mutationServices();
+    if ($services === null) return;
+    $id = $this->diceId($diceId);
+    if ($id === null) return;
+    try {
+      $command = $services['diceLifecycleCommand'];
+      $result = $operation === 'sell'
+        ? $command->sell($services['userId'], $id, $this->idempotencyKey())
+        : $command->salvage($services['userId'], $id, $this->idempotencyKey());
+      Response::json(['ok' => true, 'data' => $result]);
+    } catch (IdempotencyKeyException) {
+      $this->squadError('idempotency_key_invalid', 'Idempotency-Key is invalid.', 400);
+    } catch (IdempotencyConflictException) {
+      $this->squadError('idempotency_conflict', 'Idempotency-Key conflicts with an earlier request.', 409);
+    } catch (ActiveRunConfigurationLockedException) {
+      $this->squadError('active_run_configuration_locked', 'Active run configuration is locked.', 409);
+    } catch (DiceLifecycleException $e) {
+      $this->squadError($e->errorCode, $e->publicMessage, $e->httpStatus);
+    } catch (DiceLifecycleIntegrityException) {
+      $this->integrityError();
+    } catch (Throwable) {
+      $this->serverError();
+    }
+  }
+
   private function squadId(?string $value): ?int
   {
     if ($value === null || !preg_match('/^[1-9][0-9]*$/D', $value) || (int)$value <= 0 || (string)(int)$value !== $value) {
@@ -256,6 +297,18 @@ final class WarbandController
     }
     return (int)$value;
   }
+
+  private function diceId(?string $value): ?int
+  {
+    if ($value === null || !preg_match('/^[1-9][0-9]*$/D', $value) || (int)$value <= 0 || (string)(int)$value !== $value) {
+      $this->squadError('die_not_found', 'Die is unavailable.', 404);
+      return null;
+    }
+    return (int)$value;
+  }
+
+  private function idempotencyKey(): ?string
+  { return is_string($_SERVER['HTTP_IDEMPOTENCY_KEY'] ?? null) ? $_SERVER['HTTP_IDEMPOTENCY_KEY'] : null; }
 
   private function unitConfigurationError(): void
   {

@@ -7,6 +7,7 @@ use DiceGoblins\Application\Commands\ProvisionWarbandFixtureCommand;
 use DiceGoblins\Application\Commands\PurchaseShopOfferCommand;
 use DiceGoblins\Application\Commands\RestoreEnergyCommand;
 use DiceGoblins\Application\Commands\HealRunUnitCommand;
+use DiceGoblins\Application\Commands\DiceLifecycleCommand;
 use DiceGoblins\Application\Commands\AbandonRunCommand;
 use DiceGoblins\Application\Commands\ActiveRunConfigurationPolicy;
 use DiceGoblins\Application\Commands\ActivateSquadCommand;
@@ -206,6 +207,9 @@ final class ControllerServiceFactory
       'healRunUnitCommand' => new HealRunUnitCommand(
         $pdo, $core['playerStateRepo'], $runRepository, $nodeResolutionRepository, $itemRepository,
         $idempotencyRepository, $content, new BaseLevelStatResolver(),
+      ),
+      'diceLifecycleCommand' => new DiceLifecycleCommand(
+        $pdo, $core['playerStateRepo'], $diceRepository, $idempotencyRepository, $activeRunPolicy, $content,
       ),
       'squadCollectionQuery' => new SquadCollectionQuery($squadRepository),
       'createSquadCommand' => new CreateSquadCommand($pdo, $core['playerStateRepo'], $squadRepository,

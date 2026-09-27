@@ -117,6 +117,29 @@ describe('RuntimeApiClient', () => {
       .toBeRejectedWith(jasmine.objectContaining({ kind: 'malformed-response' }));
   });
 
+  it('sends exact bodyless dice lifecycle routes with CSRF and idempotency', async () => {
+    const sell = { ok: true, data: { dice_id: '21', lifecycle_status: 'sold', teeth_awarded: 19,
+      teeth: 31, player_revision: 4 } };
+    const salvage = { ok: true, data: { dice_id: '22', lifecycle_status: 'salvaged', raw_chaos_awarded: 7,
+      raw_chaos: 9, player_revision: 5 } };
+    const fetchRequest = jasmine.createSpy<RuntimeFetch>('fetchRequest').and.callFake(async (url) =>
+      new Response(JSON.stringify(String(url).endsWith('/sell') ? sell : salvage), { status: 200 }));
+    const client = new RuntimeApiClient(fetchRequest, '/root');
+
+    expect((await client.sellDie('21', 'csrf', 'dice:sell:fixed')).teethAwarded).toBe(19);
+    expect((await client.salvageDie('22', 'csrf', 'dice:salvage:fixed')).rawChaosAwarded).toBe(7);
+
+    const calls = fetchRequest.calls.allArgs();
+    expect(calls.map(([url]) => url)).toEqual(['/root/api/v1/dice/21/sell', '/root/api/v1/dice/22/salvage']);
+    expect(calls.map(([, init]) => init?.body)).toEqual([undefined, undefined]);
+    expect(calls[0][1]).toEqual({ method: 'POST', credentials: 'include', headers: {
+      Accept: 'application/json', 'X-CSRF-Token': 'csrf', 'Idempotency-Key': 'dice:sell:fixed',
+    } });
+    expect(calls[1][1]?.headers).toEqual(jasmine.objectContaining({ 'Idempotency-Key': 'dice:salvage:fixed' }));
+    await expectAsync(client.sellDie('021', 'csrf', 'dice:sell:fixed'))
+      .toBeRejectedWith(jasmine.objectContaining({ kind: 'malformed-response' }));
+  });
+
   it('gets and strictly parses retained battle playback without CSRF', async () => {
     const payload = { ok: true, data: { battle: { id: '81', run_id: '71', run_node_id: '72', engine_version: 1,
       playback_version: 1, outcome: 'victory', ending_round: 1, ending_tick: 1, participants: [

@@ -35,6 +35,45 @@ final class WarbandDiceRepository
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
   }
 
+  /** @return array{id:string,user_id:string,size:int,profile_id:string,lifecycle_status:string}|null */
+  public function findActiveOwnedForUpdate(int $userId, int $diceId): ?array
+  {
+    $this->requireTransaction();
+    $stmt = $this->pdo->prepare("SELECT `id`, `user_id`, `size`, `profile_id`, `lifecycle_status`
+      FROM `dice_instances` WHERE `id` = ? AND `user_id` = ? AND `lifecycle_status` = 'active'
+      LIMIT 1 FOR UPDATE");
+    $stmt->execute([$diceId, $userId]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    return is_array($row) ? ['id' => (string)$row['id'], 'user_id' => (string)$row['user_id'],
+      'size' => (int)$row['size'], 'profile_id' => (string)$row['profile_id'],
+      'lifecycle_status' => (string)$row['lifecycle_status']] : null;
+  }
+
+  /** @return list<array<string,mixed>> */
+  public function listLifecycleBindingsForUpdate(int $diceId): array
+  {
+    $this->requireTransaction();
+    $stmt = $this->pdo->prepare('SELECT uad.`unit_id`, uad.`ability_id`, uad.`slot_index`, uad.`dice_instance_id`,
+        ui.`user_id` AS `unit_user_id`, ui.`lifecycle_status` AS `unit_lifecycle_status`,
+        di.`user_id` AS `die_user_id`, di.`lifecycle_status` AS `die_lifecycle_status`
+      FROM `unit_ability_dice` uad
+      JOIN `unit_instances` ui ON ui.`id` = uad.`unit_id`
+      JOIN `dice_instances` di ON di.`id` = uad.`dice_instance_id`
+      WHERE uad.`dice_instance_id` = ? ORDER BY uad.`unit_id`, uad.`ability_id`, uad.`slot_index` FOR UPDATE');
+    $stmt->execute([$diceId]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+  }
+
+  public function transitionActiveLifecycle(int $userId, int $diceId, string $terminalStatus): void
+  {
+    $this->requireTransaction();
+    if (!in_array($terminalStatus, ['sold', 'salvaged'], true)) throw new RuntimeException('Die lifecycle transition is invalid.');
+    $stmt = $this->pdo->prepare("UPDATE `dice_instances` SET `lifecycle_status` = ?
+      WHERE `id` = ? AND `user_id` = ? AND `lifecycle_status` = 'active'");
+    $stmt->execute([$terminalStatus, $diceId, $userId]);
+    if ($stmt->rowCount() !== 1) throw new RuntimeException('Active die lifecycle changed unexpectedly.');
+  }
+
   /**
    * Returns both inbound and outbound relationships relevant to an owner so
    * the query layer can reject cross-owner corruption without leaking IDs.
@@ -94,5 +133,10 @@ final class WarbandDiceRepository
     );
     $stmt->execute($diceIds);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
+  }
+
+  private function requireTransaction(): void
+  {
+    if (!$this->pdo->inTransaction()) throw new RuntimeException('Die lifecycle persistence requires a caller-owned transaction.');
   }
 }

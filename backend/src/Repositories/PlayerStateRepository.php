@@ -83,6 +83,7 @@ final class PlayerStateRepository
 
   public function applyCurrencyTransition(int $userId, string $currencyId, int $before, int $after): void
   {
+    if (!$this->pdo->inTransaction()) throw new RuntimeException('Currency credit requires a caller-owned transaction.');
     if (!in_array($currencyId, ['teeth', 'raw_chaos'], true) || $before < 0 || $after < $before) {
       throw new RuntimeException('Currency transition is invalid.');
     }
