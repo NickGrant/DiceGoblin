@@ -4,11 +4,14 @@ declare(strict_types=1);
 namespace DiceGoblins\Application\Commands;
 
 use Closure;
+use DiceGoblins\Application\NormalUnitCreationService;
+use DiceGoblins\Application\UnitTypeAvailabilityPolicy;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Content\ContentValidationException;
 use DiceGoblins\Repositories\IdempotencyRequestRepository;
 use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Repositories\UserItemRepository;
+use DiceGoblins\Repositories\UserUnlockRepository;
 use DiceGoblins\Repositories\WarbandDiceRepository;
 use DiceGoblins\Support\ClientSafeInteger;
 use JsonException;
@@ -25,6 +28,9 @@ final class PurchaseShopOfferCommand
     private readonly IdempotencyRequestRepository $idempotency,
     private readonly UserItemRepository $items,
     private readonly WarbandDiceRepository $dice,
+    private readonly UserUnlockRepository $unlocks,
+    private readonly UnitTypeAvailabilityPolicy $unitTypes,
+    private readonly NormalUnitCreationService $unitCreation,
     private readonly ContentRegistry $content,
     private readonly ?Closure $beforeCommit = null,
   ) {}
@@ -71,6 +77,12 @@ final class PurchaseShopOfferCommand
       if (($offer['price']['currency_id'] ?? null) !== 'teeth' || !is_int($price)
         || $price < 1 || $price > ClientSafeInteger::MAXIMUM) {
         throw new ShopPurchaseIntegrityException('Shop price is incoherent.');
+      }
+      if (($offer['grant']['type'] ?? null) === 'unit') {
+        $available = $this->unitTypes->availableUnitTypeIds($this->unlocks->listIdsForUser($userId, true));
+        if (!in_array($offer['grant']['unit_type_id'] ?? null, $available, true)) {
+          throw new ShopPurchaseException('shop_offer_unavailable', 'Shop offer is unavailable.', 403);
+        }
       }
       if ($purchase->expectedAmount !== $price) {
         throw new ShopPurchaseException('shop_offer_changed', 'Shop offer changed; refresh before purchasing.', 409);
@@ -135,6 +147,15 @@ final class PurchaseShopOfferCommand
       }
       return ['type' => 'die', 'die' => $this->dice->createActive($userId, $size, $profileId)];
     }
+    if (($grant['type'] ?? null) === 'unit') {
+      $unitTypeId = $grant['unit_type_id'] ?? null; $kinId = $grant['kin_id'] ?? null;
+      if (!is_string($unitTypeId) || $kinId !== 'kin.goblin') {
+        throw new ShopPurchaseIntegrityException('Shop unit grant is incoherent.');
+      }
+      $unitType = $this->content->unitType($unitTypeId);
+      if (($unitType['tier'] ?? null) !== 1) throw new ShopPurchaseIntegrityException('Shop unit tier is incoherent.');
+      return ['type' => 'unit', 'unit' => $this->unitCreation->create($userId, $unitTypeId, $kinId)];
+    }
     throw new ShopPurchaseIntegrityException('Shop grant type is incoherent.');
   }
 
@@ -166,7 +187,15 @@ final class PurchaseShopOfferCommand
       && is_string($die['id'] ?? null) && preg_match('/^[1-9][0-9]*$/D', $die['id'])
       && in_array($die['size'] ?? null, [4, 6, 8], true) && is_string($die['profile_id'] ?? null)
       && ($die['lifecycle_status'] ?? null) === 'active';
-    if (!$itemValid && !$dieValid) throw new ShopPurchaseIntegrityException('Persisted Shop receipt output is invalid.');
+    $unit = $output['unit'] ?? null;
+    $unitValid = ($output['type'] ?? null) === 'unit' && $this->exact($output, ['type', 'unit'])
+      && is_array($unit) && !array_is_list($unit)
+      && $this->exact($unit, ['id', 'display_name', 'unit_type_id', 'kin_id', 'level', 'xp', 'lifecycle_status'])
+      && is_string($unit['id'] ?? null) && preg_match('/^[1-9][0-9]*$/D', $unit['id'])
+      && is_string($unit['display_name'] ?? null) && trim($unit['display_name']) !== '' && strlen(trim($unit['display_name'])) <= 128
+      && is_string($unit['unit_type_id'] ?? null) && ($unit['kin_id'] ?? null) === 'kin.goblin'
+      && ($unit['level'] ?? null) === 1 && ($unit['xp'] ?? null) === 0 && ($unit['lifecycle_status'] ?? null) === 'active';
+    if (!$itemValid && !$dieValid && !$unitValid) throw new ShopPurchaseIntegrityException('Persisted Shop receipt output is invalid.');
   }
 
   /** @param array<string,mixed> $value @param list<string> $keys */

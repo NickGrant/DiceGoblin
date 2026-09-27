@@ -36,6 +36,7 @@ describe('ClientContentRegistry', () => {
     expect(registry.getRunNodeType('run_node_type.combat')?.icon_key).toBe('icon_encounter_combat');
     expect(registry.getItem('item.test.tonic')?.effect).toEqual({ type: 'energy_restore', amount: 5 });
     expect(registry.getShopOffer('shop_offer.test_tonic')?.grant.type).toBe('item');
+    expect(registry.getShopOffer('shop_offer.test_unit')?.grant.type).toBe('unit');
     expect(registry.has('region.missing')).toBeFalse();
   });
 
@@ -113,6 +114,12 @@ describe('ClientContentRegistry', () => {
     const incompatibleDie = validProjection();
     incompatibleDie.content.shop_offers['shop_offer.test_die'].grant.size = 8;
     expect(() => new ClientContentRegistry(incompatibleDie)).toThrowError(ClientContentError);
+    const missingUnit = validProjection();
+    missingUnit.content.shop_offers['shop_offer.test_unit'].grant.unit_type_id = 'unit_type.missing';
+    expect(() => new ClientContentRegistry(missingUnit)).toThrowError(ClientContentError);
+    const wrongKin = validProjection();
+    wrongKin.content.shop_offers['shop_offer.test_unit'].grant.kin_id = 'kin.pig';
+    expect(() => new ClientContentRegistry(wrongKin)).toThrowError(ClientContentError);
   });
 
   it('strictly rejects missing, non-positive, or expanded gameplay presentation', () => {
@@ -210,6 +217,7 @@ function validProjection() {
       shop_offers: {
         'shop_offer.test_tonic': { id: 'shop_offer.test_tonic', grant: { type: 'item', item_id: 'item.test.tonic', quantity: 2 } },
         'shop_offer.test_die': { id: 'shop_offer.test_die', grant: { type: 'die', dice_profile_id: 'dice_profile.cardboard_striking', size: 6 } },
+        'shop_offer.test_unit': { id: 'shop_offer.test_unit', grant: { type: 'unit', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin' } },
       },
     },
   };

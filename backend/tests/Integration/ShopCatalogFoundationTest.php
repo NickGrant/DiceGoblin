@@ -5,9 +5,11 @@ namespace DiceGoblins\Tests\Integration;
 
 use DiceGoblins\Application\Queries\ShopCatalogQuery;
 use DiceGoblins\Application\Queries\ShopIntegrityException;
+use DiceGoblins\Application\UnitTypeAvailabilityPolicy;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Controllers\ShopCatalogController;
 use DiceGoblins\Repositories\PlayerStateRepository;
+use DiceGoblins\Repositories\UserUnlockRepository;
 use DiceGoblins\Support\ClientSafeInteger;
 use DiceGoblins\Tests\Support\IntegrationTestCase;
 
@@ -20,13 +22,13 @@ final class ShopCatalogFoundationTest extends IntegrationTestCase
   public function testEmptyProductionShopReturnsCurrentWalletAndRevision(): void
   {
     $userId = $this->user('Empty Shop', 13, 4);
-    $result = (new ShopCatalogQuery(new PlayerStateRepository($this->pdo), ContentRegistry::load(dirname(__DIR__, 2) . '/content')))->execute($userId);
+    $result = $this->query(ContentRegistry::load(dirname(__DIR__, 2) . '/content'))->execute($userId);
     $this->assertSame(['teeth' => 13, 'player_revision' => 4, 'offers' => []], $result);
   }
 
   public function testFixtureOffersAreDeterministicAuthoritativeAndAffordabilityIsPerUser(): void
   {
-    $content = $this->content(); $query = new ShopCatalogQuery(new PlayerStateRepository($this->pdo), $content);
+    $content = $this->content(); $query = $this->query($content);
     $below = $this->user('Shop Below', 6, 2); $exact = $this->user('Shop Exact', 7, 3); $above = $this->user('Shop Above', 12, 5);
     $belowResult = $query->execute($below); $exactResult = $query->execute($exact); $aboveResult = $query->execute($above);
     $this->assertSame(['shop_offer.a1', 'shop_offer.a_'], array_column($belowResult['offers'], 'offer_id'));
@@ -55,14 +57,14 @@ final class ShopCatalogFoundationTest extends IntegrationTestCase
   public function testMissingPlayerStateIsIntegrityFailure(): void
   {
     $this->expectException(ShopIntegrityException::class);
-    (new ShopCatalogQuery(new PlayerStateRepository($this->pdo), $this->content()))->execute(999999999);
+    $this->query($this->content())->execute(999999999);
   }
 
   public function testClientSafeMaximumWalletRevisionAndPriceAreReturnedExactly(): void
   {
     $maximum = ClientSafeInteger::MAXIMUM;
     $userId = $this->user('Shop Maximum', $maximum, $maximum);
-    $result = (new ShopCatalogQuery(new PlayerStateRepository($this->pdo), $this->content($maximum)))->execute($userId);
+    $result = $this->query($this->content($maximum))->execute($userId);
 
     $this->assertSame($maximum, $result['teeth']);
     $this->assertSame($maximum, $result['player_revision']);
@@ -73,7 +75,7 @@ final class ShopCatalogFoundationTest extends IntegrationTestCase
   public function testWalletAndRevisionAboveClientSafeMaximumAreIntegrityFailures(): void
   {
     $tooLarge = ClientSafeInteger::MAXIMUM + 1;
-    $query = new ShopCatalogQuery(new PlayerStateRepository($this->pdo), $this->content());
+    $query = $this->query($this->content());
     foreach ([[$tooLarge, 1], [1, $tooLarge]] as [$teeth, $revision]) {
       $userId = $this->user('Shop Unsafe', $teeth, $revision);
       try {
@@ -85,12 +87,34 @@ final class ShopCatalogFoundationTest extends IntegrationTestCase
     }
   }
 
+  public function testUnitOfferAvailabilityUsesOnlyExactOwnedAuthoredEntitlementAndDoesNotMutate(): void
+  {
+    $content = $this->unitContent(); $query = $this->query($content); $unlocks = new UserUnlockRepository($this->pdo);
+    $owner = $this->user('Shop Unit Owner', 20, 7); $other = $this->user('Shop Unit Other', 20, 3);
+    $unlocks->insertIfAbsent($owner, 'unlock.stale');
+    $unlocks->insertIfAbsent($owner, 'unlock.unit_type.marksman');
+    $unlocks->insertIfAbsent($other, 'unlock.unit_type.bruiser');
+    $locked = $query->execute($owner);
+    $this->assertSame([false, true], array_column($locked['offers'], 'available'));
+    $this->assertSame([true, true], array_column($locked['offers'], 'can_afford'));
+    $unlocks->insertIfAbsent($owner, 'unlock.unit_type.bruiser');
+    $available = $query->execute($owner);
+    $this->assertSame([true, true], array_column($available['offers'], 'available'));
+    $this->assertSame(7, $available['player_revision']);
+    $this->assertSame('7', (string)$this->scalar('SELECT `player_revision` FROM `user_state` WHERE `user_id` = ?', [$owner]));
+  }
+
   private function user(string $name, int $teeth, int $revision): int
   {
     $stmt = $this->pdo?->prepare('INSERT INTO `users` (`display_name`) VALUES (?)'); $stmt?->execute([$name]);
     $id = (int)$this->pdo?->lastInsertId(); $this->trackUserId($id);
     $this->pdo?->prepare('INSERT INTO `user_state` (`user_id`, `teeth`, `energy_current`, `player_revision`) VALUES (?, ?, 50, ?)')->execute([$id, $teeth, $revision]);
     return $id;
+  }
+  private function query(ContentRegistry $content): ShopCatalogQuery
+  {
+    return new ShopCatalogQuery(new PlayerStateRepository($this->pdo), new UserUnlockRepository($this->pdo),
+      new UnitTypeAvailabilityPolicy($content), $content);
   }
 
   private function content(int $firstPrice = 7): ContentRegistry
@@ -104,6 +128,21 @@ final class ShopCatalogFoundationTest extends IntegrationTestCase
       'id' => 'shop_offer.a_', 'type' => 'shop_offer', 'grant' => ['type' => 'die', 'dice_profile_id' => 'dice_profile.cardboard_plain', 'size' => 8], 'price' => ['currency_id' => 'teeth', 'amount' => 10],
     ], [
       'id' => 'shop_offer.a1', 'type' => 'shop_offer', 'grant' => ['type' => 'item', 'item_id' => 'item.test.scrap', 'quantity' => 2], 'price' => ['currency_id' => 'teeth', 'amount' => $firstPrice],
+    ]]], JSON_THROW_ON_ERROR));
+    return ContentRegistry::load($root);
+  }
+  private function unitContent(): ContentRegistry
+  {
+    $root = $this->copyCanonicalRoot();
+    file_put_contents($root . '/unlocks/test-shop-units.json', json_encode(['definitions' => [[
+      'id' => 'unlock.unit_type.bruiser', 'type' => 'unlock', 'target_type' => 'unit_type', 'target_id' => 'unit_type.bruiser',
+    ], [
+      'id' => 'unlock.unit_type.marksman', 'type' => 'unlock', 'target_type' => 'unit_type', 'target_id' => 'unit_type.marksman',
+    ]]], JSON_THROW_ON_ERROR));
+    file_put_contents($root . '/shop_offers/test-shop-units.json', json_encode(['definitions' => [[
+      'id' => 'shop_offer.bruiser', 'type' => 'shop_offer', 'grant' => ['type' => 'unit', 'unit_type_id' => 'unit_type.bruiser', 'kin_id' => 'kin.goblin'], 'price' => ['currency_id' => 'teeth', 'amount' => 7],
+    ], [
+      'id' => 'shop_offer.marksman', 'type' => 'shop_offer', 'grant' => ['type' => 'unit', 'unit_type_id' => 'unit_type.marksman', 'kin_id' => 'kin.goblin'], 'price' => ['currency_id' => 'teeth', 'amount' => 8],
     ]]], JSON_THROW_ON_ERROR));
     return ContentRegistry::load($root);
   }

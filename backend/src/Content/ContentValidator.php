@@ -121,7 +121,7 @@ final class ContentValidator
       }
 
       if (($definition['type'] ?? null) === 'unlock') {
-        $this->requireReferenceType($definitions, $id, 'target_id', $definition['target_id'], 'region');
+        $this->requireReferenceType($definitions, $id, 'target_id', $definition['target_id'], $definition['target_type']);
       }
 
       if (($definition['type'] ?? null) === 'event') {
@@ -143,12 +143,27 @@ final class ContentValidator
           if (($item['stackable'] ?? null) !== true) {
             throw new ContentValidationException("{$id} grant.item_id must reference a stackable item.");
           }
-        } else {
+        } elseif ($grant['type'] === 'die') {
           $profile = $this->requireReferenceType(
             $definitions, $id, 'grant.dice_profile_id', $grant['dice_profile_id'], 'dice_profile');
           if (!in_array($grant['size'], $profile['allowed_sizes'], true)) {
             throw new ContentValidationException("{$id} grant size is not allowed by its dice profile.");
           }
+        } else {
+          $unitType = $this->requireReferenceType(
+            $definitions, $id, 'grant.unit_type_id', $grant['unit_type_id'], 'unit_type');
+          $this->requireReferenceType($definitions, $id, 'grant.kin_id', $grant['kin_id'], 'kin');
+          if (($unitType['tier'] ?? null) !== 1) {
+            throw new ContentValidationException("{$id} grant.unit_type_id must reference a tier-1 unit type.");
+          }
+          $reachable = false;
+          foreach ($definitions as $unlock) {
+            if (($unlock['type'] ?? null) === 'unlock' && ($unlock['target_type'] ?? null) === 'unit_type'
+              && ($unlock['target_id'] ?? null) === $grant['unit_type_id']) {
+              $reachable = true; break;
+            }
+          }
+          if (!$reachable) throw new ContentValidationException("{$id} unit grant has no authored unit-type unlock target.");
         }
       }
 
@@ -240,8 +255,8 @@ final class ContentValidator
   {
     $this->requireExactFieldSet($definition, ['id', 'type', 'target_type', 'target_id'], [], $location);
     $this->requireNamespace($definition, 'unlock.', $location);
-    $this->requireAllowedString($definition, 'target_type', ['region'], $location);
-    $this->requireStableIdWithNamespace($definition, 'target_id', 'region.', $location);
+    $targetType = $this->requireAllowedString($definition, 'target_type', ['region', 'unit_type'], $location);
+    $this->requireStableIdWithNamespace($definition, 'target_id', $targetType . '.', $location);
   }
 
   /** @param array<string, mixed> $definition */
@@ -340,7 +355,7 @@ final class ContentValidator
     if (!is_array($grant) || array_is_list($grant)) {
       throw new ContentValidationException("{$location} field 'grant' must be an object.");
     }
-    $grantType = $this->requireAllowedString($grant, 'type', ['item', 'die'], "{$location} field 'grant'");
+    $grantType = $this->requireAllowedString($grant, 'type', ['item', 'die', 'unit'], "{$location} field 'grant'");
     if ($grantType === 'item') {
       $this->requireExactFieldSet($grant, ['type', 'item_id', 'quantity'], [], "{$location} field 'grant'");
       $this->requireStableIdWithNamespace($grant, 'item_id', 'item.', "{$location} field 'grant'");
@@ -351,13 +366,17 @@ final class ContentValidator
         ClientSafeInteger::MAXIMUM,
         "{$location} field 'grant'",
       );
-    } else {
+    } elseif ($grantType === 'die') {
       $this->requireExactFieldSet($grant, ['type', 'dice_profile_id', 'size'], [], "{$location} field 'grant'");
       $this->requireStableIdWithNamespace($grant, 'dice_profile_id', 'dice_profile.', "{$location} field 'grant'");
       $this->requireIntegerInRange($grant, 'size', 4, 8, "{$location} field 'grant'");
       if (!in_array($grant['size'], [4, 6, 8], true)) {
         throw new ContentValidationException("{$location} field 'grant.size' must be d4, d6, or d8.");
       }
+    } else {
+      $this->requireExactFieldSet($grant, ['type', 'unit_type_id', 'kin_id'], [], "{$location} field 'grant'");
+      $this->requireStableIdWithNamespace($grant, 'unit_type_id', 'unit_type.', "{$location} field 'grant'");
+      $this->requireAllowedString($grant, 'kin_id', ['kin.goblin'], "{$location} field 'grant'");
     }
     $price = $definition['price'] ?? null;
     if (!is_array($price) || array_is_list($price)) {

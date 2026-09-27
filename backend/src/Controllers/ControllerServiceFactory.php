@@ -25,6 +25,8 @@ use DiceGoblins\Application\RunNodes\ExitNodeResolutionHandler;
 use DiceGoblins\Application\Combat\CombatSnapshotAssembler;
 use DiceGoblins\Application\Commands\UnitConfigurationSupport;
 use DiceGoblins\Application\RegionAvailabilityPolicy;
+use DiceGoblins\Application\NormalUnitCreationService;
+use DiceGoblins\Application\UnitTypeAvailabilityPolicy;
 use DiceGoblins\Application\Commands\UpdateSquadCommand;
 use DiceGoblins\Application\Queries\ActiveSquadQuery;
 use DiceGoblins\Application\Queries\ActiveRunSummaryQuery;
@@ -146,6 +148,8 @@ final class ControllerServiceFactory
     $unlockRepository = new UserUnlockRepository($pdo);
     $itemRepository = new UserItemRepository($pdo);
     $regionAvailability = new RegionAvailabilityPolicy($content);
+    $unitTypeAvailability = new UnitTypeAvailabilityPolicy($content);
+    $normalUnitCreation = new NormalUnitCreationService($unitRepository, $content);
     $nodeResolutionRepository = new RunNodeResolutionRepository($pdo);
     $rewardApplication = new RewardApplicationService(
       $pdo, $content, new RewardFinalizer(new CryptoRewardRollSource()), new ResolvedEventRepository($pdo),
@@ -187,9 +191,10 @@ final class ControllerServiceFactory
       'unitDetailQuery' => $unitDetailQuery,
       'diceCollectionQuery' => new DiceCollectionQuery($diceRepository, $content),
       'itemCollectionQuery' => new ItemCollectionQuery($itemRepository, $content),
-      'shopCatalogQuery' => new ShopCatalogQuery($core['playerStateRepo'], $content),
+      'shopCatalogQuery' => new ShopCatalogQuery($core['playerStateRepo'], $unlockRepository, $unitTypeAvailability, $content),
       'purchaseShopOfferCommand' => new PurchaseShopOfferCommand(
-        $pdo, $core['playerStateRepo'], $idempotencyRepository, $itemRepository, $diceRepository, $content,
+        $pdo, $core['playerStateRepo'], $idempotencyRepository, $itemRepository, $diceRepository,
+        $unlockRepository, $unitTypeAvailability, $normalUnitCreation, $content,
       ),
       'squadCollectionQuery' => new SquadCollectionQuery($squadRepository),
       'createSquadCommand' => new CreateSquadCommand($pdo, $core['playerStateRepo'], $squadRepository,

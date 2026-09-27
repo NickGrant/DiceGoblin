@@ -19,6 +19,9 @@ export type ShopPurchaseOutput = {
   readonly type: 'item'; readonly itemId: string; readonly quantityGranted: number; readonly ownedQuantityAfter: number;
 } | {
   readonly type: 'die'; readonly die: { readonly id: string; readonly size: 4 | 6 | 8; readonly profileId: string; readonly lifecycleStatus: 'active' };
+} | {
+  readonly type: 'unit'; readonly unit: { readonly id: string; readonly displayName: string; readonly unitTypeId: string;
+    readonly kinId: 'kin.goblin'; readonly level: 1; readonly xp: 0; readonly lifecycleStatus: 'active' };
 };
 export interface ShopPurchaseResult {
   readonly offerId: string;
@@ -112,6 +115,22 @@ export function parseShopPurchaseEnvelope(
     }
     parsedOutput = Object.freeze({ type: 'die', die: Object.freeze({ id: die['id'], size: die['size'] as 4 | 6 | 8,
       profileId: die['profile_id'] as string, lifecycleStatus: 'active' }) });
+  } else if (output['type'] === 'unit') {
+    const unit = output['unit'];
+    if (!exact(output, ['type', 'unit']) || offer.grant.type !== 'unit' || !record(unit)
+      || !exact(unit, ['id', 'display_name', 'unit_type_id', 'kin_id', 'level', 'xp', 'lifecycle_status'])
+      || typeof unit['id'] !== 'string' || !/^[1-9][0-9]*$/.test(unit['id'])
+      || unit['unit_type_id'] !== offer.grant.unit_type_id || unit['kin_id'] !== offer.grant.kin_id
+      || unit['level'] !== 1 || unit['xp'] !== 0 || unit['lifecycle_status'] !== 'active') {
+      throw new ShopContractError('Shop unit output is incoherent.');
+    }
+    const unitType = content.getUnitType(offer.grant.unit_type_id); const kin = content.getKin(offer.grant.kin_id);
+    if (!unitType || unitType.tier !== 1 || !kin || typeof unit['display_name'] !== 'string'
+      || unit['display_name'].trim() !== unitType.display_name || Array.from(unit['display_name'].trim()).length > 128) {
+      throw new ShopContractError('Shop unit output disagrees with authored content.');
+    }
+    parsedOutput = Object.freeze({ type: 'unit', unit: Object.freeze({ id: unit['id'], displayName: unit['display_name'].trim(),
+      unitTypeId: unit['unit_type_id'] as string, kinId: 'kin.goblin', level: 1, xp: 0, lifecycleStatus: 'active' }) });
   } else {
     throw new ShopContractError('Shop purchase output type is invalid.');
   }

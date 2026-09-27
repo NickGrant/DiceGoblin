@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace DiceGoblins\Tests\Unit;
 
+use DiceGoblins\Application\UnitTypeAvailabilityPolicy;
 use DiceGoblins\Content\ClientContentProjector;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Content\ContentValidationException;
@@ -117,6 +118,48 @@ final class ShopOfferContentValidationTest extends TestCase
     }
   }
 
+  public function testTierOneBasicGoblinUnitOfferLoadsProjectsAndUsesAuthoredUnlockAvailability(): void
+  {
+    $registry = $this->unitRegistry($this->unitOffer(), [
+      $this->unitUnlock('unlock.unit_type.marksman', 'unit_type.marksman'),
+      $this->unitUnlock('unlock.unit_type.bruiser', 'unit_type.bruiser'),
+    ]);
+    $offer = $registry->shopOffer('shop_offer.bruiser');
+    $this->assertSame(['type' => 'unit', 'unit_type_id' => 'unit_type.bruiser', 'kin_id' => 'kin.goblin'], $offer['grant']);
+    $projected = (new ClientContentProjector())->project($registry)['content']['shop_offers']['shop_offer.bruiser'];
+    $this->assertSame(['id' => 'shop_offer.bruiser', 'grant' => $offer['grant']], $projected);
+    $this->assertSame(['unit_type.bruiser', 'unit_type.marksman'],
+      (new UnitTypeAvailabilityPolicy($registry))->availableUnitTypeIds([
+        'unlock.stale', 'unlock.region.mountains', 'unlock.unit_type.marksman', 'unlock.unit_type.bruiser',
+      ]));
+  }
+
+  public function testUnitOfferRejectsPromotedTypeNonGoblinKinOrMissingEntitlement(): void
+  {
+    $tierTwo = $this->unitOffer(); $tierTwo['grant']['unit_type_id'] = 'unit_type.enforcer';
+    $pig = $this->unitOffer(); $pig['grant']['kin_id'] = 'kin.pig';
+    foreach ([
+      [$tierTwo, [$this->unitUnlock('unlock.unit_type.enforcer', 'unit_type.enforcer')]],
+      [$pig, [$this->unitUnlock('unlock.unit_type.bruiser', 'unit_type.bruiser')]],
+      [$this->unitOffer(), []],
+    ] as [$offer, $unlocks]) {
+      try { $this->unitRegistry($offer, $unlocks); $this->fail('Expected invalid unit Shop offer.'); }
+      catch (ContentValidationException) { $this->addToAssertionCount(1); }
+    }
+  }
+
+  public function testUnlockTargetNamespaceAndReferenceTypeMustAgree(): void
+  {
+    foreach ([
+      ['id' => 'unlock.test', 'type' => 'unlock', 'target_type' => 'unit_type', 'target_id' => 'region.mountains'],
+      ['id' => 'unlock.test', 'type' => 'unlock', 'target_type' => 'unit_type', 'target_id' => 'unit_type.missing'],
+      ['id' => 'unlock.test', 'type' => 'unlock', 'target_type' => 'region', 'target_id' => 'unit_type.bruiser'],
+    ] as $unlock) {
+      try { $this->unitRegistry($this->unitOffer(), [$unlock]); $this->fail('Expected invalid unlock target.'); }
+      catch (ContentValidationException) { $this->addToAssertionCount(1); }
+    }
+  }
+
   /** @return array<string,mixed> */
   private function itemOffer(): array { return ['id' => 'shop_offer.scrap', 'type' => 'shop_offer',
     'grant' => ['type' => 'item', 'item_id' => 'item.test.scrap', 'quantity' => 3],
@@ -125,6 +168,22 @@ final class ShopOfferContentValidationTest extends TestCase
   private function dieOffer(): array { return ['id' => 'shop_offer.cardboard_d8', 'type' => 'shop_offer',
     'grant' => ['type' => 'die', 'dice_profile_id' => 'dice_profile.cardboard_plain', 'size' => 8],
     'price' => ['currency_id' => 'teeth', 'amount' => 11]]; }
+  /** @return array<string,mixed> */
+  private function unitOffer(): array { return ['id' => 'shop_offer.bruiser', 'type' => 'shop_offer',
+    'grant' => ['type' => 'unit', 'unit_type_id' => 'unit_type.bruiser', 'kin_id' => 'kin.goblin'],
+    'price' => ['currency_id' => 'teeth', 'amount' => 13]]; }
+  /** @return array<string,mixed> */
+  private function unitUnlock(string $id, string $unitTypeId): array
+  { return ['id' => $id, 'type' => 'unlock', 'target_type' => 'unit_type', 'target_id' => $unitTypeId]; }
+
+  /** @param array<string,mixed> $offer @param list<array<string,mixed>> $unlocks */
+  private function unitRegistry(array $offer, array $unlocks): ContentRegistry
+  {
+    $root = $this->copyCanonicalRoot();
+    file_put_contents($root . '/unlocks/test-units.json', json_encode(['definitions' => $unlocks], JSON_THROW_ON_ERROR));
+    file_put_contents($root . '/shop_offers/test-units.json', json_encode(['definitions' => [$offer]], JSON_THROW_ON_ERROR));
+    return ContentRegistry::load($root);
+  }
 
   /** @param list<array<string,mixed>> $offers */
   private function registry(array $offers, bool $withItems): ContentRegistry

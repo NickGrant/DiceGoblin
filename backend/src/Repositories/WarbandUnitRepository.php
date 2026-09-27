@@ -4,10 +4,40 @@ declare(strict_types=1);
 namespace DiceGoblins\Repositories;
 
 use PDO;
+use RuntimeException;
 
 final class WarbandUnitRepository
 {
   public function __construct(private readonly PDO $pdo) {}
+
+  /** @return array{id:string,display_name:string,unit_type_id:string,kin_id:string,level:int,xp:int,lifecycle_status:string} */
+  public function createActive(int $userId, string $unitTypeId, string $kinId, string $displayName): array
+  {
+    $this->requireTransaction();
+    if ($userId <= 0 || $unitTypeId === '' || $kinId === '' || trim($displayName) === '') {
+      throw new RuntimeException('Unit creation identity is invalid.');
+    }
+    $stmt = $this->pdo->prepare("INSERT INTO `unit_instances`
+      (`user_id`, `unit_type_id`, `kin_id`, `display_name`, `level`, `xp`, `lifecycle_status`)
+      VALUES (?, ?, ?, ?, 1, 0, 'active')");
+    $stmt->execute([$userId, $unitTypeId, $kinId, $displayName]);
+    $id = $this->pdo->lastInsertId();
+    if (!preg_match('/^[1-9][0-9]*$/D', $id)) throw new RuntimeException('Created unit identity is invalid.');
+    return ['id' => $id, 'display_name' => $displayName, 'unit_type_id' => $unitTypeId, 'kin_id' => $kinId,
+      'level' => 1, 'xp' => 0, 'lifecycle_status' => 'active'];
+  }
+
+  /** @param list<string> $abilityIds */
+  public function insertOwnedAbilities(int $unitId, array $abilityIds): void
+  {
+    $this->requireTransaction();
+    if ($unitId <= 0) throw new RuntimeException('Unit ability ownership identity is invalid.');
+    $stmt = $this->pdo->prepare('INSERT INTO `unit_abilities` (`unit_id`, `ability_id`) VALUES (?, ?)');
+    foreach ($abilityIds as $abilityId) {
+      if (!is_string($abilityId) || $abilityId === '') throw new RuntimeException('Unit ability ownership identity is invalid.');
+      $stmt->execute([$unitId, $abilityId]);
+    }
+  }
 
   /** @return array<int,array<string,mixed>> */
   public function listActiveForUser(int $userId): array
@@ -149,5 +179,10 @@ final class WarbandUnitRepository
         $binding->execute([$unitId, $ability['ability_id'], $slotIndex, $dieId]);
       }
     }
+  }
+
+  private function requireTransaction(): void
+  {
+    if (!$this->pdo->inTransaction()) throw new RuntimeException('Unit creation requires a caller-owned transaction.');
   }
 }

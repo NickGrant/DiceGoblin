@@ -71,6 +71,28 @@ describe('Unit detail contracts', () => {
     expect(detail.promotionHistory[0].toUnitType.display_name).toBe('Veteran');
   });
 
+  it('accepts a newly purchased unit with owned abilities but no loadout or dice', () => {
+    const registry = content();
+    const raw = {
+      id: '30', display_name: 'Bruiser', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active',
+      promotion_history: [], owned_ability_ids: ['ability.bash'], ability_loadout: [], dice_bindings: [],
+    };
+    const detail = parseUnitDetailEnvelope({ ok: true, data: { unit: raw } }, registry, []);
+    expect(detail.ownedAbilities.map((ability) => ability.id)).toEqual(['ability.bash']);
+    expect(detail.abilityLoadout).toEqual([]);
+    expect(detail.diceBindings).toEqual([]);
+  });
+
+  it('rejects dice bindings when the unit has no configured ability loadout', () => {
+    const registry = content();
+    const raw = {
+      id: '30', display_name: 'Bruiser', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active',
+      promotion_history: [], owned_ability_ids: ['ability.bash'], ability_loadout: [],
+      dice_bindings: [{ ability_id: 'ability.bash', slot_index: 0, dice_instance_id: '21' }],
+    };
+    expect(() => parseUnitDetailEnvelope({ ok: true, data: { unit: raw } }, registry, [])).toThrowError(UnitDetailContractError);
+  });
+
   it('rejects malformed identity and unknown authored references', () => {
     expect(() => parse({ ...rawDetail(), id: '01' })).toThrowError(UnitDetailContractError);
     expect(() => parse({ ...rawDetail(), unit_type_id: 'unit_type.missing' })).toThrowError(UnitDetailContractError);

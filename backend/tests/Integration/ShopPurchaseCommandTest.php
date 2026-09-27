@@ -5,14 +5,22 @@ namespace DiceGoblins\Tests\Integration;
 
 use DiceGoblins\Application\Commands\IdempotencyConflictException;
 use DiceGoblins\Application\Commands\PurchaseShopOfferCommand;
+use DiceGoblins\Application\Commands\RunStartException;
 use DiceGoblins\Application\Commands\ShopPurchaseException;
 use DiceGoblins\Application\Commands\ShopPurchaseIntegrityException;
+use DiceGoblins\Application\NormalUnitCreationService;
+use DiceGoblins\Application\UnitTypeAvailabilityPolicy;
+use DiceGoblins\Application\Queries\UnitCollectionQuery;
+use DiceGoblins\Application\Queries\UnitDetailQuery;
 use DiceGoblins\Content\ContentRegistry;
+use DiceGoblins\Controllers\ControllerServiceFactory;
 use DiceGoblins\Controllers\ShopCatalogController;
 use DiceGoblins\Repositories\IdempotencyRequestRepository;
 use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Repositories\UserItemRepository;
+use DiceGoblins\Repositories\UserUnlockRepository;
 use DiceGoblins\Repositories\WarbandDiceRepository;
+use DiceGoblins\Repositories\WarbandUnitRepository;
 use DiceGoblins\Support\ClientSafeInteger;
 use DiceGoblins\Tests\Support\IntegrationTestCase;
 use RuntimeException;
@@ -125,6 +133,7 @@ final class ShopPurchaseCommandTest extends IntegrationTestCase
       fn() => (new PlayerStateRepository($this->pdo))->applyCurrencyDebitTransition($userId, 'teeth', 10, 3),
       fn() => (new UserItemRepository($this->pdo))->increment($userId, 'item.test.scrap', 1),
       fn() => (new WarbandDiceRepository($this->pdo))->createActive($userId, 6, 'dice_profile.cardboard_plain'),
+      fn() => (new WarbandUnitRepository($this->pdo))->createActive($userId, 'unit_type.bruiser', 'kin.goblin', 'Bruiser'),
     ] as $mutation) {
       try { $mutation(); $this->fail('Expected transaction enforcement.'); }
       catch (RuntimeException) { $this->addToAssertionCount(1); }
@@ -177,6 +186,76 @@ final class ShopPurchaseCommandTest extends IntegrationTestCase
     $this->assertSame('0', (string)$this->scalar('SELECT COUNT(*) FROM `idempotency_requests` WHERE `user_id` = ?', [$userId]));
   }
 
+  public function testLockedUnitOfferAndAnotherUsersUnlockCannotMutate(): void
+  {
+    $content = $this->content(); $buyer = $this->user(20); $other = $this->user(20);
+    (new UserUnlockRepository($this->pdo))->insertIfAbsent($other, 'unlock.unit_type.bruiser');
+    try { $this->command($content)->execute($buyer, $this->request('shop_offer.unit', 13), 'locked-unit-key'); $this->fail('Expected unavailable offer.'); }
+    catch (ShopPurchaseException $e) { $this->assertSame(['shop_offer_unavailable', 403], [$e->errorCode, $e->httpStatus]); }
+    $this->assertSame('20', (string)$this->scalar('SELECT `teeth` FROM `user_state` WHERE `user_id` = ?', [$buyer]));
+    $this->assertSame('1', (string)$this->scalar('SELECT `player_revision` FROM `user_state` WHERE `user_id` = ?', [$buyer]));
+    $this->assertSame('0', (string)$this->scalar('SELECT COUNT(*) FROM `unit_instances` WHERE `user_id` = ?', [$buyer]));
+    $this->assertSame('0', (string)$this->scalar('SELECT COUNT(*) FROM `idempotency_requests` WHERE `user_id` = ?', [$buyer]));
+  }
+
+  public function testUnlockedUnitPurchaseCreatesOneUnconfiguredNormalUnitAndRetrySurvivesUnlockRemoval(): void
+  {
+    $content = $this->content(); $userId = $this->user(20); $unlocks = new UserUnlockRepository($this->pdo);
+    $unlocks->insertIfAbsent($userId, 'unlock.unit_type.bruiser');
+    $request = $this->request('shop_offer.unit', 13); $command = $this->command($content);
+    $first = $command->execute($userId, $request, 'purchase-unit-key');
+    $unit = $first['output']['unit']; $unitId = (int)$unit['id'];
+    $this->assertSame(['Bruiser', 'unit_type.bruiser', 'kin.goblin', 1, 0, 'active'], [
+      $unit['display_name'], $unit['unit_type_id'], $unit['kin_id'], $unit['level'], $unit['xp'], $unit['lifecycle_status'],
+    ]);
+    $expectedAbilities = $content->unitType('unit_type.bruiser')['ability_ids'];
+    $stmt = $this->pdo?->prepare('SELECT `ability_id` FROM `unit_abilities` WHERE `unit_id` = ? ORDER BY `unlocked_at`, `ability_id`');
+    $stmt?->execute([$unitId]); $this->assertSame($expectedAbilities, $stmt?->fetchAll(\PDO::FETCH_COLUMN));
+    foreach (['unit_promotions', 'unit_ability_loadout', 'unit_ability_dice'] as $table) {
+      $this->assertSame('0', (string)$this->scalar("SELECT COUNT(*) FROM `{$table}` WHERE `unit_id` = ?", [$unitId]));
+    }
+    $this->assertSame('0', (string)$this->scalar('SELECT COUNT(*) FROM `dice_instances` WHERE `user_id` = ?', [$userId]));
+    $this->assertCount(1, (new UnitCollectionQuery(new WarbandUnitRepository($this->pdo), $content))->execute($userId));
+    $detail = (new UnitDetailQuery(new WarbandUnitRepository($this->pdo), $content))->execute($userId, $unitId);
+    $this->assertSame([$expectedAbilities, [], []], [$detail['owned_ability_ids'], $detail['ability_loadout'], $detail['dice_bindings']]);
+    $this->pdo?->prepare('DELETE FROM `user_unlocks` WHERE `user_id` = ? AND `unlock_id` = ?')->execute([$userId, 'unlock.unit_type.bruiser']);
+    $this->assertSame($first, $command->execute($userId, $request, 'purchase-unit-key'));
+    $this->assertSame('7', (string)$this->scalar('SELECT `teeth` FROM `user_state` WHERE `user_id` = ?', [$userId]));
+    $this->assertSame('1', (string)$this->scalar('SELECT COUNT(*) FROM `unit_instances` WHERE `user_id` = ?', [$userId]));
+  }
+
+  public function testUnitCreationRollbackAndTransactionBoundary(): void
+  {
+    $content = $this->content(); $userId = $this->user(20); $unlocks = new UserUnlockRepository($this->pdo);
+    $unlocks->insertIfAbsent($userId, 'unlock.unit_type.bruiser');
+    $service = new NormalUnitCreationService(new WarbandUnitRepository($this->pdo), $content);
+    try { $service->create($userId, 'unit_type.bruiser', 'kin.goblin'); $this->fail('Expected transaction enforcement.'); }
+    catch (RuntimeException) { $this->addToAssertionCount(1); }
+    try {
+      $this->command($content, static fn() => throw new RuntimeException('stop'))
+        ->execute($userId, $this->request('shop_offer.unit', 13), 'unit-rollback-key');
+      $this->fail('Expected rollback.');
+    } catch (ShopPurchaseIntegrityException) { $this->addToAssertionCount(1); }
+    $this->assertSame('20', (string)$this->scalar('SELECT `teeth` FROM `user_state` WHERE `user_id` = ?', [$userId]));
+    $this->assertSame('0', (string)$this->scalar('SELECT COUNT(*) FROM `unit_instances` WHERE `user_id` = ?', [$userId]));
+    $this->assertSame('0', (string)$this->scalar('SELECT COUNT(*) FROM `idempotency_requests` WHERE `user_id` = ?', [$userId]));
+  }
+
+  public function testPurchasedUnconfiguredUnitCannotStartRun(): void
+  {
+    $content = $this->content(); $userId = $this->user(30); (new UserUnlockRepository($this->pdo))->insertIfAbsent($userId, 'unlock.unit_type.bruiser');
+    $result = $this->command($content)->execute($userId, $this->request('shop_offer.unit', 13), 'unit-run-key');
+    $unitId = (int)$result['output']['unit']['id'];
+    $this->pdo?->prepare('INSERT INTO `squads` (`user_id`, `name`) VALUES (?, ?)')->execute([$userId, 'Unconfigured']);
+    $squadId = (int)$this->pdo?->lastInsertId();
+    $this->pdo?->prepare('INSERT INTO `squad_units` (`squad_id`, `unit_id`, `position`) VALUES (?, ?, 0)')->execute([$squadId, $unitId]);
+    $this->pdo?->prepare('UPDATE `user_state` SET `active_squad_id` = ? WHERE `user_id` = ?')->execute([$squadId, $userId]);
+    $services = ControllerServiceFactory::buildContentAware($this->pdo, null, $content);
+    try { $services['startRunCommand']->execute($userId, ['region_id' => 'region.the_farm'], 'unit-run-start'); $this->fail('Expected run configuration rejection.'); }
+    catch (RunStartException $e) { $this->assertSame('run_configuration_invalid', $e->errorCode); }
+    $this->assertSame('0', (string)$this->scalar('SELECT COUNT(*) FROM `runs` WHERE `user_id` = ?', [$userId]));
+  }
+
   private function user(int $teeth, int $revision = 1): int
   {
     $this->pdo?->prepare('INSERT INTO `users` (`display_name`) VALUES (?)')->execute(['Shop Purchase ' . bin2hex(random_bytes(4))]);
@@ -188,8 +267,10 @@ final class ShopPurchaseCommandTest extends IntegrationTestCase
   private function request(string $offerId, int $price): array { return ['offer_id' => $offerId, 'expected_price' => ['currency_id' => 'teeth', 'amount' => $price]]; }
   private function command(ContentRegistry $content, ?\Closure $beforeCommit = null): PurchaseShopOfferCommand
   {
+    $units = new WarbandUnitRepository($this->pdo); $unlocks = new UserUnlockRepository($this->pdo);
     return new PurchaseShopOfferCommand($this->pdo, new PlayerStateRepository($this->pdo), new IdempotencyRequestRepository($this->pdo),
-      new UserItemRepository($this->pdo), new WarbandDiceRepository($this->pdo), $content, $beforeCommit);
+      new UserItemRepository($this->pdo), new WarbandDiceRepository($this->pdo), $unlocks,
+      new UnitTypeAvailabilityPolicy($content), new NormalUnitCreationService($units, $content), $content, $beforeCommit);
   }
   private function content(int $itemPrice = 7): ContentRegistry
   {
@@ -205,6 +286,12 @@ final class ShopPurchaseCommandTest extends IntegrationTestCase
     ]];
     foreach ([4, 6, 8] as $size) $offers[] = ['id' => 'shop_offer.d' . $size, 'type' => 'shop_offer',
       'grant' => ['type' => 'die', 'dice_profile_id' => 'dice_profile.cardboard_plain', 'size' => $size], 'price' => ['currency_id' => 'teeth', 'amount' => 7]];
+    $offers[] = ['id' => 'shop_offer.unit', 'type' => 'shop_offer',
+      'grant' => ['type' => 'unit', 'unit_type_id' => 'unit_type.bruiser', 'kin_id' => 'kin.goblin'],
+      'price' => ['currency_id' => 'teeth', 'amount' => 13]];
+    file_put_contents($root . '/unlocks/test-purchase.json', json_encode(['definitions' => [[
+      'id' => 'unlock.unit_type.bruiser', 'type' => 'unlock', 'target_type' => 'unit_type', 'target_id' => 'unit_type.bruiser',
+    ]]], JSON_THROW_ON_ERROR));
     file_put_contents($root . '/shop_offers/test-purchase.json', json_encode(['definitions' => $offers], JSON_THROW_ON_ERROR));
     return ContentRegistry::load($root);
   }

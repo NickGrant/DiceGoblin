@@ -41,6 +41,9 @@ export type ClientShopOfferDefinition = {
 } | {
   readonly id: string;
   readonly grant: { readonly type: 'die'; readonly dice_profile_id: string; readonly size: 4 | 6 | 8 };
+} | {
+  readonly id: string;
+  readonly grant: { readonly type: 'unit'; readonly unit_type_id: string; readonly kin_id: 'kin.goblin' };
 };
 
 export interface ClientKinDefinition {
@@ -665,6 +668,14 @@ export class ClientContentRegistry {
         throw new ClientContentError(`Shop offer '${catalogId}' has an invalid die grant.`);
       return Object.freeze({ id, grant: Object.freeze({ type, dice_profile_id: profileId, size: size as 4 | 6 | 8 }) });
     }
+    if (type === 'unit') {
+      requireExactFields(grant, ['type', 'unit_type_id', 'kin_id'], `Shop offer '${catalogId}' grant`);
+      const unitTypeId = requireNonEmptyString(grant, 'unit_type_id');
+      const kinId = requireNonEmptyString(grant, 'kin_id');
+      if (!stableIdPattern.test(unitTypeId) || !unitTypeId.startsWith('unit_type.') || kinId !== 'kin.goblin')
+        throw new ClientContentError(`Shop offer '${catalogId}' has an invalid unit grant.`);
+      return Object.freeze({ id, grant: Object.freeze({ type, unit_type_id: unitTypeId, kin_id: 'kin.goblin' as const }) });
+    }
     throw new ClientContentError(`Shop offer '${catalogId}' has an unsupported grant.`);
   }
 
@@ -707,10 +718,14 @@ export class ClientContentRegistry {
         const item = this.items.get(offer.grant.item_id);
         if (!item || !item.stackable)
           throw new ClientContentError(`Shop offer '${offer.id}' references an unavailable item.`);
-      } else {
+      } else if (offer.grant.type === 'die') {
         const profile = this.diceProfiles.get(offer.grant.dice_profile_id);
         if (!profile || !profile.allowed_sizes.includes(offer.grant.size))
           throw new ClientContentError(`Shop offer '${offer.id}' references an incompatible die profile.`);
+      } else {
+        const unitType = this.unitTypes.get(offer.grant.unit_type_id);
+        if (!unitType || unitType.tier !== 1 || !this.kinDefinitions.has(offer.grant.kin_id))
+          throw new ClientContentError(`Shop offer '${offer.id}' references an unavailable base unit.`);
       }
     }
   }

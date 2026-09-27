@@ -157,8 +157,6 @@ function parseUnit(
     equippedIds.add(ability.id);
     return Object.freeze({ ability, equipOrder: index });
   });
-  if (abilityLoadout.length === 0) throw new UnitDetailContractError('Ability loadout cannot be empty.');
-
   if (!Array.isArray(candidate['dice_bindings'])) throw new UnitDetailContractError('Dice bindings are malformed.');
   const diceById = new Map(dice.map((die) => [die.id, die]));
   const boundDice = new Set<string>();
