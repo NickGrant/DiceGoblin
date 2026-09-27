@@ -5,6 +5,7 @@ namespace DiceGoblins\Application\Commands;
 
 use Closure;
 use DateTimeImmutable;
+use DateTimeZone;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Content\ContentValidationException;
 use DiceGoblins\Domain\Energy\EnergyRestoreCalculator;
@@ -58,7 +59,7 @@ final class RestoreEnergyCommand
       $item = $this->eligibleItem($use->itemId, 'energy_restore');
       $now = $this->clock->now();
       try {
-        $anchor = new DateTimeImmutable($state['energy_last_regen_at']);
+        $anchor = new DateTimeImmutable($state['energy_last_regen_at'], new DateTimeZone('UTC'));
         $restored = $this->energy->restore(
           $state['energy_current'], $anchor, $this->content->energyNormalMaximum(),
           $this->content->energyRegenerationPerHour(), $item['effect']['amount'], $now,

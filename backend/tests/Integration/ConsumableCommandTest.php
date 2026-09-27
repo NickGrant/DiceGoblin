@@ -61,6 +61,25 @@ final class ConsumableCommandTest extends IntegrationTestCase
     $this->assertNull($overResult['energy']['next_regeneration_at']);
   }
 
+  public function testEnergyRestoreInterpretsPersistedRegenerationTimestampAsUtc(): void
+  {
+    $originalTimezone = date_default_timezone_get();
+    try {
+      date_default_timezone_set('America/Los_Angeles');
+      $userId = $this->user(5, '2026-09-26 12:00:00');
+      $this->item($userId, 'item.test.spark', 1);
+
+      $result = $this->energyCommand($this->content(), '2026-09-26T12:12:30Z')
+        ->execute($userId, ['item_id' => 'item.test.spark'], 'energy-non-utc-process-key');
+
+      $this->assertSame(14, $result['energy']['current']);
+      $this->assertSame('2026-09-26T12:10:00Z', $result['energy']['last_regeneration_at']);
+      $this->assertSame('2026-09-26T12:15:00Z', $result['energy']['next_regeneration_at']);
+    } finally {
+      date_default_timezone_set($originalTimezone);
+    }
+  }
+
   /** @dataProvider unavailableEnergyProvider */
   public function testFullOverchargedOrRegeneratedToFullEnergyRejectsWithoutMutation(int $current, string $anchor): void
   {
