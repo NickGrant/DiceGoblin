@@ -306,6 +306,24 @@ Report exact test/assertion/skipped counts where available.
 - Raw Chaos spend;
 - final Shop/Inventory Phaser screens.
 
+#### Current architectural review finding
+
+The Package 3 implementation at `67c388f33ec335c4e21332a59c196af37570ed6b` is otherwise aligned with the accepted purchase architecture. GitHub Full Verification is green at that SHA (backend 845 tests / 1,681 assertions; frontend 493 tests; all standard gates PASS).
+
+One client contract defect remains:
+
+- `parseShopPurchaseEnvelope()` validates the successful receipt against the `offer_id` supplied by the **response** and the current client content registry, but it is not bound to the purchase request that was actually submitted.
+- Therefore a malformed/incorrect success response naming a different valid offer can be accepted, and a success response whose `spend.amount` differs from the caller's `expected_price.amount` can also be accepted as long as its arithmetic is internally coherent.
+- Bind purchase-result parsing to the original normalized request identity. At minimum, require returned `offer_id === request.offer_id` and returned Teeth `spend.amount === request.expected_price.amount`.
+- Preserve the existing output-vs-authored-grant coherence check. Prefer passing the original request (and, if useful, the original projected offer snapshot) into the purchase parser rather than trusting response-selected identity.
+- Add focused frontend regressions for:
+  - response returns a different valid offer ID;
+  - response returns a different positive Teeth amount with coherent before/after arithmetic;
+  - the exact submitted request still parses successfully.
+- Do not broaden this into Shop UI/cache choreography; Package 7 still owns presentation.
+
+After correction, rerun Package 3 verification, including the requested DB provision/reset, focused MySQL Shop-purchase integration, and full `npm run test:backend:docker`. Report exact counts. Leave Package 3 **In Progress** and do not promote Package 4.
+
 #### Completion
 
 Implement only Milestone 7 Package 3. Leave it **In Progress** for architectural review. Do not promote Package 4 yourself.
