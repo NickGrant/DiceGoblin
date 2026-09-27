@@ -241,32 +241,30 @@ Report test/assertion/skipped counts where available.
 
 #### Current architectural review finding
 
-The correction at `af021b6ac317384775e49b778369bcfb4eec44b6` correctly establishes `9_007_199_254_740_991` as the Shop client-safe maximum for authored price, authoritative Teeth, and `player_revision`. The focused maximum/+1 tests are appropriate.
+The client-safe authored-integer correction at `a1cebe4527c0ea3fb5e9d92ce5314760a887c0b5` is architecturally accepted.
 
-The adjacent test-harness repairs are also accepted:
-- `BattlePersistenceRepositoryTest` now checks that battle persistence does not create resolved-event rows instead of incorrectly asserting the legitimate vNext `resolved_events` table does not exist.
-- `GrantServiceStarterPackInvariantsTest` is a retained prototype-schema test and is skipped when the fresh vNext schema is detected rather than executing prototype table assumptions against vNext.
+The correction:
+- replaces the Shop-specific numeric constant with reusable `Support\ClientSafeInteger::MAXIMUM`;
+- applies the same JavaScript-safe ceiling to Shop price, Shop item quantity, projected consumable `effect.amount`, authoritative Teeth, and `player_revision`;
+- adds focused maximum/+1 authored-content coverage for item quantity and consumable effect amount;
+- preserves the previously accepted Shop wallet/revision boundary.
 
 GitHub Full Verification at this SHA is green:
-- backend: 832 tests / 1,677 assertions;
+- backend: 834 tests / 1,681 assertions;
 - frontend: 490 tests;
 - all standard gates PASS.
 
-Two closure items remain:
+No additional implementation defect is currently identified.
 
-1. **One authored Shop numeric mismatch remains.**
-   - Item-offer `grant.quantity` is still validated server-side through `PHP_INT_MAX`.
-   - The projected `ClientContentRegistry` correctly requires the quantity to be a JavaScript-safe integer.
-   - Therefore an authored Shop offer can still pass canonical PHP validation but generate client content that the browser must reject.
-   - Apply the same client-safe authored integer ceiling to `shop_offer` item grant quantity and add focused maximum/+1 validation coverage.
-   - While touching this shared projection boundary, also correct the pre-existing analogous `item.effect.amount` mismatch introduced in Package 1: it is projected to the browser and the client already requires a safe integer, while PHP currently permits `PHP_INT_MAX`. Prefer one reusable client-safe integer contract rather than separate divergent constants if that can be done without broad refactoring.
+The only remaining Package 2 blocker is **full Docker backend closure evidence**. GitHub standard verification does not exercise the DB-backed full suite.
 
-2. **Full Docker backend closure evidence is still required.**
-   - The previously reported 242-test run was not credible as the full suite because the unchanged `test:backend:docker` command previously executed 613 tests and this package removed no tests.
-   - After the numeric correction, run DB provision/reset and the actual `npm run test:backend:docker` command from the current branch.
-   - Report exact tests / assertions / skipped counts and explain the prior 242-test result as partial/mislabeled if that is what occurred.
+Run/report the already-requested closure proof from the current branch:
+- DB provision/reset PASS;
+- actual `npm run test:backend:docker`;
+- exact tests / assertions / skipped counts;
+- brief explanation of why the earlier reported 242-test / 942-assertion / 150-skipped result was partial or mislabeled relative to the unchanged full-suite command.
 
-Do not broaden this correction into purchase behavior or later Shop features. Leave Package 2 **In Progress** and do not promote Package 3.
+No implementation change is requested unless that run exposes a defect. Leave Package 2 **In Progress** and do not promote Package 3.
 
 
 #### Completion
