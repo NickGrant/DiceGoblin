@@ -51,6 +51,26 @@ At minimum demonstrate:
 
 Use current commands, repositories, and content. Do not create a test-only economy path that bypasses the real application boundaries.
 
+#### UAT-readiness correction
+
+The current canonical production catalogs are empty: `backend/content/items/catalog.json` and `backend/content/shop_offers/catalog.json` contain no definitions. Temporary test content and deterministic capture fixtures are not sufficient for Milestone 7 closure because Package 9 must exercise the real application against canonical authored content.
+
+Before Package 8 can close, add the minimum real authored economy content required for manual UAT:
+
+- at least one canonical stackable `energy_restore` consumable;
+- at least one canonical stackable `unit_heal` consumable;
+- canonical Shop offers for those consumables;
+- canonical basic-die Shop offers using existing profiles and only d4/d6/d8 sizes;
+- at least one canonical tier-1 Goblin unit offer so the accepted unlock-aware availability path exists in the live catalog.
+
+Do not grant new unit-type unlocks merely to make the offer purchasable. The Shop must truthfully present unit offers as unavailable when the player lacks the existing entitlement.
+
+Prices, quantities, names, descriptions, rarity, and presentation IDs should be simple intentional Milestone 7 values. They are not final economy balancing. Do not import prototype daily deals, feature-unlock Shop upgrades, affix catalogs, or >d8 acquisition.
+
+The generated client projection must contain the canonical items/offers. A normal live Shop read using repository content must be non-empty, and purchased canonical consumables must be usable through the established contextual commands.
+
+Update the integrated closure proof so the production-content portion exercises these canonical item/offer definitions rather than proving the entire economy only with temporary authored test definitions. Temporary content may remain for edge cases that cannot be expressed safely against the production catalog.
+
 #### Cross-command invariants
 
 Prove the Milestone 7 commands compose safely rather than only passing in isolation:
@@ -158,7 +178,7 @@ Report exact focused/full test and assertion counts, skipped counts, bundle resu
 
 #### Out of scope
 
-- new Shop offers or final economy balancing;
+- final economy balancing beyond the minimum UAT-ready canonical catalog;
 - daily deals;
 - feature-unlock Shop upgrades;
 - Academy/permanent progression;
