@@ -27,7 +27,7 @@ Package 2 established:
 
 The production item and Shop-offer catalogs remain intentionally empty. Do not invent product balance/prices merely to populate them.
 
-#### Package 3 purpose
+#### Problem
 
 Prove the first repeatable ordinary Teeth transaction:
 

@@ -122,6 +122,7 @@ $router->get('/api/v1/session', [$api, 'session']);
 $router->get('/api/v1/game/bootstrap', [$gameBootstrap, 'bootstrap']);
 $router->get('/api/v1/items', [$inventory, 'items']);
 $router->get('/api/v1/shop', [$shopCatalog, 'catalog']);
+$router->post('/api/v1/shop/purchase', [$shopCatalog, 'purchase']);
 $router->get('/api/v1/units', [$warband, 'units']);
 $router->get('/api/v1/units/:unitId', [$warband, 'unitDetail']);
 $router->patch('/api/v1/units/:unitId/name', [$warband, 'renameUnit']);

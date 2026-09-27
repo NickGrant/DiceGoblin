@@ -106,6 +106,7 @@ final class VnextDatabaseBaselineTest extends IntegrationTestCase
     $this->assertArrayHasKey('userItemRepository', $contentAware);
     $this->assertArrayHasKey('itemCollectionQuery', $contentAware);
     $this->assertArrayHasKey('shopCatalogQuery', $contentAware);
+    $this->assertArrayHasKey('purchaseShopOfferCommand', $contentAware);
     foreach (['shop_offers', 'shop_daily_deals', 'shop_purchases', 'shop_catalog'] as $table) {
       $this->assertNotContains($table, $this->pdo?->query('SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE()')->fetchAll(\PDO::FETCH_COLUMN));
     }

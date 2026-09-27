@@ -1,5 +1,5 @@
 import { ClientContentRegistry } from './client-content-registry';
-import { ShopContractError, parseShopCatalogEnvelope } from './shop-contracts';
+import { ShopContractError, parseShopCatalogEnvelope, parseShopPurchaseEnvelope } from './shop-contracts';
 
 describe('Shop contracts', () => {
   function content(withOffers = true): ClientContentRegistry {
@@ -44,5 +44,38 @@ describe('Shop contracts', () => {
       { ok: true, data: { ...base.data, offers: [base.data.offers[0]] } },
     ];
     for (const value of invalid) expect(() => parseShopCatalogEnvelope(value, content())).toThrowError(ShopContractError);
+  });
+
+  it('strictly parses coherent item and fixed basic-die purchase results', () => {
+    const item = parseShopPurchaseEnvelope({ ok: true, data: {
+      offer_id: 'shop_offer.a1', spend: { currency_id: 'teeth', amount: 7, balance_before: 10, balance_after: 3 },
+      player_revision: 5, output: { type: 'item', item_id: 'item.test.scrap', quantity_granted: 2, owned_quantity_after: 4 },
+    } }, content());
+    expect(item.output).toEqual({ type: 'item', itemId: 'item.test.scrap', quantityGranted: 2, ownedQuantityAfter: 4 });
+    const die = parseShopPurchaseEnvelope({ ok: true, data: {
+      offer_id: 'shop_offer.a_', spend: { currency_id: 'teeth', amount: 10, balance_before: 10, balance_after: 0 },
+      player_revision: 6, output: { type: 'die', die: { id: '9007199254740993', size: 8, profile_id: 'dice_profile.cardboard', lifecycle_status: 'active' } },
+    } }, content());
+    expect(die.output).toEqual({ type: 'die', die: { id: '9007199254740993', size: 8, profileId: 'dice_profile.cardboard', lifecycleStatus: 'active' } });
+  });
+
+  it('rejects expanded, unsafe, arithmetically invalid, mismatched, and greater-than-d8 purchase outputs', () => {
+    const base = { ok: true, data: {
+      offer_id: 'shop_offer.a1', spend: { currency_id: 'teeth', amount: 7, balance_before: 10, balance_after: 3 },
+      player_revision: 5, output: { type: 'item', item_id: 'item.test.scrap', quantity_granted: 2, owned_quantity_after: 4 },
+    } };
+    const invalid: unknown[] = [
+      { ...base, extra: true },
+      { ok: true, data: { ...base.data, player_revision: Number.MAX_SAFE_INTEGER + 1 } },
+      { ok: true, data: { ...base.data, spend: { ...base.data.spend, balance_after: 4 } } },
+      { ok: true, data: { ...base.data, spend: { ...base.data.spend, currency_id: 'raw_chaos' } } },
+      { ok: true, data: { ...base.data, output: { ...base.data.output, item_id: 'item.other' } } },
+      { ok: true, data: { ...base.data, output: { ...base.data.output, quantity_granted: 1 } } },
+      { ok: true, data: { ...base.data, output: { ...base.data.output, owned_quantity_after: Number.MAX_SAFE_INTEGER + 1 } } },
+      { ok: true, data: { ...base.data, offer_id: 'shop_offer.a_', output: { type: 'die', die: { id: '1', size: 10, profile_id: 'dice_profile.cardboard', lifecycle_status: 'active' } } } },
+      { ok: true, data: { ...base.data, offer_id: 'shop_offer.a_', output: { type: 'die', die: { id: '01', size: 8, profile_id: 'dice_profile.cardboard', lifecycle_status: 'active' } } } },
+      { ok: true, data: { ...base.data, output: { ...base.data.output, extra: true } } },
+    ];
+    for (const value of invalid) expect(() => parseShopPurchaseEnvelope(value, content())).toThrowError(ShopContractError);
   });
 });

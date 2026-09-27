@@ -4,6 +4,8 @@ declare(strict_types=1);
 namespace DiceGoblins\Repositories;
 
 use DiceGoblins\Domain\Inventory\InsufficientInventoryException;
+use DiceGoblins\Domain\Inventory\InventoryCapacityException;
+use DiceGoblins\Support\ClientSafeInteger;
 use PDO;
 use RuntimeException;
 
@@ -40,10 +42,21 @@ final class UserItemRepository
     $this->requireTransaction();
     $this->requireIdentity($userId, $itemId);
     if ($quantity <= 0) throw new RuntimeException('Inventory increment must be positive.');
-    $stmt = $this->pdo->prepare('INSERT INTO `user_items` (`user_id`, `item_id`, `quantity`) VALUES (?, ?, ?)
-      ON DUPLICATE KEY UPDATE `quantity` = `quantity` + VALUES(`quantity`)');
-    $stmt->execute([$userId, $itemId, $quantity]);
-    return $this->requiredLockedQuantity($userId, $itemId);
+    $stack = $this->lockOwnedStack($userId, $itemId);
+    $before = $stack['quantity'] ?? 0;
+    if ($quantity > ClientSafeInteger::MAXIMUM - $before) {
+      throw new InventoryCapacityException('Owned item quantity exceeds the client-safe maximum.');
+    }
+    $after = $before + $quantity;
+    if ($stack === null) {
+      $stmt = $this->pdo->prepare('INSERT INTO `user_items` (`user_id`, `item_id`, `quantity`) VALUES (?, ?, ?)');
+      $stmt->execute([$userId, $itemId, $after]);
+    } else {
+      $stmt = $this->pdo->prepare('UPDATE `user_items` SET `quantity` = ? WHERE `user_id` = ? AND `item_id` = ? AND `quantity` = ?');
+      $stmt->execute([$after, $userId, $itemId, $before]);
+      if ($stmt->rowCount() !== 1) throw new RuntimeException('Owned item quantity changed unexpectedly.');
+    }
+    return $after;
   }
 
   /** Zero-quantity stacks are deleted rather than retained. */

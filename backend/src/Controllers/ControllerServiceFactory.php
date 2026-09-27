@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace DiceGoblins\Controllers;
 
 use DiceGoblins\Application\Commands\ProvisionWarbandFixtureCommand;
+use DiceGoblins\Application\Commands\PurchaseShopOfferCommand;
 use DiceGoblins\Application\Commands\AbandonRunCommand;
 use DiceGoblins\Application\Commands\ActiveRunConfigurationPolicy;
 use DiceGoblins\Application\Commands\ActivateSquadCommand;
@@ -187,6 +188,9 @@ final class ControllerServiceFactory
       'diceCollectionQuery' => new DiceCollectionQuery($diceRepository, $content),
       'itemCollectionQuery' => new ItemCollectionQuery($itemRepository, $content),
       'shopCatalogQuery' => new ShopCatalogQuery($core['playerStateRepo'], $content),
+      'purchaseShopOfferCommand' => new PurchaseShopOfferCommand(
+        $pdo, $core['playerStateRepo'], $idempotencyRepository, $itemRepository, $diceRepository, $content,
+      ),
       'squadCollectionQuery' => new SquadCollectionQuery($squadRepository),
       'createSquadCommand' => new CreateSquadCommand($pdo, $core['playerStateRepo'], $squadRepository,
         $idempotencyRepository, $squadCommandSupport),

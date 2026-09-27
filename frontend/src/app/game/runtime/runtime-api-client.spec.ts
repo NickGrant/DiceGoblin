@@ -59,6 +59,34 @@ describe('RuntimeApiClient', () => {
     }
   });
 
+  it('sends the exact Shop purchase contract and leaves retry identity with the caller', async () => {
+    const content = new ClientContentRegistry({ revision: 'a'.repeat(64), content: {
+      gameplay: { run_energy_cost: 10 }, regions: {}, kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {},
+      items: { 'item.test.scrap': { id: 'item.test.scrap', display_name: 'Scrap', description: 'Scrap.', category: 'material', rarity: 'common', icon_key: 'scrap', stackable: true } },
+      shop_offers: { 'shop_offer.item': { id: 'shop_offer.item', grant: { type: 'item', item_id: 'item.test.scrap', quantity: 2 } } },
+    } });
+    const request = { offer_id: 'shop_offer.item', expected_price: { currency_id: 'teeth' as const, amount: 7 } };
+    const success = { ok: true, data: { offer_id: 'shop_offer.item', spend: { currency_id: 'teeth', amount: 7, balance_before: 10, balance_after: 3 },
+      player_revision: 2, output: { type: 'item', item_id: 'item.test.scrap', quantity_granted: 2, owned_quantity_after: 2 } } };
+    let attempts = 0;
+    const fetchRequest = jasmine.createSpy<RuntimeFetch>('fetchRequest').and.callFake(async () => {
+      attempts += 1; if (attempts === 1) throw new Error('ambiguous network failure');
+      if (attempts === 2) return new Response(JSON.stringify({ ok: false, error: { code: 'server_error', message: 'Unexpected error.' } }), { status: 503 });
+      return new Response(JSON.stringify(success), { status: 200 });
+    });
+    const client = new RuntimeApiClient(fetchRequest, '/root');
+    await expectAsync(client.purchaseShopOffer(request, 'csrf', 'purchase:fixed-key', content))
+      .toBeRejectedWith(jasmine.objectContaining({ kind: 'network' }));
+    await expectAsync(client.purchaseShopOffer(request, 'csrf', 'purchase:fixed-key', content))
+      .toBeRejectedWith(jasmine.objectContaining({ kind: 'http', status: 503, code: 'server_error' }));
+    expect((await client.purchaseShopOffer(request, 'csrf', 'purchase:fixed-key', content)).output.type).toBe('item');
+    for (const [, init] of fetchRequest.calls.allArgs()) {
+      expect(init).toEqual(jasmine.objectContaining({ method: 'POST', credentials: 'include', body: JSON.stringify(request) }));
+      expect(init?.headers).toEqual({ Accept: 'application/json', 'X-CSRF-Token': 'csrf',
+        'Content-Type': 'application/json', 'Idempotency-Key': 'purchase:fixed-key' });
+    }
+  });
+
   it('gets and strictly parses retained battle playback without CSRF', async () => {
     const payload = { ok: true, data: { battle: { id: '81', run_id: '71', run_node_id: '72', engine_version: 1,
       playback_version: 1, outcome: 'victory', ending_round: 1, ending_tick: 1, participants: [

@@ -4,10 +4,23 @@ declare(strict_types=1);
 namespace DiceGoblins\Repositories;
 
 use PDO;
+use RuntimeException;
 
 final class WarbandDiceRepository
 {
   public function __construct(private readonly PDO $pdo) {}
+
+  /** @return array{id:string,size:int,profile_id:string,lifecycle_status:string} */
+  public function createActive(int $userId, int $size, string $profileId): array
+  {
+    if (!$this->pdo->inTransaction()) throw new RuntimeException('Die creation requires a caller-owned transaction.');
+    if ($userId <= 0 || $size <= 0 || $profileId === '') throw new RuntimeException('Die identity is invalid.');
+    $stmt = $this->pdo->prepare("INSERT INTO `dice_instances` (`user_id`, `size`, `profile_id`, `lifecycle_status`) VALUES (?, ?, ?, 'active')");
+    $stmt->execute([$userId, $size, $profileId]);
+    $id = $this->pdo->lastInsertId();
+    if (!preg_match('/^[1-9][0-9]*$/D', $id)) throw new RuntimeException('Created die identity is invalid.');
+    return ['id' => $id, 'size' => $size, 'profile_id' => $profileId, 'lifecycle_status' => 'active'];
+  }
 
   /** @return array<int,array<string,mixed>> */
   public function listActiveForUser(int $userId): array

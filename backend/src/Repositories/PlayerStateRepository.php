@@ -92,6 +92,18 @@ final class PlayerStateRepository
     if ($stmt->rowCount() !== 1) throw new RuntimeException('Currency state is stale or unavailable.');
   }
 
+  public function applyCurrencyDebitTransition(int $userId, string $currencyId, int $before, int $after): void
+  {
+    if (!$this->pdo->inTransaction()) throw new RuntimeException('Currency debit requires a caller-owned transaction.');
+    if (!in_array($currencyId, ['teeth', 'raw_chaos'], true) || $before < 0 || $after < 0 || $after > $before) {
+      throw new RuntimeException('Currency debit transition is invalid.');
+    }
+    $sql = "UPDATE `user_state` SET `{$currencyId}` = ? WHERE `user_id` = ? AND `{$currencyId}` = ?";
+    $stmt = $this->pdo->prepare($sql);
+    $stmt->execute([$after, $userId, $before]);
+    if ($stmt->rowCount() !== 1) throw new RuntimeException('Currency state is stale or unavailable.');
+  }
+
   private function revisionForUser(int $userId): int
   {
     $stmt = $this->pdo->prepare('SELECT `player_revision` FROM `user_state` WHERE `user_id` = ? LIMIT 1');
