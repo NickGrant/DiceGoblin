@@ -92,7 +92,7 @@ export class RuntimeApiClient {
   ): Promise<ShopPurchaseResult> {
     if (idempotencyKey.trim() === '') throw new RuntimeApiError('malformed-response');
     return this.mutate('/api/v1/shop/purchase', 'POST', csrfToken, request, idempotencyKey,
-      (value) => parseShopPurchaseEnvelope(value, content));
+      (value) => parseShopPurchaseEnvelope(value, request, content));
   }
 
   async getCurrentRun(content: ClientContentRegistry): Promise<CurrentRunResult> {

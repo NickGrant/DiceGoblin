@@ -69,20 +69,26 @@ export function parseShopCatalogEnvelope(value: unknown, content: ClientContentR
   return Object.freeze({ teeth, playerRevision: data['player_revision'], offers: Object.freeze(offers) });
 }
 
-export function parseShopPurchaseEnvelope(value: unknown, content: ClientContentRegistry): ShopPurchaseResult {
+export function parseShopPurchaseEnvelope(
+  value: unknown,
+  request: ShopPurchasePayload,
+  content: ClientContentRegistry,
+): ShopPurchaseResult {
   if (!record(value) || !exact(value, ['ok', 'data']) || value['ok'] !== true || !record(value['data'])
     || !exact(value['data'], ['offer_id', 'spend', 'player_revision', 'output'])) {
     throw new ShopContractError('Shop purchase response must be a successful exact envelope.');
   }
   const data = value['data']; const offerId = data['offer_id']; const spend = data['spend']; const output = data['output'];
-  if (typeof offerId !== 'string' || !record(spend) || !exact(spend, ['currency_id', 'amount', 'balance_before', 'balance_after'])
+  if (typeof offerId !== 'string' || offerId !== request.offer_id
+    || !record(spend) || !exact(spend, ['currency_id', 'amount', 'balance_before', 'balance_after'])
     || spend['currency_id'] !== 'teeth' || !Number.isSafeInteger(spend['amount']) || (spend['amount'] as number) <= 0
+    || spend['amount'] !== request.expected_price.amount
     || !safeNonNegative(spend['balance_before']) || !safeNonNegative(spend['balance_after'])
     || (spend['balance_before'] as number) - (spend['amount'] as number) !== spend['balance_after']
     || !safeNonNegative(data['player_revision']) || !record(output)) {
     throw new ShopContractError('Shop purchase spend or revision is malformed.');
   }
-  const offer = content.getShopOffer(offerId);
+  const offer = content.getShopOffer(request.offer_id);
   if (!offer) throw new ShopContractError('Shop purchase offer is unknown.');
   let parsedOutput: ShopPurchaseOutput;
   if (output['type'] === 'item') {

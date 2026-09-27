@@ -47,19 +47,22 @@ describe('Shop contracts', () => {
   });
 
   it('strictly parses coherent item and fixed basic-die purchase results', () => {
+    const itemRequest = { offer_id: 'shop_offer.a1', expected_price: { currency_id: 'teeth' as const, amount: 7 } };
     const item = parseShopPurchaseEnvelope({ ok: true, data: {
       offer_id: 'shop_offer.a1', spend: { currency_id: 'teeth', amount: 7, balance_before: 10, balance_after: 3 },
       player_revision: 5, output: { type: 'item', item_id: 'item.test.scrap', quantity_granted: 2, owned_quantity_after: 4 },
-    } }, content());
+    } }, itemRequest, content());
     expect(item.output).toEqual({ type: 'item', itemId: 'item.test.scrap', quantityGranted: 2, ownedQuantityAfter: 4 });
+    const dieRequest = { offer_id: 'shop_offer.a_', expected_price: { currency_id: 'teeth' as const, amount: 10 } };
     const die = parseShopPurchaseEnvelope({ ok: true, data: {
       offer_id: 'shop_offer.a_', spend: { currency_id: 'teeth', amount: 10, balance_before: 10, balance_after: 0 },
       player_revision: 6, output: { type: 'die', die: { id: '9007199254740993', size: 8, profile_id: 'dice_profile.cardboard', lifecycle_status: 'active' } },
-    } }, content());
+    } }, dieRequest, content());
     expect(die.output).toEqual({ type: 'die', die: { id: '9007199254740993', size: 8, profileId: 'dice_profile.cardboard', lifecycleStatus: 'active' } });
   });
 
   it('rejects expanded, unsafe, arithmetically invalid, mismatched, and greater-than-d8 purchase outputs', () => {
+    const request = { offer_id: 'shop_offer.a1', expected_price: { currency_id: 'teeth' as const, amount: 7 } };
     const base = { ok: true, data: {
       offer_id: 'shop_offer.a1', spend: { currency_id: 'teeth', amount: 7, balance_before: 10, balance_after: 3 },
       player_revision: 5, output: { type: 'item', item_id: 'item.test.scrap', quantity_granted: 2, owned_quantity_after: 4 },
@@ -76,6 +79,20 @@ describe('Shop contracts', () => {
       { ok: true, data: { ...base.data, offer_id: 'shop_offer.a_', output: { type: 'die', die: { id: '01', size: 8, profile_id: 'dice_profile.cardboard', lifecycle_status: 'active' } } } },
       { ok: true, data: { ...base.data, output: { ...base.data.output, extra: true } } },
     ];
-    for (const value of invalid) expect(() => parseShopPurchaseEnvelope(value, content())).toThrowError(ShopContractError);
+    for (const value of invalid) expect(() => parseShopPurchaseEnvelope(value, request, content())).toThrowError(ShopContractError);
+  });
+
+  it('rejects a different valid offer identity or coherent price than the submitted request', () => {
+    const request = { offer_id: 'shop_offer.a1', expected_price: { currency_id: 'teeth' as const, amount: 7 } };
+    const differentOffer = { ok: true, data: {
+      offer_id: 'shop_offer.a_', spend: { currency_id: 'teeth', amount: 7, balance_before: 10, balance_after: 3 },
+      player_revision: 5, output: { type: 'die', die: { id: '12', size: 8, profile_id: 'dice_profile.cardboard', lifecycle_status: 'active' } },
+    } };
+    const differentPrice = { ok: true, data: {
+      offer_id: 'shop_offer.a1', spend: { currency_id: 'teeth', amount: 6, balance_before: 10, balance_after: 4 },
+      player_revision: 5, output: { type: 'item', item_id: 'item.test.scrap', quantity_granted: 2, owned_quantity_after: 4 },
+    } };
+    expect(() => parseShopPurchaseEnvelope(differentOffer, request, content())).toThrowError(ShopContractError);
+    expect(() => parseShopPurchaseEnvelope(differentPrice, request, content())).toThrowError(ShopContractError);
   });
 });
