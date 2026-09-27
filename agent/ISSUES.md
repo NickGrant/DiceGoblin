@@ -2,213 +2,177 @@
 
 ## Milestone 7 - Economy and Inventory
 
-### Milestone 7 Package 7 - Phaser Shop + Inventory surfaces and Camp integration
+### Milestone 7 Package 8 - Economy/inventory integrated verification and closure
 
 **Status:** In Progress
 **Priority:** High
 
 #### Accepted baseline
 
-Milestone 7 Package 6 - Dice sell/salvage lifecycle is approved at `5601ba03cfb7072c016cd3788107855119cb745f`.
+Milestone 7 Package 7 - Phaser Shop + Inventory surfaces and Camp integration is approved at `6aeb397050fa8695eeaab2b4d1460de3f82c254c`.
 
-Package 6 closure evidence:
-- dice valuation: 5 tests / 11 assertions;
-- dice lifecycle/MySQL/security: 14 tests / 44 assertions;
-- reward application regression: 8 tests / 33 assertions;
-- focused frontend lifecycle/API: 19 tests PASS;
-- full frontend: **506 tests PASS**;
+Package 7 closure evidence:
+- focused correction frontend: **35/35 PASS**;
+- full frontend: **522/522 PASS**;
 - full Docker backend: **890 tests / 3,631 assertions / 268 skipped**;
-- DB provision/reset, Docker content validation, PHP syntax, production build, bundle check, docs lint, and `git diff --check`: PASS.
+- DB provision/reset: PASS;
+- Docker content validation: PASS;
+- production build: PASS;
+- bundle check: PASS, largest main bundle **339.09 KiB**;
+- `npm run llm:check`: PASS;
+- `npm run docs:lint`: PASS;
+- `git diff --check`: PASS.
 
-Package 6 established retained `sold`/`salvaged` die lifecycle transitions, deterministic Teeth/Raw Chaos valuation, idempotent replay, and equipment/active-run safety.
+Package 7 established persistent Phaser Shop/Supplies surfaces, Camp navigation, Energy consumable use, dice sell/salvage controls, active-run healing UI, authoritative cache reconciliation, and retained-idempotency interaction safety.
 
-#### Problem
+#### Package 8 purpose
 
-Make the Milestone 7 economy usable through the persistent Phaser client without changing the accepted server economy.
+Close Milestone 7 technically by proving the complete repeatable economy/inventory slice as one integrated system and correcting only defects exposed by that proof.
 
-Implement the player-facing interaction surfaces for:
-- Shop browsing and purchase;
-- owned item/supply inventory;
-- Energy-recharge consumable use from between-run inventory;
-- dice sell/salvage from the existing Warband dice inventory;
-- active-run unit-healing consumables through a lightweight RunScene supplies interaction;
-- Camp navigation into Shop and Supplies/Inventory.
+This is primarily a verification, integration-hardening, and narrow migration-cleanup package. Do not add a new economy feature or rebalance the product.
 
-Do not revive Angular gameplay pages or create new Phaser scenes for these destinations. They are screens/views inside the existing persistent `GameScene` or a lightweight overlay inside `RunScene`.
+#### Integrated economy proof
 
-#### GameScene navigation and Camp integration
+Add/extend integration coverage so a fresh vNext database proves the accepted Milestone 7 lifecycle across authoritative boundaries.
 
-Extend the existing GameScene screen/navigation model with:
-- `shop`;
-- `inventory` / Supplies.
+At minimum demonstrate:
 
-Camp must expose clear interactive entry points for Shop and Supplies alongside the existing Warband/run interactions.
+1. authenticated player/bootstrap begins from valid `user_state`;
+2. Shop catalog is authored from canonical JSON and returns current Teeth/revision/availability/affordability;
+3. item purchase spends Teeth once and produces/updates the owned stack;
+4. basic-die purchase spends Teeth once and creates an active die no larger than d8;
+5. unlocked authored base-unit purchase spends Teeth once and creates the expected unconfigured level-1 unit through the shared unit-creation path;
+6. Energy consumable use decrements exactly one owned stack and applies authoritative regeneration/overcharge semantics;
+7. an active-run healing consumable decrements exactly one stack and changes only the participating run unit HP;
+8. an eligible unbound die can be sold for Teeth and transitions to retained `sold`;
+9. an eligible unbound die can be salvaged for Raw Chaos and transitions to retained `salvaged`;
+10. terminal dice disappear from the active owned-dice query while their lifecycle records remain persisted;
+11. resulting Teeth, Raw Chaos, inventory quantities, Energy, run HP, and `player_revision` survive fresh authoritative reads/reload.
 
-Back/Escape/controller-back behavior must follow the existing GameScreenNavigator history and return naturally to the prior GameScene screen. Do not use Angular routing as gameplay navigation.
+Use current commands, repositories, and content. Do not create a test-only economy path that bypasses the real application boundaries.
 
-Use the accepted responsive/safe-area model at Compact, Standard, and Wide sizes. Follow the current visual guide and neighboring Phaser screens; final cross-cutting visual polish remains deferred.
+#### Cross-command invariants
 
-#### Shop screen
+Prove the Milestone 7 commands compose safely rather than only passing in isolation:
 
-Use `GameStore.loadShop` and the strict Shop/client-content contracts already established.
+- every new committed durable mutation increments `player_revision` exactly once;
+- exact idempotent retries do not double-spend, double-credit, double-consume, duplicate assets, or reroll anything;
+- same-key semantic conflicts remain rejected across each applicable command;
+- rejected mutations do not alter wallet, inventory, Energy, HP, lifecycle, revision, or finalized receipt;
+- injected pre-commit failures roll back all affected state;
+- client-safe integer overflow remains atomic;
+- foreign/missing resources retain ownership-safe/non-disclosing behavior;
+- Shop affordability reflects authoritative Teeth changes after purchase/sale;
+- item quantities remain coherent after purchase then consumption;
+- active-run/equipment locks remain effective for dice lifecycle operations;
+- healing does not modify permanent unit state or run-node topology;
+- no Milestone 7 acquisition path creates a die larger than d8.
 
-Present, at minimum:
-- current Teeth;
-- each authored Shop offer;
-- grant presentation resolved from the projected authored item/die/unit content;
-- authoritative price;
-- authoritative availability;
-- current affordability;
-- clear unavailable/insufficient-funds states.
+Do not add cross-command coupling merely to make the tests pass. Commands remain explicit player intentions with one transaction owner each.
 
-Purchase uses the exact authoritative offer identity and price currently shown:
-```text
-offer_id
-expected_price.currency_id = teeth
-expected_price.amount = authoritative current price
-```
+#### Frontend integrated proof
 
-A logical purchase attempt owns one idempotency key. While submitting, duplicate purchase input is disabled. Ambiguous network/server outcomes retain the same request + key for retry. Definitive client/business rejection may clear the attempt and allow a new action.
+Exercise the persistent Phaser runtime across the complete economy UX rather than testing each screen only as an isolated class.
 
-On successful purchase, reconcile only authoritative affected state:
-- bootstrap Teeth -> returned `balance_after`;
-- bootstrap `player_revision` -> returned revision;
-- item output -> update an already-loaded item cache to returned `owned_quantity_after`, otherwise mark/not-load it for later authoritative fetch;
-- die output -> add the returned active die to an already-loaded dice cache using projected profile/material/aspect content and no invented bindings, otherwise mark/not-load dice for later fetch;
-- unit output -> add the returned active unit summary to an already-loaded unit cache using projected authored content, otherwise mark/not-load units for later fetch.
+Cover at minimum:
+- Camp -> Shop -> purchase -> back to Camp;
+- Camp -> Supplies -> Energy use -> back to Camp;
+- Camp -> Warband Dice -> sell/salvage confirmation -> authoritative wallet/dice reconciliation;
+- active RunScene -> Supplies -> unit heal -> run state remains active and node state unchanged;
+- mutation state survives rerender/reflow and ambiguous retry retains exact request/key;
+- successful/definitively rejected mutations release navigation;
+- reconciliation failures leave the committed server outcome recoverable and mark affected cache state safely rather than inventing data;
+- lazy domains are not eagerly fetched merely because another economy mutation succeeds;
+- normal reload/bootstrap + lazy reads reproduce the committed server state.
 
-The Shop read model must no longer display stale affordability after a successful Teeth change. Reconcile from the new balance when safe or mark/reload the Shop authoritatively. Do not require a full bootstrap refresh for a normal successful purchase.
+Use the current `GameStore`, runtime API contracts, and screen boundaries. Do not create a second economy cache/store.
 
-If reconciliation detects a contradiction, preserve the committed server result, mark affected cache state stale/error, and present recovery/reload guidance rather than fabricating local state.
+#### Responsive and deterministic presentation verification
 
-#### Supplies / item inventory screen
+Run deterministic Phaser verification for the newly completed Milestone 7 surfaces.
 
-Use `GameStore.loadItems` and projected item definitions.
+At minimum verify representative:
+- Camp with Shop/Supplies entry points;
+- Shop with available and unavailable/unaffordable offers;
+- Supplies with material, Energy restore, and run-use heal presentation;
+- Warband Dice with unbound lifecycle actions and equipped/active-run locked state;
+- RunScene Supplies/healing interaction.
 
-Present owned stacks with:
-- display name;
-- quantity;
-- category/rarity;
-- description/effect summary where applicable.
+Verify affected layouts at:
+- Compact landscape `844x390`;
+- Standard `1600x900`;
+- Wide `2560x1080`;
+- safe-inset Compact;
+- portrait mobile gate where the capture/runtime path can affect it.
 
-Materials have no Use action.
+Prefer the repository deterministic capture tooling. Fix functional/layout defects found, but do not begin the deferred game-wide visual overhaul.
 
-For `energy_restore` consumables, expose a between-run Use action that calls the established contextual Energy endpoint. Eligibility remains server-authoritative; local state may only be used to disable obviously impossible actions for UX.
+#### Narrow prototype retirement
 
-Use one retained idempotency key per logical Energy-use attempt across ambiguous retries. On success:
-- adopt the authoritative Energy view;
-- adopt the returned `player_revision`;
-- update/remove the exact item stack from already-loaded inventory using `owned_quantity_after`.
+The Phaser Shop is now the proven live replacement.
 
-`unit_heal` consumables are visible in inventory but are explicitly run-use supplies; do not invent permanent/Camp healing.
+Before deletion, confirm current references. If they remain isolated/unrouted as expected, retire the superseded Angular Shop-only path:
+- prototype Angular Shop page;
+- its page-only Angular Shop service;
+- Shop-only Angular UI components/tests that have no remaining live consumer.
 
-#### Dice lifecycle interaction
+Do not remove public/platform shell code.
 
-Do not duplicate the owned dice collection into a competing persistence model. Extend the existing Warband Dice Inventory presentation with player actions for the Package 6 commands.
+Do **not** broadly delete the old backend prototype `ShopService` / progression-era economy implementation in this package. Its routes are already unregistered, and portions remain migration evidence for later permanent-progression decisions. Milestone 8+ or final hardening owns that broader backend cleanup.
 
-For a selected die:
-- show authored profile/material/rarity/aspect presentation;
-- show its current equipment binding when present;
-- offer **Sell for Teeth** and **Salvage for Raw Chaos** only through the authoritative endpoints;
-- require an explicit destructive-action confirmation before submission;
-- visibly disable/guard lifecycle actions for equipped dice and preserve the active-run lock presentation.
+Update current migration/disposition documentation only as needed to state that the Angular Shop path has been retired after Phaser replacement proof.
 
-Client-side disabled state is UX only; the server remains authoritative.
+#### Regression expectations
 
-Each sell/salvage logical action retains one idempotency key across ambiguous retry. On successful transition:
-- remove the exact terminal die from an already-loaded active dice cache;
-- adopt returned Teeth or Raw Chaos and `player_revision` in bootstrap;
-- if Teeth changed and Shop is already loaded, reconcile or stale/reload Shop affordability;
-- do not modify unit/loadout state because only unbound dice may succeed.
+The closure package must keep green:
+- auth/session/bootstrap;
+- Warband/loadout/squad flows;
+- run start/abandon/map;
+- combat/playback;
+- Loot/Rest/Boss/Exit;
+- Mountains generalization;
+- Shop/inventory/consumables/dice lifecycle;
+- content projection secrecy/validation;
+- responsive host/orientation behavior.
 
-#### Active-run healing interaction
+Do not weaken an earlier milestone invariant to close Milestone 7.
 
-Make the established `unit_heal` command minimally player-usable during an active run.
-
-Add a lightweight Supplies interaction within `RunScene` rather than a new scene. It may be an overlay/panel and should:
-- load/reuse owned item inventory;
-- show owned `unit_heal` consumables;
-- show the exact participating owned units/current run HP needed to choose a target;
-- use projected unit/content data only for presentation; server response remains authoritative for max HP and final HP;
-- support healing a 0-HP participant when the run is active;
-- not advance a node, rewrite playback, or mutate permanent unit state.
-
-Use one retained idempotency key per logical heal attempt across ambiguous retry.
-
-On successful heal:
-- update the exact participant's cached `current_hp` from the authoritative receipt;
-- adopt returned `player_revision`;
-- update/remove the exact healing-item stack from inventory;
-- leave run topology/node state unchanged.
-
-If current inventory was never loaded, load it only when the Supplies interaction is opened; do not eagerly fetch all inventory at startup.
-
-#### GameStore/cache requirements
-
-Extend GameStore with explicit reconciliation/subscription behavior required by these screens rather than having screens mutate cache internals directly.
-
-Preserve the accepted cache semantics:
-- not-loaded / loading / fresh / stale / error;
-- backend remains authoritative;
-- mutation results update only affected cache slices;
-- a mutation against a never-loaded domain does not force an unrelated eager fetch;
-- unexpected revision regression is an integrity failure;
-- stale/error recovery remains retryable.
-
-Shop and item-inventory screens must re-render when their cache state changes; use a store-owned subscription boundary or an equivalent coherent mechanism.
-
-#### Error and retry UX
-
-Distinguish:
-- loading;
-- empty;
-- retryable read/network failure;
-- definitive business rejection;
-- ambiguous idempotent mutation outcome;
-- local integrity/reconciliation failure.
-
-Do not silently issue a new idempotency key after an ambiguous purchase/use/sell/salvage/heal result.
-
-Session expiration may direct the player to reload/sign in; integrity mismatches should prefer safe recovery over speculative state.
-
-#### Verification and tests
-
-Add focused tests for:
-- GameScene navigation/back history for Shop and Inventory;
-- Camp Shop/Supplies entry points;
-- Shop loading/error/empty/availability/affordability presentation;
-- exact purchase payload + retained-key ambiguous retry;
-- successful item/die/unit purchase reconciliation;
-- item inventory loading/error/empty states;
-- Energy-restoration use/retry/reconciliation;
-- dice sell/salvage confirmation, equipped/active-run lock presentation, retry, and reconciliation;
-- RunScene healing supplies selection/use/retry and exact participant HP reconciliation;
-- no permanent-unit/node mutation from healing;
-- cache revision regression/integrity recovery;
-- Compact `844x390`, Standard `1600x900`, Wide `2560x1080`, safe-inset, and portrait-gate behavior for new surfaces;
-- existing Camp/Warband/Run/Battle navigation and economy/runtime contract regressions.
+#### Required verification
 
 Run:
 - `npm run verify:package`;
-- focused frontend Shop/Inventory/GameStore/screen tests;
-- production frontend build and bundle check;
-- DB provision/reset;
+- focused integrated economy/inventory tests;
+- focused frontend economy/runtime/navigation/reconciliation tests;
+- DB provision + reset from the current vNext baseline;
 - full Docker backend;
-- content/docs/diff checks.
+- full frontend;
+- production frontend build;
+- bundle check;
+- Docker content validation;
+- deterministic scene captures/review for the affected economy surfaces;
+- `npm run llm:check`;
+- `npm run docs:lint`;
+- `git diff --check`.
 
-Report exact test/assertion/skipped counts where available.
+Report exact focused/full test and assertion counts, skipped counts, bundle result, and capture results.
 
 #### Out of scope
 
-- new backend economy endpoints or changed economy semantics;
-- generic `use item` behavior;
-- permanent out-of-run unit healing;
-- Academy, Wrong Machine, Codex, objectives, or Milestone 8+ progression;
+- new Shop offers or final economy balancing;
+- daily deals;
+- feature-unlock Shop upgrades;
+- Academy/permanent progression;
+- Raw Chaos spending;
 - >d8 acquisition;
-- final Shop catalog/balance tuning;
-- scheduled lifecycle cleanup;
-- final game-wide visual/UI overhaul.
+- Wrong Machine;
+- generic item use;
+- permanent out-of-run healing;
+- new run encounter mechanics;
+- final cross-cutting visual/UI overhaul;
+- broad prototype-backend deletion.
 
 #### Completion
 
-Implement only Milestone 7 Package 7. Leave it **In Progress** for architectural review. Do not promote Package 8 yourself.
+Implement only Milestone 7 Package 8. Leave it **In Progress** for architectural review.
+
+Do not mark Milestone 7 complete and do not promote Milestone 8. Package 9 is focused manual UAT and must occur first.
