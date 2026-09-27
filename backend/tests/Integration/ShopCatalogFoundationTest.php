@@ -7,8 +7,8 @@ use DiceGoblins\Application\Queries\ShopCatalogQuery;
 use DiceGoblins\Application\Queries\ShopIntegrityException;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Controllers\ShopCatalogController;
-use DiceGoblins\Domain\Shop\ShopNumericContract;
 use DiceGoblins\Repositories\PlayerStateRepository;
+use DiceGoblins\Support\ClientSafeInteger;
 use DiceGoblins\Tests\Support\IntegrationTestCase;
 
 final class ShopCatalogFoundationTest extends IntegrationTestCase
@@ -60,7 +60,7 @@ final class ShopCatalogFoundationTest extends IntegrationTestCase
 
   public function testClientSafeMaximumWalletRevisionAndPriceAreReturnedExactly(): void
   {
-    $maximum = ShopNumericContract::MAX_CLIENT_SAFE_INTEGER;
+    $maximum = ClientSafeInteger::MAXIMUM;
     $userId = $this->user('Shop Maximum', $maximum, $maximum);
     $result = (new ShopCatalogQuery(new PlayerStateRepository($this->pdo), $this->content($maximum)))->execute($userId);
 
@@ -72,7 +72,7 @@ final class ShopCatalogFoundationTest extends IntegrationTestCase
 
   public function testWalletAndRevisionAboveClientSafeMaximumAreIntegrityFailures(): void
   {
-    $tooLarge = ShopNumericContract::MAX_CLIENT_SAFE_INTEGER + 1;
+    $tooLarge = ClientSafeInteger::MAXIMUM + 1;
     $query = new ShopCatalogQuery(new PlayerStateRepository($this->pdo), $this->content());
     foreach ([[$tooLarge, 1], [1, $tooLarge]] as [$teeth, $revision]) {
       $userId = $this->user('Shop Unsafe', $teeth, $revision);

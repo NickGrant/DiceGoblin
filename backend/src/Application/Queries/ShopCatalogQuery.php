@@ -4,8 +4,8 @@ declare(strict_types=1);
 namespace DiceGoblins\Application\Queries;
 
 use DiceGoblins\Content\ContentRegistry;
-use DiceGoblins\Domain\Shop\ShopNumericContract;
 use DiceGoblins\Repositories\PlayerStateRepository;
+use DiceGoblins\Support\ClientSafeInteger;
 
 final class ShopCatalogQuery
 {
@@ -20,15 +20,15 @@ final class ShopCatalogQuery
     $state = $this->players->getPlayerState($userId);
     if ($state === null
       || $state['teeth'] < 0
-      || $state['teeth'] > ShopNumericContract::MAX_CLIENT_SAFE_INTEGER
+      || $state['teeth'] > ClientSafeInteger::MAXIMUM
       || $state['player_revision'] < 0
-      || $state['player_revision'] > ShopNumericContract::MAX_CLIENT_SAFE_INTEGER) {
+      || $state['player_revision'] > ClientSafeInteger::MAXIMUM) {
       throw new ShopIntegrityException('Required Shop player state is unavailable.');
     }
     $offers = [];
     foreach ($this->content->definitionsOfType('shop_offer') as $id => $definition) {
       $amount = (int)$definition['price']['amount'];
-      if ($amount < 1 || $amount > ShopNumericContract::MAX_CLIENT_SAFE_INTEGER) {
+      if ($amount < 1 || $amount > ClientSafeInteger::MAXIMUM) {
         throw new ShopIntegrityException('Authored Shop price is outside the client-safe range.');
       }
       $offers[] = [

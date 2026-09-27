@@ -6,6 +6,7 @@ namespace DiceGoblins\Tests\Unit;
 use DiceGoblins\Content\ClientContentProjector;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Content\ContentValidationException;
+use DiceGoblins\Support\ClientSafeInteger;
 use PHPUnit\Framework\TestCase;
 
 final class ItemContentValidationTest extends TestCase
@@ -42,6 +43,21 @@ final class ItemContentValidationTest extends TestCase
     foreach (['price', 'cost', 'offer', 'weight', 'probability'] as $private) {
       $this->assertStringNotContainsString($private, $encoded);
     }
+  }
+
+  public function testEffectAmountAcceptsClientSafeMaximumAndRejectsTheNextInteger(): void
+  {
+    $maximum = $this->consumable();
+    $maximum['effect']['amount'] = ClientSafeInteger::MAXIMUM;
+    $this->assertSame(
+      ClientSafeInteger::MAXIMUM,
+      $this->registryWithItems([$maximum])->item('item.spark_tonic')['effect']['amount'],
+    );
+
+    $tooLarge = $this->consumable();
+    $tooLarge['effect']['amount'] = ClientSafeInteger::MAXIMUM + 1;
+    $this->expectException(ContentValidationException::class);
+    $this->registryWithItems([$tooLarge]);
   }
 
   /** @dataProvider invalidItemProvider */

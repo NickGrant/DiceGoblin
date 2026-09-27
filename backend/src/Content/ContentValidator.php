@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace DiceGoblins\Content;
 
-use DiceGoblins\Domain\Shop\ShopNumericContract;
+use DiceGoblins\Support\ClientSafeInteger;
 
 use DiceGoblins\Combat\Vnext\CombatRules;
 use InvalidArgumentException;
@@ -322,7 +322,13 @@ final class ContentValidator
     }
     $this->requireExactFieldSet($effect, ['type', 'amount'], [], "{$location} field 'effect'");
     $this->requireAllowedString($effect, 'type', ['energy_restore'], "{$location} field 'effect'");
-    $this->requireIntegerInRange($effect, 'amount', 1, PHP_INT_MAX, "{$location} field 'effect'");
+    $this->requireIntegerInRange(
+      $effect,
+      'amount',
+      1,
+      ClientSafeInteger::MAXIMUM,
+      "{$location} field 'effect'",
+    );
   }
 
   /** @param array<string, mixed> $definition */
@@ -338,7 +344,13 @@ final class ContentValidator
     if ($grantType === 'item') {
       $this->requireExactFieldSet($grant, ['type', 'item_id', 'quantity'], [], "{$location} field 'grant'");
       $this->requireStableIdWithNamespace($grant, 'item_id', 'item.', "{$location} field 'grant'");
-      $this->requireIntegerInRange($grant, 'quantity', 1, PHP_INT_MAX, "{$location} field 'grant'");
+      $this->requireIntegerInRange(
+        $grant,
+        'quantity',
+        1,
+        ClientSafeInteger::MAXIMUM,
+        "{$location} field 'grant'",
+      );
     } else {
       $this->requireExactFieldSet($grant, ['type', 'dice_profile_id', 'size'], [], "{$location} field 'grant'");
       $this->requireStableIdWithNamespace($grant, 'dice_profile_id', 'dice_profile.', "{$location} field 'grant'");
@@ -357,7 +369,7 @@ final class ContentValidator
       $price,
       'amount',
       1,
-      ShopNumericContract::MAX_CLIENT_SAFE_INTEGER,
+      ClientSafeInteger::MAXIMUM,
       "{$location} field 'price'",
     );
   }

@@ -6,7 +6,7 @@ namespace DiceGoblins\Tests\Unit;
 use DiceGoblins\Content\ClientContentProjector;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Content\ContentValidationException;
-use DiceGoblins\Domain\Shop\ShopNumericContract;
+use DiceGoblins\Support\ClientSafeInteger;
 use PHPUnit\Framework\TestCase;
 
 final class ShopOfferContentValidationTest extends TestCase
@@ -41,14 +41,29 @@ final class ShopOfferContentValidationTest extends TestCase
   public function testPriceAcceptsClientSafeMaximumAndRejectsTheNextInteger(): void
   {
     $maximum = $this->itemOffer();
-    $maximum['price']['amount'] = ShopNumericContract::MAX_CLIENT_SAFE_INTEGER;
+    $maximum['price']['amount'] = ClientSafeInteger::MAXIMUM;
     $this->assertSame(
-      ShopNumericContract::MAX_CLIENT_SAFE_INTEGER,
+      ClientSafeInteger::MAXIMUM,
       $this->registry([$maximum], true)->shopOffer('shop_offer.scrap')['price']['amount'],
     );
 
     $tooLarge = $this->itemOffer();
-    $tooLarge['price']['amount'] = ShopNumericContract::MAX_CLIENT_SAFE_INTEGER + 1;
+    $tooLarge['price']['amount'] = ClientSafeInteger::MAXIMUM + 1;
+    $this->expectException(ContentValidationException::class);
+    $this->registry([$tooLarge], true);
+  }
+
+  public function testItemQuantityAcceptsClientSafeMaximumAndRejectsTheNextInteger(): void
+  {
+    $maximum = $this->itemOffer();
+    $maximum['grant']['quantity'] = ClientSafeInteger::MAXIMUM;
+    $this->assertSame(
+      ClientSafeInteger::MAXIMUM,
+      $this->registry([$maximum], true)->shopOffer('shop_offer.scrap')['grant']['quantity'],
+    );
+
+    $tooLarge = $this->itemOffer();
+    $tooLarge['grant']['quantity'] = ClientSafeInteger::MAXIMUM + 1;
     $this->expectException(ContentValidationException::class);
     $this->registry([$tooLarge], true);
   }
