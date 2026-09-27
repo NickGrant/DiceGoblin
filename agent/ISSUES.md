@@ -2,328 +2,321 @@
 
 ## Milestone 7 - Economy and Inventory
 
-### Milestone 7 Package 3 - Idempotent Teeth purchase + item/basic-die acquisition
+### Milestone 7 Package 4 - Unlock-aware base-unit purchase + shared unit creation
 
 **Status:** In Progress
 **Priority:** High
 
 #### Accepted baseline
 
-Milestone 7 Package 2 - Shop authored-offer model + authoritative Shop read contract is approved at `a1cebe4527c0ea3fb5e9d92ce5314760a887c0b5`.
+Milestone 7 Package 3 - Idempotent Teeth purchase + item/basic-die acquisition is approved at `21825dde6bccfb0d925252eea4e76716aec0f3fd`.
 
-Package 2 closure evidence:
-- GitHub Full Verification: backend 834 tests / 1,681 assertions; frontend 490 tests; all standard gates PASS;
+Package 3 closure evidence:
+- GitHub Full Verification: backend 845 tests / 1,681 assertions; frontend 494 tests; all standard gates PASS;
+- focused frontend purchase contracts/API: 19 tests PASS;
+- focused MySQL Shop purchase: 11 tests / 92 assertions;
+- focused inventory persistence: 6 tests / 20 assertions;
 - DB provision/reset: PASS;
-- full Docker backend from current Package 2 branch state: **834 tests / 3,374 assertions / 268 skipped**;
-- the earlier 242-test result is superseded and must not be cited as full-suite proof.
+- full Docker backend: **845 tests / 3,467 assertions / 268 skipped**;
+- production frontend build, bundle, docs/context, and diff check: PASS.
 
-Package 2 established:
-- canonical authored `shop_offer` definitions;
-- item + fixed d4/d6/d8 die offer shapes;
-- safe client Shop projection without price;
-- authenticated read-only `GET /api/v1/shop`;
-- authoritative Teeth/revision/price/affordability read model;
-- one shared `ClientSafeInteger` PHP->browser numeric boundary.
+Package 3 established:
+- authenticated/CSRF/idempotent `POST /api/v1/shop/purchase`;
+- authoritative stale-price precondition;
+- atomic Teeth debit + item/die output + one revision + finalized receipt;
+- exact retry before current content resolution;
+- normal `user_items` and `dice_instances` output;
+- client receipt parsing bound to the exact submitted offer and expected price.
 
-The production item and Shop-offer catalogs remain intentionally empty. Do not invent product balance/prices merely to populate them.
+Production item and Shop-offer catalogs remain intentionally empty. Do not invent balance content simply to exercise this package.
 
-#### Problem
+#### Package 4 purpose
 
-Prove the first repeatable ordinary Teeth transaction:
+Extend the existing Shop transaction to repeatable **base-unit** acquisition without inventing a Shop-specific roster model.
 
-> purchase one authored Shop offer exactly once, debit the authoritative Teeth wallet exactly once, create exactly the authored item stack or basic die, and return an immutable retry-safe receipt.
+This package proves:
 
-This package supports only the Package 2 offer types:
-- stackable item;
-- fixed-profile fixed-size die (d4/d6/d8 only).
+> an authored tier-1 Basic Goblin unit offer is visible through the normal Shop contract, is available only when the player owns an authored unit-type entitlement, and creates exactly one normal level-1 unit through a shared unit-creation boundary.
 
-Do not add unit offers; Package 4 owns repeatable unit acquisition.
+Do not implement Academy purchase/unlock actions; Milestone 8 owns how permanent unit-type entitlements are acquired.
 
-#### Endpoint
+#### Unlock model extension
 
-Implement and register:
+The persistence model is already generic: `user_unlocks` stores authored `unlock.*` IDs.
 
-`POST /api/v1/shop/purchase`
+Extend authored `unlock` validation from region-only to support:
+- `target_type: region` -> `target_id: region.*`;
+- `target_type: unit_type` -> `target_id: unit_type.*`.
 
-Requirements:
-- authenticated;
-- CSRF-protected;
-- requires `Idempotency-Key`;
-- exact JSON body:
+Reference validation must enforce the target type.
 
-```json
-{
-  "offer_id": "shop_offer.example",
-  "expected_price": {
-    "currency_id": "teeth",
-    "amount": 7
-  }
-}
-```
+Do not add a new entitlement table or duplicate `user_unit_type_unlocks`.
 
-`expected_price` is an optimistic transaction precondition representing the price shown to the player. It is **not** a second price authority.
+Existing region behavior must remain unchanged. `RegionAvailabilityPolicy` continues to ignore non-region unlocks.
 
-The server:
-1. validates/canonicalizes the request and idempotency key;
-2. begins the transaction and locks `user_state`;
-3. checks an existing idempotency receipt **before resolving current Shop content**;
-4. if the same key + same normalized request already committed, returns that exact stored result unchanged;
-5. same key + different request conflicts;
-6. for a new request, resolves the current authored `shop_offer`;
-7. compares the current authoritative Teeth price to `expected_price`;
-8. if the offer/price changed, rejects without spending or granting;
-9. revalidates current Teeth balance under lock;
-10. applies spend + grant + revision + finalized idempotency receipt in one transaction.
+Add a small unit-type availability policy that:
+- accepts owned authored unlock IDs;
+- ignores stale/unknown unlock IDs rather than granting anything;
+- considers only `target_type === unit_type`;
+- returns exact authored unit-type IDs;
+- uses stable ordinal ordering;
+- never infers availability from naming, tier, current roster, or client state.
 
-This ordering is important: an exact retry must still replay its original receipt after a content deployment changes or removes the offer.
+Milestone 8 will later create/grant these authored unit-type unlocks through Academy progression. Package 4 only consumes the entitlement.
 
-#### Request/error semantics
+#### Authored Shop unit offers
 
-Use narrow non-disclosing errors:
-- malformed body / invalid offer identity: `invalid_shop_purchase` (422);
-- invalid idempotency key: existing `idempotency_key_invalid` (400);
-- reused key with different normalized request: existing `idempotency_conflict` (409);
-- authored offer unavailable for a new request: `shop_offer_not_found` (404);
-- expected price no longer matches authoritative price: `shop_offer_changed` (409);
-- insufficient Teeth: `insufficient_teeth` (409);
-- incoherent wallet/content/persistence state: `shop_data_integrity_error` (500).
-
-Do not reveal private content or foreign state in errors.
-
-#### Transaction ownership and wallet spend
-
-The purchase command owns the complete transaction.
-
-Reuse `PlayerStateRepository::getPlayerStateForUpdate()` for the wallet lock.
-
-Add an explicit Teeth/currency **debit** persistence primitive rather than weakening the existing reward-grant invariant:
-- current `applyCurrencyTransition()` is grant-oriented and requires `after >= before`;
-- preserve that behavior for reward application;
-- add a transaction-neutral spend/debit transition requiring exact `before`, non-negative `after`, and `after <= before`.
-
-The purchase command computes:
-- `balance_before`;
-- exact price;
-- `balance_after = balance_before - price`.
-
-Insufficient balance rejects before durable output creation.
-
-Increment `player_revision` exactly once for a newly committed purchase.
-
-Because the result crosses the browser boundary, a new purchase must also reject integrity state where the next revision cannot remain within `ClientSafeInteger::MAXIMUM`.
-
-#### Item acquisition
-
-For an item offer:
-- resolve the authored item and require stackable consistency;
-- grant exactly the authored quantity through `UserItemRepository`;
-- no separate Shop inventory table;
-- return the resulting owned quantity.
-
-Prevent creation of a client-unrepresentable stack:
-- the resulting owned quantity must remain <= `ClientSafeInteger::MAXIMUM`;
-- enforce this at the shared mutable inventory boundary where practical, not only in controller presentation.
-
-The entire item grant rolls back if wallet spend, revision, receipt finalization, or any later purchase step fails.
-
-#### Die acquisition
-
-For a die offer:
-- resolve the authored `dice_profile`;
-- revalidate size/profile compatibility;
-- size must be exactly d4/d6/d8;
-- create one ordinary active row in `dice_instances`;
-- the die starts unbound/un-equipped;
-- do not use the retained prototype `OwnedDiceGrantService`, affix tables, dice definitions, Codex side effects, or randomization.
-
-Add the minimal persistence-only creation method to the accepted vNext dice repository boundary (prefer the existing `WarbandDiceRepository`) with caller-owned transaction enforcement.
-
-Return the created die instance using string identity:
-- `id`;
-- `size`;
-- `profile_id`;
-- `lifecycle_status: active`.
-
-Do not create multiple dice from one die offer in Package 3.
-
-#### Purchase result / idempotency receipt
-
-Persist and return one exact finalized result shape.
-
-Common fields:
+Extend the `shop_offer` grant union with:
 
 ```text
-offer_id
-spend:
-  currency_id = teeth
-  amount
-  balance_before
-  balance_after
-player_revision
-output
+type = unit
+unit_type_id
+kin_id
 ```
 
-Item output:
+For Milestone 7, a Shop unit grant is intentionally narrow:
+- referenced unit type must exist;
+- referenced unit type must be **tier 1**;
+- `kin_id` must be exactly `kin.goblin`;
+- `kin.goblin` must exist;
+- at least one authored `unlock` definition must target that exact `unit_type_id`, so the offer is reachable through the accepted entitlement model.
+
+Do not allow Shop offers for tier-2/tier-3 promoted types.
+Do not allow Pig/Lizard/Frog/etc. kin acquisition here; Kin restoration/reconstruction belongs to later milestones.
+Do not put unlock IDs, player availability, or price into the safe static grant projection.
+
+The production Shop catalog may remain empty in Package 4. Fixture content should define the needed unit offers + unit-type unlocks.
+
+#### Safe client projection
+
+Extend `ClientShopOfferDefinition` with the static unit grant identity:
 
 ```text
-type = item
-item_id
-quantity_granted
-owned_quantity_after
+type = unit
+unit_type_id
+kin_id
 ```
 
-Die output:
+Validate both references against projected authored content.
+
+Do not project:
+- price;
+- owned unlock IDs;
+- the specific unlock source;
+- availability rules;
+- Academy metadata.
+
+#### Authoritative Shop read availability
+
+Extend `GET /api/v1/shop` without replacing its response shape.
+
+For item and die offers:
+- `available = true` as today.
+
+For unit offers:
+- `available = true` only when the authenticated player owns at least one valid authored `unit_type` unlock targeting the offer's exact `unit_type_id`;
+- otherwise `available = false`.
+
+`can_afford` remains a **Teeth-only** statement:
+- `can_afford = teeth >= price`;
+- do not fold availability into affordability.
+
+The Shop query remains read-only and must not increment revision.
+
+Unknown/stale owned unlock IDs do not unlock unit offers.
+An unlock for another unit type does not unlock the offer.
+No ownership or roster-count inference.
+
+#### Purchase availability
+
+Extend the existing `PurchaseShopOfferCommand` for unit grants.
+
+For a new request:
+1. lock `user_state` as today;
+2. check finalized idempotency receipt before current content/availability;
+3. resolve current authored offer/price;
+4. for a unit offer, read/lock the caller's owned unlock IDs and apply the shared unit-type availability policy;
+5. reject an unavailable unit offer **before** spend/output mutation;
+6. then perform the existing price, balance, spend, output, revision, and receipt transaction.
+
+Use:
+- `shop_offer_unavailable` (403) for a valid unit offer whose unit type is not unlocked.
+
+Exact finalized retry semantics remain stronger than current content/unlock state:
+- an exact matching retry returns the original receipt unchanged even if the unit-type unlock was later removed or Shop content changed.
+
+Item/die purchase behavior must not regress.
+
+#### Shared unit creation boundary
+
+Do not put raw unit-creation SQL in the Shop command.
+
+Create one transaction-neutral application/domain service for normal owned-unit creation that can later be reused by rewards, Wrong Machine, onboarding, etc.
+
+For a Package 4 Shop-created unit:
+
+- owner = authenticated user;
+- `unit_type_id` = authored offer target;
+- `kin_id = kin.goblin`;
+- `level = 1`;
+- `xp = 0`;
+- `lifecycle_status = active`;
+- no promotion history;
+- own every authored ability listed by the tier-1 unit type;
+- **no ability loadout yet**;
+- **no dice bindings**;
+- create **no dice** as a side effect.
+
+Use a deterministic temporary display name equal to the authored unit type's `display_name`. Names do not need to be unique; the existing rename command remains the player customization path.
+
+The service:
+- requires a caller-owned transaction;
+- validates authored unit/kin/ability coherence;
+- delegates persistence to `WarbandUnitRepository` methods;
+- does not increment revision;
+- does not own price/unlock policy;
+- returns the normal created unit identity/state needed for the receipt.
+
+Repository additions remain persistence-only and require caller-owned transactions for creation writes.
+
+#### Unconfigured-unit Warband contract
+
+A purchased unit intentionally arrives without equipped actions/dice so Shop purchase does not silently mint free dice.
+
+Backend `UnitDetailQuery` already represents an empty loadout/binding set without treating it as persisted corruption.
+
+Update the strict frontend unit-detail contract to permit this one valid unconfigured state:
+- `ability_loadout = []`;
+- `dice_bindings = []`;
+- owned abilities are still present.
+
+Do **not** permit partial configured state:
+- if the loadout is non-empty, all existing strict active-ability and complete-dice-slot invariants remain;
+- bindings with an empty loadout reject;
+- partial/missing bindings for a non-empty loadout reject.
+
+Run safety remains unchanged:
+- `RunParticipationValidator` already rejects an empty loadout as `run_configuration_invalid`;
+- do not weaken that check.
+
+A purchased unit may exist in the roster and be edited/renamed before it is combat-ready.
+
+#### Unit purchase result
+
+Extend the purchase output union:
 
 ```text
-type = die
-die:
+type = unit
+unit:
   id
-  size
-  profile_id
+  display_name
+  unit_type_id
+  kin_id
+  level
+  xp
   lifecycle_status
 ```
 
-The idempotency receipt stores this finalized result and exact retries return it byte-semantically unchanged as structured data.
+Required values for Package 4:
+- canonical positive string ID;
+- exact offered `unit_type_id`;
+- `kin_id = kin.goblin`;
+- `level = 1`;
+- `xp = 0`;
+- `lifecycle_status = active`;
+- nonblank bounded display name matching the deterministic creation rule.
 
-Do not add purchase-history or receipt tables beyond existing `idempotency_requests`.
+The idempotency receipt stores this exact unit output. Exact retry must not create another unit.
 
-#### Authoritative price / content behavior
+Extend strict frontend purchase parsing so unit output agrees with the originally submitted offer and projected unit/kin identities.
 
-For a **new** idempotency key:
-- current authored offer identity and current authored price are authoritative;
-- client-projected grant identity may inform presentation but never authorizes output;
-- the command grants from server `ContentRegistry`, not request-provided grant data.
+#### Existing purchase/request semantics
 
-If Shop content changes between GET and POST:
-- matching current price -> transact normally;
-- mismatched current price -> `shop_offer_changed`;
-- removed offer -> `shop_offer_not_found`.
-
-For an already finalized matching idempotency receipt:
-- replay the receipt without re-reading/revalidating the current offer.
-
-#### Production content
-
-Do **not** invent production Shop prices, consumable names, or balance values in this package.
-
-It is acceptable for production `items/catalog.json` and `shop_offers/catalog.json` to remain empty.
-
-Use fixture authored content in integration tests to prove both item and die purchase paths. Concrete production inventory can be introduced by the package that owns that product behavior before Milestone 7 UAT.
-
-#### Frontend runtime boundary
-
-Add framework-neutral support only; no Shop screen yet.
-
-Add:
-- strict purchase-result parser;
-- Runtime API purchase method that sends CSRF + `Idempotency-Key` + exact body;
-- error classification necessary for later UI retry/refresh behavior.
-
-The parser must strictly validate:
-- exact envelope/field sets;
-- safe non-negative currency/revision/quantity values;
-- spend arithmetic (`before - amount = after`);
-- Teeth currency only;
-- output discriminated union;
-- item output agrees with projected offer grant;
-- die output agrees with projected offer profile/size and has canonical positive string ID;
-- no >d8 die output;
-- malformed/extra fields reject.
-
-Do **not** add final Shop UI or broad GameStore purchase orchestration in this package. Package 7 owns presentation and same-runtime cache choreography.
-
-Ambiguous transport/5xx outcomes must preserve the caller's original idempotency key/request so Package 7 can retry the exact operation rather than silently minting a new key.
+Do not change:
+- request body;
+- `expected_price` stale-price behavior;
+- Teeth-only price;
+- idempotency hash/request identity;
+- item/die output semantics;
+- one revision increment per newly committed purchase;
+- receipt-first exact retry;
+- client-safe integer boundaries.
 
 #### Tests
 
-Backend/content/application:
-- item purchase debits exact Teeth and increments exact stack quantity;
-- die purchase debits exact Teeth and creates exactly one unbound active die;
-- exact-balance purchase succeeds with zero Teeth remaining;
-- insufficient Teeth changes nothing;
-- expected-price mismatch changes nothing;
-- missing offer changes nothing;
-- d4/d6/d8 fixed die offers purchase successfully in fixture coverage;
-- no >d8 path is accepted;
-- item stack overflow beyond client-safe maximum rejects atomically;
-- revision overflow beyond client-safe maximum rejects atomically;
-- command requires caller-owned/command-owned transaction boundaries as appropriate;
-- no prototype Shop/dice catalog tables are introduced.
+Authored content/unlocks:
+- existing region unlock remains valid;
+- valid unit-type unlock resolves its exact target;
+- mismatched target_type/target namespace rejects;
+- missing/wrong target type rejects;
+- valid tier-1 `kin.goblin` unit offer loads/projects;
+- tier-2/tier-3 unit offer rejects;
+- non-`kin.goblin` Shop unit offer rejects;
+- unit offer with no authored unit-type unlock target rejects;
+- safe projection contains unit/kin grant identity only.
 
-Idempotency:
-- exact same key + same request returns exact first result;
-- replay does not spend twice;
-- replay does not increment item twice;
-- replay does not create a second die;
-- same key + different offer conflicts;
-- same key + different expected price conflicts;
-- exact replay still succeeds after fixture content price changes/removes the offer;
-- rollback before receipt commit leaves no spend/output/receipt.
+Availability/read:
+- locked unit offer is returned with `available=false`;
+- exact owned unit-type unlock makes only that target available;
+- stale/unknown/wrong-target unlock does not grant availability;
+- `can_afford` remains independent of availability;
+- read does not mutate revision.
 
-Ownership/isolation:
-- purchase affects only authenticated user wallet/inventory/dice;
-- created die belongs only to purchaser.
+Purchase:
+- locked unit offer -> 403 `shop_offer_unavailable`, no spend/output/receipt/revision;
+- unlocked offer spends exact Teeth and creates exactly one owned unit;
+- created unit is level 1 / xp 0 / active / Basic Goblin;
+- created unit owns exactly the unit type's authored ability IDs;
+- no promotions, loadout, dice bindings, or new dice are created;
+- exact retry creates no second unit or second spend;
+- exact retry still returns after entitlement removal;
+- same-key different request still conflicts;
+- item/die purchase regressions remain green;
+- user A's unlock cannot authorize user B.
 
-API/security:
-- auth required;
-- CSRF required;
-- idempotency key required;
-- strict request field set;
-- documented error/status mapping.
+Warband/runtime:
+- purchased unconfigured unit appears in unit collection;
+- unit detail with owned abilities + empty loadout/bindings parses successfully;
+- empty loadout with bindings rejects;
+- non-empty loadout still requires all dice slots;
+- placing an unconfigured purchased unit in a squad does not make it runnable; run start rejects `run_configuration_invalid` until configured.
 
-Frontend:
-- strict item purchase result;
-- strict die purchase result;
-- spend arithmetic/offer-output coherence;
-- malformed/expanded/unsafe/>d8 outputs reject;
-- request sends exact expected-price/idempotency/CSRF contract;
-- ambiguous retry preserves caller-provided request identity rather than creating a new purchase.
+Transaction/integrity:
+- shared unit creation requires caller transaction;
+- failure after unit creation but before receipt commit rolls back unit, spend, revision, and receipt;
+- no new unit/Shop entitlement tables.
 
 #### Verification
 
 Run:
 - `npm run verify:package`;
-- focused Shop-purchase backend tests;
-- focused item/dice persistence tests;
-- focused purchase frontend contract/API tests;
+- focused unlock/content/unit-offer tests;
+- focused Shop query availability tests;
+- focused unit-creation/purchase tests;
+- focused frontend Shop + unconfigured-unit contracts;
 - `npm run test:db:provision:docker`;
 - `npm run test:db:reset:docker`;
-- focused MySQL Shop purchase integration;
+- focused MySQL unit-purchase/run-safety tests;
 - `npm run test:backend:docker`.
 
-Report exact test/assertion/skipped counts where available.
+Report exact tests/assertions/skipped counts where available.
 
 #### Out of scope
 
-- unit offers/acquisition;
-- production price/balance tuning;
-- daily deals/rotations;
-- stock/purchase limits;
-- random Shop rolls;
-- >d8 acquisition or progression capability;
+- Academy purchase/grant flows;
+- Raw Chaos progression;
+- production unit prices/offers;
+- tier-2/tier-3 direct purchase;
+- Pig/Lizard/Frog/etc. Shop acquisition;
+- kin reconstruction;
+- random names;
+- free/starter dice bundled with units;
+- automatic squad insertion;
+- automatic loadout configuration;
 - consumable use;
 - dice sell/salvage;
-- Raw Chaos spend;
-- final Shop/Inventory Phaser screens.
-
-#### Current architectural review finding
-
-The Package 3 implementation at `67c388f33ec335c4e21332a59c196af37570ed6b` is otherwise aligned with the accepted purchase architecture. GitHub Full Verification is green at that SHA (backend 845 tests / 1,681 assertions; frontend 493 tests; all standard gates PASS).
-
-One client contract defect remains:
-
-- `parseShopPurchaseEnvelope()` validates the successful receipt against the `offer_id` supplied by the **response** and the current client content registry, but it is not bound to the purchase request that was actually submitted.
-- Therefore a malformed/incorrect success response naming a different valid offer can be accepted, and a success response whose `spend.amount` differs from the caller's `expected_price.amount` can also be accepted as long as its arithmetic is internally coherent.
-- Bind purchase-result parsing to the original normalized request identity. At minimum, require returned `offer_id === request.offer_id` and returned Teeth `spend.amount === request.expected_price.amount`.
-- Preserve the existing output-vs-authored-grant coherence check. Prefer passing the original request (and, if useful, the original projected offer snapshot) into the purchase parser rather than trusting response-selected identity.
-- Add focused frontend regressions for:
-  - response returns a different valid offer ID;
-  - response returns a different positive Teeth amount with coherent before/after arithmetic;
-  - the exact submitted request still parses successfully.
-- Do not broaden this into Shop UI/cache choreography; Package 7 still owns presentation.
-
-After correction, rerun Package 3 verification, including the requested DB provision/reset, focused MySQL Shop-purchase integration, and full `npm run test:backend:docker`. Report exact counts. Leave Package 3 **In Progress** and do not promote Package 4.
+- final Shop/Inventory UI.
 
 #### Completion
 
-Implement only Milestone 7 Package 3. Leave it **In Progress** for architectural review. Do not promote Package 4 yourself.
+Implement only Milestone 7 Package 4. Leave it **In Progress** for architectural review. Do not promote Package 5 yourself.
