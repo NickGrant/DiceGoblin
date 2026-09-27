@@ -2,321 +2,359 @@
 
 ## Milestone 7 - Economy and Inventory
 
-### Milestone 7 Package 4 - Unlock-aware base-unit purchase + shared unit creation
+### Milestone 7 Package 5 - Contextual consumables: Energy restore + active-run unit healing
 
 **Status:** In Progress
 **Priority:** High
 
 #### Accepted baseline
 
-Milestone 7 Package 3 - Idempotent Teeth purchase + item/basic-die acquisition is approved at `21825dde6bccfb0d925252eea4e76716aec0f3fd`.
+Milestone 7 Package 4 - Unlock-aware base-unit purchase + shared unit creation is approved at `b323b170f200159c047e8f22195cc98e7bfbcf27`.
 
-Package 3 closure evidence:
-- GitHub Full Verification: backend 845 tests / 1,681 assertions; frontend 494 tests; all standard gates PASS;
-- focused frontend purchase contracts/API: 19 tests PASS;
-- focused MySQL Shop purchase: 11 tests / 92 assertions;
-- focused inventory persistence: 6 tests / 20 assertions;
+Package 4 closure evidence:
 - DB provision/reset: PASS;
-- full Docker backend: **845 tests / 3,467 assertions / 268 skipped**;
-- production frontend build, bundle, docs/context, and diff check: PASS.
+- authored content/unlock tests: 18 tests / 40 assertions;
+- Shop availability tests: 7 tests / 26 assertions;
+- MySQL purchase/run-safety tests: 15 tests / 116 assertions;
+- focused frontend contracts: 21 tests;
+- full frontend: **497 tests PASS**;
+- production frontend build and bundle check: PASS;
+- Docker content validation: PASS at revision `7c3fe94d7568a11955c0e0400a1d2316fad69082a622a0b1a044bda97f49e79f`;
+- full Docker backend: **853 tests / 3,505 assertions / 268 skipped**;
+- docs lint and `git diff --check`: PASS.
 
-Package 3 established:
-- authenticated/CSRF/idempotent `POST /api/v1/shop/purchase`;
-- authoritative stale-price precondition;
-- atomic Teeth debit + item/die output + one revision + finalized receipt;
-- exact retry before current content resolution;
-- normal `user_items` and `dice_instances` output;
-- client receipt parsing bound to the exact submitted offer and expected price.
+Package 4 established generic authored unit-type unlock entitlements, unlock-aware Shop availability, tier-1 Basic Goblin unit purchase through the existing idempotent Shop transaction, a reusable normal-unit creation boundary, and the valid owned-abilities/empty-loadout state for newly purchased units.
 
-Production item and Shop-offer catalogs remain intentionally empty. Do not invent balance content simply to exercise this package.
+There are no GitHub Actions/status checks attached to the implementation commit; approval is based on the supplied verification results plus architectural review of the pushed diff.
 
-#### Package 4 purpose
+#### Package 5 purpose
 
-Extend the existing Shop transaction to repeatable **base-unit** acquisition without inventing a Shop-specific roster model.
+Implement the first real consumable-use mutations while preserving the accepted rule that consumables are **contextual commands**, not an arbitrary generic `use item` executor.
 
-This package proves:
+This package proves two explicit player intentions:
 
-> an authored tier-1 Basic Goblin unit offer is visible through the normal Shop contract, is available only when the player owns an authored unit-type entitlement, and creates exactly one normal level-1 unit through a shared unit-creation boundary.
+- `POST /api/v1/energy/restore` consumes an owned Energy-recharge item and applies the accepted Energy overcharge rules;
+- `POST /api/v1/runs/:runId/units/:unitId/heal` consumes an owned healing item and restores HP only on the specified participating unit in that owned active run.
 
-Do not implement Academy purchase/unlock actions; Milestone 8 owns how permanent unit-type entitlements are acquired.
+Both commands spend durable inventory and therefore require authentication, CSRF, and an `Idempotency-Key`.
 
-#### Unlock model extension
+Do not add a generic item-effect execution endpoint or scriptable effect dispatcher.
 
-The persistence model is already generic: `user_unlocks` stores authored `unlock.*` IDs.
+#### Authored consumable effects
 
-Extend authored `unlock` validation from region-only to support:
-- `target_type: region` -> `target_id: region.*`;
-- `target_type: unit_type` -> `target_id: unit_type.*`.
+Retain the existing strict item model:
+- materials have no effect;
+- consumables require one validated effect object;
+- quantities and effect amounts stay client-safe positive integers.
 
-Reference validation must enforce the target type.
-
-Do not add a new entitlement table or duplicate `user_unit_type_unlocks`.
-
-Existing region behavior must remain unchanged. `RegionAvailabilityPolicy` continues to ignore non-region unlocks.
-
-Add a small unit-type availability policy that:
-- accepts owned authored unlock IDs;
-- ignores stale/unknown unlock IDs rather than granting anything;
-- considers only `target_type === unit_type`;
-- returns exact authored unit-type IDs;
-- uses stable ordinal ordering;
-- never infers availability from naming, tier, current roster, or client state.
-
-Milestone 8 will later create/grant these authored unit-type unlocks through Academy progression. Package 4 only consumes the entitlement.
-
-#### Authored Shop unit offers
-
-Extend the `shop_offer` grant union with:
+Keep the existing:
 
 ```text
-type = unit
-unit_type_id
-kin_id
+effect:
+  type = energy_restore
+  amount
 ```
 
-For Milestone 7, a Shop unit grant is intentionally narrow:
-- referenced unit type must exist;
-- referenced unit type must be **tier 1**;
-- `kin_id` must be exactly `kin.goblin`;
-- `kin.goblin` must exist;
-- at least one authored `unlock` definition must target that exact `unit_type_id`, so the offer is reachable through the accepted entitlement model.
-
-Do not allow Shop offers for tier-2/tier-3 promoted types.
-Do not allow Pig/Lizard/Frog/etc. kin acquisition here; Kin restoration/reconstruction belongs to later milestones.
-Do not put unlock IDs, player availability, or price into the safe static grant projection.
-
-The production Shop catalog may remain empty in Package 4. Fixture content should define the needed unit offers + unit-type unlocks.
-
-#### Safe client projection
-
-Extend `ClientShopOfferDefinition` with the static unit grant identity:
+Extend the consumable effect union with:
 
 ```text
-type = unit
-unit_type_id
-kin_id
+effect:
+  type = unit_heal
+  amount
 ```
 
-Validate both references against projected authored content.
+For Package 5, `unit_heal` is usable only through the active-run healing command below. It is not a permanent-unit HP field and does not imply out-of-run healing.
 
-Do not project:
-- price;
-- owned unlock IDs;
-- the specific unlock source;
-- availability rules;
-- Academy metadata.
+Safe client projection may expose the authored effect `type` and `amount` because they are static gameplay/presentation facts. Preserve strict allowlisting and reference validation.
 
-#### Authoritative Shop read availability
+Production consumable content may remain empty. Use fixture content rather than inventing final balance values merely to exercise this package.
 
-Extend `GET /api/v1/shop` without replacing its response shape.
+#### Contextual endpoint contracts
 
-For item and die offers:
-- `available = true` as today.
+Register exactly these accepted vNext commands:
 
-For unit offers:
-- `available = true` only when the authenticated player owns at least one valid authored `unit_type` unlock targeting the offer's exact `unit_type_id`;
-- otherwise `available = false`.
+- `POST /api/v1/energy/restore`
+- `POST /api/v1/runs/:runId/units/:unitId/heal`
 
-`can_afford` remains a **Teeth-only** statement:
-- `can_afford = teeth >= price`;
-- do not fold availability into affordability.
-
-The Shop query remains read-only and must not increment revision.
-
-Unknown/stale owned unlock IDs do not unlock unit offers.
-An unlock for another unit type does not unlock the offer.
-No ownership or roster-count inference.
-
-#### Purchase availability
-
-Extend the existing `PurchaseShopOfferCommand` for unit grants.
-
-For a new request:
-1. lock `user_state` as today;
-2. check finalized idempotency receipt before current content/availability;
-3. resolve current authored offer/price;
-4. for a unit offer, read/lock the caller's owned unlock IDs and apply the shared unit-type availability policy;
-5. reject an unavailable unit offer **before** spend/output mutation;
-6. then perform the existing price, balance, spend, output, revision, and receipt transaction.
-
-Use:
-- `shop_offer_unavailable` (403) for a valid unit offer whose unit type is not unlocked.
-
-Exact finalized retry semantics remain stronger than current content/unlock state:
-- an exact matching retry returns the original receipt unchanged even if the unit-type unlock was later removed or Shop content changed.
-
-Item/die purchase behavior must not regress.
-
-#### Shared unit creation boundary
-
-Do not put raw unit-creation SQL in the Shop command.
-
-Create one transaction-neutral application/domain service for normal owned-unit creation that can later be reused by rewards, Wrong Machine, onboarding, etc.
-
-For a Package 4 Shop-created unit:
-
-- owner = authenticated user;
-- `unit_type_id` = authored offer target;
-- `kin_id = kin.goblin`;
-- `level = 1`;
-- `xp = 0`;
-- `lifecycle_status = active`;
-- no promotion history;
-- own every authored ability listed by the tier-1 unit type;
-- **no ability loadout yet**;
-- **no dice bindings**;
-- create **no dice** as a side effect.
-
-Use a deterministic temporary display name equal to the authored unit type's `display_name`. Names do not need to be unique; the existing rename command remains the player customization path.
-
-The service:
-- requires a caller-owned transaction;
-- validates authored unit/kin/ability coherence;
-- delegates persistence to `WarbandUnitRepository` methods;
-- does not increment revision;
-- does not own price/unlock policy;
-- returns the normal created unit identity/state needed for the receipt.
-
-Repository additions remain persistence-only and require caller-owned transactions for creation writes.
-
-#### Unconfigured-unit Warband contract
-
-A purchased unit intentionally arrives without equipped actions/dice so Shop purchase does not silently mint free dice.
-
-Backend `UnitDetailQuery` already represents an empty loadout/binding set without treating it as persisted corruption.
-
-Update the strict frontend unit-detail contract to permit this one valid unconfigured state:
-- `ability_loadout = []`;
-- `dice_bindings = []`;
-- owned abilities are still present.
-
-Do **not** permit partial configured state:
-- if the loadout is non-empty, all existing strict active-ability and complete-dice-slot invariants remain;
-- bindings with an empty loadout reject;
-- partial/missing bindings for a non-empty loadout reject.
-
-Run safety remains unchanged:
-- `RunParticipationValidator` already rejects an empty loadout as `run_configuration_invalid`;
-- do not weaken that check.
-
-A purchased unit may exist in the roster and be edited/renamed before it is combat-ready.
-
-#### Unit purchase result
-
-Extend the purchase output union:
+Each request body is exactly:
 
 ```text
-type = unit
+{
+  item_id: item.*
+}
+```
+
+Reject missing, expanded, malformed, or wrong-namespace bodies.
+
+Both commands require:
+- authenticated user;
+- valid CSRF token;
+- valid `Idempotency-Key`;
+- one caller-owned transaction;
+- one finalized idempotency receipt for a newly committed use;
+- exactly one `player_revision` increment for a newly committed use.
+
+The idempotency request identity must include the complete semantic intention:
+- Energy restore: operation + `item_id`;
+- unit healing: operation + canonical `runId` + canonical `unitId` + `item_id`.
+
+Same key + different semantic request conflicts.
+Exact matching retry returns the finalized original result without consuming another item or applying the effect again.
+
+Receipt lookup occurs before current authored item/effect, inventory quantity, Energy, run, or target-unit eligibility checks so a finalized exact retry remains valid after later state/content changes.
+
+#### Energy restore semantics
+
+Use the accepted Energy model rather than treating Energy as currency.
+
+For a new Energy restore:
+1. lock/read the caller's `user_state`;
+2. resolve current authored `item_id`;
+3. require a stackable owned consumable with `effect.type = energy_restore`;
+4. lock the owned item stack;
+5. calculate the caller's **effective current Energy at command time** using the existing authoritative Energy calculation and current authored normal maximum/regeneration rate;
+6. if effective Energy is already at or above the normal maximum, reject without consuming inventory;
+7. otherwise consume exactly one item;
+8. add the authored restore amount, allowing the result to exceed the normal maximum;
+9. persist coherent Energy state/regen timing;
+10. increment revision once, finalize the receipt, and commit.
+
+Accepted overcharge rule:
+- below normal maximum -> use is allowed even if the item takes Energy above maximum;
+- at normal maximum -> blocked;
+- above normal maximum -> blocked.
+
+Do not clamp a valid recharge to the normal maximum.
+
+Regeneration timing must remain coherent:
+- materialize whole elapsed regeneration ticks before applying the item;
+- preserve fractional progress if the post-use Energy remains below normal maximum;
+- if the post-use Energy reaches/exceeds normal maximum, reset the persisted regeneration anchor to command time so time spent capped cannot later become retroactive regeneration;
+- ordinary regeneration remains paused while persisted/effective Energy is at or above normal maximum.
+
+Reject any client-safe integer overflow atomically.
+
+Use a stable business error such as:
+- `energy_restore_unavailable` (409) when Energy is already at/above the normal maximum;
+- `consumable_unavailable` (409) when the caller lacks the required owned item quantity.
+
+Authored-content/type mismatch is not client-selectable polymorphism: an item that is not an `energy_restore` consumable is invalid for this endpoint and must not be consumed.
+
+#### Energy restore result
+
+Return and persist an exact result sufficient for authoritative client reconciliation:
+
+```text
+item_id
+quantity_consumed = 1
+owned_quantity_after
+energy
+player_revision
+```
+
+`energy` uses the existing canonical Energy view:
+- current;
+- normal_max;
+- regeneration_per_hour;
+- regeneration_interval_seconds;
+- last_regeneration_at;
+- next_regeneration_at;
+- fully_regenerated_at.
+
+The frontend parser must reject malformed Energy timing/state, unsafe numbers, wrong item identity, or incoherent inventory quantities.
+
+#### Active-run unit healing semantics
+
+Healing changes only `run_unit_state.current_hp`; it does not mutate permanent unit level/type/stats.
+
+For a new heal request:
+1. validate canonical positive `runId` and `unitId` path IDs;
+2. lock/read the caller's `user_state`;
+3. resolve the owned run by exact ID for update;
+4. require that run to belong to the caller and still be `active`;
+5. require the target unit to be an exact participant in that run and to belong to the caller;
+6. lock the target run-unit HP state;
+7. resolve the current authored unit type + persisted level and calculate current maximum HP through the existing canonical stat resolver;
+8. require persisted HP to be within `0..max_hp`;
+9. require an owned stackable consumable whose authored effect is `unit_heal`;
+10. if the unit is already at maximum HP, reject without consuming inventory;
+11. consume exactly one item;
+12. set `hp_after = min(max_hp, hp_before + authored amount)`;
+13. increment revision once, finalize the receipt, and commit.
+
+A 0-HP participant may be healed if the run itself is still active. A terminal/failed/abandoned/completed run cannot be healed.
+
+Do not:
+- heal a unit that is not participating in the exact run;
+- heal another user's unit or run;
+- over-heal above canonical maximum HP;
+- mutate permanent unit state;
+- complete/advance a node;
+- rewrite battle playback;
+- create a new run HP model.
+
+Use a stable business error such as:
+- `run_heal_unavailable` (409) when the owned run is not active or the target is already full;
+- `consumable_unavailable` (409) for insufficient owned item quantity;
+- ownership-safe 404 behavior for a missing/foreign run or nonparticipating/foreign target, consistent with existing run security patterns.
+
+#### Active-run healing result
+
+Return and persist an exact result:
+
+```text
+item_id
+quantity_consumed = 1
+owned_quantity_after
+run_id
 unit:
-  id
-  display_name
-  unit_type_id
-  kin_id
-  level
-  xp
-  lifecycle_status
+  unit_id
+  hp_before
+  hp_after
+  max_hp
+player_revision
 ```
 
-Required values for Package 4:
-- canonical positive string ID;
-- exact offered `unit_type_id`;
-- `kin_id = kin.goblin`;
-- `level = 1`;
-- `xp = 0`;
-- `lifecycle_status = active`;
-- nonblank bounded display name matching the deterministic creation rule.
+Required invariants:
+- response run/unit identities equal the submitted path identities;
+- `0 <= hp_before < hp_after <= max_hp`;
+- `quantity_consumed = 1`;
+- `owned_quantity_after` is client-safe and non-negative.
 
-The idempotency receipt stores this exact unit output. Exact retry must not create another unit.
+The frontend parser must bind the result to the exact submitted run/unit/item intention rather than accepting any coherent-looking heal receipt.
 
-Extend strict frontend purchase parsing so unit output agrees with the originally submitted offer and projected unit/kin identities.
+#### Persistence/application boundaries
 
-#### Existing purchase/request semantics
+Reuse existing vNext boundaries:
+- `UserItemRepository::decrement` for owned stack consumption;
+- `PlayerStateRepository` for Energy persistence/revision;
+- existing run persistence/resolution repository patterns for locked participating-unit HP writes;
+- `BaseLevelStatResolver` for canonical maximum HP;
+- shared idempotency infrastructure.
 
-Do not change:
-- request body;
-- `expected_price` stale-price behavior;
-- Teeth-only price;
-- idempotency hash/request identity;
-- item/die output semantics;
-- one revision increment per newly committed purchase;
-- receipt-first exact retry;
-- client-safe integer boundaries.
+Any new repository methods remain persistence-only and require a caller-owned transaction for mutation.
+
+Prefer a small deterministic Energy restoration calculator/service beside the existing Energy calculators if needed; controllers must not implement Energy math.
+
+The application commands own transaction, authorization-context checks, item-effect eligibility, mutation order, revision, and finalized receipt.
+
+Do not add new inventory, consumable, Energy, or run-HP tables.
+
+#### Frontend/runtime contracts
+
+Extend the strict client item-effect union with `unit_heal`.
+
+Add strict mutation contracts/API-client methods for both contextual endpoints, but do not build the Phaser Shop/Inventory UX yet; Package 7 owns those surfaces.
+
+Preserve:
+- exact envelope/field validation;
+- client-safe integer checks;
+- canonical positive ID strings;
+- projected authored item resolution;
+- request-bound response identity;
+- existing current-run HP and Energy contracts.
+
+Where practical, share canonical Energy parsing rather than allowing subtly different bootstrap/run/consumable Energy validators.
+
+No client code decides eligibility. The server is authoritative.
+
+#### Transaction and failure behavior
+
+For both commands:
+- no item decrement if preconditions fail;
+- no partial Energy/HP mutation;
+- no revision increment on rejected use;
+- no finalized receipt on rejected use;
+- failure after effect mutation but before receipt/commit rolls back item, effect, revision, and receipt;
+- exact retry after success performs no second mutation.
+
+The finalized result is the replay boundary, even if:
+- item quantity later changes;
+- authored item content later changes;
+- Energy later changes;
+- the run later terminates;
+- target HP later changes.
 
 #### Tests
 
-Authored content/unlocks:
-- existing region unlock remains valid;
-- valid unit-type unlock resolves its exact target;
-- mismatched target_type/target namespace rejects;
-- missing/wrong target type rejects;
-- valid tier-1 `kin.goblin` unit offer loads/projects;
-- tier-2/tier-3 unit offer rejects;
-- non-`kin.goblin` Shop unit offer rejects;
-- unit offer with no authored unit-type unlock target rejects;
-- safe projection contains unit/kin grant identity only.
+Authored content/client projection:
+- existing `energy_restore` item remains valid and projects strictly;
+- valid `unit_heal` item loads/projects;
+- unsupported effect type rejects;
+- zero/negative/unsafe effect amount rejects;
+- materials with effects still reject;
+- consumables without effects still reject;
+- strict frontend item effect union accepts only the two supported effects.
 
-Availability/read:
-- locked unit offer is returned with `available=false`;
-- exact owned unit-type unlock makes only that target available;
-- stale/unknown/wrong-target unlock does not grant availability;
-- `can_afford` remains independent of availability;
-- read does not mutate revision.
+Energy restore:
+- below-max use consumes one item and restores exact amount;
+- restore may overcharge above normal maximum;
+- exactly-at-max and already-over-max uses reject with no mutation;
+- elapsed whole regen ticks are materialized before eligibility/effect;
+- fractional regen progress is preserved when still below cap;
+- reaching/overcharging cap resets the regen anchor correctly;
+- overflow rejects atomically;
+- wrong-effect item rejects without consumption;
+- missing/insufficient item rejects without mutation;
+- exact retry does not consume/restore twice and survives later content/state changes;
+- same key with another item conflicts;
+- revision increments exactly once on committed use.
 
-Purchase:
-- locked unit offer -> 403 `shop_offer_unavailable`, no spend/output/receipt/revision;
-- unlocked offer spends exact Teeth and creates exactly one owned unit;
-- created unit is level 1 / xp 0 / active / Basic Goblin;
-- created unit owns exactly the unit type's authored ability IDs;
-- no promotions, loadout, dice bindings, or new dice are created;
-- exact retry creates no second unit or second spend;
-- exact retry still returns after entitlement removal;
-- same-key different request still conflicts;
-- item/die purchase regressions remain green;
-- user A's unlock cannot authorize user B.
+Active-run healing:
+- owned active-run participant below max heals by exact amount capped at max;
+- 0-HP participant in an active run can be healed;
+- full-HP target rejects without item consumption;
+- target cannot exceed max HP;
+- wrong-effect/missing item rejects without HP mutation;
+- nonparticipant/foreign unit cannot be healed;
+- foreign/missing run does not disclose or mutate state;
+- completed/failed/abandoned run cannot be healed;
+- exact retry does not consume/heal twice and survives later run/HP/content changes;
+- same key with different run/unit/item conflicts;
+- revision increments exactly once on committed use.
 
-Warband/runtime:
-- purchased unconfigured unit appears in unit collection;
-- unit detail with owned abilities + empty loadout/bindings parses successfully;
-- empty loadout with bindings rejects;
-- non-empty loadout still requires all dice slots;
-- placing an unconfigured purchased unit in a squad does not make it runnable; run start rejects `run_configuration_invalid` until configured.
+Rollback/security:
+- injected failure before commit rolls back item + Energy/HP + revision + receipt;
+- caller transaction requirements remain enforced;
+- no new persistence tables;
+- existing Shop, run-node Rest, combat HP, run-start Energy, inventory query, and purchase tests remain green.
 
-Transaction/integrity:
-- shared unit creation requires caller transaction;
-- failure after unit creation but before receipt commit rolls back unit, spend, revision, and receipt;
-- no new unit/Shop entitlement tables.
+Frontend:
+- strict Energy-restore receipt parsing;
+- strict heal receipt parsing bound to submitted run/unit/item;
+- expanded/malformed/wrong-identity/unsafe results reject;
+- API client sends auth credentials, CSRF, idempotency, exact route/body;
+- existing runtime contracts remain green.
 
 #### Verification
 
 Run:
 - `npm run verify:package`;
-- focused unlock/content/unit-offer tests;
-- focused Shop query availability tests;
-- focused unit-creation/purchase tests;
-- focused frontend Shop + unconfigured-unit contracts;
+- focused authored item/effect validation tests;
+- focused Energy calculator/restore command tests;
+- focused active-run heal command tests;
+- focused frontend consumable/runtime API contracts;
 - `npm run test:db:provision:docker`;
 - `npm run test:db:reset:docker`;
-- focused MySQL unit-purchase/run-safety tests;
+- focused MySQL inventory/Energy/run-HP tests;
 - `npm run test:backend:docker`.
 
 Report exact tests/assertions/skipped counts where available.
 
 #### Out of scope
 
-- Academy purchase/grant flows;
-- Raw Chaos progression;
-- production unit prices/offers;
-- tier-2/tier-3 direct purchase;
-- Pig/Lizard/Frog/etc. Shop acquisition;
-- kin reconstruction;
-- random names;
-- free/starter dice bundled with units;
-- automatic squad insertion;
-- automatic loadout configuration;
-- consumable use;
-- dice sell/salvage;
-- final Shop/Inventory UI.
+- generic `use item` endpoint or arbitrary effect dispatcher;
+- final consumable balance/catalog population;
+- Shop/Inventory Phaser UI;
+- healing permanent unit state outside a run;
+- healing enemies;
+- run-node advancement as a side effect of item use;
+- combat simulation changes;
+- Rest-node behavior changes;
+- Energy maximum progression/Academy upgrades;
+- dice sale/salvage (Package 6);
+- Milestone 8+ progression systems.
 
 #### Completion
 
-Implement only Milestone 7 Package 4. Leave it **In Progress** for architectural review. Do not promote Package 5 yourself.
+Implement only Milestone 7 Package 5. Leave it **In Progress** for architectural review. Do not promote Package 6 yourself.

@@ -7,7 +7,7 @@ Read this for sequencing/planning or when closing/promoting an execution package
 **Status:** Active
 
 ### Related Issues
-- Milestone 7 Package 4 - Unlock-aware base-unit purchase + shared unit creation
+- Milestone 7 Package 5 - Contextual consumables: Energy restore + active-run unit healing
 
 Milestone 1 - Walking Skeleton is complete and passed manual user UAT.
 
@@ -56,8 +56,8 @@ Until Milestone 8 introduces authoritative die-size eligibility, no Milestone 7 
 1. ~~Authored item + inventory foundation.~~ Complete and architecturally approved at `3b15fc3024ef12499624e71df8740f3d5912fadb`; MySQL inventory 6/20, baseline 8/66, full backend 613/2,554/150 skipped.
 2. ~~Shop authored-offer model + authoritative Shop read contract.~~ Complete and approved at `a1cebe4527c0ea3fb5e9d92ce5314760a887c0b5`; full Docker backend 834/3,374/268 skipped.
 3. ~~Idempotent Teeth purchase transaction + ordinary item/basic-die acquisition (d8 maximum).~~ Complete and approved at `21825dde6bccfb0d925252eea4e76716aec0f3fd`; full Docker backend 845/3,467/268 skipped.
-4. **Base-unit purchase through unlocked authored unit types + shared unit creation.** Current.
-5. Contextual consumables: Energy restore + active-run unit healing.
+4. ~~Base-unit purchase through unlocked authored unit types + shared unit creation.~~ Complete and approved at `b323b170f200159c047e8f22195cc98e7bfbcf27`; full Docker backend 853/3,505/268 skipped.
+5. **Contextual consumables: Energy restore + active-run unit healing.** Current.
 6. Dice sell/salvage lifecycle + Teeth/Raw Chaos outputs and active-run/equipment safety.
 7. Phaser Shop + Inventory surfaces and Camp integration.
 8. Economy/inventory integrated verification/closure.
@@ -68,8 +68,8 @@ Until Milestone 8 introduces authoritative die-size eligibility, no Milestone 7 
 - Package 1 established the authored-item, `user_items`, inventory query, and strict content/runtime boundary and was approved at `3b15fc3024ef12499624e71df8740f3d5912fadb` after MySQL/Docker proof.
 - Package 2 established authored Shop offers and the player-specific read model and was approved at `a1cebe4527c0ea3fb5e9d92ce5314760a887c0b5` after client-safe numeric corrections and full Docker proof.
 - Package 3 proved the common repeatable Teeth transaction with items/basic dice and was approved at `21825dde6bccfb0d925252eea4e76716aec0f3fd` after request-bound receipt correction and full Docker proof. Dice acquisition remains capped at d8 pending Milestone 8.
-- Package 4 adds repeatable base-unit acquisition only after unit-type availability can be enforced through existing authoritative unlock state.
-- Package 5 implements contextual item consumption without a generic scriptable item-use endpoint.
+- Package 4 established generic unit-type entitlements plus unlock-aware repeatable tier-1 Basic Goblin purchase through shared unit creation and was approved at `b323b170f200159c047e8f22195cc98e7bfbcf27` after full Docker proof (853 tests / 3,505 assertions / 268 skipped).
+- Package 5 implements contextual item consumption through the accepted Energy-restore and active-run-unit-heal commands without a generic scriptable item-use endpoint.
 - Package 6 handles terminal dice lifecycle transitions and prevents equipped/active-run-locked asset mutation.
 - Package 7 adds the Phaser interaction surfaces after authoritative contracts are proven.
 - Package 8 closes the complete repeatable economy technically.
