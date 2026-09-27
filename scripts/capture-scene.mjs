@@ -160,11 +160,16 @@ Options:
 
 async function installGameFixtureRoutes(page, options) {
   const scene = options.scene.trim().toLowerCase();
+  await page.route('https://fonts.googleapis.com/**', (route) => route.fulfill({
+    status: 200,
+    contentType: 'text/css',
+    body: '',
+  }));
   const battleScenes = ['battle-early', 'battle-mid', 'battle-complete', 'battle-compact', 'battle-wide', 'battle-portrait', 'battle-defeat',
     'battle-result-victory', 'battle-result-defeat', 'battle-result-stalemate', 'battle-result-compact', 'battle-result-wide', 'battle-result-error', 'battle-result-portrait'];
   const runScenes = ['run', 'run-abandon', 'run-portrait', 'run-combat-available',
-    'run-loot-available', 'run-loot-result', 'run-rest-result'];
-  if (!['camp', 'camp-portrait', 'warband', 'squad-editor', 'unit-configuration', ...runScenes, ...battleScenes].includes(scene)) return;
+    'run-loot-available', 'run-loot-result', 'run-rest-result', 'run-supplies'];
+  if (!['camp', 'camp-portrait', 'warband', 'shop', 'inventory', 'squad-editor', 'unit-configuration', ...runScenes, ...battleScenes].includes(scene)) return;
 
   if (battleScenes.includes(scene)) {
     await page.addInitScript(({ accountId }) => sessionStorage.setItem('dice-goblins:battle-presentation:v1', JSON.stringify({
@@ -173,6 +178,17 @@ async function installGameFixtureRoutes(page, options) {
   }
 
   const projection = JSON.parse(await readFile(path.resolve(process.cwd(), 'frontend/public/game-content.json'), 'utf8'));
+  projection.content.items = {
+    'item.capture.energy': { id: 'item.capture.energy', display_name: 'Bottled Lightning', description: 'A sharp refill for a tired warband.', category: 'consumable', rarity: 'uncommon', icon_key: 'capture_energy', stackable: true, effect: { type: 'energy_restore', amount: 12 } },
+    'item.capture.heal': { id: 'item.capture.heal', display_name: 'Moss Poultice', description: 'Restores a participating goblin during a run.', category: 'consumable', rarity: 'common', icon_key: 'capture_heal', stackable: true, effect: { type: 'unit_heal', amount: 9 } },
+    'item.capture.ore': { id: 'item.capture.ore', display_name: 'Raw Scrap', description: 'Useful material with no direct action.', category: 'material', rarity: 'common', icon_key: 'capture_ore', stackable: true },
+  };
+  projection.content.shop_offers = {
+    'shop_offer.capture.energy': { id: 'shop_offer.capture.energy', grant: { type: 'item', item_id: 'item.capture.energy', quantity: 2 } },
+    'shop_offer.capture.expensive': { id: 'shop_offer.capture.expensive', grant: { type: 'item', item_id: 'item.capture.heal', quantity: 1 } },
+    'shop_offer.capture.d6': { id: 'shop_offer.capture.d6', grant: { type: 'die', dice_profile_id: 'dice_profile.cardboard_plain', size: 6 } },
+    'shop_offer.capture.unit': { id: 'shop_offer.capture.unit', grant: { type: 'unit', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin' } },
+  };
   const revision = projection.revision;
   await page.route('**/game-content.json', (route) => route.fulfill({
     status: 200,
@@ -230,6 +246,23 @@ async function installGameFixtureRoutes(page, options) {
           : null,
       },
     }),
+  }));
+  await page.route('**/api/v1/items', (route) => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, data: { items: [
+      { item_id: 'item.capture.energy', quantity: 2 },
+      { item_id: 'item.capture.heal', quantity: 3 },
+      { item_id: 'item.capture.ore', quantity: 7 },
+    ] } }),
+  }));
+  await page.route('**/api/v1/shop', (route) => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, data: {
+      teeth: 1234, player_revision: 3, offers: [
+        { offer_id: 'shop_offer.capture.d6', price: { currency_id: 'teeth', amount: 42 }, available: true, can_afford: true },
+        { offer_id: 'shop_offer.capture.energy', price: { currency_id: 'teeth', amount: 18 }, available: true, can_afford: true },
+        { offer_id: 'shop_offer.capture.expensive', price: { currency_id: 'teeth', amount: 1400 }, available: true, can_afford: false },
+        { offer_id: 'shop_offer.capture.unit', price: { currency_id: 'teeth', amount: 1400 }, available: false, can_afford: false },
+      ],
+    } }),
   }));
   if (battleScenes.includes(scene)) {
     const defeat = ['battle-defeat', 'battle-result-defeat'].includes(scene);
@@ -322,6 +355,7 @@ async function installGameFixtureRoutes(page, options) {
     });
     return;
   }
+  if (['shop', 'inventory'].includes(scene)) return;
   if (!['warband', 'squad-editor', 'unit-configuration'].includes(scene)) return;
   await page.route('**/api/v1/units', (route) => route.fulfill({
     status: 200, contentType: 'application/json',
@@ -329,12 +363,14 @@ async function installGameFixtureRoutes(page, options) {
   }));
   await page.route('**/api/v1/dice', (route) => route.fulfill({
     status: 200, contentType: 'application/json',
-    body: JSON.stringify({ ok: true, data: { dice: [
+    body: JSON.stringify({ ok: true, data: { dice: (options.activeRun ? [
+      { id: '201', size: 8, profile_id: 'dice_profile.bone_executioner', lifecycle_status: 'active', bindings: [{ unit_id: '101', ability_id: 'ability.heavy_strike', slot_index: 0 }] },
+      { id: '204', size: 4, profile_id: 'dice_profile.cardboard_guarding', lifecycle_status: 'active', bindings: [] },
+    ] : [
+      { id: '204', size: 4, profile_id: 'dice_profile.cardboard_guarding', lifecycle_status: 'active', bindings: [] },
       { id: '201', size: 8, profile_id: 'dice_profile.bone_executioner', lifecycle_status: 'active', bindings: [{ unit_id: '101', ability_id: 'ability.heavy_strike', slot_index: 0 }] },
       { id: '202', size: 6, profile_id: 'dice_profile.wood_precise', lifecycle_status: 'active', bindings: [{ unit_id: '103', ability_id: 'ability.aimed_shot', slot_index: 0 }] },
-      { id: '203', size: 10, profile_id: 'dice_profile.metal_plain', lifecycle_status: 'active', bindings: [{ unit_id: '101', ability_id: 'ability.basic_attack_melee', slot_index: 0 }] },
-      { id: '204', size: 4, profile_id: 'dice_profile.cardboard_guarding', lifecycle_status: 'active', bindings: [] },
-    ] } }),
+    ]) } }),
   }));
   await page.route('**/api/v1/squads', (route) => route.fulfill({
     status: 200, contentType: 'application/json',
@@ -539,15 +575,15 @@ async function captureScene(options) {
             { timeout: options.timeoutMs },
           );
         }
-        if (['camp', 'camp-portrait', 'warband', 'squad-editor', 'unit-configuration', 'run', 'run-abandon', 'run-portrait', 'run-combat-available',
-          'run-loot-available', 'run-loot-result', 'run-rest-result',
+        if (['camp', 'camp-portrait', 'warband', 'shop', 'inventory', 'squad-editor', 'unit-configuration', 'run', 'run-abandon', 'run-portrait', 'run-combat-available',
+          'run-loot-available', 'run-loot-result', 'run-rest-result', 'run-supplies',
           'battle-early', 'battle-mid', 'battle-complete', 'battle-compact', 'battle-wide', 'battle-portrait', 'battle-defeat',
           'battle-result-victory', 'battle-result-defeat', 'battle-result-stalemate', 'battle-result-compact', 'battle-result-wide', 'battle-result-error', 'battle-result-portrait'].includes(options.scene.trim().toLowerCase())) {
           await page.waitForSelector('.game-host__mount canvas', { timeout: options.timeoutMs });
           const requestedGameScreen = options.scene.trim().toLowerCase();
-          const gameScreen = ['warband', 'squad-editor', 'unit-configuration'].includes(requestedGameScreen)
+          const gameScreen = ['warband', 'shop', 'inventory', 'squad-editor', 'unit-configuration'].includes(requestedGameScreen)
             ? requestedGameScreen : requestedGameScreen.startsWith('battle-') ? 'battle'
-              : ['run', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-loot-available', 'run-loot-result', 'run-rest-result'].includes(requestedGameScreen) ? 'run' : 'camp';
+              : ['run', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-loot-available', 'run-loot-result', 'run-rest-result', 'run-supplies'].includes(requestedGameScreen) ? 'run' : 'camp';
           await page.waitForSelector(`[data-game-screen="${gameScreen}"]`, { timeout: options.timeoutMs });
           if (gameScreen === 'warband') {
             await page.waitForSelector('[data-warband-ready="true"]', { timeout: options.timeoutMs });

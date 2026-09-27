@@ -25,7 +25,7 @@ Package 7 closure evidence:
 
 Package 7 established persistent Phaser Shop/Supplies surfaces, Camp navigation, Energy consumable use, dice sell/salvage controls, active-run healing UI, authoritative cache reconciliation, and retained-idempotency interaction safety.
 
-#### Package 8 purpose
+#### Problem
 
 Close Milestone 7 technically by proving the complete repeatable economy/inventory slice as one integrated system and correcting only defects exposed by that proof.
 

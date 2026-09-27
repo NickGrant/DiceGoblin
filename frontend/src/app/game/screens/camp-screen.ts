@@ -45,8 +45,6 @@ export interface CampLayout {
   readonly runButton: Bounds;
   readonly headingY: number;
   readonly welcomeY: number;
-  readonly eyebrowY: number;
-  readonly statusY: number;
   readonly dividerY: number;
   readonly showCampfire: boolean;
   readonly headingFontSize: number;
@@ -151,8 +149,6 @@ export function createCampLayout(snapshot: RuntimeViewportSnapshot): CampLayout 
       mode === 'compact' ? 460 : 380, mode === 'compact' ? 92 : 72),
     headingY: mode === 'compact' ? 43 : 50,
     welcomeY: mode === 'compact' ? 94 : 101,
-    eyebrowY: panel.y + (mode === 'compact' ? 62 : 76),
-    statusY: panel.y + (mode === 'compact' ? 101 : 118),
     dividerY: panel.y + (mode === 'compact' ? 145 : 170),
     showCampfire: false,
     headingFontSize: mode === 'compact' ? 48 : mode === 'wide' ? 44 : 42,
@@ -285,21 +281,6 @@ export class CampScreen implements GameSceneScreen {
     this.addCampDestinationButton(root, layout.suppliesButton, 'SUPPLIES', this.openInventory, layout);
     this.addRegionSelector(root, layout, view);
     this.addRunButton(root, layout, view);
-    const eyebrow = this.scene.add
-      .text(layout.centerX, layout.eyebrowY, 'THE GOBLINS ARE PLOTTING', {
-        color: '#d65a43', fontFamily: 'system-ui, sans-serif',
-        fontSize: layout.mode === 'compact' ? '19px' : '16px',
-        fontStyle: 'bold', letterSpacing: 2,
-      })
-      .setOrigin(0.5);
-    const status = this.scene.add
-      .text(layout.centerX, layout.statusY, 'Supplies counted. Trouble pending.', {
-        color: '#3a2a1a', fontFamily: 'Georgia, serif',
-        fontSize: layout.mode === 'compact' ? '30px' : '27px', fontStyle: 'bold',
-      })
-      .setOrigin(0.5);
-    root.add([eyebrow, status]);
-
     const divider = this.scene.add.graphics();
     divider.lineStyle(4, 0x8a5a34, 0.7);
     divider.lineBetween(layout.panel.x + 72, layout.dividerY, layout.panel.right - 72, layout.dividerY);

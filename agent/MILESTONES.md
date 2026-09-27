@@ -7,7 +7,7 @@ Read this for sequencing/planning or when closing/promoting an execution package
 **Status:** Active
 
 ### Related Issues
-- Milestone 7 Package 8 - Economy/inventory integrated verification/closure
+- Milestone 7 Package 8 - Economy/inventory integrated verification and closure
 
 Milestone 1 - Walking Skeleton is complete and passed manual user UAT.
 

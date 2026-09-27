@@ -677,6 +677,10 @@ export class RunScene extends RuntimeScene {
       this.openAbandonConfirmation();
       return;
     }
+    if (debugScene === 'run-supplies' && state.status === 'fresh' && state.data && !this.suppliesOpen) {
+      this.openSupplies();
+      return;
+    }
     this.render();
   }
 

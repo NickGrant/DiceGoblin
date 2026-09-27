@@ -33,6 +33,7 @@ const DEBUG_SCENE_ROUTE_ALIASES: Record<string, string> = {
   'run-loot-available': '/game',
   'run-loot-result': '/game',
   'run-rest-result': '/game',
+  'run-supplies': '/game',
   'run-abandon': '/game',
   'run-portrait': '/game',
   'battle-early': '/game',
