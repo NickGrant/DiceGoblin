@@ -27,6 +27,8 @@ import {
 import { BattlePlaybackContractError, BattlePlaybackResult, parseBattlePlaybackEnvelope } from './battle-playback-contracts';
 import { RunNodeResolutionContractError, RunNodeResolutionResult, parseRunNodeResolutionEnvelope } from './run-node-resolution-contracts';
 import { ShopContractError, ShopPurchasePayload, ShopPurchaseResult, parseShopPurchaseEnvelope } from './shop-contracts';
+import { ConsumableContractError, ConsumableUsePayload, EnergyRestoreResult, RunUnitHealResult,
+  parseEnergyRestoreEnvelope, parseRunUnitHealEnvelope } from './consumable-contracts';
 
 export type RuntimeFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
@@ -93,6 +95,28 @@ export class RuntimeApiClient {
     if (idempotencyKey.trim() === '') throw new RuntimeApiError('malformed-response');
     return this.mutate('/api/v1/shop/purchase', 'POST', csrfToken, request, idempotencyKey,
       (value) => parseShopPurchaseEnvelope(value, request, content));
+  }
+
+  async restoreEnergy(
+    itemId: string, csrfToken: string, idempotencyKey: string, content: ClientContentRegistry,
+  ): Promise<EnergyRestoreResult> {
+    const request: ConsumableUsePayload = { item_id: itemId };
+    if (!/^item\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/.test(itemId) || idempotencyKey.trim() === '')
+      throw new RuntimeApiError('malformed-response');
+    return this.mutate('/api/v1/energy/restore', 'POST', csrfToken, request, idempotencyKey,
+      (value) => parseEnergyRestoreEnvelope(value, request, content));
+  }
+
+  async healRunUnit(
+    runId: string, unitId: string, itemId: string, csrfToken: string, idempotencyKey: string,
+    content: ClientContentRegistry,
+  ): Promise<RunUnitHealResult> {
+    const request: ConsumableUsePayload = { item_id: itemId };
+    if (!/^[1-9][0-9]*$/.test(runId) || !/^[1-9][0-9]*$/.test(unitId)
+      || !/^item\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/.test(itemId) || idempotencyKey.trim() === '')
+      throw new RuntimeApiError('malformed-response');
+    return this.mutate(`/api/v1/runs/${runId}/units/${unitId}/heal`, 'POST', csrfToken, request, idempotencyKey,
+      (value) => parseRunUnitHealEnvelope(value, runId, unitId, request, content));
   }
 
   async getCurrentRun(content: ClientContentRegistry): Promise<CurrentRunResult> {
@@ -250,7 +274,8 @@ export class RuntimeApiClient {
       return parse(value);
     } catch (error) {
       if (error instanceof WarbandContractError || error instanceof UnitDetailContractError || error instanceof RunContractError
-        || error instanceof RunNodeResolutionContractError || error instanceof ShopContractError) {
+        || error instanceof RunNodeResolutionContractError || error instanceof ShopContractError
+        || error instanceof ConsumableContractError) {
         throw new RuntimeApiError('malformed-response', response.status);
       }
       throw error;

@@ -35,6 +35,7 @@ describe('ClientContentRegistry', () => {
     expect(registry.getDiceProfile('dice_profile.cardboard_striking')?.rarity).toBe('common');
     expect(registry.getRunNodeType('run_node_type.combat')?.icon_key).toBe('icon_encounter_combat');
     expect(registry.getItem('item.test.tonic')?.effect).toEqual({ type: 'energy_restore', amount: 5 });
+    expect(registry.getItem('item.test.poultice')?.effect).toEqual({ type: 'unit_heal', amount: 7 });
     expect(registry.getShopOffer('shop_offer.test_tonic')?.grant.type).toBe('item');
     expect(registry.getShopOffer('shop_offer.test_unit')?.grant.type).toBe('unit');
     expect(registry.has('region.missing')).toBeFalse();
@@ -212,6 +213,11 @@ function validProjection() {
           id: 'item.test.tonic', display_name: 'Tonic', description: 'Restores energy.',
           category: 'consumable', rarity: 'common', icon_key: 'tonic', stackable: true,
           effect: { type: 'energy_restore', amount: 5 },
+        },
+        'item.test.poultice': {
+          id: 'item.test.poultice', display_name: 'Poultice', description: 'Restores HP.',
+          category: 'consumable', rarity: 'common', icon_key: 'poultice', stackable: true,
+          effect: { type: 'unit_heal', amount: 7 },
         },
       },
       shop_offers: {

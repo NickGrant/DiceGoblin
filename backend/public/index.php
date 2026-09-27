@@ -18,6 +18,7 @@ use DiceGoblins\Controllers\WarbandController;
 use DiceGoblins\Controllers\WarbandFixtureController;
 use DiceGoblins\Controllers\RunController;
 use DiceGoblins\Controllers\BattlePlaybackController;
+use DiceGoblins\Controllers\ConsumableController;
 
 require_once __DIR__ . '/../src/Core/Autoloader.php';
 Autoloader::register(__DIR__ . '/../src');
@@ -106,6 +107,7 @@ $warband = new WarbandController();
 $warbandFixture = new WarbandFixtureController();
 $runs = new RunController();
 $battlePlayback = new BattlePlaybackController();
+$consumables = new ConsumableController();
 
 // Auth
 $router->get('/auth/discord/start', [$auth, 'discordStart']);
@@ -123,6 +125,7 @@ $router->get('/api/v1/game/bootstrap', [$gameBootstrap, 'bootstrap']);
 $router->get('/api/v1/items', [$inventory, 'items']);
 $router->get('/api/v1/shop', [$shopCatalog, 'catalog']);
 $router->post('/api/v1/shop/purchase', [$shopCatalog, 'purchase']);
+$router->post('/api/v1/energy/restore', [$consumables, 'restoreEnergy']);
 $router->get('/api/v1/units', [$warband, 'units']);
 $router->get('/api/v1/units/:unitId', [$warband, 'unitDetail']);
 $router->patch('/api/v1/units/:unitId/name', [$warband, 'renameUnit']);
@@ -137,6 +140,7 @@ $router->post('/api/v1/runs', [$runs, 'start']);
 $router->get('/api/v1/runs/current', [$runs, 'current']);
 $router->post('/api/v1/runs/:runId/abandon', [$runs, 'abandon']);
 $router->post('/api/v1/runs/:runId/nodes/:nodeId/resolve', [$runs, 'resolveNode']);
+$router->post('/api/v1/runs/:runId/units/:unitId/heal', [$consumables, 'healRunUnit']);
 $router->get('/api/v1/battles/:battleId/playback', [$battlePlayback, 'playback']);
 $router->post('/api/v1/debug/fixtures/warband', [$warbandFixture, 'replace']);
 

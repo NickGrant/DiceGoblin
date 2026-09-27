@@ -37,6 +37,35 @@ final class RunNodeResolutionRepository
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
   }
 
+  /** @return array{run_id:string,unit_id:string,current_hp:int,unit_type_id:string,level:int,lifecycle_status:string}|null */
+  public function findOwnedParticipatingUnitForUpdate(int $userId, int $runId, int $unitId): ?array
+  {
+    $this->requireTransaction();
+    $stmt = $this->pdo->prepare('SELECT rus.`run_id`, rus.`unit_id`, rus.`current_hp`,
+        ui.`unit_type_id`, ui.`level`, ui.`lifecycle_status`
+      FROM `run_unit_state` rus JOIN `unit_instances` ui ON ui.`id` = rus.`unit_id`
+      WHERE rus.`run_id` = ? AND rus.`unit_id` = ? AND ui.`user_id` = ? LIMIT 1 FOR UPDATE');
+    $stmt->execute([$runId, $unitId, $userId]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    return is_array($row) ? [
+      'run_id' => (string)$row['run_id'], 'unit_id' => (string)$row['unit_id'],
+      'current_hp' => (int)$row['current_hp'], 'unit_type_id' => (string)$row['unit_type_id'],
+      'level' => (int)$row['level'], 'lifecycle_status' => (string)$row['lifecycle_status'],
+    ] : null;
+  }
+
+  public function persistParticipatingUnitHp(int $runId, int $unitId, int $before, int $after): void
+  {
+    $this->requireTransaction();
+    if ($runId <= 0 || $unitId <= 0 || $before < 0 || $after <= $before) {
+      throw new RuntimeException('Participating unit HP transition is invalid.');
+    }
+    $stmt = $this->pdo->prepare('UPDATE `run_unit_state` SET `current_hp` = ?
+      WHERE `run_id` = ? AND `unit_id` = ? AND `current_hp` = ?');
+    $stmt->execute([$after, $runId, $unitId, $before]);
+    if ($stmt->rowCount() !== 1) throw new RuntimeException('Participating unit HP changed unexpectedly.');
+  }
+
   public function persistUnitHp(int $runId, int $unitId, int $currentHp): void
   {
     $stmt = $this->pdo->prepare('UPDATE `run_unit_state` SET `current_hp` = ? WHERE `run_id` = ? AND `unit_id` = ?');
@@ -104,5 +133,10 @@ final class RunNodeResolutionRepository
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     return is_array($row) && (int)$row['outgoing_count'] === 0 && (int)$row['incoming_count'] === 1
       && (int)$row['boss_parent_count'] === 1;
+  }
+
+  private function requireTransaction(): void
+  {
+    if (!$this->pdo->inTransaction()) throw new RuntimeException('Run-unit mutation requires a caller-owned transaction.');
   }
 }

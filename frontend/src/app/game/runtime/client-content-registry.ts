@@ -30,7 +30,7 @@ export interface ClientItemDefinition {
   readonly icon_key: string;
   readonly stackable: boolean;
   readonly effect?: {
-    readonly type: 'energy_restore';
+    readonly type: 'energy_restore' | 'unit_heal';
     readonly amount: number;
   };
 }
@@ -629,9 +629,9 @@ export class ClientContentRegistry {
       const candidate = value['effect'];
       if (!isRecord(candidate)) throw new ClientContentError(`Item '${catalogId}' has an invalid effect.`);
       requireExactFields(candidate, ['type', 'amount'], `Item '${catalogId}' effect`);
-      if (candidate['type'] !== 'energy_restore')
+      if (candidate['type'] !== 'energy_restore' && candidate['type'] !== 'unit_heal')
         throw new ClientContentError(`Item '${catalogId}' has an unsupported effect.`);
-      effect = Object.freeze({ type: 'energy_restore', amount: requireInteger(candidate, 'amount', 1, Number.MAX_SAFE_INTEGER) });
+      effect = Object.freeze({ type: candidate['type'], amount: requireInteger(candidate, 'amount', 1, Number.MAX_SAFE_INTEGER) });
     }
     return Object.freeze({
       id: requireIdentity(value, catalogId, 'item.', 'item'),

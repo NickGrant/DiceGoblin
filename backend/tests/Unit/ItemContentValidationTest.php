@@ -45,6 +45,15 @@ final class ItemContentValidationTest extends TestCase
     }
   }
 
+  public function testUnitHealConsumableLoadsAndProjectsStrictly(): void
+  {
+    $heal = $this->consumable();
+    $heal['id'] = 'item.field_poultice';
+    $heal['effect'] = ['type' => 'unit_heal', 'amount' => 9];
+    $projected = (new ClientContentProjector())->project($this->registryWithItems([$heal]));
+    $this->assertSame(['type' => 'unit_heal', 'amount' => 9], $projected['content']['items']['item.field_poultice']['effect']);
+  }
+
   public function testEffectAmountAcceptsClientSafeMaximumAndRejectsTheNextInteger(): void
   {
     $maximum = $this->consumable();
@@ -79,6 +88,7 @@ final class ItemContentValidationTest extends TestCase
       'non-boolean stackability' => [static fn(array &$item) => $item['stackable'] = 1],
       'unknown effect type' => [static fn(array &$item) => $item['effect']['type'] = 'script'],
       'invalid effect amount' => [static fn(array &$item) => $item['effect']['amount'] = 0],
+      'negative effect amount' => [static fn(array &$item) => $item['effect']['amount'] = -1],
       'extra effect field' => [static fn(array &$item) => $item['effect']['target'] = 'anything'],
       'missing consumable effect' => [static function(array &$item): void { unset($item['effect']); }],
       'material effect' => [static function(array &$item): void { $item['category'] = 'material'; }],

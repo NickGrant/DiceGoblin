@@ -336,7 +336,7 @@ final class ContentValidator
       throw new ContentValidationException("{$location} consumable items must define an effect object.");
     }
     $this->requireExactFieldSet($effect, ['type', 'amount'], [], "{$location} field 'effect'");
-    $this->requireAllowedString($effect, 'type', ['energy_restore'], "{$location} field 'effect'");
+    $this->requireAllowedString($effect, 'type', ['energy_restore', 'unit_heal'], "{$location} field 'effect'");
     $this->requireIntegerInRange(
       $effect,
       'amount',

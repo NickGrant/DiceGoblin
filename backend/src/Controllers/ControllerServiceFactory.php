@@ -5,6 +5,8 @@ namespace DiceGoblins\Controllers;
 
 use DiceGoblins\Application\Commands\ProvisionWarbandFixtureCommand;
 use DiceGoblins\Application\Commands\PurchaseShopOfferCommand;
+use DiceGoblins\Application\Commands\RestoreEnergyCommand;
+use DiceGoblins\Application\Commands\HealRunUnitCommand;
 use DiceGoblins\Application\Commands\AbandonRunCommand;
 use DiceGoblins\Application\Commands\ActiveRunConfigurationPolicy;
 use DiceGoblins\Application\Commands\ActivateSquadCommand;
@@ -43,6 +45,7 @@ use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Application\UnitSummaryAssembler;
 use DiceGoblins\Domain\Energy\EnergyCalculator;
 use DiceGoblins\Domain\Energy\EnergySpendCalculator;
+use DiceGoblins\Domain\Energy\EnergyRestoreCalculator;
 use DiceGoblins\Domain\Battles\CombatSeedDeriver;
 use DiceGoblins\Domain\CombatStats\BaseLevelStatResolver;
 use DiceGoblins\Domain\Rewards\RewardFinalizer;
@@ -195,6 +198,14 @@ final class ControllerServiceFactory
       'purchaseShopOfferCommand' => new PurchaseShopOfferCommand(
         $pdo, $core['playerStateRepo'], $idempotencyRepository, $itemRepository, $diceRepository,
         $unlockRepository, $unitTypeAvailability, $normalUnitCreation, $content,
+      ),
+      'restoreEnergyCommand' => new RestoreEnergyCommand(
+        $pdo, $core['playerStateRepo'], $itemRepository, $idempotencyRepository, $content,
+        new EnergyRestoreCalculator(), new SystemClock(),
+      ),
+      'healRunUnitCommand' => new HealRunUnitCommand(
+        $pdo, $core['playerStateRepo'], $runRepository, $nodeResolutionRepository, $itemRepository,
+        $idempotencyRepository, $content, new BaseLevelStatResolver(),
       ),
       'squadCollectionQuery' => new SquadCollectionQuery($squadRepository),
       'createSquadCommand' => new CreateSquadCommand($pdo, $core['playerStateRepo'], $squadRepository,

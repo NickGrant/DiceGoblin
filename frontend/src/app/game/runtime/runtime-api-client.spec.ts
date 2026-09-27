@@ -87,6 +87,36 @@ describe('RuntimeApiClient', () => {
     }
   });
 
+  it('sends exact contextual consumable routes, bodies, security headers, and parses receipts', async () => {
+    const content = new ClientContentRegistry({ revision: 'a'.repeat(64), content: {
+      gameplay: { run_energy_cost: 10 }, regions: {}, kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {}, shop_offers: {},
+      items: {
+        'item.test.spark': { id: 'item.test.spark', display_name: 'Spark', description: 'Energy.', category: 'consumable', rarity: 'common', icon_key: 'spark', stackable: true, effect: { type: 'energy_restore', amount: 7 } },
+        'item.test.heal': { id: 'item.test.heal', display_name: 'Poultice', description: 'Healing.', category: 'consumable', rarity: 'common', icon_key: 'heal', stackable: true, effect: { type: 'unit_heal', amount: 9 } },
+      },
+    } });
+    const energy = { ok: true, data: { item_id: 'item.test.spark', quantity_consumed: 1, owned_quantity_after: 1,
+      energy: { current: 57, normal_max: 50, regeneration_per_hour: 12, regeneration_interval_seconds: 300,
+        last_regeneration_at: '2026-09-26T12:00:00Z', next_regeneration_at: null, fully_regenerated_at: null }, player_revision: 8 } };
+    const heal = { ok: true, data: { item_id: 'item.test.heal', quantity_consumed: 1, owned_quantity_after: 0,
+      run_id: '41', unit: { unit_id: '21', hp_before: 1, hp_after: 10, max_hp: 22 }, player_revision: 9 } };
+    const fetchRequest = jasmine.createSpy<RuntimeFetch>('fetchRequest').and.callFake(async (url) =>
+      new Response(JSON.stringify(String(url).endsWith('/heal') ? heal : energy), { status: 200 }));
+    const client = new RuntimeApiClient(fetchRequest, '/root');
+    expect((await client.restoreEnergy('item.test.spark', 'csrf', 'energy:fixed-key', content)).energy.current).toBe(57);
+    expect((await client.healRunUnit('41', '21', 'item.test.heal', 'csrf', 'heal:fixed-key', content)).unit.hpAfter).toBe(10);
+    const calls = fetchRequest.calls.allArgs();
+    expect(calls.map(([url]) => url)).toEqual(['/root/api/v1/energy/restore', '/root/api/v1/runs/41/units/21/heal']);
+    expect(calls.map(([, init]) => init?.body)).toEqual([
+      JSON.stringify({ item_id: 'item.test.spark' }), JSON.stringify({ item_id: 'item.test.heal' }),
+    ]);
+    expect(calls[0][1]?.headers).toEqual({ Accept: 'application/json', 'X-CSRF-Token': 'csrf',
+      'Content-Type': 'application/json', 'Idempotency-Key': 'energy:fixed-key' });
+    expect(calls[1][1]?.headers).toEqual(jasmine.objectContaining({ 'Idempotency-Key': 'heal:fixed-key' }));
+    await expectAsync(client.healRunUnit('041', '21', 'item.test.heal', 'csrf', 'heal:fixed-key', content))
+      .toBeRejectedWith(jasmine.objectContaining({ kind: 'malformed-response' }));
+  });
+
   it('gets and strictly parses retained battle playback without CSRF', async () => {
     const payload = { ok: true, data: { battle: { id: '81', run_id: '71', run_node_id: '72', engine_version: 1,
       playback_version: 1, outcome: 'victory', ending_round: 1, ending_tick: 1, participants: [
