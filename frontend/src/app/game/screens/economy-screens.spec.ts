@@ -35,12 +35,48 @@ describe('Package 7 Shop and Supplies screens', () => {
     const client = api(); client.getShop.and.resolveTo({ ok: true, data: { teeth: 20, player_revision: 4, offers: [
       { offer_id: 'shop_offer.test.spark', price: { currency_id: 'teeth', amount: 7 }, available: true, can_afford: true }] } });
     client.purchaseShopOffer.and.rejectWith(new RuntimeApiError('network'));
-    const store = new GameStore(); store.hydrateBootstrap(bootstrap()); const screen = new ShopScreen(scene().value, store, client, content(), new RuntimeViewport(), () => undefined, () => 'purchase-key');
+    const back = jasmine.createSpy('back');
+    const store = new GameStore(); store.hydrateBootstrap(bootstrap()); const screen = new ShopScreen(scene().value, store, client, content(), new RuntimeViewport(), back, () => 'purchase-key');
     screen.create(); await store.loadShop(client, content()); screen.selectOffer('shop_offer.test.spark'); await screen.purchaseSelected();
     expect(screen.actionState).toBe('retryable');
+    screen.requestBack(); // Both the visible Back control and GameScene Escape delegate here.
+    expect(back).not.toHaveBeenCalled();
     expect(client.purchaseShopOffer).toHaveBeenCalledWith({ offer_id: 'shop_offer.test.spark', expected_price: { currency_id: 'teeth', amount: 7 } }, 'csrf', 'purchase-key', jasmine.any(ClientContentRegistry));
     client.purchaseShopOffer.and.resolveTo({ offerId: 'shop_offer.test.spark', spend: { currencyId: 'teeth', amount: 7, balanceBefore: 20, balanceAfter: 13 }, playerRevision: 5, output: { type: 'item', itemId: 'item.test.spark', quantityGranted: 2, ownedQuantityAfter: 2 } });
-    await screen.purchaseSelected(); expect(client.purchaseShopOffer.calls.mostRecent().args[2]).toBe('purchase-key'); expect(store.bootstrap?.player.teeth).toBe(13);
+    await screen.purchaseSelected();
+    expect(client.purchaseShopOffer.calls.allArgs().map((args) => [args[0], args[2]])).toEqual([
+      [{ offer_id: 'shop_offer.test.spark', expected_price: { currency_id: 'teeth', amount: 7 } }, 'purchase-key'],
+      [{ offer_id: 'shop_offer.test.spark', expected_price: { currency_id: 'teeth', amount: 7 } }, 'purchase-key'],
+    ]);
+    expect(store.bootstrap?.player.teeth).toBe(13);
+    screen.requestBack(); expect(back).toHaveBeenCalledTimes(1);
+  });
+
+  it('releases Shop navigation after a definitive purchase rejection', async () => {
+    const client = api(); client.getShop.and.resolveTo({ ok: true, data: { teeth: 20, player_revision: 4, offers: [
+      { offer_id: 'shop_offer.test.spark', price: { currency_id: 'teeth', amount: 7 }, available: true, can_afford: true }] } });
+    client.purchaseShopOffer.and.rejectWith(new RuntimeApiError('http', 409, 'offer_unavailable'));
+    const back = jasmine.createSpy('back'); const store = new GameStore(); store.hydrateBootstrap(bootstrap());
+    const screen = new ShopScreen(scene().value, store, client, content(), new RuntimeViewport(), back, () => 'rejected-key');
+    screen.create(); await store.loadShop(client, content()); screen.selectOffer('shop_offer.test.spark'); await screen.purchaseSelected();
+    expect(screen.actionState).toBe('rejected'); screen.requestBack(); expect(back).toHaveBeenCalledTimes(1);
+  });
+
+  it('retains Energy use across blocked Back/Escape and releases navigation after retry success', async () => {
+    const client = api(); client.getItems.and.resolveTo({ ok: true, data: { items: [{ item_id: 'item.test.spark', quantity: 1 }] } });
+    client.restoreEnergy.and.rejectWith(new RuntimeApiError('network'));
+    const back = jasmine.createSpy('back'); const store = new GameStore(); store.hydrateBootstrap(bootstrap());
+    const screen = new InventoryScreen(scene().value, store, client, content(), new RuntimeViewport(), back, () => 'energy-key');
+    screen.create(); await store.loadItems(client, content()); screen.selectItem('item.test.spark'); await screen.useSelectedEnergy();
+    expect(screen.actionState).toBe('retryable'); screen.requestBack(); expect(back).not.toHaveBeenCalled();
+    client.restoreEnergy.and.resolveTo({ itemId: 'item.test.spark', quantityConsumed: 1, ownedQuantityAfter: 0, playerRevision: 5,
+      energy: { current: 15, normalMax: 50, regenerationPerHour: 12, regenerationIntervalSeconds: 300,
+        lastRegenerationAt: '2026-01-01T00:00:00Z', nextRegenerationAt: '2026-01-01T00:05:00Z', fullyRegeneratedAt: '2026-01-01T02:55:00Z' } });
+    await screen.useSelectedEnergy();
+    expect(client.restoreEnergy.calls.allArgs().map((args) => [args[0], args[2]])).toEqual([
+      ['item.test.spark', 'energy-key'], ['item.test.spark', 'energy-key'],
+    ]);
+    screen.requestBack(); expect(back).toHaveBeenCalledTimes(1);
   });
 
   it('distinguishes materials and run-use healing while reconciling Energy use', async () => {

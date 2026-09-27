@@ -12,6 +12,8 @@ describe('RetainedMutationAttempt', () => {
     reject(new RuntimeApiError('network'));
     expect((await first).kind).toBe('ambiguous');
     expect(attempt.identity).toEqual({ identity: 'purchase:1', request: { id: 'offer.1' }, key: 'fixed-key' });
+    attempt.begin('purchase:2', { id: 'offer.2' });
+    expect(attempt.identity).toEqual({ identity: 'purchase:1', request: { id: 'offer.1' }, key: 'fixed-key' });
     send.and.resolveTo('done');
     expect((await attempt.submit(send)).kind).toBe('success');
     expect(send.calls.allArgs()).toEqual([[{ id: 'offer.1' }, 'fixed-key'], [{ id: 'offer.1' }, 'fixed-key']]);

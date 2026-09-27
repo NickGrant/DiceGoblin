@@ -18,7 +18,7 @@ export class RetainedMutationAttempt<TRequest, TResult> {
   get identity(): Readonly<{ identity: string; request: TRequest; key: string }> | null { return this.attempt; }
 
   begin(identity: string, request: TRequest): void {
-    if (this.currentState === 'submitting') return;
+    if (this.currentState === 'submitting' || this.currentState === 'retryable') return;
     if (!this.attempt || this.attempt.identity !== identity
       || this.currentState === 'rejected' || this.currentState === 'succeeded') {
       this.attempt = Object.freeze({ identity, request, key: this.createKey() });

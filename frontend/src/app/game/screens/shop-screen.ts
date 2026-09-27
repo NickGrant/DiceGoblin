@@ -41,6 +41,14 @@ export class ShopScreen implements GameSceneScreen {
   get layout(): EconomyLayout | null { return this.activeLayout; }
   get actionState(): RetainedMutationState { return this.purchaseAttempt.state; }
   get attemptIdentity(): Readonly<{ identity: string; request: ShopPurchasePayload; key: string }> | null { return this.purchaseAttempt.identity; }
+  requestBack(): void {
+    if (this.mutationBlocksNavigation()) {
+      this.message = 'Resolve or retry the uncertain purchase before leaving the Shop.';
+      this.reflow(this.viewport.snapshot);
+      return;
+    }
+    this.back();
+  }
 
   create(): void {
     this.unsubscribe = this.store.subscribeShop(() => this.reflow(this.viewport.snapshot));
@@ -74,7 +82,7 @@ export class ShopScreen implements GameSceneScreen {
     const root = this.scene.add.container(0, 0).setScale(snapshot.gameScale); this.root = root;
     const bg = this.scene.add.graphics(); bg.fillGradientStyle(0x171c20, 0x24382e, 0x0b1718, 0x12272a, 1);
     bg.fillRect(0, 0, snapshot.logicalWidth, snapshot.logicalHeight); root.add(bg);
-    this.button(root, layout.back, 'RETURN', this.back, true);
+    this.button(root, layout.back, 'RETURN', () => this.requestBack(), !this.mutationBlocksNavigation());
     root.add(this.scene.add.text(layout.header.x + layout.back.width + 28, layout.header.y + 5, 'GOBLIN SHOP',
       { color: '#f5e8c8', fontFamily: 'Georgia, serif', fontSize: layout.mode === 'compact' ? '44px' : '42px', fontStyle: 'bold' }));
     root.add(this.scene.add.text(layout.wallet.right, layout.wallet.y + layout.wallet.height / 2,
@@ -102,5 +110,6 @@ export class ShopScreen implements GameSceneScreen {
     root.add(this.scene.add.text(layout.content.right - 34, y + height / 2, status, { color: offer.canAfford && offer.available ? '#356b43' : '#9a4434', fontFamily: 'system-ui', fontSize: '15px', fontStyle: 'bold' }).setOrigin(1, .5));
   }
   private center(root: Phaser.GameObjects.Container, layout: EconomyLayout, title: string, detail: string): void { root.add(this.scene.add.text(layout.content.x + layout.content.width / 2, layout.content.y + layout.content.height / 2 - 20, title, { color: '#5b351f', fontFamily: 'Georgia, serif', fontSize: '28px', fontStyle: 'bold' }).setOrigin(.5)); root.add(this.scene.add.text(layout.content.x + layout.content.width / 2, layout.content.y + layout.content.height / 2 + 20, detail, { color: '#74664b', fontFamily: 'system-ui', fontSize: '16px' }).setOrigin(.5)); }
+  private mutationBlocksNavigation(): boolean { return this.purchaseAttempt.state === 'submitting' || this.purchaseAttempt.state === 'retryable'; }
   private button(root: Phaser.GameObjects.Container, bounds: EconomyLayout['back'], label: string, action: () => void, enabled: boolean): void { const g = this.scene.add.graphics(); g.fillStyle(enabled ? 0x273e35 : 0x6c6658, 1); g.fillRoundedRect(bounds.x, bounds.y, bounds.width, bounds.height, 10); if (enabled) { g.setInteractive(new Phaser.Geom.Rectangle(bounds.x, bounds.y, bounds.width, bounds.height), Phaser.Geom.Rectangle.Contains).on('pointerup', action); actionCursor(g); } root.add([g, this.scene.add.text(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2, label, { color: '#fff4d3', fontFamily: 'system-ui', fontSize: '15px', fontStyle: 'bold' }).setOrigin(.5)]); }
 }

@@ -190,15 +190,20 @@ describe('WarbandScreen', () => {
     const store = new GameStore(); store.hydrateBootstrap(bootstrap()); const client = api(); const registry = content();
     client.getDice.and.resolveTo({ ok: true, data: { dice: [{ id: '22', size: 6, profile_id: 'dice_profile.bone', lifecycle_status: 'active', bindings: [] }] } });
     await store.loadWarbandDomains(client, registry);
+    const back = jasmine.createSpy('back');
     const screen = new WarbandScreen(sceneHarness().scene, store, client, registry, new RuntimeViewport(),
-      () => undefined, () => undefined, 'dice', () => undefined, () => 'sell-key');
+      back, () => undefined, 'dice', () => undefined, () => 'sell-key');
     screen.create(); screen.selectDie('22'); screen.requestDiceLifecycle('sell');
     expect(screen.diceConfirmation).toBe('sell'); expect(client.sellDie).not.toHaveBeenCalled();
     client.sellDie.and.rejectWith(new RuntimeApiError('network')); await screen.confirmDiceLifecycle();
     expect(screen.diceActionState).toBe('retryable');
+    screen.requestBack(); expect(back).not.toHaveBeenCalled();
+    screen.requestDiceLifecycle('salvage'); screen.cancelDiceLifecycle();
+    expect(screen.diceConfirmation).toBe('sell');
     client.sellDie.and.resolveTo({ diceId: '22', lifecycleStatus: 'sold', teethAwarded: 5, teeth: 6, playerRevision: 10 });
     await screen.confirmDiceLifecycle();
     expect(client.sellDie.calls.allArgs().map((args) => args[2])).toEqual(['sell-key', 'sell-key']);
     expect(store.warband.dice.data).toEqual([]); expect(store.bootstrap?.player.teeth).toBe(6);
+    screen.requestBack(); expect(back).toHaveBeenCalledTimes(1);
   });
 });

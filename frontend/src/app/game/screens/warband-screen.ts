@@ -135,39 +135,52 @@ export class WarbandScreen implements GameSceneScreen {
   }
 
   selectTab(tab: WarbandTab): void {
+    if (this.diceMutationBlocksNavigation()) return;
     if (this.activeTab === tab) return;
     this.activeTab = tab;
     this.reflow(this.viewport.snapshot);
   }
 
   createSquad(): void {
+    if (this.diceMutationBlocksNavigation()) return;
     this.openSquadEditor(null);
   }
 
   editSelectedSquad(): void {
+    if (this.diceMutationBlocksNavigation()) return;
     this.openSelectedSquad();
   }
 
   activateSelectedSquad(): void {
-    if (this.store.activeRunLock) return;
+    if (this.diceMutationBlocksNavigation() || this.store.activeRunLock) return;
     this.openSelectedSquad('activate');
   }
 
   deleteSelectedSquad(): void {
-    if (this.store.activeRunLock?.squadId === this.selectedSquadId) return;
+    if (this.diceMutationBlocksNavigation() || this.store.activeRunLock?.squadId === this.selectedSquadId) return;
     this.openSelectedSquad('delete');
   }
 
   openUnit(unitId: string): void {
+    if (this.diceMutationBlocksNavigation()) return;
     this.openUnitConfiguration(unitId);
+  }
+
+  requestBack(): void {
+    if (this.diceMutationBlocksNavigation()) {
+      this.diceMessage = 'Resolve or retry the uncertain die action before returning to Camp.';
+      this.reflow(this.viewport.snapshot);
+      return;
+    }
+    this.returnToCamp();
   }
 
   get diceActionState(): RetainedMutationState { return this.diceAttempt.state; }
   get diceAttemptIdentity(): Readonly<{ identity: string; request: { readonly diceId: string; readonly action: 'sell' | 'salvage' }; key: string }> | null { return this.diceAttempt.identity; }
   get diceConfirmation(): 'sell' | 'salvage' | null { return this.pendingDiceAction; }
   selectDie(diceId: string): void { if (this.diceAttempt.state === 'submitting' || this.diceAttempt.state === 'retryable') return; this.selectedDieId = diceId; this.pendingDiceAction = null; this.diceMessage = ''; this.reflow(this.viewport.snapshot); }
-  requestDiceLifecycle(action: 'sell' | 'salvage'): void { const die = this.selectedDie(); if (!die || die.bindings.length > 0 || this.diceAttempt.state === 'submitting') return; this.pendingDiceAction = action; this.reflow(this.viewport.snapshot); }
-  cancelDiceLifecycle(): void { if (this.diceAttempt.state !== 'submitting') { this.pendingDiceAction = null; this.reflow(this.viewport.snapshot); } }
+  requestDiceLifecycle(action: 'sell' | 'salvage'): void { const die = this.selectedDie(); if (!die || die.bindings.length > 0 || this.diceMutationBlocksNavigation()) return; this.pendingDiceAction = action; this.reflow(this.viewport.snapshot); }
+  cancelDiceLifecycle(): void { if (!this.diceMutationBlocksNavigation()) { this.pendingDiceAction = null; this.reflow(this.viewport.snapshot); } }
   async confirmDiceLifecycle(): Promise<void> {
     const die = this.selectedDie(); const action = this.pendingDiceAction; const bootstrap = this.store.bootstrap;
     if (!die || die.bindings.length > 0 || !action || !bootstrap || this.diceAttempt.state === 'submitting') return;
@@ -191,7 +204,7 @@ export class WarbandScreen implements GameSceneScreen {
     background.fillCircle(snapshot.logicalWidth * 0.82, snapshot.logicalHeight * 0.28, snapshot.logicalHeight * 0.62);
     root.add(background);
 
-    this.addButton(root, layout.backButton, 'RETURN TO CAMP', this.returnToCamp, false);
+    this.addButton(root, layout.backButton, 'RETURN TO CAMP', () => this.requestBack(), false, !this.diceMutationBlocksNavigation());
     const titleX = layout.backButton.right + (layout.mode === 'compact' ? 30 : 42);
     const title = this.scene.add.text(titleX, layout.header.y + 3, 'WARBAND', {
       color: '#f5e8c8', fontFamily: 'Georgia, serif',
@@ -478,6 +491,8 @@ export class WarbandScreen implements GameSceneScreen {
   }
 
   private selectedDie(): WarbandDieSummary | undefined { return this.store.warband.dice.data?.find((die) => die.id === this.selectedDieId); }
+
+  private diceMutationBlocksNavigation(): boolean { return this.diceAttempt.state === 'submitting' || this.diceAttempt.state === 'retryable'; }
 
   private changePage(tab: WarbandTab, direction: -1 | 1, pages: number): void {
     this.pages[tab] = (this.pages[tab] + direction + pages) % pages;
