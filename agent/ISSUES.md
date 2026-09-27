@@ -2,271 +2,310 @@
 
 ## Milestone 7 - Economy and Inventory
 
-### Milestone 7 Package 2 - Shop authored-offer model + authoritative Shop read contract
+### Milestone 7 Package 3 - Idempotent Teeth purchase + item/basic-die acquisition
 
 **Status:** In Progress
 **Priority:** High
 
-#### Problem
-
-The vNext runtime has no canonical authored Shop-offer model or authoritative read contract, so later purchase work has no safe source for offer identity, current price, availability, or affordability.
-
 #### Accepted baseline
 
-Milestone 7 Package 1 - Authored item + inventory foundation is architecturally approved at `3b15fc3024ef12499624e71df8740f3d5912fadb`.
+Milestone 7 Package 2 - Shop authored-offer model + authoritative Shop read contract is approved at `a1cebe4527c0ea3fb5e9d92ce5314760a887c0b5`.
 
-Package 1 closure evidence:
-- GitHub Full Verification: backend 812 tests / 1,648 assertions; frontend 486 tests; all standard gates PASS;
-- focused item content: 14 tests / 22 assertions;
-- MySQL inventory repository/query/controller: 6 / 20;
-- MySQL baseline/composition: 8 / 66;
-- full Docker backend: 613 / 2,554 / 150 skipped;
-- DB provision/reset, Docker content validation, production frontend build, bundle, docs/context, and `git diff --check`: PASS.
+Package 2 closure evidence:
+- GitHub Full Verification: backend 834 tests / 1,681 assertions; frontend 490 tests; all standard gates PASS;
+- DB provision/reset: PASS;
+- full Docker backend from current Package 2 branch state: **834 tests / 3,374 assertions / 268 skipped**;
+- the earlier 242-test result is superseded and must not be cited as full-suite proof.
 
-Package 1 established:
-- canonical authored `item` definitions;
-- fresh-baseline `user_items`;
-- transaction-neutral inventory repository mutations;
-- authenticated `GET /api/v1/items`;
-- strict client inventory/content contracts.
+Package 2 established:
+- canonical authored `shop_offer` definitions;
+- item + fixed d4/d6/d8 die offer shapes;
+- safe client Shop projection without price;
+- authenticated read-only `GET /api/v1/shop`;
+- authoritative Teeth/revision/price/affordability read model;
+- one shared `ClientSafeInteger` PHP->browser numeric boundary.
 
-The production item catalog remains intentionally empty pending approved product content.
+The production item and Shop-offer catalogs remain intentionally empty. Do not invent product balance/prices merely to populate them.
 
-#### Package 2 purpose
+#### Package 3 purpose
 
-Establish one authored Shop-offer model and one authoritative read endpoint before any purchase mutation exists.
+Prove the first repeatable ordinary Teeth transaction:
 
-This package must answer:
+> purchase one authored Shop offer exactly once, debit the authoritative Teeth wallet exactly once, create exactly the authored item stack or basic die, and return an immutable retry-safe receipt.
 
-> What can this player currently see in the ordinary Shop, what does each offer cost right now, and can the player currently afford it?
+This package supports only the Package 2 offer types:
+- stackable item;
+- fixed-profile fixed-size die (d4/d6/d8 only).
 
-It must **not** spend Teeth or create items/dice/units yet.
+Do not add unit offers; Package 4 owns repeatable unit acquisition.
 
-Do not port the prototype `ShopService`, daily-deal tables, feature unlock catalog, database-authored prices, or affix-based dice model.
-
-#### Authored Shop offer model
-
-Add a canonical `shop_offer` definition family in Git-tracked JSON.
-
-Package 2 supports only the goods needed by Package 3:
-
-1. **stackable item offer**
-   - references an authored `item.*`;
-   - fixed positive quantity;
-   - referenced item must be stackable.
-
-2. **die offer**
-   - references an authored `dice_profile.*`;
-   - fixed die size;
-   - size must be allowed by the profile;
-   - size must be **d4, d6, or d8 only** for Milestone 7.
-
-Do **not** support unit offers in this package; Package 4 owns them.
-Do **not** support random/daily/limited offers in this package.
-Do **not** support Academy/permanent unlock offers.
-
-Each offer has exactly one Teeth price:
-- currency ID: `teeth`;
-- positive integer amount.
-
-Recommended semantic shape:
-
-- stable `shop_offer.*` ID;
-- `type: shop_offer`;
-- one exact grant union:
-  - item: item ID + quantity;
-  - die: profile ID + size;
-- one exact price object: Teeth + amount.
-
-Do not add mutable availability, purchase history, price, or catalog rows to MySQL.
-
-The production Shop-offer catalog may remain empty at the end of Package 2 if concrete offers have not yet been product-approved. Use fixture content to prove the model. Package 3 may introduce the first production offers when it implements acquisition.
-
-#### Validation
-
-Extend `ContentRegistry` / `ContentValidator` so:
-- IDs are canonical/unique;
-- exact field sets are enforced;
-- unsupported grant types reject;
-- item references exist and are stackable;
-- die profile references exist;
-- offered die size is profile-compatible;
-- offered die size is never > d8 during Milestone 7;
-- price currency is exactly Teeth;
-- price amount is positive;
-- unknown/private/randomization/limit fields reject.
-
-Do not create a generic arbitrary Shop rule language.
-
-#### Safe client projection
-
-Add a safe `shop_offers` catalog to generated client content so Phaser can resolve static offer identity and the authored target locally.
-
-Project only the stable static grant identity needed for presentation:
-- offer ID;
-- grant type;
-- item ID + quantity **or** dice profile ID + size.
-
-Do **not** project the offer price as a second price authority. Price comes from the authenticated Shop query.
-
-Do not expose future randomization, purchase limits, server-only availability rules, or transaction configuration.
-
-The client registry must strictly validate projected offer identity/reference coherence.
-
-#### Authoritative Shop query
+#### Endpoint
 
 Implement and register:
 
-`GET /api/v1/shop`
+`POST /api/v1/shop/purchase`
 
-This is an authenticated **read-only** query.
+Requirements:
+- authenticated;
+- CSRF-protected;
+- requires `Idempotency-Key`;
+- exact JSON body:
 
-Return a strict response containing:
-- current authoritative Teeth balance;
-- current `player_revision`;
-- deterministic ordered Shop offers.
+```json
+{
+  "offer_id": "shop_offer.example",
+  "expected_price": {
+    "currency_id": "teeth",
+    "amount": 7
+  }
+}
+```
 
-For each offer return only mutable/authoritative transaction-facing facts:
-- `offer_id`;
-- authoritative Teeth price;
-- `available`;
-- `can_afford`.
+`expected_price` is an optimistic transaction precondition representing the price shown to the player. It is **not** a second price authority.
 
-For Package 2, every valid authored item/die offer is ordinarily available, so `available` is true. Keep the explicit field because later Package 4 unit offers may become unlock-aware without replacing the query contract.
+The server:
+1. validates/canonicalizes the request and idempotency key;
+2. begins the transaction and locks `user_state`;
+3. checks an existing idempotency receipt **before resolving current Shop content**;
+4. if the same key + same normalized request already committed, returns that exact stored result unchanged;
+5. same key + different request conflicts;
+6. for a new request, resolves the current authored `shop_offer`;
+7. compares the current authoritative Teeth price to `expected_price`;
+8. if the offer/price changed, rejects without spending or granting;
+9. revalidates current Teeth balance under lock;
+10. applies spend + grant + revision + finalized idempotency receipt in one transaction.
 
-`can_afford` is derived from the authoritative current Teeth balance and offer price. It is informative only; Package 3 must still revalidate balance transactionally.
+This ordering is important: an exact retry must still replay its original receipt after a content deployment changes or removes the offer.
 
-Ordering must be deterministic by `offer_id` using the same ordinal/ASCII semantics already established for stable inventory IDs.
+#### Request/error semantics
 
-The query:
-- does not mutate player state;
-- does not increment `player_revision`;
-- does not create offers in MySQL;
-- does not roll randomness;
-- does not reserve stock;
-- does not create purchase receipts;
-- does not infer availability from client state.
+Use narrow non-disclosing errors:
+- malformed body / invalid offer identity: `invalid_shop_purchase` (422);
+- invalid idempotency key: existing `idempotency_key_invalid` (400);
+- reused key with different normalized request: existing `idempotency_conflict` (409);
+- authored offer unavailable for a new request: `shop_offer_not_found` (404);
+- expected price no longer matches authoritative price: `shop_offer_changed` (409);
+- insufficient Teeth: `insufficient_teeth` (409);
+- incoherent wallet/content/persistence state: `shop_data_integrity_error` (500).
 
-A missing/incoherent player state or authored Shop definition is an integrity/server failure rather than a client-repair path.
+Do not reveal private content or foreign state in errors.
+
+#### Transaction ownership and wallet spend
+
+The purchase command owns the complete transaction.
+
+Reuse `PlayerStateRepository::getPlayerStateForUpdate()` for the wallet lock.
+
+Add an explicit Teeth/currency **debit** persistence primitive rather than weakening the existing reward-grant invariant:
+- current `applyCurrencyTransition()` is grant-oriented and requires `after >= before`;
+- preserve that behavior for reward application;
+- add a transaction-neutral spend/debit transition requiring exact `before`, non-negative `after`, and `after <= before`.
+
+The purchase command computes:
+- `balance_before`;
+- exact price;
+- `balance_after = balance_before - price`.
+
+Insufficient balance rejects before durable output creation.
+
+Increment `player_revision` exactly once for a newly committed purchase.
+
+Because the result crosses the browser boundary, a new purchase must also reject integrity state where the next revision cannot remain within `ClientSafeInteger::MAXIMUM`.
+
+#### Item acquisition
+
+For an item offer:
+- resolve the authored item and require stackable consistency;
+- grant exactly the authored quantity through `UserItemRepository`;
+- no separate Shop inventory table;
+- return the resulting owned quantity.
+
+Prevent creation of a client-unrepresentable stack:
+- the resulting owned quantity must remain <= `ClientSafeInteger::MAXIMUM`;
+- enforce this at the shared mutable inventory boundary where practical, not only in controller presentation.
+
+The entire item grant rolls back if wallet spend, revision, receipt finalization, or any later purchase step fails.
+
+#### Die acquisition
+
+For a die offer:
+- resolve the authored `dice_profile`;
+- revalidate size/profile compatibility;
+- size must be exactly d4/d6/d8;
+- create one ordinary active row in `dice_instances`;
+- the die starts unbound/un-equipped;
+- do not use the retained prototype `OwnedDiceGrantService`, affix tables, dice definitions, Codex side effects, or randomization.
+
+Add the minimal persistence-only creation method to the accepted vNext dice repository boundary (prefer the existing `WarbandDiceRepository`) with caller-owned transaction enforcement.
+
+Return the created die instance using string identity:
+- `id`;
+- `size`;
+- `profile_id`;
+- `lifecycle_status: active`.
+
+Do not create multiple dice from one die offer in Package 3.
+
+#### Purchase result / idempotency receipt
+
+Persist and return one exact finalized result shape.
+
+Common fields:
+
+```text
+offer_id
+spend:
+  currency_id = teeth
+  amount
+  balance_before
+  balance_after
+player_revision
+output
+```
+
+Item output:
+
+```text
+type = item
+item_id
+quantity_granted
+owned_quantity_after
+```
+
+Die output:
+
+```text
+type = die
+die:
+  id
+  size
+  profile_id
+  lifecycle_status
+```
+
+The idempotency receipt stores this finalized result and exact retries return it byte-semantically unchanged as structured data.
+
+Do not add purchase-history or receipt tables beyond existing `idempotency_requests`.
+
+#### Authoritative price / content behavior
+
+For a **new** idempotency key:
+- current authored offer identity and current authored price are authoritative;
+- client-projected grant identity may inform presentation but never authorizes output;
+- the command grants from server `ContentRegistry`, not request-provided grant data.
+
+If Shop content changes between GET and POST:
+- matching current price -> transact normally;
+- mismatched current price -> `shop_offer_changed`;
+- removed offer -> `shop_offer_not_found`.
+
+For an already finalized matching idempotency receipt:
+- replay the receipt without re-reading/revalidating the current offer.
+
+#### Production content
+
+Do **not** invent production Shop prices, consumable names, or balance values in this package.
+
+It is acceptable for production `items/catalog.json` and `shop_offers/catalog.json` to remain empty.
+
+Use fixture authored content in integration tests to prove both item and die purchase paths. Concrete production inventory can be introduced by the package that owns that product behavior before Milestone 7 UAT.
 
 #### Frontend runtime boundary
 
-Add only enough framework-neutral runtime support for later Shop UI:
-- strict Shop response parser;
-- projected offer resolution through `ClientContentRegistry`;
-- Runtime API `getShop()`;
-- GameStore Shop cache/load/retry state if consistent with existing lazy domain patterns.
+Add framework-neutral support only; no Shop screen yet.
 
-The parser must reject:
-- unknown/unprojected offer IDs;
-- duplicates;
-- non-deterministic order;
-- price currency other than Teeth;
-- non-positive/unsafe amounts;
-- malformed booleans;
-- grant identity disagreement between API/client content if any grant facts are repeated;
-- malformed or expanded envelopes.
+Add:
+- strict purchase-result parser;
+- Runtime API purchase method that sends CSRF + `Idempotency-Key` + exact body;
+- error classification necessary for later UI retry/refresh behavior.
 
-Do not build the final Phaser Shop screen yet.
+The parser must strictly validate:
+- exact envelope/field sets;
+- safe non-negative currency/revision/quantity values;
+- spend arithmetic (`before - amount = after`);
+- Teeth currency only;
+- output discriminated union;
+- item output agrees with projected offer grant;
+- die output agrees with projected offer profile/size and has canonical positive string ID;
+- no >d8 die output;
+- malformed/extra fields reject.
 
-#### Database boundary
+Do **not** add final Shop UI or broad GameStore purchase orchestration in this package. Package 7 owns presentation and same-runtime cache choreography.
 
-Package 2 should require **no new Shop tables**.
-
-Update baseline/composition tests as needed to prove no prototype Shop catalog/daily-deal tables were introduced.
-
-MySQL remains responsible only for the player's existing `user_state.teeth` / revision in this package.
+Ambiguous transport/5xx outcomes must preserve the caller's original idempotency key/request so Package 7 can retry the exact operation rather than silently minting a new key.
 
 #### Tests
 
-Content/registry:
-- empty production Shop catalog is valid;
-- valid fixture item and die offers load;
-- item target must exist and be stackable;
-- die target must exist and support the offered size;
-- d10/d12/d20 Shop offers reject even if the profile supports them;
-- non-Teeth price rejects;
-- zero/negative price rejects;
-- duplicate/extra/random/limit fields reject;
-- client projection excludes price/private configuration;
-- client registry resolves projected item/die targets strictly.
+Backend/content/application:
+- item purchase debits exact Teeth and increments exact stack quantity;
+- die purchase debits exact Teeth and creates exactly one unbound active die;
+- exact-balance purchase succeeds with zero Teeth remaining;
+- insufficient Teeth changes nothing;
+- expected-price mismatch changes nothing;
+- missing offer changes nothing;
+- d4/d6/d8 fixed die offers purchase successfully in fixture coverage;
+- no >d8 path is accepted;
+- item stack overflow beyond client-safe maximum rejects atomically;
+- revision overflow beyond client-safe maximum rejects atomically;
+- command requires caller-owned/command-owned transaction boundaries as appropriate;
+- no prototype Shop/dice catalog tables are introduced.
 
-Backend/API:
-- unauthenticated GET rejects;
-- empty Shop returns current Teeth/revision and no offers;
-- deterministic fixture offers return authoritative prices;
-- `available` is true for valid Package 2 offers;
-- `can_afford` is correct above/below/exact balance;
-- another user's Teeth cannot influence the response;
-- query does not mutate Teeth or increment revision;
-- no Shop/daily-deal MySQL catalog is added.
+Idempotency:
+- exact same key + same request returns exact first result;
+- replay does not spend twice;
+- replay does not increment item twice;
+- replay does not create a second die;
+- same key + different offer conflicts;
+- same key + different expected price conflicts;
+- exact replay still succeeds after fixture content price changes/removes the offer;
+- rollback before receipt commit leaves no spend/output/receipt.
+
+Ownership/isolation:
+- purchase affects only authenticated user wallet/inventory/dice;
+- created die belongs only to purchaser.
+
+API/security:
+- auth required;
+- CSRF required;
+- idempotency key required;
+- strict request field set;
+- documented error/status mapping.
 
 Frontend:
-- strict response parsing and projected offer resolution;
-- empty catalog;
-- item/die offers;
-- duplicate/unsorted/unknown IDs reject;
-- invalid Teeth price/booleans/envelope reject;
-- lazy cache/retry behavior does not corrupt prior good data.
+- strict item purchase result;
+- strict die purchase result;
+- spend arithmetic/offer-output coherence;
+- malformed/expanded/unsafe/>d8 outputs reject;
+- request sends exact expected-price/idempotency/CSRF contract;
+- ambiguous retry preserves caller-provided request identity rather than creating a new purchase.
 
 #### Verification
 
 Run:
 - `npm run verify:package`;
-- focused Shop content/projection tests;
-- focused Shop backend/query/controller tests;
-- focused Shop frontend contract/store tests;
+- focused Shop-purchase backend tests;
+- focused item/dice persistence tests;
+- focused purchase frontend contract/API tests;
 - `npm run test:db:provision:docker`;
 - `npm run test:db:reset:docker`;
-- applicable focused MySQL tests;
+- focused MySQL Shop purchase integration;
 - `npm run test:backend:docker`.
 
-Report test/assertion/skipped counts where available.
+Report exact test/assertion/skipped counts where available.
 
 #### Out of scope
 
-- `POST /api/v1/shop/purchase`;
-- Teeth debit;
-- item/die creation;
 - unit offers/acquisition;
-- daily deals or rotations;
-- purchase limits/stock;
-- randomness;
-- discounts/sell bonuses/market mastery;
-- feature/Academy unlocks;
+- production price/balance tuning;
+- daily deals/rotations;
+- stock/purchase limits;
+- random Shop rolls;
+- >d8 acquisition or progression capability;
 - consumable use;
-- dice sale/salvage;
-- >d8 acquisition;
-- final Shop/Inventory screens.
-
-#### Current architectural review finding
-
-The client-safe authored-integer correction at `a1cebe4527c0ea3fb5e9d92ce5314760a887c0b5` is architecturally accepted.
-
-The correction:
-- replaces the Shop-specific numeric constant with reusable `Support\ClientSafeInteger::MAXIMUM`;
-- applies the same JavaScript-safe ceiling to Shop price, Shop item quantity, projected consumable `effect.amount`, authoritative Teeth, and `player_revision`;
-- adds focused maximum/+1 authored-content coverage for item quantity and consumable effect amount;
-- preserves the previously accepted Shop wallet/revision boundary.
-
-GitHub Full Verification at this SHA is green:
-- backend: 834 tests / 1,681 assertions;
-- frontend: 490 tests;
-- all standard gates PASS.
-
-No additional implementation defect is currently identified.
-
-The only remaining Package 2 blocker is **full Docker backend closure evidence**. GitHub standard verification does not exercise the DB-backed full suite.
-
-Run/report the already-requested closure proof from the current branch:
-- DB provision/reset PASS;
-- actual `npm run test:backend:docker`;
-- exact tests / assertions / skipped counts;
-- brief explanation of why the earlier reported 242-test / 942-assertion / 150-skipped result was partial or mislabeled relative to the unchanged full-suite command.
-
-No implementation change is requested unless that run exposes a defect. Leave Package 2 **In Progress** and do not promote Package 3.
-
+- dice sell/salvage;
+- Raw Chaos spend;
+- final Shop/Inventory Phaser screens.
 
 #### Completion
 
-Implement only Milestone 7 Package 2. Leave it **In Progress** for architectural review. Do not promote Package 3 yourself.
+Implement only Milestone 7 Package 3. Leave it **In Progress** for architectural review. Do not promote Package 4 yourself.
