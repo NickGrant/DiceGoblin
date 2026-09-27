@@ -39,6 +39,8 @@ export interface CampLayout {
   readonly panel: Bounds;
   readonly resourcePlaques: readonly [Bounds, Bounds, Bounds];
   readonly warbandButton: Bounds;
+  readonly shopButton: Bounds;
+  readonly suppliesButton: Bounds;
   readonly regionSelector: Bounds;
   readonly runButton: Bounds;
   readonly headingY: number;
@@ -134,11 +136,15 @@ export function createCampLayout(snapshot: RuntimeViewportSnapshot): CampLayout 
     panel,
     resourcePlaques: resources,
     warbandButton: box(
-      panel.right - (mode === 'compact' ? 250 : 220) - 38,
+      panel.right - (mode === 'compact' ? 630 : 570) - 38,
       panel.y + 40,
-      mode === 'compact' ? 250 : 220,
+      mode === 'compact' ? 200 : 180,
       mode === 'compact' ? 92 : 58,
     ),
+    shopButton: box(panel.right - (mode === 'compact' ? 418 : 378) - 38, panel.y + 40,
+      mode === 'compact' ? 200 : 180, mode === 'compact' ? 92 : 58),
+    suppliesButton: box(panel.right - (mode === 'compact' ? 206 : 186) - 38, panel.y + 40,
+      mode === 'compact' ? 200 : 180, mode === 'compact' ? 92 : 58),
     regionSelector: box(centerX - (mode === 'compact' ? 310 : 260), panel.y + 195,
       mode === 'compact' ? 620 : 520, mode === 'compact' ? 54 : 48),
     runButton: box(centerX - (mode === 'compact' ? 230 : 190), panel.y + (mode === 'compact' ? 270 : 260),
@@ -176,6 +182,8 @@ export class CampScreen implements GameSceneScreen {
     private readonly api: RuntimeApiClient | null = null,
     private readonly content: ClientContentRegistry | null = null,
     private readonly createIdempotencyKey: () => string = () => crypto.randomUUID(),
+    private readonly openShop: () => void = () => undefined,
+    private readonly openInventory: () => void = () => undefined,
   ) {}
 
   static preload(scene: Phaser.Scene): void {
@@ -272,7 +280,9 @@ export class CampScreen implements GameSceneScreen {
     root.add([heading, welcome]);
 
     this.addPanel(root, layout.panel);
-    this.addWarbandButton(root, layout);
+    this.addCampDestinationButton(root, layout.warbandButton, 'WARBAND', this.openWarband, layout);
+    this.addCampDestinationButton(root, layout.shopButton, 'SHOP', this.openShop, layout);
+    this.addCampDestinationButton(root, layout.suppliesButton, 'SUPPLIES', this.openInventory, layout);
     this.addRegionSelector(root, layout, view);
     this.addRunButton(root, layout, view);
     const eyebrow = this.scene.add
@@ -455,8 +465,9 @@ export class CampScreen implements GameSceneScreen {
         || (error.kind === 'http' && error.status !== null && error.status >= 400 && error.status < 500));
   }
 
-  private addWarbandButton(root: Phaser.GameObjects.Container, layout: CampLayout): void {
-    const { x, y, width, height } = layout.warbandButton;
+  private addCampDestinationButton(root: Phaser.GameObjects.Container, region: Bounds, text: string,
+    action: () => void, layout: CampLayout): void {
+    const { x, y, width, height } = region;
     const button = this.scene.add.graphics();
     button.fillStyle(0x244b3d, 1);
     button.fillRoundedRect(x, y, width, height, 14);
@@ -464,8 +475,8 @@ export class CampScreen implements GameSceneScreen {
     button.strokeRoundedRect(x, y, width, height, 14);
     button.setInteractive(new Phaser.Geom.Rectangle(x, y, width, height), Phaser.Geom.Rectangle.Contains);
     actionCursor(button);
-    button.on('pointerup', this.openWarband);
-    const label = this.scene.add.text(x + width / 2, y + height / 2, 'OPEN WARBAND  ›', {
+    button.on('pointerup', action);
+    const label = this.scene.add.text(x + width / 2, y + height / 2, `${text}  ›`, {
       color: '#fff4d3', fontFamily: 'system-ui, sans-serif',
       fontSize: layout.mode === 'compact' ? '30px' : '17px', fontStyle: 'bold',
     }).setOrigin(0.5);

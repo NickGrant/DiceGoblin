@@ -11,6 +11,8 @@ import { SquadEditorDraft } from '../screens/squad-editor-model';
 import { SquadEditorInitialAction, SquadEditorScreen } from '../screens/squad-editor-screen';
 import { WarbandSquadSummary } from '../runtime/warband-contracts';
 import { UnitConfigurationScreen } from '../screens/unit-configuration-screen';
+import { ShopScreen } from '../screens/shop-screen';
+import { InventoryScreen } from '../screens/inventory-screen';
 import { RuntimeViewportSnapshot } from '../runtime/runtime-viewport';
 import { RuntimeApiError } from '../runtime/runtime-api-client';
 import { createRunMapLayout, createRunMapPresentation, runNodeColors } from '../runtime/run-map-model';
@@ -20,6 +22,8 @@ import { ExitRunNodeResolutionResult, LootRunNodeResolutionResult, RestRunNodeRe
 import { BattlePlaybackController } from '../runtime/battle-playback-controller';
 import { BattlePlaybackResult } from '../runtime/battle-playback-contracts';
 import { battleArtTextureKey, battleColumnX, supportedBattleArtAssets } from '../runtime/battle-presentation-layout';
+import { RetainedMutationAttempt, RetainedMutationState } from '../runtime/retained-mutation-attempt';
+import { RunUnitHealResult } from '../runtime/consumable-contracts';
 
 export const BOOT_SCENE_KEY = 'BootScene';
 export const GAME_SCENE_KEY = 'GameScene';
@@ -128,7 +132,7 @@ export class BootScene extends Phaser.Scene {
     if (next) {
       const preview = (readDebugCaptureRequest()?.scene ?? window.__DG_DEBUG__?.requestedScene ?? '').toLowerCase();
       // Capture-only navigation can inspect Warband lock presentation while real startup still routes to RunScene.
-      this.scene.start(next === RUN_SCENE_KEY && ['warband', 'squad-editor', 'unit-configuration'].includes(preview ?? '')
+      this.scene.start(next === RUN_SCENE_KEY && ['warband', 'shop', 'inventory', 'squad-editor', 'unit-configuration'].includes(preview ?? '')
         ? GAME_SCENE_KEY : next);
       return;
     }
@@ -160,8 +164,11 @@ export class GameScene extends RuntimeScene {
       openWarband: () => void,
       enterRun: () => void,
       startup: RuntimeStartup,
-    ) => GameSceneScreen = (scene, store, viewport, openWarband, enterRun, startup) => new CampScreen(
+      openShop: () => void,
+      openInventory: () => void,
+    ) => GameSceneScreen = (scene, store, viewport, openWarband, enterRun, startup, openShop, openInventory) => new CampScreen(
       scene, store, viewport, openWarband, enterRun, startup.apiClient, startup.contentRegistry,
+      () => crypto.randomUUID(), openShop, openInventory,
     ),
     private readonly createWarbandScreen: (
       scene: Phaser.Scene,
@@ -193,6 +200,12 @@ export class GameScene extends RuntimeScene {
     ) => GameSceneScreen = (scene, startup, viewport, unitId, returnToWarband) => new UnitConfigurationScreen(
       scene, startup.store, startup.apiClient, startup.contentRegistry!, viewport, unitId, returnToWarband,
     ),
+    private readonly createShopScreen: (scene: Phaser.Scene, startup: RuntimeStartup, viewport: RuntimeViewport,
+      back: () => void) => GameSceneScreen = (scene, startup, viewport, back) => new ShopScreen(
+        scene, startup.store, startup.apiClient, startup.contentRegistry!, viewport, back),
+    private readonly createInventoryScreen: (scene: Phaser.Scene, startup: RuntimeStartup, viewport: RuntimeViewport,
+      back: () => void) => GameSceneScreen = (scene, startup, viewport, back) => new InventoryScreen(
+        scene, startup.store, startup.apiClient, startup.contentRegistry!, viewport, back),
   ) {
     super(GAME_SCENE_KEY, runtimeState, runtimeStartup, runtimeViewport);
   }
@@ -212,7 +225,9 @@ export class GameScene extends RuntimeScene {
     const debugTab = debug?.initialTab ?? window.__DG_DEBUG__?.initialTab ?? '';
     const wantsSquadEditor = debugScene.toLowerCase() === 'squad-editor';
     const wantsUnitConfiguration = debugScene.toLowerCase() === 'unit-configuration';
-    const initialScreen: GameScreenKey = debugScene.toLowerCase() === 'warband' || wantsSquadEditor || wantsUnitConfiguration ? 'warband' : 'camp';
+    const requested = debugScene.toLowerCase();
+    const initialScreen: GameScreenKey = requested === 'shop' ? 'shop' : requested === 'inventory' ? 'inventory'
+      : requested === 'warband' || wantsSquadEditor || wantsUnitConfiguration ? 'warband' : 'camp';
     this.navigator.start(initialScreen);
     this.activateScreen(initialScreen, debugTab === 'units' || debugTab === 'dice' ? debugTab : 'squads');
     if ((wantsSquadEditor || wantsUnitConfiguration) && this.runtimeStartup.contentRegistry) {
@@ -253,6 +268,9 @@ export class GameScene extends RuntimeScene {
     this.activateScreen('warband');
   }
 
+  showShop(): void { this.navigator.navigate('shop'); this.activateScreen('shop'); }
+  showInventory(): void { this.navigator.navigate('inventory'); this.activateScreen('inventory'); }
+
   showSquadEditor(squad: WarbandSquadSummary | null, initialAction: SquadEditorInitialAction = 'none'): void {
     this.navigator.navigate('squad-editor');
     this.activateSquadEditor(squad ? SquadEditorDraft.edit(squad) : SquadEditorDraft.create(), initialAction);
@@ -268,7 +286,7 @@ export class GameScene extends RuntimeScene {
       this.activeScreen.requestBack();
       return;
     }
-    if (this.activeScreen?.key !== 'warband') return;
+    if (!['warband', 'shop', 'inventory'].includes(this.activeScreen?.key ?? '')) return;
     this.activateScreen(this.navigator.back('camp'));
   }
 
@@ -293,10 +311,16 @@ export class GameScene extends RuntimeScene {
         (squad, action) => this.showSquadEditor(squad, action), initialTab,
         (unitId) => this.showUnitConfiguration(unitId),
       );
+    } else if (screen === 'shop') {
+      if (!this.runtimeStartup.contentRegistry) { this.scene.start(BOOT_SCENE_KEY); return; }
+      this.activeScreen = this.createShopScreen(this, this.runtimeStartup, this.runtimeViewport, () => this.goBack());
+    } else if (screen === 'inventory') {
+      if (!this.runtimeStartup.contentRegistry) { this.scene.start(BOOT_SCENE_KEY); return; }
+      this.activeScreen = this.createInventoryScreen(this, this.runtimeStartup, this.runtimeViewport, () => this.goBack());
     } else {
       this.activeScreen = this.createCampScreen(
         this, this.runtimeStartup.store, this.runtimeViewport, () => this.showWarband(),
-        () => this.scene.start(RUN_SCENE_KEY), this.runtimeStartup,
+        () => this.scene.start(RUN_SCENE_KEY), this.runtimeStartup, () => this.showShop(), () => this.showInventory(),
       );
     }
     (this.sys as Phaser.Scenes.Systems & { game?: Phaser.Game }).game?.canvas.parentElement
@@ -340,6 +364,7 @@ export class RunScene extends RuntimeScene {
   private root: Phaser.GameObjects.Container | null = null;
   private unsubscribeViewport: (() => void) | null = null;
   private unsubscribeRun: (() => void) | null = null;
+  private unsubscribeItems: (() => void) | null = null;
   private selectedNodeId: string | null = null;
   private abandonState: 'idle' | 'confirming' | 'submitting' | 'retryable' | 'rejected' | 'recovery-required' = 'idle';
   private abandonRunId: string | null = null;
@@ -348,6 +373,11 @@ export class RunScene extends RuntimeScene {
   private nodeResult: LootRunNodeResolutionResult | RestRunNodeResolutionResult | ExitRunNodeResolutionResult | null = null;
   private nodeSyncState: 'idle' | 'syncing' | 'sync-error' | 'recovery-required' | 'succeeded' = 'idle';
   private nodeSyncIdentity: { readonly runId: string; readonly nodeId: string } | null = null;
+  private suppliesOpen = false;
+  private selectedSupplyId: string | null = null;
+  private selectedHealUnitId: string | null = null;
+  private suppliesMessage = '';
+  private readonly healAttempt = new RetainedMutationAttempt<{ readonly runId: string; readonly unitId: string; readonly itemId: string }, RunUnitHealResult>();
   constructor(
     runtimeState: RuntimeLifecycleState,
     runtimeStartup: RuntimeStartup,
@@ -375,9 +405,11 @@ export class RunScene extends RuntimeScene {
       ?.setAttribute('data-game-screen', 'run');
     this.unsubscribeViewport = this.runtimeViewport.subscribe(() => this.reflow());
     this.unsubscribeRun = this.runtimeStartup.store.subscribeCurrentRun(() => this.handleRunState());
+    this.unsubscribeItems = this.runtimeStartup.store.subscribeItems(() => { if (this.suppliesOpen) this.render(); });
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.unsubscribeViewport?.(); this.unsubscribeViewport = null;
       this.unsubscribeRun?.(); this.unsubscribeRun = null;
+      this.unsubscribeItems?.(); this.unsubscribeItems = null;
       this.root?.destroy(true); this.root = null;
     });
     this.render();
@@ -397,11 +429,40 @@ export class RunScene extends RuntimeScene {
   get nodeActionState(): RunNodeResolutionAttemptState { return this.nodeAttempt.state; }
   get resolvedNodeSyncState(): string { return this.nodeSyncState; }
   get exitReconciliationLocked(): boolean { return this.nodeResult?.resolutionType === 'exit'; }
+  get suppliesVisible(): boolean { return this.suppliesOpen; }
+  get healActionState(): RetainedMutationState { return this.healAttempt.state; }
+  get healAttemptIdentity(): Readonly<{ identity: string; request: { readonly runId: string; readonly unitId: string; readonly itemId: string }; key: string }> | null { return this.healAttempt.identity; }
 
   reflow(): void { this.render(); }
 
+  openSupplies(): void {
+    if (this.abandonState !== 'idle' || this.exitReconciliationLocked) return;
+    this.suppliesOpen = true; this.render();
+    const content = this.runtimeStartup.contentRegistry;
+    if (content) void this.runtimeStartup.store.loadItems(this.runtimeStartup.apiClient, content);
+  }
+  closeSupplies(): void { if (this.healAttempt.state !== 'submitting') { this.suppliesOpen = false; this.render(); } }
+  selectHealingSupply(itemId: string): void { if (this.healAttempt.state === 'submitting' || this.healAttempt.state === 'retryable') return; this.selectedSupplyId = itemId; this.render(); }
+  selectHealingUnit(unitId: string): void { if (this.healAttempt.state === 'submitting' || this.healAttempt.state === 'retryable') return; this.selectedHealUnitId = unitId; this.render(); }
+  async useHealingSupply(): Promise<void> {
+    const run = this.runtimeStartup.store.currentRun.data; const bootstrap = this.runtimeStartup.store.bootstrap;
+    const stack = this.runtimeStartup.store.inventory.data?.find((candidate) => candidate.item.id === this.selectedSupplyId);
+    const participant = run?.units.find((unit) => unit.unitId === this.selectedHealUnitId);
+    const content = this.runtimeStartup.contentRegistry;
+    if (!run || !bootstrap || !content || !stack || stack.item.effect?.type !== 'unit_heal' || !participant
+      || participant.currentHp === null || this.healAttempt.state === 'submitting') return;
+    const request = { runId: run.id, unitId: participant.unitId, itemId: stack.item.id };
+    this.healAttempt.begin(`${run.id}:${participant.unitId}:${stack.item.id}`, request); this.suppliesMessage = 'Applying supply…'; this.render();
+    const outcome = await this.healAttempt.submit((value, key) => this.runtimeStartup.apiClient.healRunUnit(
+      value.runId, value.unitId, value.itemId, bootstrap.session.csrf_token, key, content));
+    if (outcome.kind === 'success') { try { this.runtimeStartup.store.reconcileRunUnitHeal(outcome.result); this.suppliesMessage = `Healed to ${outcome.result.unit.hpAfter} / ${outcome.result.unit.maxHp} HP.`; } catch { this.suppliesMessage = 'Healing committed, but local state disagrees. Reload to recover safely.'; } }
+    else if (outcome.kind === 'ambiguous') this.suppliesMessage = 'The result is uncertain. Retry this same healing attempt.';
+    else if (outcome.kind === 'rejected') this.suppliesMessage = 'This unit cannot be healed with that supply right now.';
+    this.render();
+  }
+
   selectNode(nodeId: string): void {
-    if (this.exitReconciliationLocked || this.abandonState !== 'idle'
+    if (this.exitReconciliationLocked || this.suppliesOpen || this.abandonState !== 'idle'
       || !this.runtimeStartup.store.currentRun.data?.nodes.some((node) => node.id === nodeId)) return;
     this.selectedNodeId = nodeId;
     this.render();
@@ -547,12 +608,12 @@ export class RunScene extends RuntimeScene {
   }
 
   returnToCamp(): void {
-    if (!this.exitReconciliationLocked && this.abandonState === 'idle') this.scene.start(GAME_SCENE_KEY);
+    if (!this.exitReconciliationLocked && !this.suppliesOpen && this.abandonState === 'idle') this.scene.start(GAME_SCENE_KEY);
   }
 
   openAbandonConfirmation(): void {
     const run = this.runtimeStartup.store.currentRun.data;
-    if (this.exitReconciliationLocked || this.abandonState !== 'idle' || !run) return;
+    if (this.exitReconciliationLocked || this.suppliesOpen || this.abandonState !== 'idle' || !run) return;
     this.abandonRunId = run.id;
     this.abandonState = 'confirming';
     this.abandonMessage = 'This run will end. The Energy spent to enter will not be refunded.';
@@ -659,6 +720,7 @@ export class RunScene extends RuntimeScene {
     const layout = createRunMapLayout(snapshot, presentation);
     this.renderMap(root, layout, presentation.regionName);
     if (this.abandonState !== 'idle') this.renderAbandonConfirmation(root, layout.confirmation);
+    else if (this.suppliesOpen) this.renderSupplies(root, layout.confirmation);
   }
 
   private renderMap(root: Phaser.GameObjects.Container, layout: ReturnType<typeof createRunMapLayout>, regionName: string): void {
@@ -692,7 +754,7 @@ export class RunScene extends RuntimeScene {
       graphic.lineStyle(this.selectedNodeId === node.id ? 7 : 5,
         this.selectedNodeId === node.id ? 0xffffff : colors.border, 1);
       graphic.strokeCircle(node.centerX, node.centerY, node.radius);
-      if (this.abandonState === 'idle' && !this.exitReconciliationLocked) {
+      if (this.abandonState === 'idle' && !this.suppliesOpen && !this.exitReconciliationLocked) {
         graphic.setInteractive(new Phaser.Geom.Circle(node.centerX, node.centerY, node.radius), Phaser.Geom.Circle.Contains)
           .on('pointerup', () => this.selectNode(node.id));
         actionCursor(graphic);
@@ -750,9 +812,33 @@ export class RunScene extends RuntimeScene {
     this.host()?.setAttribute('data-run-node-sync', this.nodeSyncState);
     this.host()?.setAttribute('data-run-node-result', this.nodeResult?.resolutionType ?? 'none');
     this.host()?.setAttribute('data-run-exit-reconciliation-lock', this.exitReconciliationLocked ? 'true' : 'false');
-    const ordinaryActionsEnabled = this.abandonState === 'idle' && !this.exitReconciliationLocked;
+    const ordinaryActionsEnabled = this.abandonState === 'idle' && !this.suppliesOpen && !this.exitReconciliationLocked;
     this.addButton(root, layout.returnButton, 'RETURN TO CAMP', () => this.returnToCamp(), 0x244b3d, ordinaryActionsEnabled);
     this.addButton(root, layout.abandonButton, 'ABANDON RUN', () => this.openAbandonConfirmation(), 0x7a302b, ordinaryActionsEnabled);
+    const supplyBounds = this.box(layout.returnButton.x, layout.returnButton.y - layout.returnButton.height - 12,
+      layout.returnButton.width, layout.returnButton.height);
+    this.addButton(root, supplyBounds, 'SUPPLIES', () => this.openSupplies(), 0x315d68, ordinaryActionsEnabled);
+  }
+
+  private renderSupplies(root: Phaser.GameObjects.Container, region: Bounds): void {
+    const snapshot = this.runtimeViewport.snapshot; const compact = snapshot.layoutClass === 'compact';
+    const shade = this.add.graphics(); shade.fillStyle(0x06100e, .78); shade.fillRect(0, 0, snapshot.logicalWidth, snapshot.logicalHeight);
+    const panel = this.add.graphics(); panel.fillStyle(0x392f20, 1); panel.fillRoundedRect(region.x, region.y, region.width, region.height, 22);
+    panel.lineStyle(5, 0x8db341, 1); panel.strokeRoundedRect(region.x, region.y, region.width, region.height, 22); root.add([shade, panel]);
+    root.add(this.add.text(region.x + region.width / 2, region.y + 42, 'RUN SUPPLIES', { color: '#fff0d0', fontFamily: 'Georgia, serif', fontSize: compact ? '34px' : '30px', fontStyle: 'bold' }).setOrigin(.5));
+    const state = this.runtimeStartup.store.inventory;
+    if (state.status === 'loading' || state.status === 'not-loaded') root.add(this.add.text(region.x + region.width / 2, region.y + 115, 'Loading owned supplies…', { color: '#efd6b0', fontFamily: 'system-ui', fontSize: '18px' }).setOrigin(.5));
+    else if (state.status === 'error') { root.add(this.add.text(region.x + region.width / 2, region.y + 115, 'Supplies could not be loaded.', { color: '#ff9b87', fontFamily: 'system-ui', fontSize: '18px' }).setOrigin(.5)); const content = this.runtimeStartup.contentRegistry; if (content) this.addButton(root, this.box(region.x + 30, region.y + 145, 190, 48), 'RETRY', () => void this.runtimeStartup.store.retryItems(this.runtimeStartup.apiClient, content)); }
+    else {
+      const heals = (state.data ?? []).filter((stack) => stack.item.effect?.type === 'unit_heal');
+      if (!heals.length) root.add(this.add.text(region.x + 30, region.y + 100, 'No unit-healing supplies owned.', { color: '#efd6b0', fontFamily: 'system-ui', fontSize: '17px' }));
+      heals.forEach((stack, index) => this.addButton(root, this.box(region.x + 30, region.y + 95 + index * 56, region.width * .42, 46), `${stack.item.display_name} ×${stack.quantity}`, () => this.selectHealingSupply(stack.item.id), stack.item.id === this.selectedSupplyId ? 0x8a5a34 : 0x315d68));
+      const run = this.runtimeStartup.store.currentRun.data; const names = new Map((this.runtimeStartup.store.bootstrap?.active_squad?.units ?? []).map((unit) => [unit.id, unit.display_name]));
+      (run?.units ?? []).forEach((unit, index) => this.addButton(root, this.box(region.x + region.width * .5, region.y + 95 + index * 56, region.width * .45, 46), `${names.get(unit.unitId) ?? `Unit ${unit.unitId}`} · ${unit.currentHp ?? '?'} HP`, () => this.selectHealingUnit(unit.unitId), unit.unitId === this.selectedHealUnitId ? 0x8a5a34 : 0x315d68));
+      if (this.selectedSupplyId && this.selectedHealUnitId) this.addButton(root, this.box(region.x + region.width / 2 - 135, region.bottom - 67, 270, 48), this.healAttempt.state === 'retryable' ? 'RETRY HEAL' : 'USE ON UNIT', () => void this.useHealingSupply(), 0x8a5424, this.healAttempt.state !== 'submitting');
+    }
+    if (this.suppliesMessage) root.add(this.add.text(region.x + region.width / 2, region.bottom - 88, this.suppliesMessage, { color: '#f0c982', fontFamily: 'system-ui', fontSize: '14px' }).setOrigin(.5));
+    this.addButton(root, this.box(region.right - 150, region.y + 22, 120, 44), 'CLOSE', () => this.closeSupplies(), 0x7a302b, this.healAttempt.state !== 'submitting');
   }
 
   private renderAbandonConfirmation(root: Phaser.GameObjects.Container, region: Bounds): void {

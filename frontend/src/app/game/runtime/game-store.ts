@@ -318,6 +318,8 @@ export class GameStore {
   private readonly unitDetailInFlight = new Map<string, Promise<void>>();
   private readonly listeners = new Set<(cache: WarbandCacheSnapshot) => void>();
   private readonly runListeners = new Set<(state: CurrentRunState) => void>();
+  private readonly itemListeners = new Set<(state: WarbandDomainState<OwnedItemStack>) => void>();
+  private readonly shopListeners = new Set<(state: ShopState) => void>();
   private currentRunState: CurrentRunState = Object.freeze({ status: 'not-loaded', data: null, error: null });
   private currentRunInFlight: Promise<void> | null = null;
   private itemInventoryState: WarbandDomainState<OwnedItemStack> = emptyDomain<OwnedItemStack>();
@@ -370,6 +372,16 @@ export class GameStore {
   subscribeCurrentRun(listener: (state: CurrentRunState) => void): () => void {
     this.runListeners.add(listener);
     return () => this.runListeners.delete(listener);
+  }
+
+  subscribeItems(listener: (state: WarbandDomainState<OwnedItemStack>) => void): () => void {
+    this.itemListeners.add(listener);
+    return () => this.itemListeners.delete(listener);
+  }
+
+  subscribeShop(listener: (state: ShopState) => void): () => void {
+    this.shopListeners.add(listener);
+    return () => this.shopListeners.delete(listener);
   }
 
   markCurrentRunStale(): void {
@@ -527,18 +539,18 @@ export class GameStore {
     if (!reload && state.status === 'fresh') return Promise.resolve();
     if (this.itemInventoryInFlight) return this.itemInventoryInFlight;
     const generation = this.cacheGeneration;
-    this.itemInventoryState = Object.freeze({ status: 'loading', data: state.data, error: null });
+    this.setItems({ status: 'loading', data: state.data, error: null });
     const promise = api.getItems()
       .then((value) => {
         if (generation === this.cacheGeneration) {
-          this.itemInventoryState = Object.freeze({
+          this.setItems({
             status: 'fresh', data: parseItemCollectionEnvelope(value, content), error: null,
           });
         }
       })
       .catch((error: unknown) => {
         if (generation === this.cacheGeneration) {
-          this.itemInventoryState = Object.freeze({
+          this.setItems({
             status: 'error', data: state.data, error: domainErrorKind(error),
           });
         }
@@ -559,13 +571,13 @@ export class GameStore {
     if (!reload && state.status === 'fresh') return Promise.resolve();
     if (this.shopInFlight) return this.shopInFlight;
     const generation = this.cacheGeneration;
-    this.shopState = Object.freeze({ status: 'loading', data: state.data, error: null });
+    this.setShop({ status: 'loading', data: state.data, error: null });
     const promise = api.getShop().then((value) => {
-      if (generation === this.cacheGeneration) this.shopState = Object.freeze({
+      if (generation === this.cacheGeneration) this.setShop({
         status: 'fresh', data: parseShopCatalogEnvelope(value, content), error: null,
       });
     }).catch((error: unknown) => {
-      if (generation === this.cacheGeneration) this.shopState = Object.freeze({
+      if (generation === this.cacheGeneration) this.setShop({
         status: 'error', data: state.data, error: domainErrorKind(error),
       });
     }).finally(() => { if (this.shopInFlight === promise) this.shopInFlight = null; });
@@ -574,6 +586,96 @@ export class GameStore {
 
   retryShop(api: RuntimeApiClient, content: ClientContentRegistry): Promise<void> {
     return this.loadShop(api, content, true);
+  }
+
+  reconcileShopPurchase(result: ShopPurchaseResult, content: ClientContentRegistry): void {
+    const bootstrap = this.requireMutationRevision(result.playerRevision);
+    this.cachedBootstrap = Object.freeze({ ...bootstrap, player: Object.freeze({ ...bootstrap.player,
+      teeth: result.spend.balanceAfter, player_revision: result.playerRevision }) });
+    if (bootstrap.player.teeth !== result.spend.balanceBefore) {
+      this.failEconomyReconciliation(result.output.type, true);
+      throw new ShopContractError('Purchase balance contradicts cached authoritative state.');
+    }
+    try {
+      this.reconcileShopBalance(result.spend.balanceAfter, result.playerRevision);
+      if (result.output.type === 'item') this.reconcileItemQuantity(result.output.itemId, result.output.ownedQuantityAfter,
+        content.getItem(result.output.itemId), false, result.output.quantityGranted);
+      if (result.output.type === 'die' && this.warbandCache.dice.status === 'fresh' && this.warbandCache.dice.data) {
+        const output = result.output;
+        if (this.warbandCache.dice.data.some((die) => die.id === output.die.id)) throw new ShopContractError('Purchased die already exists.');
+        const profile = content.getDiceProfile(output.die.profileId);
+        const material = profile ? content.getDiceMaterial(profile.material_id) : undefined;
+        const aspects = profile?.aspect_ids.map((id) => content.getDiceAspect(id));
+        if (!profile || !material || !aspects || aspects.some((aspect) => !aspect)) throw new ShopContractError('Purchased die content is unavailable.');
+        this.setDomain('dice', { status: 'fresh', data: Object.freeze([...this.warbandCache.dice.data,
+          Object.freeze({ id: output.die.id, size: output.die.size, profile, material,
+            aspects: Object.freeze(aspects as ClientDiceAspectDefinition[]), lifecycleStatus: 'active' as const,
+            bindings: Object.freeze([]) })]), error: null });
+      }
+      if (result.output.type === 'unit' && this.warbandCache.units.status === 'fresh' && this.warbandCache.units.data) {
+        const output = result.output;
+        if (this.warbandCache.units.data.some((unit) => unit.id === output.unit.id)) throw new ShopContractError('Purchased unit already exists.');
+        const unitType = content.getUnitType(output.unit.unitTypeId); const kin = content.getKin(output.unit.kinId);
+        if (!unitType || !kin) throw new ShopContractError('Purchased unit content is unavailable.');
+        this.setDomain('units', { status: 'fresh', data: Object.freeze([...this.warbandCache.units.data,
+          Object.freeze({ id: output.unit.id, displayName: output.unit.displayName, unitType, kin,
+            level: 1, xp: 0, lifecycleStatus: 'active' as const })]), error: null });
+      }
+    } catch (error) {
+      this.failEconomyReconciliation(result.output.type, true);
+      throw error;
+    }
+  }
+
+  reconcileEnergyRestore(result: EnergyRestoreResult): void {
+    const bootstrap = this.requireMutationRevision(result.playerRevision);
+    this.cachedBootstrap = Object.freeze({ ...bootstrap, player: Object.freeze({ ...bootstrap.player,
+      energy: Object.freeze({ current: result.energy.current, normal_max: result.energy.normalMax,
+        regeneration_per_hour: result.energy.regenerationPerHour,
+        regeneration_interval_seconds: result.energy.regenerationIntervalSeconds,
+        last_regeneration_at: result.energy.lastRegenerationAt,
+        next_regeneration_at: result.energy.nextRegenerationAt,
+        fully_regenerated_at: result.energy.fullyRegeneratedAt }), player_revision: result.playerRevision }) });
+    try { this.reconcileItemQuantity(result.itemId, result.ownedQuantityAfter, undefined, true, -1); }
+    catch (error) { this.setItems({ status: 'error', data: this.itemInventoryState.data, error: 'integrity' }); throw error; }
+  }
+
+  reconcileDiceLifecycle(result: DiceSellResult | DiceSalvageResult): void {
+    const bootstrap = this.requireMutationRevision(result.playerRevision);
+    const player = result.lifecycleStatus === 'sold'
+      ? { ...bootstrap.player, teeth: result.teeth, player_revision: result.playerRevision }
+      : { ...bootstrap.player, raw_chaos: result.rawChaos, player_revision: result.playerRevision };
+    this.cachedBootstrap = Object.freeze({ ...bootstrap, player: Object.freeze(player) });
+    if (result.lifecycleStatus === 'sold') this.reconcileShopBalance(result.teeth, result.playerRevision);
+    const dice = this.warbandCache.dice;
+    if (dice.status === 'fresh' && dice.data) {
+      const owned = dice.data.find((candidate) => candidate.id === result.diceId);
+      if (!owned || owned.bindings.length > 0) {
+        this.setDomain('dice', { status: 'error', data: dice.data, error: 'integrity' });
+        throw new ShopContractError('Die lifecycle result contradicts the active dice cache.');
+      }
+      this.setDomain('dice', { status: 'fresh', data: Object.freeze(dice.data.filter((candidate) => candidate.id !== result.diceId)), error: null });
+    }
+  }
+
+  reconcileRunUnitHeal(result: RunUnitHealResult): void {
+    const bootstrap = this.requireMutationRevision(result.playerRevision);
+    this.cachedBootstrap = Object.freeze({ ...bootstrap, player: Object.freeze({ ...bootstrap.player, player_revision: result.playerRevision }) });
+    const run = this.currentRunState.data;
+    if (!bootstrap.active_run || bootstrap.active_run.id !== result.runId || this.currentRunState.status !== 'fresh' || !run || run.id !== result.runId) {
+      this.setCurrentRun({ status: 'error', data: run, error: 'integrity' });
+      throw new RunContractError('Healing result contradicts the active run.');
+    }
+    const participant = run.units.find((unit) => unit.unitId === result.unit.unitId);
+    if (!participant || participant.currentHp !== result.unit.hpBefore) {
+      this.setCurrentRun({ status: 'error', data: run, error: 'integrity' });
+      throw new RunContractError('Healing result contradicts participant HP.');
+    }
+    this.setCurrentRun({ status: 'fresh', data: Object.freeze({ ...run,
+      units: Object.freeze(run.units.map((unit) => unit.unitId === result.unit.unitId
+        ? Object.freeze({ ...unit, currentHp: result.unit.hpAfter }) : unit)) }), error: null });
+    try { this.reconcileItemQuantity(result.itemId, result.ownedQuantityAfter, undefined, true, -1); }
+    catch (error) { this.setItems({ status: 'error', data: this.itemInventoryState.data, error: 'integrity' }); throw error; }
   }
 
   retryWarbandDomain(
@@ -772,6 +874,8 @@ export class GameStore {
     for (const key of Object.keys(this.inFlight) as WarbandDomainName[]) delete this.inFlight[key];
     this.emit();
     this.emitRun();
+    for (const listener of this.itemListeners) listener(this.itemInventoryState);
+    for (const listener of this.shopListeners) listener(this.shopState);
   }
 
   private reconcileCurrentRun(result: CurrentRunResult): void {
@@ -939,6 +1043,60 @@ export class GameStore {
     this.emit();
   }
 
+  private requireMutationRevision(playerRevision: number): GameBootstrapData {
+    const bootstrap = this.cachedBootstrap;
+    if (!bootstrap || playerRevision < bootstrap.player.player_revision) {
+      throw new ShopContractError('Authoritative player revision regressed.');
+    }
+    return bootstrap;
+  }
+
+  private reconcileItemQuantity(itemId: string, quantity: number, projectedItem?: OwnedItemStack['item'],
+    requireExisting = false, expectedDelta?: number): void {
+    const state = this.itemInventoryState;
+    if (state.status !== 'fresh' || !state.data) return;
+    const index = state.data.findIndex((stack) => stack.item.id === itemId);
+    if (index < 0) {
+      if (requireExisting || (expectedDelta !== undefined && quantity !== expectedDelta))
+        throw new InventoryContractError('Mutation item is absent from the loaded inventory.');
+      if (quantity === 0) return;
+      const item = projectedItem;
+      if (!item) throw new InventoryContractError('Mutation item is absent from the loaded inventory and projected content.');
+      this.setItems({ status: 'fresh', data: Object.freeze([...state.data, Object.freeze({ item, quantity })]
+        .sort((left, right) => left.item.id < right.item.id ? -1 : left.item.id > right.item.id ? 1 : 0)), error: null });
+      return;
+    }
+    const current = state.data[index];
+    if (expectedDelta !== undefined && current.quantity + expectedDelta !== quantity)
+      throw new InventoryContractError('Mutation quantity contradicts the loaded inventory.');
+    this.setItems({ status: 'fresh', data: Object.freeze(state.data.flatMap((stack, stackIndex) => stackIndex !== index
+      ? [stack] : quantity === 0 ? [] : [Object.freeze({ item: stack.item, quantity })])), error: null });
+  }
+
+  private reconcileShopBalance(teeth: number, playerRevision: number): void {
+    const state = this.shopState;
+    if (state.status !== 'fresh' || !state.data) return;
+    this.setShop({ status: 'fresh', data: Object.freeze({ teeth, playerRevision,
+      offers: Object.freeze(state.data.offers.map((offer) => Object.freeze({ ...offer, canAfford: teeth >= offer.price.amount }))) }), error: null });
+  }
+
+  private failEconomyReconciliation(output: ShopPurchaseResult['output']['type'], shop: boolean): void {
+    if (shop && this.shopState.data) this.setShop({ status: 'error', data: this.shopState.data, error: 'integrity' });
+    if (output === 'item' && this.itemInventoryState.data) this.setItems({ status: 'error', data: this.itemInventoryState.data, error: 'integrity' });
+    if (output === 'die' && this.warbandCache.dice.data) this.setDomain('dice', { status: 'error', data: this.warbandCache.dice.data, error: 'integrity' });
+    if (output === 'unit' && this.warbandCache.units.data) this.setDomain('units', { status: 'error', data: this.warbandCache.units.data, error: 'integrity' });
+  }
+
+  private setItems(state: WarbandDomainState<OwnedItemStack>): void {
+    this.itemInventoryState = Object.freeze(state);
+    for (const listener of this.itemListeners) listener(this.itemInventoryState);
+  }
+
+  private setShop(state: ShopState): void {
+    this.shopState = Object.freeze(state);
+    for (const listener of this.shopListeners) listener(this.shopState);
+  }
+
   private setDomain(domain: WarbandDomainName, state: WarbandDomainState<WarbandCollectionItem>): void {
     if (domain === 'units') {
       this.warbandCache = Object.freeze({
@@ -971,7 +1129,7 @@ export class GameStore {
     for (const listener of this.listeners) listener(this.warbandCache);
   }
 }
-import { ClientContentRegistry } from './client-content-registry';
+import { ClientContentRegistry, ClientDiceAspectDefinition } from './client-content-registry';
 import { RuntimeApiClient, RuntimeApiError, RuntimeApiErrorKind } from './runtime-api-client';
 import {
   SquadDeleteResult,
@@ -995,7 +1153,9 @@ import { CurrentRun, CurrentRunResult, RunAbandonResult, RunContractError, RunSt
 import { activeRunLock, ActiveRunLock } from './active-run-lock';
 import { ExitRunNodeResolutionResult, LootRunNodeResolutionResult, RestRunNodeResolutionResult } from './run-node-resolution-contracts';
 import { InventoryContractError, OwnedItemStack, parseItemCollectionEnvelope } from './inventory-contracts';
-import { ShopCatalogResult, ShopContractError, parseShopCatalogEnvelope } from './shop-contracts';
+import { ShopCatalogResult, ShopContractError, ShopPurchaseResult, parseShopCatalogEnvelope } from './shop-contracts';
+import { EnergyRestoreResult, RunUnitHealResult } from './consumable-contracts';
+import { DiceSalvageResult, DiceSellResult } from './dice-lifecycle-contracts';
 
 function unitDetailErrorKind(error: unknown): WarbandDomainErrorKind {
   if (error instanceof RuntimeApiError) return error.kind;

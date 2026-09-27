@@ -22,7 +22,7 @@ Package 6 closure evidence:
 
 Package 6 established retained `sold`/`salvaged` die lifecycle transitions, deterministic Teeth/Raw Chaos valuation, idempotent replay, and equipment/active-run safety.
 
-#### Package 7 purpose
+#### Problem
 
 Make the Milestone 7 economy usable through the persistent Phaser client without changing the accepted server economy.
 

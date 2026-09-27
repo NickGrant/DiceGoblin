@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { ClientContentRegistry } from '../runtime/client-content-registry';
 import { GameBootstrapData, GameStore } from '../runtime/game-store';
-import { RuntimeApiClient } from '../runtime/runtime-api-client';
+import { RuntimeApiClient, RuntimeApiError } from '../runtime/runtime-api-client';
 import { RuntimeViewport, calculateRuntimeViewport } from '../runtime/runtime-viewport';
 import { WarbandScreen, createWarbandLayout } from './warband-screen';
 
@@ -26,7 +26,7 @@ describe('WarbandScreen', () => {
   }
 
   function api(): jasmine.SpyObj<RuntimeApiClient> {
-    const api = jasmine.createSpyObj<RuntimeApiClient>('api', ['getBootstrap', 'getUnits', 'getUnitDetail', 'getDice', 'getSquads']);
+    const api = jasmine.createSpyObj<RuntimeApiClient>('api', ['getBootstrap', 'getUnits', 'getUnitDetail', 'getDice', 'getSquads', 'sellDie', 'salvageDie']);
     api.getUnits.and.resolveTo({ ok: true, data: { units: [{ id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 2, xp: 4, lifecycle_status: 'active' }] } });
     api.getDice.and.resolveTo({ ok: true, data: { dice: [{ id: '21', size: 6, profile_id: 'dice_profile.bone', lifecycle_status: 'active', bindings: [{ unit_id: '11', ability_id: 'ability.bash', slot_index: 0 }] }] } });
     api.getSquads.and.resolveTo({ ok: true, data: { squads: [{ id: '31', name: 'Raiders', is_active: true, formation: ['11', null, null, null, null, null, null, null, null] }] } });
@@ -184,5 +184,21 @@ describe('WarbandScreen', () => {
     screen.editSelectedSquad(); screen.deleteSelectedSquad();
     expect(openEditor.calls.argsFor(0)[0].id).toBe('32');
     expect(openEditor.calls.argsFor(1)).toEqual([jasmine.objectContaining({ id: '32' }), 'delete']);
+  });
+
+  it('requires confirmation and retains the same sell key across ambiguity before reconciling', async () => {
+    const store = new GameStore(); store.hydrateBootstrap(bootstrap()); const client = api(); const registry = content();
+    client.getDice.and.resolveTo({ ok: true, data: { dice: [{ id: '22', size: 6, profile_id: 'dice_profile.bone', lifecycle_status: 'active', bindings: [] }] } });
+    await store.loadWarbandDomains(client, registry);
+    const screen = new WarbandScreen(sceneHarness().scene, store, client, registry, new RuntimeViewport(),
+      () => undefined, () => undefined, 'dice', () => undefined, () => 'sell-key');
+    screen.create(); screen.selectDie('22'); screen.requestDiceLifecycle('sell');
+    expect(screen.diceConfirmation).toBe('sell'); expect(client.sellDie).not.toHaveBeenCalled();
+    client.sellDie.and.rejectWith(new RuntimeApiError('network')); await screen.confirmDiceLifecycle();
+    expect(screen.diceActionState).toBe('retryable');
+    client.sellDie.and.resolveTo({ diceId: '22', lifecycleStatus: 'sold', teethAwarded: 5, teeth: 6, playerRevision: 10 });
+    await screen.confirmDiceLifecycle();
+    expect(client.sellDie.calls.allArgs().map((args) => args[2])).toEqual(['sell-key', 'sell-key']);
+    expect(store.warband.dice.data).toEqual([]); expect(store.bootstrap?.player.teeth).toBe(6);
   });
 });

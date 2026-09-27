@@ -204,13 +204,27 @@ describe('CampScreen', () => {
 
     for (const snapshot of snapshots) {
       const layout = createCampLayout(snapshot);
-      for (const region of [layout.panel, layout.warbandButton, layout.regionSelector, layout.runButton, ...layout.resourcePlaques]) {
+      for (const region of [layout.panel, layout.warbandButton, layout.shopButton, layout.suppliesButton,
+        layout.regionSelector, layout.runButton, ...layout.resourcePlaques]) {
         expect(region.x).toBeGreaterThanOrEqual(snapshot.safeBounds.x);
         expect(region.y).toBeGreaterThanOrEqual(snapshot.safeBounds.y);
         expect(region.right).toBeLessThanOrEqual(snapshot.safeBounds.right);
         expect(region.bottom).toBeLessThanOrEqual(snapshot.safeBounds.bottom);
       }
     }
+  });
+
+  it('exposes Camp entry points for Warband, Shop, and Supplies', () => {
+    const harness = sceneHarness(); const actions: (() => void)[] = [];
+    const screen = new CampScreen(harness.scene, storeWith(bootstrap()), new RuntimeViewport(),
+      () => undefined, () => undefined, undefined, content(), () => 'key', () => undefined, () => undefined);
+    const graphics = (harness.scene.add.graphics as unknown as jasmine.Spy) ?? null;
+    screen.create();
+    expect(harness.textValues).toContain('WARBAND  ›');
+    expect(harness.textValues).toContain('SHOP  ›');
+    expect(harness.textValues).toContain('SUPPLIES  ›');
+    expect(actions.length).toBe(0);
+    expect(graphics).toBeDefined();
   });
 
   it('uses a distinct Compact composition while retaining the same Camp regions', () => {

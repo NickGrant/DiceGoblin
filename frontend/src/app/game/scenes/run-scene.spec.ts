@@ -424,6 +424,26 @@ describe('RunScene lifecycle shell', () => {
     expect(api.abandonRun).toHaveBeenCalledTimes(1);
     expect(sceneStart).not.toHaveBeenCalled();
   });
+
+  it('loads healing supplies only when opened and retains the heal identity across ambiguous retry', async () => {
+    const run = farmRun(['completed', 'completed', 'available', 'locked', 'locked']);
+    const { scene, startup, api } = await readyHarness(run);
+    spyOn<any>(scene, 'render').and.stub();
+    expect(api.getItems).not.toHaveBeenCalled();
+    api.getItems.and.resolveTo({ ok: true, data: { items: [{ item_id: 'item.test.heal', quantity: 2 }] } });
+    scene.openSupplies(); await startup.store.loadItems(api, content());
+    expect(api.getItems).toHaveBeenCalledTimes(1);
+    scene.selectHealingSupply('item.test.heal'); scene.selectHealingUnit('11');
+    api.healRunUnit.and.rejectWith(new RuntimeApiError('network'));
+    await scene.useHealingSupply(); const firstKey = api.healRunUnit.calls.mostRecent().args[4];
+    expect(scene.healActionState).toBe('retryable');
+    api.healRunUnit.and.resolveTo({ itemId: 'item.test.heal', quantityConsumed: 1, ownedQuantityAfter: 1,
+      runId: '41', unit: { unitId: '11', hpBefore: 0, hpAfter: 5, maxHp: 26 }, playerRevision: 8 });
+    await scene.useHealingSupply();
+    expect(api.healRunUnit.calls.mostRecent().args.slice(0, 5)).toEqual(['41', '11', 'item.test.heal', 'csrf', firstKey]);
+    expect(startup.store.currentRun.data?.units[0].currentHp).toBe(5);
+    expect(startup.store.inventory.data?.[0].quantity).toBe(1);
+  });
 });
 
 type abandonResult = Awaited<ReturnType<RuntimeApiClient['abandonRun']>>;
@@ -434,7 +454,7 @@ function abandonSuccess(): abandonResult {
 }
 
 async function readyHarness(run: CurrentRun = currentRun(), createKey: () => string = () => 'run-node:fixed') {
-  const api = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getBootstrap', 'getCurrentRun', 'abandonRun', 'resolveRunNode']);
+  const api = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getBootstrap', 'getCurrentRun', 'abandonRun', 'resolveRunNode', 'getItems', 'healRunUnit']);
   const startup = new RuntimeStartup(api, {} as ClientContentLoader);
   const registry = content();
   startup.store.hydrateBootstrap(activeBootstrap(run.regionId));
@@ -499,7 +519,8 @@ function content(): ClientContentRegistry {
       'run_node_type.boss': { id: 'run_node_type.boss', display_name: 'Boss', description: 'Boss.', icon_key: 'boss' },
       'run_node_type.exit': { id: 'run_node_type.exit', display_name: 'Exit', description: 'Exit.', icon_key: 'exit' },
     },
-    items: {},
+    items: { 'item.test.heal': { id: 'item.test.heal', display_name: 'Poultice', description: 'Healing.',
+      category: 'consumable', rarity: 'common', icon_key: 'heal', stackable: true, effect: { type: 'unit_heal', amount: 5 } } },
     shop_offers: {},
   } });
 }

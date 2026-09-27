@@ -10,4 +10,13 @@ describe('GameScreenNavigator', () => {
     expect(navigation.current).toBe('camp');
     expect(navigation.canGoBack).toBeFalse();
   });
+
+  it('returns naturally through Shop and Inventory history', () => {
+    const navigation = new GameScreenNavigator();
+    navigation.start('camp');
+    navigation.navigate('shop');
+    expect(navigation.back()).toBe('camp');
+    navigation.navigate('inventory');
+    expect(navigation.back()).toBe('camp');
+  });
 });

@@ -12,6 +12,8 @@ import { WarbandDieSummary, WarbandSquadSummary, WarbandUnitSummary } from '../r
 import { GameSceneScreen } from './game-screen-navigation';
 import type { SquadEditorInitialAction } from './squad-editor-screen';
 import { actionCursor } from './action-cursor';
+import { DiceSalvageResult, DiceSellResult } from '../runtime/dice-lifecycle-contracts';
+import { RetainedMutationAttempt, RetainedMutationState } from '../runtime/retained-mutation-attempt';
 
 export type WarbandTab = 'units' | 'dice' | 'squads';
 
@@ -79,6 +81,10 @@ export class WarbandScreen implements GameSceneScreen {
   private activeTab: WarbandTab;
   private readonly pages: Record<WarbandTab, number> = { units: 0, dice: 0, squads: 0 };
   private selectedSquadId: string | null = null;
+  private selectedDieId: string | null = null;
+  private pendingDiceAction: 'sell' | 'salvage' | null = null;
+  private diceMessage = '';
+  private readonly diceAttempt: RetainedMutationAttempt<{ readonly diceId: string; readonly action: 'sell' | 'salvage' }, DiceSellResult | DiceSalvageResult>;
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -90,8 +96,10 @@ export class WarbandScreen implements GameSceneScreen {
     private readonly openSquadEditor: (squad: WarbandSquadSummary | null, action?: SquadEditorInitialAction) => void,
     initialTab: WarbandTab = 'squads',
     private readonly openUnitConfiguration: (unitId: string) => void = () => undefined,
+    createKey: () => string = () => crypto.randomUUID(),
   ) {
     this.activeTab = initialTab;
+    this.diceAttempt = new RetainedMutationAttempt(createKey);
   }
 
   get tab(): WarbandTab {
@@ -152,6 +160,25 @@ export class WarbandScreen implements GameSceneScreen {
 
   openUnit(unitId: string): void {
     this.openUnitConfiguration(unitId);
+  }
+
+  get diceActionState(): RetainedMutationState { return this.diceAttempt.state; }
+  get diceAttemptIdentity(): Readonly<{ identity: string; request: { readonly diceId: string; readonly action: 'sell' | 'salvage' }; key: string }> | null { return this.diceAttempt.identity; }
+  get diceConfirmation(): 'sell' | 'salvage' | null { return this.pendingDiceAction; }
+  selectDie(diceId: string): void { if (this.diceAttempt.state === 'submitting' || this.diceAttempt.state === 'retryable') return; this.selectedDieId = diceId; this.pendingDiceAction = null; this.diceMessage = ''; this.reflow(this.viewport.snapshot); }
+  requestDiceLifecycle(action: 'sell' | 'salvage'): void { const die = this.selectedDie(); if (!die || die.bindings.length > 0 || this.diceAttempt.state === 'submitting') return; this.pendingDiceAction = action; this.reflow(this.viewport.snapshot); }
+  cancelDiceLifecycle(): void { if (this.diceAttempt.state !== 'submitting') { this.pendingDiceAction = null; this.reflow(this.viewport.snapshot); } }
+  async confirmDiceLifecycle(): Promise<void> {
+    const die = this.selectedDie(); const action = this.pendingDiceAction; const bootstrap = this.store.bootstrap;
+    if (!die || die.bindings.length > 0 || !action || !bootstrap || this.diceAttempt.state === 'submitting') return;
+    this.diceAttempt.begin(`${action}:${die.id}`, { diceId: die.id, action }); this.diceMessage = `${action === 'sell' ? 'Selling' : 'Salvaging'} die…`; this.reflow(this.viewport.snapshot);
+    const outcome = await this.diceAttempt.submit((request, key) => request.action === 'sell'
+      ? this.api.sellDie(request.diceId, bootstrap.session.csrf_token, key)
+      : this.api.salvageDie(request.diceId, bootstrap.session.csrf_token, key));
+    if (outcome.kind === 'success') { try { this.store.reconcileDiceLifecycle(outcome.result); this.pendingDiceAction = null; this.selectedDieId = null; this.diceMessage = 'Die lifecycle updated.'; } catch { this.diceMessage = 'Action committed, but local state disagrees. Reload to recover safely.'; } }
+    else if (outcome.kind === 'ambiguous') this.diceMessage = 'The result is uncertain. Retry this same action.';
+    else if (outcome.kind === 'rejected') { this.pendingDiceAction = null; this.diceMessage = 'The die action was rejected.'; }
+    this.reflow(this.viewport.snapshot);
   }
 
   private render(snapshot: RuntimeViewportSnapshot, layout: WarbandLayout, cache: WarbandCacheSnapshot): void {
@@ -235,6 +262,7 @@ export class WarbandScreen implements GameSceneScreen {
     if (!this.renderDomainState(root, layout, 'dice', state, 'No dice are waiting in your inventory.')) return;
     const unitNames = new Map((units.data ?? []).map((unit) => [unit.id, unit.displayName]));
     const items = this.pageItems('dice', state.data ?? [], layout.pageSize);
+    if (!this.selectedDieId || !(state.data ?? []).some((die) => die.id === this.selectedDieId)) this.selectedDieId = items[0]?.id ?? null;
     this.renderRows(root, layout, items.map((die) => {
       const binding = die.bindings[0];
       const equipped = binding ? `Bound to ${unitNames.get(binding.unitId) ?? 'a warband unit'} · ${binding.ability.display_name}` : 'Ready to equip';
@@ -243,7 +271,23 @@ export class WarbandScreen implements GameSceneScreen {
         detail: `${die.material.display_name} · ${die.aspects.map((aspect) => aspect.display_name).join(', ') || 'Unaspected'} · ${equipped}`,
         badge: die.profile.rarity.toUpperCase(),
       };
-    }), (state.data?.length ?? 0) > layout.pageSize);
+    }), (state.data?.length ?? 0) > layout.pageSize, (index) => { const die = items[index]; if (die) this.selectDie(die.id); },
+      items.findIndex((die) => die.id === this.selectedDieId));
+    const selected = this.selectedDie();
+    if (selected) {
+      const locked = selected.bindings.length > 0;
+      const y = layout.content.y + 10; const width = layout.mode === 'compact' ? 150 : 136;
+      this.addButton(root, box(layout.content.right - width * 2 - 38, y, width, 42), 'SELL FOR TEETH', () => this.requestDiceLifecycle('sell'), false, !locked);
+      this.addButton(root, box(layout.content.right - width - 26, y, width, 42), 'SALVAGE FOR CHAOS', () => this.requestDiceLifecycle('salvage'), false, !locked);
+      if (this.pendingDiceAction) {
+        const label = this.pendingDiceAction === 'sell' ? 'CONFIRM SELL FOR TEETH' : 'CONFIRM SALVAGE FOR RAW CHAOS';
+        this.addButton(root, box(layout.content.right - 300, layout.content.bottom - 58, 286, 44), label,
+          () => void this.confirmDiceLifecycle(), true, this.diceAttempt.state !== 'submitting');
+      }
+      if (locked || this.diceMessage) root.add(this.scene.add.text(layout.content.x + 24, layout.content.bottom - 36,
+        locked ? `${this.store.activeRunLock ? 'ACTIVE RUN LOCK · ' : ''}Unequip this die before selling or salvaging.` : this.diceMessage,
+        { color: '#6a321f', fontFamily: 'system-ui', fontSize: '14px', fontStyle: 'bold' }));
+    }
     this.renderPager(root, layout, 'dice', state.data?.length ?? 0);
   }
 
@@ -432,6 +476,8 @@ export class WarbandScreen implements GameSceneScreen {
     if (action) this.openSquadEditor(selected, action);
     else this.openSquadEditor(selected);
   }
+
+  private selectedDie(): WarbandDieSummary | undefined { return this.store.warband.dice.data?.find((die) => die.id === this.selectedDieId); }
 
   private changePage(tab: WarbandTab, direction: -1 | 1, pages: number): void {
     this.pages[tab] = (this.pages[tab] + direction + pages) % pages;
