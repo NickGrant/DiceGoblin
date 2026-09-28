@@ -163,6 +163,22 @@ final class WarbandUnitRepository
     if ($stmt->rowCount() !== 1) throw new \RuntimeException('Unit progression state is stale or unavailable.');
   }
 
+  public function updatePromotedType(int $userId, int $unitId, string $expectedTypeId, string $targetTypeId): void
+  {
+    $this->requireTransaction();
+    $stmt = $this->pdo->prepare('UPDATE `unit_instances` SET `unit_type_id` = ?
+      WHERE `id` = ? AND `user_id` = ? AND `lifecycle_status` = \'active\' AND `unit_type_id` = ?');
+    $stmt->execute([$targetTypeId, $unitId, $userId, $expectedTypeId]);
+    if ($stmt->rowCount() !== 1) throw new RuntimeException('Unit promotion type is stale or unavailable.');
+  }
+
+  public function appendPromotion(int $unitId, string $fromTypeId, string $toTypeId): void
+  {
+    $this->requireTransaction();
+    $this->pdo->prepare('INSERT INTO `unit_promotions` (`unit_id`, `from_unit_type_id`, `to_unit_type_id`)
+      VALUES (?, ?, ?)')->execute([$unitId, $fromTypeId, $toTypeId]);
+  }
+
   /**
    * @param list<array{ability_id:string,dice_instance_ids:list<int>}> $abilities
    */

@@ -135,6 +135,7 @@ $router->post('/api/v1/energy/restore', [$consumables, 'restoreEnergy']);
 $router->get('/api/v1/units', [$warband, 'units']);
 $router->get('/api/v1/units/:unitId', [$warband, 'unitDetail']);
 $router->get('/api/v1/units/:unitId/promotion-options', [$warband, 'promotionOptions']);
+$router->post('/api/v1/units/:unitId/promote', [$warband, 'promoteUnit']);
 $router->patch('/api/v1/units/:unitId/name', [$warband, 'renameUnit']);
 $router->put('/api/v1/units/:unitId/loadout', [$warband, 'replaceUnitLoadout']);
 $router->get('/api/v1/dice', [$warband, 'dice']);

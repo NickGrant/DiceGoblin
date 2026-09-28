@@ -33,6 +33,7 @@ use DiceGoblins\Application\NormalUnitCreationService;
 use DiceGoblins\Application\UnitTypeAvailabilityPolicy;
 use DiceGoblins\Application\UnitPromotionPolicy;
 use DiceGoblins\Application\Commands\UpdateSquadCommand;
+use DiceGoblins\Application\Commands\PromoteUnitCommand;
 use DiceGoblins\Application\Queries\ActiveSquadQuery;
 use DiceGoblins\Application\Queries\ActiveRunSummaryQuery;
 use DiceGoblins\Application\Queries\BattlePlaybackQuery;
@@ -199,6 +200,8 @@ final class ControllerServiceFactory
       'unitDetailQuery' => $unitDetailQuery,
       'unitPromotionOptionsQuery' => new UnitPromotionOptionsQuery($unitRepository, $core['playerStateRepo'],
         new UnitPromotionPolicy($content), $activeRunPolicy),
+      'promoteUnitCommand' => new PromoteUnitCommand($pdo, $core['playerStateRepo'], $idempotencyRepository,
+        $unitRepository, $unitDetailQuery, new UnitPromotionPolicy($content), $activeRunPolicy),
       'diceCollectionQuery' => new DiceCollectionQuery($diceRepository, $content),
       'itemCollectionQuery' => new ItemCollectionQuery($itemRepository, $content),
       'shopCatalogQuery' => new ShopCatalogQuery($core['playerStateRepo'], $unlockRepository, $unitTypeAvailability, $content),

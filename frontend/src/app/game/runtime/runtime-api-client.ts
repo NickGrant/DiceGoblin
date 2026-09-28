@@ -35,6 +35,8 @@ import { AcademyCatalogResult, AcademyContractError, AcademyUpgradePayload, Acad
   canonicalAcademyUpgradePayload, parseAcademyCatalogEnvelope, parseAcademyUpgradeEnvelope } from './academy-contracts';
 import { UnitPromotionContractError, UnitPromotionOptionsResult, canonicalUnitId,
   parseUnitPromotionOptionsEnvelope } from './unit-promotion-contracts';
+import { UnitPromotionMutationContractError, UnitPromotionPayload, UnitPromotionResult,
+  canonicalUnitPromotionPayload, parseUnitPromotionMutationEnvelope } from './unit-promotion-mutation-contracts';
 
 export type RuntimeFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
@@ -84,6 +86,21 @@ export class RuntimeApiClient {
       if (error instanceof UnitPromotionContractError) throw new RuntimeApiError('malformed-response', 200);
       throw error;
     }
+  }
+
+  async promoteUnit(
+    unitId: string, request: UnitPromotionPayload, csrfToken: string, idempotencyKey: string,
+    content: ClientContentRegistry, dice: readonly WarbandDieSummary[],
+  ): Promise<UnitPromotionResult> {
+    if (!canonicalUnitId(unitId) || idempotencyKey.trim() === '') throw new RuntimeApiError('malformed-response');
+    let canonical: UnitPromotionPayload;
+    try { canonical = canonicalUnitPromotionPayload(request); }
+    catch (error) {
+      if (error instanceof UnitPromotionMutationContractError) throw new RuntimeApiError('malformed-response');
+      throw error;
+    }
+    return this.mutate(`/api/v1/units/${unitId}/promote`, 'POST', csrfToken, canonical, idempotencyKey,
+      (value) => parseUnitPromotionMutationEnvelope(value, unitId, canonical, content, dice));
   }
 
   async getDice(): Promise<unknown> {
@@ -327,7 +344,7 @@ export class RuntimeApiClient {
       if (error instanceof WarbandContractError || error instanceof UnitDetailContractError || error instanceof RunContractError
         || error instanceof RunNodeResolutionContractError || error instanceof ShopContractError
         || error instanceof ConsumableContractError || error instanceof DiceLifecycleContractError
-        || error instanceof AcademyContractError) {
+        || error instanceof AcademyContractError || error instanceof UnitPromotionMutationContractError) {
         throw new RuntimeApiError('malformed-response', response.status);
       }
       throw error;

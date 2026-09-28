@@ -10,6 +10,7 @@ use DiceGoblins\Application\Commands\SquadActiveDeletionException;
 use DiceGoblins\Application\Commands\SquadNotFoundException;
 use DiceGoblins\Application\Commands\SquadValidationException;
 use DiceGoblins\Application\Commands\UnitConfigurationValidationException;
+use DiceGoblins\Application\Commands\UnitPromotionException;
 use DiceGoblins\Application\Commands\DiceLifecycleException;
 use DiceGoblins\Application\Commands\DiceLifecycleIntegrityException;
 use DiceGoblins\Application\Queries\UnitNotFoundException;
@@ -65,6 +66,38 @@ final class WarbandController
       Response::json(['ok' => true, 'data' => $result]);
     } catch (UnitNotFoundException) {
       $this->unitNotFound();
+    } catch (WarbandIntegrityException) {
+      $this->integrityError();
+    } catch (Throwable) {
+      $this->serverError();
+    }
+  }
+
+  /** POST /api/v1/units/:unitId/promote */
+  public function promoteUnit(?string $unitId): void
+  {
+    $services = $this->mutationServices();
+    if ($services === null) return;
+    $id = $this->unitId($unitId);
+    if ($id === null) return;
+    $body = JsonRequestBody::decode();
+    if ($body === null) {
+      $this->squadError('invalid_unit_promotion', 'Unit promotion request is invalid.', 422);
+      return;
+    }
+    try {
+      $result = $services['promoteUnitCommand']->execute($services['userId'], $id, $body, $this->idempotencyKey());
+      Response::json(['ok' => true, 'data' => $result]);
+    } catch (IdempotencyKeyException) {
+      $this->squadError('idempotency_key_invalid', 'Idempotency-Key is invalid.', 400);
+    } catch (IdempotencyConflictException) {
+      $this->squadError('idempotency_conflict', 'Idempotency-Key conflicts with an earlier request.', 409);
+    } catch (UnitNotFoundException) {
+      $this->unitNotFound();
+    } catch (UnitPromotionException $e) {
+      $this->squadError($e->errorCode, $e->publicMessage, $e->httpStatus);
+    } catch (ActiveRunConfigurationLockedException) {
+      $this->squadError('unit_configuration_locked', 'Unit configuration is locked.', 409);
     } catch (WarbandIntegrityException) {
       $this->integrityError();
     } catch (Throwable) {

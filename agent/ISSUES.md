@@ -7,6 +7,10 @@
 **Status:** In Progress
 **Priority:** High
 
+#### Problem
+
+Commit authored single-unit promotions as one retry-safe Raw Chaos transaction while preserving the unit's durable progression and configuration.
+
 #### Accepted baseline
 
 Milestone 8 Package 3 - Authored unit-promotion graph + progression read contracts is approved at `58cf57732790d91784ecfba080bd136006586f44`.
