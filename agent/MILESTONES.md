@@ -7,7 +7,7 @@ Read this for sequencing/planning or when closing/promoting an execution package
 **Status:** Active
 
 ### Related Issues
-- Milestone 8 Package 2 - Idempotent Raw Chaos Academy upgrade transaction + first derived-capability/Shop consequences
+- Milestone 8 Package 3 - Authored unit-promotion graph + progression read contracts
 
 Milestone 1 - Walking Skeleton is complete and passed manual user UAT.
 
@@ -53,8 +53,8 @@ Wrong Machine/kin reconstruction remains Milestone 9.
 ### Package Queue
 
 1. ~~Authored Academy upgrades + permanent capability foundation + read contract.~~ Complete and approved at `0f3069f8aa0d81ff96d7450a006c51230be465a9`; full frontend 522 passed, focused backend 117/716, focused frontend 34; complete supported backend suite confirmed passed.
-2. **Idempotent Raw Chaos Academy upgrade transaction + first derived-capability/Shop consequences.** Current.
-3. Authored unit-promotion graph + promotion-options/unit-progression read contracts.
+2. ~~Idempotent Raw Chaos Academy upgrade transaction + first derived-capability/Shop consequences.~~ Complete and approved at `a22617e4e63898932c913e6c1290ed346fca9b55`; required verification confirmed passed by the user after architectural review.
+3. **Authored unit-promotion graph + promotion-options/unit-progression read contracts.** Current.
 4. Promotion transaction + durable ability/history updates + active-run safety.
 5. Phaser Academy + unit-promotion surfaces and Camp/Warband integration.
 6. Permanent-progression integrated verification/closure.
@@ -63,8 +63,8 @@ Wrong Machine/kin reconstruction remains Milestone 9.
 ### Sequencing Notes
 
 - Package 1 established authored Academy/capability vocabulary, canonical progression content, shared Energy/die-size capability policy, and the read-only Academy API/client contract and was approved at `0f3069f8aa0d81ff96d7450a006c51230be465a9` after full package verification; an initially reported reduced backend count was confirmed to be a reporting mistake rather than reduced suite execution.
-- Package 2 spends Raw Chaos idempotently through the accepted reward/unlock boundary, proves immediate unit-type/Energy/>d8 consequences, and closes the canonical basic-die purchase/sell arbitrage before Raw Chaos becomes an active progression sink.
-- Package 3 explicitly authors/re-approves promotion paths and eligibility rather than copying prototype slug/tier inference or old three-unit sacrifice rules.
+- Package 2 spends Raw Chaos idempotently through the accepted reward/unlock boundary, proves immediate unit-type/Energy/>d8 consequences, closes the canonical basic-die purchase/sell arbitrage, and was approved at `a22617e4e63898932c913e6c1290ed346fca9b55` after required verification was confirmed passed.
+- Package 3 explicitly authors/re-approves promotion paths and eligibility as a single-unit persistent progression model rather than copying prototype slug/tier inference, level reset, or three-unit sacrifice rules.
 - Package 4 performs promotion atomically while preserving unit identity, promotion history, permanent abilities, loadout validity, and active-run locks.
 - Package 5 makes Academy and promotion player-usable inside the persistent Phaser runtime.
 - Package 6 closes the complete permanent-progression slice technically.
