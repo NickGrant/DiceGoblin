@@ -2,383 +2,368 @@
 
 ## Milestone 8 - Permanent Progression
 
-### Milestone 8 Package 3 - Authored unit-promotion graph + progression read contracts
+### Milestone 8 Package 4 - Promotion transaction + durable ability/history updates + active-run safety
 
 **Status:** In Progress
 **Priority:** High
 
-#### Problem
-
-Establish the authored Goblin promotion graph and safe progression read contracts before the promotion mutation is implemented.
-
 #### Accepted baseline
 
-Milestone 8 Package 2 - Idempotent Raw Chaos Academy upgrade transaction + first derived-capability/Shop consequences is approved at `a22617e4e63898932c913e6c1290ed346fca9b55`.
+Milestone 8 Package 3 - Authored unit-promotion graph + progression read contracts is approved at `58cf57732790d91784ecfba080bd136006586f44`.
 
-Package 2 architectural review approved:
-- receipt-first Academy idempotency;
-- one Raw Chaos transaction owner;
-- finalized reward-pipeline unlock grants;
-- Energy-cap transition without retroactive regeneration;
-- immediate unit-type/Energy/>d8 Shop consequences;
-- canonical d10/d12/d20 Shop acquisition;
-- canonical Cardboard die prices 12/18/28/34/42/60, removing purchase -> sell Teeth arbitrage.
+Package 3 established:
+- the canonical 20-edge Goblin promotion graph;
+- single-unit promotion with no sacrifices;
+- tier-1 -> tier-2 level 3 / 5 Raw Chaos eligibility;
+- tier-2 -> tier-3 level 6 / 10 Raw Chaos eligibility;
+- persistent unit level/XP semantics;
+- promotion-history validation;
+- shared active-run participation locking;
+- `xp_to_next_level`;
+- `GET /api/v1/units/:unitId/promotion-options`;
+- browser-safe projected promotion identities and strict frontend reconciliation.
 
-The user confirmed the required Package 2 verification suite and gates ran successfully.
+The user confirmed Package 3 verification passed.
 
-Package 3 defines the vNext promotion model and read boundaries only. Do not implement promotion mutation yet.
+Package 4 performs the mutation only. Do not build Phaser Academy/promotion UI yet.
 
-#### Re-approved promotion rules
+#### Purpose
 
-The old prototype three-unit sacrifice model is **not** part of vNext.
+Implement one authoritative, idempotent unit-promotion transaction that:
 
-Promotion now has these durable rules:
+- spends Raw Chaos exactly once;
+- preserves the same unit identity, display name, kin, level, and normalized XP;
+- changes the current unit type to the authored target;
+- appends exactly one durable promotion-history row;
+- permanently grants only target abilities the unit does not already own;
+- preserves all previously owned abilities;
+- preserves the existing valid loadout and dice bindings;
+- rejects promotion of a unit participating in an active run;
+- increments `player_revision` exactly once;
+- returns enough authoritative state for Package 5 reconciliation without a global profile refresh.
 
-- exactly one owned active unit is the promotion subject;
-- no secondary units are consumed or retired;
-- the surviving unit keeps the same instance ID, display name, kin, level, and normalized XP;
-- promotion changes only the unit's current authored unit type plus durable promotion/ability state in Package 4;
-- all previously owned abilities remain permanently owned;
-- promotion grants any abilities present on the target unit type that the unit does not already own;
-- an ability already owned is not duplicated;
-- a promotion is allowed to grant zero new abilities;
-- loadout and dice bindings are not implicitly rewritten by merely reading promotion options;
-- Package 4 must preserve existing valid loadout/bindings across promotion because old abilities remain owned;
-- no capstone-specific persistence or endpoint exists;
-- a future capstone is represented as ordinary authored ability ownership;
-- only a unit participating in an active run is promotion-locked; a non-participating unit may progress while another squad/run is active.
+Do not retire or consume any other unit.
 
-Level/XP belong to the persistent unit rather than the current class. Promotion does **not** reset either value.
-
-#### Canonical promotion cadence and cost
-
-Author tier-1 -> tier-2 promotions with:
-
-- required unit level: **3**
-- Raw Chaos price: **5**
-
-Author tier-2 -> tier-3 promotions with:
-
-- required unit level: **6**
-- Raw Chaos price: **10**
-
-Price values are provisional progression anchors, not final balance.
-
-A player who intentionally delays a tier-1 promotion until level 6 may immediately satisfy the level requirement for the next promotion after reaching tier 2. Raw Chaos cost and current authored path still apply.
-
-#### Authored promotion definition
-
-Add canonical definition type:
-
-```text
-unit_promotion
-```
-
-Each definition contains exactly:
-
-- stable ID;
-- `from_unit_type_id`;
-- `to_unit_type_id`;
-- `required_level`;
-- `price`
-  - `currency_id = raw_chaos`
-  - positive client-safe `amount`.
-
-Rules:
-
-- IDs use `unit_promotion.` namespace;
-- from/to reference authored `unit_type` definitions;
-- from and to are distinct;
-- target tier is exactly source tier + 1;
-- only tier 1 -> 2 and tier 2 -> 3 are valid in the Package 3 graph;
-- one exact from/to pair may appear only once;
-- direct and indirect cycles reject;
-- duplicate stable IDs already reject through the global registry;
-- no executable scripts/handlers;
-- required level is a positive client-safe integer;
-- Raw Chaos amount is a positive client-safe integer.
-
-Do not duplicate target ability grants into the promotion definition. The target `unit_type.ability_ids` remains authored ability authority.
-
-#### Canonical Goblin promotion graph
-
-Author exactly these paths.
-
-**Bruiser family**
-- `unit_promotion.bruiser.enforcer`: Bruiser -> Enforcer
-- `unit_promotion.bruiser.pit_fighter`: Bruiser -> Pit Fighter
-- `unit_promotion.enforcer.juggernaut`: Enforcer -> Juggernaut
-- `unit_promotion.pit_fighter.juggernaut`: Pit Fighter -> Juggernaut
-
-**Guardian family**
-- `unit_promotion.guardian.bulwark`: Guardian -> Bulwark
-- `unit_promotion.guardian.shieldbreaker`: Guardian -> Shieldbreaker
-- `unit_promotion.bulwark.ironwall`: Bulwark -> Ironwall
-- `unit_promotion.shieldbreaker.ironwall`: Shieldbreaker -> Ironwall
-
-**Marksman family**
-- `unit_promotion.marksman.deadeye`: Marksman -> Deadeye
-- `unit_promotion.marksman.trapper`: Marksman -> Trapper
-- `unit_promotion.deadeye.sharpshot`: Deadeye -> Sharpshot
-- `unit_promotion.trapper.sharpshot`: Trapper -> Sharpshot
-
-**Bannerbearer family**
-- `unit_promotion.bannerbearer.warcaller`: Bannerbearer -> Warcaller
-- `unit_promotion.bannerbearer.mascot`: Bannerbearer -> Mascot
-- `unit_promotion.warcaller.warchanter`: Warcaller -> Warchanter
-- `unit_promotion.mascot.warchanter`: Mascot -> Warchanter
-
-**Saboteur family**
-- `unit_promotion.saboteur.trickshot`: Saboteur -> Trickshot
-- `unit_promotion.saboteur.plaguehand`: Saboteur -> Plaguehand
-- `unit_promotion.trickshot.venomwright`: Trickshot -> Venomwright
-- `unit_promotion.plaguehand.venomwright`: Plaguehand -> Venomwright
-
-There are exactly **20** canonical promotion edges.
-
-Tier-3 unit types have no outgoing Package 3 promotion definitions.
-
-The shared tier-3 convergence is intentional. A unit's branch history remains meaningful because previously earned tier-2 abilities remain owned after promotion.
-
-#### Promotion graph policy
-
-Introduce one shared backend promotion/progression policy over ContentRegistry.
-
-At minimum it must provide deterministic behavior for:
-
-- outgoing promotion definitions for a current unit type;
-- exact promotion lookup by stable promotion ID;
-- target tier validation;
-- level requirement evaluation;
-- target ability delta:
-  - target unit type `ability_ids`
-  - minus already owned unit ability IDs
-  - canonical deterministic order;
-- current XP threshold using the existing `UnitXpResolver::threshold(level)`.
-
-Do not derive promotion paths from naming conventions, slug stems, existing promotion history, unit-type tier alone, or prototype SQL catalogs. The authored `unit_promotion` graph is the path authority.
-
-#### Active-run lock reuse
-
-Do not create a second definition of run participation locking.
-
-Extend/reuse the existing `ActiveRunConfigurationPolicy` so both commands and reads can answer whether one exact owned unit is configuration/progression locked by active-run participation.
-
-Existing assert-style callers must retain their behavior.
-
-Package 3 read queries use the same participation authority to expose lock state. Package 4 promotion mutation will revalidate the same lock transactionally.
-
-Malformed active-run participation remains an integrity failure, not an unlocked fallback.
-
-#### Unit progression read model
-
-Extend the authoritative unit detail response with:
-
-```text
-xp_to_next_level
-```
-
-Meaning:
-- exact `UnitXpResolver::threshold(current level)`;
-- current persisted `xp` remains progress within the current level;
-- response must satisfy `0 <= xp < xp_to_next_level`;
-- client-safe positive integer;
-- no read-side progression/materialization.
-
-Do not project the XP formula into static client content merely to calculate this field in the browser.
-
-Update strict frontend Unit Detail contracts accordingly.
-
-#### Promotion-options endpoint
+#### Endpoint and request
 
 Implement:
 
 ```text
-GET /api/v1/units/:unitId/promotion-options
+POST /api/v1/units/:unitId/promote
 ```
 
-This is authenticated, ownership-safe, read-only, and requires no CSRF.
+Requirements:
+- authenticated;
+- CSRF;
+- valid `Idempotency-Key`;
+- canonical positive owned unit path ID;
+- exact JSON body:
 
-Missing, foreign, inactive, and otherwise unavailable unit IDs use the existing non-disclosing unit-not-found behavior.
+{
+  "promotion_id": "unit_promotion....",
+  "expected_price": {
+    "currency_id": "raw_chaos",
+    "amount": <positive client-safe integer>
+  }
+}
+```
 
-No read-side provisioning, progression, unlock grant, wallet mutation, or revision increment.
+No additional fields.
+
+The semantic idempotency identity is:
+
+```text
+unit_id + promotion_id + expected Raw Chaos price
+```
+
+The same key reused for a different unit, promotion ID, or expected price conflicts.
+
+#### Transaction and lock ordering
+
+Use one caller-owned transaction.
+
+Required sequence:
+
+1. parse path ID/request/idempotency key and canonicalize the semantic request;
+2. begin transaction;
+3. lock/read `user_state` first;
+4. look up the idempotency receipt;
+5. if a receipt exists:
+   - validate operation type/request hash;
+   - validate the stored result structurally against the canonical request;
+   - commit the read transaction;
+   - return the stored result;
+6. validate Raw Chaos/revision client-safe state;
+7. lock/read the owned active unit;
+8. missing, foreign, or terminal unit -> normal non-disclosing `unit_not_found`;
+9. validate current unit type, level/XP normalization, owned abilities, loadout/bindings, and persisted promotion history through the accepted shared boundaries;
+10. resolve the current authored promotion definition;
+11. require its `from_unit_type_id` to equal the unit's current type;
+12. require current level >= authored `required_level`;
+13. revalidate active-run participation through `ActiveRunConfigurationPolicy`;
+14. require current authored price to equal `expected_price`;
+15. require sufficient Raw Chaos;
+16. calculate target ability delta using `UnitPromotionPolicy`;
+17. debit Raw Chaos;
+18. mutate the same unit instance to the target unit type, preserving display name, kin, level, XP, lifecycle, loadout, and dice bindings;
+19. append exactly one promotion-history row;
+20. insert exactly the missing target abilities into permanent `unit_abilities`;
+21. re-read/validate the resulting authoritative Unit Detail inside the transaction;
+22. increment `player_revision` exactly once;
+23. finalize/read-back the idempotency receipt;
+24. optional injected pre-commit test hook;
+25. commit.
+
+The `user_state FOR UPDATE` lock must remain first. Run start already takes that same lock before creating an active run, so promotion and run start serialize for one user. Do not introduce a second ad-hoc cross-command lock.
+
+Receipt replay must occur before current unit/content/ownership checks after the player-state lock. An exact retry of a committed promotion must remain replayable even though:
+- the unit is now a different type;
+- the history row exists;
+- target abilities are now owned;
+- current authored promotion content/price changes in a later release.
+
+#### Active-run safety
+
+Only the exact participating unit is locked.
+
+- If the unit appears in the current active run's participation set, reject with the existing configuration-locked semantic error and mutate nothing.
+- If another unit participates in an active run but this unit does not, promotion is allowed.
+- Malformed active-run participation remains an integrity failure.
+- Do not inspect only active squad membership; participation is the authority.
+
+Because promotion changes permanent combat stats/type/abilities, it must never mutate a participating unit while the run is active.
+
+#### Promotion mutation semantics
+
+On success:
+
+**Identity**
+- unit instance ID unchanged;
+- display name unchanged;
+- kin unchanged;
+- lifecycle remains `active`.
+
+**Progression**
+- level unchanged;
+- normalized XP unchanged;
+- `xp_to_next_level` therefore remains the current level threshold.
+
+**Type/history**
+- current `unit_type_id` becomes exactly the selected authored target;
+- append one `unit_promotions` row:
+  - same `unit_id`;
+  - exact prior type;
+  - exact target type;
+  - authoritative DB timestamp;
+- do not rewrite earlier history.
+
+**Permanent abilities**
+- all existing `unit_abilities` rows remain;
+- insert only `new_ability_ids` calculated from the Package 3 policy;
+- zero new abilities is valid;
+- duplicate ability ownership must not be created.
+
+**Loadout/dice**
+- do not clear, reorder, replace, or auto-equip anything;
+- existing loadout remains valid because previously owned abilities remain owned;
+- existing physical die bindings remain unchanged;
+- newly granted active abilities begin unequipped.
+
+No automatic heal, Energy change, squad change, Shop/Academy change, or run-state change occurs.
+
+#### Repository boundaries
+
+Extend the vNext repository narrowly rather than using prototype `PromotionService`.
+
+Needed atomic operations may include:
+- compare-and-update current unit type for one owned active unit;
+- append promotion history;
+- insert missing permanent abilities.
+
+All promotion writes require a caller-owned transaction.
+
+The type update should guard the expected current type so stale state cannot silently promote from another type.
+
+Do not add:
+- promotion ownership tables;
+- unit tier columns;
+- class-level XP;
+- consumed-unit JSON;
+- capstone tables/state.
+
+#### Error semantics
+
+Use stable command errors:
+
+- malformed path/body -> existing unit/config validation style, 422 where applicable;
+- invalid/missing idempotency key -> existing idempotency error;
+- missing/foreign/terminal unit -> `unit_not_found`;
+- unknown promotion ID -> `unit_promotion_not_found`;
+- promotion not authored from current unit type -> `unit_promotion_unavailable`;
+- level below requirement -> `unit_promotion_level_required`;
+- participating active-run unit -> existing `unit_configuration_locked`;
+- current price differs from expected -> `unit_promotion_changed`;
+- insufficient Raw Chaos -> `insufficient_raw_chaos`;
+- same key/different semantic request -> existing idempotency conflict;
+- corrupted persisted/content state -> integrity/server failure.
+
+Rejected commands change nothing: no Raw Chaos, unit type, history, ability ownership, loadout, dice binding, revision, or receipt.
+
+#### Exact success response
 
 Return exactly:
 
 ```text
-unit_id
-unit_type_id
-level
-xp
-xp_to_next_level
-raw_chaos
-player_revision
-configuration_locked
-options[]
+promotion
   promotion_id
-  target_unit_type_id
-  required_level
-  price
-    currency_id = raw_chaos
-    amount
-  level_met
-  can_afford
-  available
-  new_ability_ids[]
+  from_unit_type_id
+  to_unit_type_id
+  granted_ability_ids[]
+spend
+  currency_id = raw_chaos
+  amount
+  balance_before
+  balance_after
+unit
+  <full authoritative Unit Detail shape>
+player_revision
 ```
 
-Semantics:
+Rules:
+- promotion identity must match the submitted promotion;
+- from/to match the committed durable history row;
+- `granted_ability_ids` is exactly the ordered ability delta actually inserted;
+- Raw Chaos arithmetic is exact/client-safe;
+- `unit.id` equals path unit ID;
+- returned Unit Detail has target current type, unchanged level/XP, complete promotion history, permanent abilities, unchanged loadout and bindings;
+- returned `player_revision` is the one resulting revision.
 
-- options are exactly the authored outgoing edges for the unit's current `unit_type_id`;
-- options are ordered by `promotion_id` ascending;
-- tier-3/current terminal types return an empty list;
-- `level_met = level >= required_level`;
-- `can_afford = current raw_chaos >= authoritative price`;
-- `configuration_locked` is true only when this unit participates in an active run;
-- `available = level_met && !configuration_locked`;
-- affordability does **not** change `available`;
-- `new_ability_ids` is the target-type ability delta relative to this exact unit's permanent owned abilities;
-- every returned ability ID resolves through authored content;
-- `raw_chaos` and `player_revision` come from authoritative shared player state;
-- client-safe numeric validation applies.
+Persisted receipt replay validation must be request-bound but must **not** resolve current authored promotion content.
 
-Package 3 does not require an Academy/unit-type unlock to promote an already-owned unit. Academy unit-type research controls ordinary Shop acquisition of base unit types, not a second promotion entitlement.
+#### Idempotency behavior
 
-#### Promotion-history integrity
+Prove:
 
-Add a reusable validation boundary for persisted promotion history without mutating it.
+- exact retry returns byte/structure-equivalent finalized result;
+- exact retry does not spend again;
+- exact retry does not append history again;
+- exact retry does not insert abilities again;
+- exact retry does not increment revision again;
+- exact retry does not need current unit type to still equal the original `from`;
+- exact retry survives current promotion-definition price/content changes;
+- same key + different unit/promotion/price conflicts;
+- a new idempotency key after the unit already promoted does not perform another copy of the same edge; it rejects based on current type/path.
 
-For a unit with history:
+#### Converging branch behavior
 
-- rows remain ordered by persisted promotion order/time;
-- each from/to pair must correspond to an authored `unit_promotion`;
-- each row's `from_unit_type_id` must equal the preceding state;
-- the final `to_unit_type_id` must equal the unit's current `unit_type_id`;
-- a row cannot jump tiers or describe a path absent from canonical content.
+Explicitly prove at least these cases:
 
-A unit with no promotion history is valid at a tier-1 type.
+**Enforcer -> Juggernaut**
+- current Enforcer-owned abilities are retained;
+- Juggernaut target currently adds no new ability IDs if all its authored abilities are already owned;
+- zero grant delta is valid.
 
-A tier-2/tier-3 vNext unit with no valid authored history is an integrity failure for promotion/progression reads. Do not silently synthesize history.
+**Pit Fighter -> Juggernaut**
+- Desperate Swing and Counterpunch remain permanently owned;
+- target grants Skullcrack and Menacing Follow-Through if missing;
+- resulting Juggernaut therefore retains branch history mechanically through permanent ability ownership.
 
-Integrate this validation into the promotion-options query. If safely practical without broad regressions, also use the same validator when Unit Detail presents `promotion_history`; do not duplicate graph logic.
+Repeat analogous coverage for at least one other converging family.
 
-#### Client projection
+#### Frontend/runtime mutation contract
 
-Project browser-safe unit-promotion identity/relationship content:
-
-```text
-unit_promotions
-  <promotion_id>
-    id
-    from_unit_type_id
-    to_unit_type_id
-```
-
-Do **not** project:
-- Raw Chaos price;
-- required level;
-- any future mutation-only rule;
-- server-only progression calculations.
-
-Extend `ClientContentRegistry` with strict promotion definitions/accessors and reference validation against projected unit types.
-
-The promotion-options parser must reconcile the server's option identities/targets with projected promotion definitions.
-
-#### Frontend runtime contracts
-
-Add framework-neutral support only; no Phaser promotion UI in Package 3.
+Add framework-neutral mutation support only; no Phaser UI yet.
 
 Add:
-- strict promotion-options result types/parser;
-- Runtime API method for `GET /api/v1/units/:unitId/promotion-options`;
-- updated Unit Detail parser for `xp_to_next_level`.
+- exact promotion mutation payload/result types;
+- strict parser;
+- Runtime API method for `POST /api/v1/units/:unitId/promote` using CSRF + idempotency;
+- reuse the existing Unit Detail parser for the returned full unit rather than creating a competing unit-detail shape.
 
-Parser requirements:
+The frontend method/parser may accept current projected content and owned-dice summaries, matching existing Unit Detail/loadout mutation parsing patterns.
 
-- exact response envelope/fields;
-- request-bound canonical positive unit ID;
-- returned `unit_id` equals requested ID;
-- current unit type resolves through projected content;
-- level >= 1;
-- XP normalized below `xp_to_next_level`;
-- Raw Chaos/revision client-safe;
-- options strictly sorted and unique;
-- every promotion ID exists in projected content;
-- projected promotion `from_unit_type_id` equals current unit type;
-- projected promotion `to_unit_type_id` equals returned target;
-- exact `raw_chaos` currency;
-- positive/client-safe price and required level;
-- booleans coherent:
-  - `level_met` equals server level comparison;
-  - `can_afford` equals wallet/price comparison;
-  - `available` equals `level_met && !configuration_locked`;
-- `new_ability_ids` unique, deterministic, projected, and present on the target unit type;
-- returned option set exactly matches projected outgoing promotions for the current unit type.
+Validate:
+- canonical requested unit ID;
+- exact request fields;
+- exact response envelope/field set;
+- response promotion ID equals request;
+- projected promotion exists;
+- projected from/to match response;
+- spend currency is exactly Raw Chaos;
+- spend amount equals expected price;
+- wallet arithmetic exact/client-safe;
+- granted ability IDs unique/deterministic/projected;
+- each granted ability exists on the target unit type;
+- returned unit ID equals path unit ID;
+- returned unit current type equals promotion target;
+- returned level/XP normalized;
+- returned promotion history ends with the exact from -> to transition;
+- each granted ability appears in returned permanent ability ownership;
+- pre-existing loadout/binding parsing remains strict;
+- player revision client-safe.
 
-Do not add GameStore promotion cache or Phaser surfaces yet.
+Do not add a GameStore mutation workflow or screen state until Package 5.
 
 #### Tests
 
 Add focused coverage for at least:
 
-**Content/graph**
-- valid 20-edge canonical graph;
-- missing/wrong type references reject;
-- same-type edge rejects;
-- wrong tier jump rejects;
-- duplicate from/to rejects;
-- cycle rejects;
-- non-Raw-Chaos/zero/unsafe prices reject;
-- invalid required levels reject;
-- tier-3 canonical types have no outgoing edges;
-- projection exposes only ID/from/to;
-- prices and required levels are absent from static projection.
+**Successful mutation**
+- Bruiser -> Enforcer;
+- Bruiser -> Pit Fighter;
+- one tier-2 -> shared tier-3 path with zero ability delta;
+- one alternate branch -> same tier-3 path with retained branch abilities + nonzero target delta;
+- unit ID/name/kin/level/XP unchanged;
+- exact history append;
+- exact permanent ability delta;
+- loadout/bindings unchanged;
+- Raw Chaos debit;
+- revision +1 only.
 
-**Progression policy**
-- each tier-1 type resolves exactly two tier-2 options;
-- each tier-2 branch resolves exactly one shared tier-3 option;
-- tier-3 resolves none;
-- level 3 and level 6 thresholds are applied exactly;
-- target ability delta excludes abilities already owned;
-- branch abilities remain owned/relevant when converging on tier 3;
-- zero-ability delta is valid;
-- XP threshold delegates to current `UnitXpResolver`.
+**Eligibility/rejection**
+- level below requirement;
+- insufficient Raw Chaos;
+- expected-price mismatch;
+- promotion ID unknown;
+- authored promotion from another current type;
+- foreign/missing/terminal unit non-disclosing;
+- participating active-run unit locked;
+- non-participating unit while another run is active succeeds;
+- malformed current promotion history fails integrity;
+- malformed/duplicate ability state fails integrity.
 
-**Promotion history**
-- valid Bruiser -> Enforcer -> Juggernaut history;
-- valid Bruiser -> Pit Fighter -> Juggernaut history;
-- analogous shared-target path validation in at least one other family;
-- broken chain, nonexistent edge, tier jump, and final-type mismatch fail integrity;
-- higher-tier unit without required history fails progression read;
-- tier-1 no-history unit remains valid.
+**Atomicity/idempotency**
+- exact retry;
+- same key/different unit;
+- same key/different promotion;
+- same key/different expected price;
+- replay after current content/price changes;
+- injected pre-commit failure rolls back wallet/type/history/ability/revision/receipt;
+- stale guarded type update fails atomically;
+- client-safe Raw Chaos/revision boundaries.
 
-**Read/API**
-- level below requirement: `level_met=false`, `available=false`;
-- level exactly at requirement: level met;
-- insufficient Raw Chaos affects `can_afford` only;
-- participating active-run unit: locked + unavailable;
-- non-participating unit while another active run exists: not locked;
-- tier-3 empty options;
-- missing/foreign/inactive unit non-disclosing;
-- read changes no wallet, unit, history, unlock, revision, run, or receipt state;
-- deterministic ordering;
-- auth required, no CSRF required.
+**Regression**
+- Unit Detail after success parses/validates;
+- promotion-options after tier-1 success now exposes exactly the authored tier-2 -> tier-3 edge;
+- terminal tier-3 promotion-options empty after second promotion;
+- existing rename/loadout behavior remains valid with retained branch abilities;
+- run-start locking/race serialization assumptions remain covered.
 
 **Frontend**
-- projected graph strictness/reference validation;
-- Unit Detail `xp_to_next_level`;
-- exact promotion-options parser;
-- malformed identities/order/booleans/price/ability delta reject;
-- API uses bodyless authenticated GET;
-- no Angular gameplay dependency.
+- request/header/idempotency behavior;
+- strict success parser;
+- zero/nonzero ability grant lists;
+- returned Unit Detail reconciliation;
+- malformed spend/history/target/ability identity rejects.
 
 #### Verification
 
 Run:
 - `npm run verify:package`;
-- focused promotion-content/graph/policy/history/query tests;
-- focused Unit Detail + active-run-lock regressions;
-- focused frontend content/Unit Detail/promotion contracts;
+- focused promotion-command/idempotency/atomicity tests;
+- focused promotion history/policy/read regressions;
+- focused active-run locking/run-start regressions;
+- focused frontend promotion + Unit Detail contracts;
 - DB provision/reset;
 - full supported Docker backend suite;
 - full frontend suite;
@@ -389,18 +374,18 @@ Report exact focused/full counts where available.
 
 #### Out of scope
 
-- `POST /api/v1/units/:unitId/promote`;
-- Raw Chaos promotion spend;
-- mutation/idempotency receipts for promotion;
-- changing unit type/level/XP/history/abilities;
-- automatic loadout edits after promotion;
+- Phaser Academy screen;
+- Phaser promotion selection/confirmation UI;
+- GameStore Academy/promotion workflow;
+- changing promotion graph/costs unless a defect is found;
 - consuming/retiring secondary units;
+- level/XP reset;
 - capstone-specific state/endpoints;
-- Phaser Academy/promotion surfaces;
-- final promotion balance;
+- automatic loadout changes;
+- final progression balance;
 - Wrong Machine/kin progression;
 - final visual overhaul.
 
 #### Completion
 
-Implement only Milestone 8 Package 3. Leave it **In Progress** for architectural review. Do not promote Package 4 yourself.
+Implement only Milestone 8 Package 4. Leave it **In Progress** for architectural review. Do not promote Package 5 yourself.
