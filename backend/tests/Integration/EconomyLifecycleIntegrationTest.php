@@ -13,15 +13,7 @@ use DiceGoblins\Tests\Support\IntegrationTestCase;
 
 final class EconomyLifecycleIntegrationTest extends IntegrationTestCase
 {
-  private ?string $contentRoot = null;
-
   protected function supportsVnextBaseline(): bool { return true; }
-
-  protected function tearDown(): void
-  {
-    parent::tearDown();
-    if ($this->contentRoot !== null) $this->removeTree($this->contentRoot);
-  }
 
   public function testProductionCompositionPersistsTheCompleteEconomyLifecycleAndExactRetries(): void
   {
@@ -30,25 +22,28 @@ final class EconomyLifecycleIntegrationTest extends IntegrationTestCase
     $userId = (int)$this->pdo?->lastInsertId(); $this->trackUserId($userId);
     $this->pdo?->prepare('INSERT INTO `user_state` (`user_id`, `teeth`, `raw_chaos`, `energy_current`, `energy_last_regen_at`, `player_revision`) VALUES (?, 100, 0, 5, UTC_TIMESTAMP(), 1)')
       ->execute([$userId]);
-    (new UserUnlockRepository($this->pdo))->insertIfAbsent($userId, 'unlock.unit_type.bruiser');
 
     $services = ControllerServiceFactory::buildContentAware($this->pdo, null, $content);
     $initial = $services['gameBootstrapQuery']->execute($userId, new DateTimeImmutable('now', new DateTimeZone('UTC')));
+    $lockedCatalog = $services['shopCatalogQuery']->execute($userId);
+    $this->assertSame([100, 1, 6], [$initial['player']['teeth'], $initial['player']['player_revision'], count($lockedCatalog['offers'])]);
+    $this->assertFalse($this->offer($lockedCatalog, 'shop_offer.goblin_bruiser')['available']);
+    (new UserUnlockRepository($this->pdo))->insertIfAbsent($userId, 'unlock.unit_type.bruiser');
     $catalog = $services['shopCatalogQuery']->execute($userId);
-    $this->assertSame([100, 1, 5], [$initial['player']['teeth'], $initial['player']['player_revision'], count($catalog['offers'])]);
-    $this->assertTrue($catalog['offers'][4]['available']);
+    $this->assertTrue($this->offer($catalog, 'shop_offer.goblin_bruiser')['available']);
+    $this->assertSame(['item.field_poultice', 'item.spark_tonic'], array_keys($content->definitionsOfType('item')));
 
     $purchase = $services['purchaseShopOfferCommand'];
-    $energyPurchase = $purchase->execute($userId, $this->purchaseRequest('shop_offer.test.energy', 5), 'closure-purchase-energy');
-    $this->assertSame($energyPurchase, $purchase->execute($userId, $this->purchaseRequest('shop_offer.test.energy', 5), 'closure-purchase-energy'));
+    $energyPurchase = $purchase->execute($userId, $this->purchaseRequest('shop_offer.spark_tonic', 4), 'closure-purchase-energy');
+    $this->assertSame($energyPurchase, $purchase->execute($userId, $this->purchaseRequest('shop_offer.spark_tonic', 4), 'closure-purchase-energy'));
     $this->assertRevision($energyPurchase, 2);
-    $healPurchase = $purchase->execute($userId, $this->purchaseRequest('shop_offer.test.heal', 6), 'closure-purchase-heal');
+    $healPurchase = $purchase->execute($userId, $this->purchaseRequest('shop_offer.field_poultice', 4), 'closure-purchase-heal');
     $this->assertRevision($healPurchase, 3);
-    $sellDiePurchase = $purchase->execute($userId, $this->purchaseRequest('shop_offer.test.d8', 10), 'closure-purchase-d8');
+    $sellDiePurchase = $purchase->execute($userId, $this->purchaseRequest('shop_offer.cardboard_d8', 8), 'closure-purchase-d8');
     $this->assertRevision($sellDiePurchase, 4);
-    $salvageDiePurchase = $purchase->execute($userId, $this->purchaseRequest('shop_offer.test.d6', 8), 'closure-purchase-d6');
+    $salvageDiePurchase = $purchase->execute($userId, $this->purchaseRequest('shop_offer.cardboard_d6', 6), 'closure-purchase-d6');
     $this->assertRevision($salvageDiePurchase, 5);
-    $unitPurchase = $purchase->execute($userId, $this->purchaseRequest('shop_offer.test.unit', 13), 'closure-purchase-unit');
+    $unitPurchase = $purchase->execute($userId, $this->purchaseRequest('shop_offer.goblin_bruiser', 8), 'closure-purchase-unit');
     $this->assertRevision($unitPurchase, 6);
 
     $unit = $unitPurchase['output']['unit']; $unitId = (int)$unit['id'];
@@ -69,18 +64,18 @@ final class EconomyLifecycleIntegrationTest extends IntegrationTestCase
     $this->pdo?->prepare('INSERT INTO `run_unit_state` (`run_id`, `unit_id`, `current_hp`) VALUES (?, ?, 1)')->execute([$runId, $unitId]);
     $topologyBefore = (string)$this->scalar('SELECT COUNT(*) FROM `run_nodes` WHERE `run_id` = ?', [$runId]);
 
-    $energy = $services['restoreEnergyCommand']->execute($userId, ['item_id' => 'item.test.energy'], 'closure-energy-use');
-    $this->assertSame($energy, $services['restoreEnergyCommand']->execute($userId, ['item_id' => 'item.test.energy'], 'closure-energy-use'));
-    $this->assertSame([12, 1, 7], [$energy['energy']['current'], $energy['owned_quantity_after'], $energy['player_revision']]);
+    $energy = $services['restoreEnergyCommand']->execute($userId, ['item_id' => 'item.spark_tonic'], 'closure-energy-use');
+    $this->assertSame($energy, $services['restoreEnergyCommand']->execute($userId, ['item_id' => 'item.spark_tonic'], 'closure-energy-use'));
+    $this->assertSame([17, 0, 7], [$energy['energy']['current'], $energy['owned_quantity_after'], $energy['player_revision']]);
 
     $maximumHp = (new BaseLevelStatResolver())->resolve(
       $content->unitType('unit_type.bruiser')['base_stats'],
       $content->unitType('unit_type.bruiser')['growth_per_level'],
       1,
     )->hp;
-    $heal = $services['healRunUnitCommand']->execute($userId, $runId, $unitId, ['item_id' => 'item.test.heal'], 'closure-run-heal');
-    $this->assertSame($heal, $services['healRunUnitCommand']->execute($userId, $runId, $unitId, ['item_id' => 'item.test.heal'], 'closure-run-heal'));
-    $this->assertSame([1, min($maximumHp, 10), 1, 8], [
+    $heal = $services['healRunUnitCommand']->execute($userId, $runId, $unitId, ['item_id' => 'item.field_poultice'], 'closure-run-heal');
+    $this->assertSame($heal, $services['healRunUnitCommand']->execute($userId, $runId, $unitId, ['item_id' => 'item.field_poultice'], 'closure-run-heal'));
+    $this->assertSame([1, min($maximumHp, 10), 0, 8], [
       $heal['unit']['hp_before'], $heal['unit']['hp_after'], $heal['owned_quantity_after'], $heal['player_revision'],
     ]);
     $this->assertSame($topologyBefore, (string)$this->scalar('SELECT COUNT(*) FROM `run_nodes` WHERE `run_id` = ?', [$runId]));
@@ -96,14 +91,11 @@ final class EconomyLifecycleIntegrationTest extends IntegrationTestCase
 
     $reloaded = ControllerServiceFactory::buildContentAware($this->pdo, null, $content);
     $bootstrap = $reloaded['gameBootstrapQuery']->execute($userId, new DateTimeImmutable('now', new DateTimeZone('UTC')));
-    $this->assertSame([$salvaged['raw_chaos'], $sold['teeth'], 10, 12, 'active'], [
+    $this->assertSame([$salvaged['raw_chaos'], $sold['teeth'], 10, 17, 'active'], [
       $bootstrap['player']['raw_chaos'], $bootstrap['player']['teeth'], $bootstrap['player']['player_revision'],
       $bootstrap['player']['energy']['current'], $bootstrap['active_run']['status'],
     ]);
-    $this->assertSame([
-      ['item_id' => 'item.test.energy', 'quantity' => 1],
-      ['item_id' => 'item.test.heal', 'quantity' => 1],
-    ], $reloaded['itemCollectionQuery']->execute($userId));
+    $this->assertSame([], $reloaded['itemCollectionQuery']->execute($userId));
     $this->assertSame([], $reloaded['diceCollectionQuery']->execute($userId));
     $this->assertSame(['sold', 'salvaged'], $this->column(
       'SELECT `lifecycle_status` FROM `dice_instances` WHERE `id` IN (?, ?) ORDER BY `id`', [$sellDieId, $salvageDieId],
@@ -128,45 +120,17 @@ final class EconomyLifecycleIntegrationTest extends IntegrationTestCase
   private function assertRevision(array $result, int $expected): void
   { $this->assertSame($expected, $result['player_revision']); }
 
+  /** @param array{offers:list<array<string,mixed>>} $catalog @return array<string,mixed> */
+  private function offer(array $catalog, string $offerId): array
+  {
+    foreach ($catalog['offers'] as $offer) if ($offer['offer_id'] === $offerId) return $offer;
+    $this->fail("Missing Shop offer '{$offerId}'.");
+  }
+
   /** @param list<int> $parameters @return list<string> */
   private function column(string $sql, array $parameters): array
   { $stmt = $this->pdo?->prepare($sql); $stmt?->execute($parameters); return array_map('strval', $stmt?->fetchAll(\PDO::FETCH_COLUMN) ?: []); }
 
   private function content(): ContentRegistry
-  {
-    $source = dirname(__DIR__, 2) . '/content';
-    $root = sys_get_temp_dir() . '/dice-goblins-economy-closure-' . bin2hex(random_bytes(6));
-    mkdir($root, 0777, true); $this->contentRoot = $root;
-    $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($source, \FilesystemIterator::SKIP_DOTS));
-    foreach ($files as $file) {
-      if (!$file->isFile()) continue;
-      $relative = substr($file->getPathname(), strlen($source) + 1);
-      $target = $root . '/' . str_replace('\\', '/', $relative);
-      if (!is_dir(dirname($target))) mkdir(dirname($target), 0777, true);
-      copy($file->getPathname(), $target);
-    }
-    file_put_contents($root . '/items/economy-closure.json', json_encode(['definitions' => [
-      ['id' => 'item.test.energy', 'type' => 'item', 'display_name' => 'Spark', 'description' => 'Energy.', 'category' => 'consumable', 'rarity' => 'common', 'icon_key' => 'spark', 'stackable' => true, 'effect' => ['type' => 'energy_restore', 'amount' => 7]],
-      ['id' => 'item.test.heal', 'type' => 'item', 'display_name' => 'Poultice', 'description' => 'Healing.', 'category' => 'consumable', 'rarity' => 'common', 'icon_key' => 'heal', 'stackable' => true, 'effect' => ['type' => 'unit_heal', 'amount' => 9]],
-    ]], JSON_THROW_ON_ERROR));
-    file_put_contents($root . '/unlocks/economy-closure.json', json_encode(['definitions' => [[
-      'id' => 'unlock.unit_type.bruiser', 'type' => 'unlock', 'target_type' => 'unit_type', 'target_id' => 'unit_type.bruiser',
-    ]]], JSON_THROW_ON_ERROR));
-    file_put_contents($root . '/shop_offers/economy-closure.json', json_encode(['definitions' => [
-      ['id' => 'shop_offer.test.energy', 'type' => 'shop_offer', 'grant' => ['type' => 'item', 'item_id' => 'item.test.energy', 'quantity' => 2], 'price' => ['currency_id' => 'teeth', 'amount' => 5]],
-      ['id' => 'shop_offer.test.heal', 'type' => 'shop_offer', 'grant' => ['type' => 'item', 'item_id' => 'item.test.heal', 'quantity' => 2], 'price' => ['currency_id' => 'teeth', 'amount' => 6]],
-      ['id' => 'shop_offer.test.d8', 'type' => 'shop_offer', 'grant' => ['type' => 'die', 'dice_profile_id' => 'dice_profile.cardboard_plain', 'size' => 8], 'price' => ['currency_id' => 'teeth', 'amount' => 10]],
-      ['id' => 'shop_offer.test.d6', 'type' => 'shop_offer', 'grant' => ['type' => 'die', 'dice_profile_id' => 'dice_profile.cardboard_plain', 'size' => 6], 'price' => ['currency_id' => 'teeth', 'amount' => 8]],
-      ['id' => 'shop_offer.test.unit', 'type' => 'shop_offer', 'grant' => ['type' => 'unit', 'unit_type_id' => 'unit_type.bruiser', 'kin_id' => 'kin.goblin'], 'price' => ['currency_id' => 'teeth', 'amount' => 13]],
-    ]], JSON_THROW_ON_ERROR));
-    return ContentRegistry::load($root);
-  }
-
-  private function removeTree(string $root): void
-  {
-    if (!is_dir($root)) return;
-    $items = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST);
-    foreach ($items as $item) $item->isDir() ? rmdir($item->getPathname()) : unlink($item->getPathname());
-    rmdir($root);
-  }
+  { return ContentRegistry::load(dirname(__DIR__, 2) . '/content'); }
 }

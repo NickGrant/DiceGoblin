@@ -153,6 +153,8 @@ final class InventoryFoundationTest extends IntegrationTestCase
         if (!is_dir(dirname($target))) mkdir(dirname($target), 0777, true);
         copy($file->getPathname(), $target);
       }
+      file_put_contents($this->contentRoot . '/items/catalog.json', json_encode(['definitions' => []], JSON_THROW_ON_ERROR));
+      file_put_contents($this->contentRoot . '/shop_offers/catalog.json', json_encode(['definitions' => []], JSON_THROW_ON_ERROR));
       file_put_contents($this->contentRoot . '/items/test.json', json_encode(['definitions' => [[
         'id' => 'item.goblin_scrap', 'type' => 'item', 'display_name' => 'Goblin Scrap',
         'description' => 'Useful scrap.', 'category' => 'material', 'rarity' => 'common',

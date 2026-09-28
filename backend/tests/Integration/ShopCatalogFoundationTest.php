@@ -19,11 +19,17 @@ final class ShopCatalogFoundationTest extends IntegrationTestCase
   protected function supportsVnextBaseline(): bool { return true; }
   protected function tearDown(): void { parent::tearDown(); foreach ($this->roots as $root) $this->removeTree($root); }
 
-  public function testEmptyProductionShopReturnsCurrentWalletAndRevision(): void
+  public function testProductionShopReturnsCanonicalOffersWithCurrentWalletAndRevision(): void
   {
-    $userId = $this->user('Empty Shop', 13, 4);
+    $userId = $this->user('Canonical Shop', 13, 4);
     $result = $this->query(ContentRegistry::load(dirname(__DIR__, 2) . '/content'))->execute($userId);
-    $this->assertSame(['teeth' => 13, 'player_revision' => 4, 'offers' => []], $result);
+    $this->assertSame(13, $result['teeth']);
+    $this->assertSame(4, $result['player_revision']);
+    $this->assertSame([
+      'shop_offer.cardboard_d4', 'shop_offer.cardboard_d6', 'shop_offer.cardboard_d8',
+      'shop_offer.field_poultice', 'shop_offer.goblin_bruiser', 'shop_offer.spark_tonic',
+    ], array_column($result['offers'], 'offer_id'));
+    $this->assertFalse($result['offers'][4]['available']);
   }
 
   public function testFixtureOffersAreDeterministicAuthoritativeAndAffordabilityIsPerUser(): void
@@ -151,6 +157,8 @@ final class ShopCatalogFoundationTest extends IntegrationTestCase
     $source = dirname(__DIR__, 2) . '/content'; $root = sys_get_temp_dir() . '/dice-goblins-shop-api-' . bin2hex(random_bytes(6)); mkdir($root, 0777, true); $this->roots[] = $root;
     $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($source, \FilesystemIterator::SKIP_DOTS));
     foreach ($files as $file) { if (!$file->isFile()) continue; $relative = substr($file->getPathname(), strlen($source) + 1); $target = $root . '/' . str_replace('\\', '/', $relative); if (!is_dir(dirname($target))) mkdir(dirname($target), 0777, true); copy($file->getPathname(), $target); }
+    file_put_contents($root . '/shop_offers/catalog.json', json_encode(['definitions' => []], JSON_THROW_ON_ERROR));
+    file_put_contents($root . '/unlocks/unit-types.json', json_encode(['definitions' => []], JSON_THROW_ON_ERROR));
     return $root;
   }
   private function removeTree(string $root): void

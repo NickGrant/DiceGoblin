@@ -1,5 +1,5 @@
 {
-    "revision": "7c3fe94d7568a11955c0e0400a1d2316fad69082a622a0b1a044bda97f49e79f",
+    "revision": "6d5e576f7bd2453f3f35d09a3abd6c0ac414843655486e48ceb906378abbe367",
     "content": {
         "gameplay": {
             "run_energy_cost": 10
@@ -1207,7 +1207,83 @@
                 "icon_key": "icon_encounter_rest"
             }
         },
-        "items": {},
-        "shop_offers": {}
+        "items": {
+            "item.field_poultice": {
+                "id": "item.field_poultice",
+                "display_name": "Field Poultice",
+                "description": "Restores 9 HP to a participating goblin during an active run.",
+                "category": "consumable",
+                "rarity": "common",
+                "icon_key": "field_poultice",
+                "stackable": true,
+                "effect": {
+                    "type": "unit_heal",
+                    "amount": 9
+                }
+            },
+            "item.spark_tonic": {
+                "id": "item.spark_tonic",
+                "display_name": "Spark Tonic",
+                "description": "Restores 12 Energy, including beyond the normal maximum.",
+                "category": "consumable",
+                "rarity": "common",
+                "icon_key": "spark_tonic",
+                "stackable": true,
+                "effect": {
+                    "type": "energy_restore",
+                    "amount": 12
+                }
+            }
+        },
+        "shop_offers": {
+            "shop_offer.cardboard_d4": {
+                "id": "shop_offer.cardboard_d4",
+                "grant": {
+                    "type": "die",
+                    "dice_profile_id": "dice_profile.cardboard_plain",
+                    "size": 4
+                }
+            },
+            "shop_offer.cardboard_d6": {
+                "id": "shop_offer.cardboard_d6",
+                "grant": {
+                    "type": "die",
+                    "dice_profile_id": "dice_profile.cardboard_plain",
+                    "size": 6
+                }
+            },
+            "shop_offer.cardboard_d8": {
+                "id": "shop_offer.cardboard_d8",
+                "grant": {
+                    "type": "die",
+                    "dice_profile_id": "dice_profile.cardboard_plain",
+                    "size": 8
+                }
+            },
+            "shop_offer.field_poultice": {
+                "id": "shop_offer.field_poultice",
+                "grant": {
+                    "type": "item",
+                    "item_id": "item.field_poultice",
+                    "quantity": 1
+                }
+            },
+            "shop_offer.goblin_bruiser": {
+                "id": "shop_offer.goblin_bruiser",
+                "grant": {
+                    "type": "unit",
+                    "unit_type_id": "unit_type.bruiser",
+                    "kin_id": "kin.goblin"
+                }
+            },
+            "shop_offer.spark_tonic": {
+                "id": "shop_offer.spark_tonic",
+                "grant": {
+                    "type": "item",
+                    "item_id": "item.spark_tonic",
+                    "quantity": 1
+                }
+            }
+        }
     }
 }

@@ -179,15 +179,8 @@ async function installGameFixtureRoutes(page, options) {
 
   const projection = JSON.parse(await readFile(path.resolve(process.cwd(), 'frontend/public/game-content.json'), 'utf8'));
   projection.content.items = {
-    'item.capture.energy': { id: 'item.capture.energy', display_name: 'Bottled Lightning', description: 'A sharp refill for a tired warband.', category: 'consumable', rarity: 'uncommon', icon_key: 'capture_energy', stackable: true, effect: { type: 'energy_restore', amount: 12 } },
-    'item.capture.heal': { id: 'item.capture.heal', display_name: 'Moss Poultice', description: 'Restores a participating goblin during a run.', category: 'consumable', rarity: 'common', icon_key: 'capture_heal', stackable: true, effect: { type: 'unit_heal', amount: 9 } },
+    ...projection.content.items,
     'item.capture.ore': { id: 'item.capture.ore', display_name: 'Raw Scrap', description: 'Useful material with no direct action.', category: 'material', rarity: 'common', icon_key: 'capture_ore', stackable: true },
-  };
-  projection.content.shop_offers = {
-    'shop_offer.capture.energy': { id: 'shop_offer.capture.energy', grant: { type: 'item', item_id: 'item.capture.energy', quantity: 2 } },
-    'shop_offer.capture.expensive': { id: 'shop_offer.capture.expensive', grant: { type: 'item', item_id: 'item.capture.heal', quantity: 1 } },
-    'shop_offer.capture.d6': { id: 'shop_offer.capture.d6', grant: { type: 'die', dice_profile_id: 'dice_profile.cardboard_plain', size: 6 } },
-    'shop_offer.capture.unit': { id: 'shop_offer.capture.unit', grant: { type: 'unit', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin' } },
   };
   const revision = projection.revision;
   await page.route('**/game-content.json', (route) => route.fulfill({
@@ -249,18 +242,20 @@ async function installGameFixtureRoutes(page, options) {
   }));
   await page.route('**/api/v1/items', (route) => route.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, data: { items: [
-      { item_id: 'item.capture.energy', quantity: 2 },
-      { item_id: 'item.capture.heal', quantity: 3 },
       { item_id: 'item.capture.ore', quantity: 7 },
+      { item_id: 'item.field_poultice', quantity: 3 },
+      { item_id: 'item.spark_tonic', quantity: 2 },
     ] } }),
   }));
   await page.route('**/api/v1/shop', (route) => route.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, data: {
-      teeth: 1234, player_revision: 3, offers: [
-        { offer_id: 'shop_offer.capture.d6', price: { currency_id: 'teeth', amount: 42 }, available: true, can_afford: true },
-        { offer_id: 'shop_offer.capture.energy', price: { currency_id: 'teeth', amount: 18 }, available: true, can_afford: true },
-        { offer_id: 'shop_offer.capture.expensive', price: { currency_id: 'teeth', amount: 1400 }, available: true, can_afford: false },
-        { offer_id: 'shop_offer.capture.unit', price: { currency_id: 'teeth', amount: 1400 }, available: false, can_afford: false },
+      teeth: 7, player_revision: 3, offers: [
+        { offer_id: 'shop_offer.cardboard_d4', price: { currency_id: 'teeth', amount: 4 }, available: true, can_afford: true },
+        { offer_id: 'shop_offer.cardboard_d6', price: { currency_id: 'teeth', amount: 6 }, available: true, can_afford: true },
+        { offer_id: 'shop_offer.cardboard_d8', price: { currency_id: 'teeth', amount: 8 }, available: true, can_afford: false },
+        { offer_id: 'shop_offer.field_poultice', price: { currency_id: 'teeth', amount: 4 }, available: true, can_afford: true },
+        { offer_id: 'shop_offer.goblin_bruiser', price: { currency_id: 'teeth', amount: 8 }, available: false, can_afford: false },
+        { offer_id: 'shop_offer.spark_tonic', price: { currency_id: 'teeth', amount: 4 }, available: true, can_afford: true },
       ],
     } }),
   }));

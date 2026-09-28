@@ -1,0 +1,10 @@
+{
+  "definitions": [
+    {
+      "id": "unlock.unit_type.bruiser",
+      "type": "unlock",
+      "target_type": "unit_type",
+      "target_id": "unit_type.bruiser"
+    }
+  ]
+}

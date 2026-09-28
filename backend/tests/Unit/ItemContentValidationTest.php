@@ -19,11 +19,16 @@ final class ItemContentValidationTest extends TestCase
     foreach ($this->roots as $root) $this->removeTree($root);
   }
 
-  public function testEmptyProductionCatalogIsValidAndProjected(): void
+  public function testProductionCatalogContainsTheUatConsumablesAndProjectsThem(): void
   {
     $registry = ContentRegistry::load($this->canonicalRoot());
-    $this->assertSame([], $registry->definitionsOfType('item'));
-    $this->assertSame([], (new ClientContentProjector())->project($registry)['content']['items']);
+    $this->assertSame(['item.field_poultice', 'item.spark_tonic'], array_keys($registry->definitionsOfType('item')));
+    $this->assertSame(['type' => 'unit_heal', 'amount' => 9], $registry->item('item.field_poultice')['effect']);
+    $this->assertSame(['type' => 'energy_restore', 'amount' => 12], $registry->item('item.spark_tonic')['effect']);
+    $projected = (new ClientContentProjector())->project($registry)['content']['items'];
+    $this->assertSame(['item.field_poultice', 'item.spark_tonic'], array_keys($projected));
+    $this->assertSame($registry->item('item.field_poultice')['effect'], $projected['item.field_poultice']['effect']);
+    $this->assertSame($registry->item('item.spark_tonic')['effect'], $projected['item.spark_tonic']['effect']);
   }
 
   public function testValidMaterialAndConcreteConsumableLoadAndProjectOnlySafeFields(): void
@@ -107,6 +112,8 @@ final class ItemContentValidationTest extends TestCase
   private function registryWithItems(array $items): ContentRegistry
   {
     $root = $this->copyCanonicalRoot();
+    file_put_contents($root . '/items/catalog.json', json_encode(['definitions' => []], JSON_THROW_ON_ERROR));
+    file_put_contents($root . '/shop_offers/catalog.json', json_encode(['definitions' => []], JSON_THROW_ON_ERROR));
     file_put_contents($root . '/items/test.json', json_encode(['definitions' => $items], JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
     return ContentRegistry::load($root);
   }

@@ -1,3 +1,82 @@
 {
-  "definitions": []
+  "definitions": [
+    {
+      "id": "shop_offer.spark_tonic",
+      "type": "shop_offer",
+      "grant": {
+        "type": "item",
+        "item_id": "item.spark_tonic",
+        "quantity": 1
+      },
+      "price": {
+        "currency_id": "teeth",
+        "amount": 4
+      }
+    },
+    {
+      "id": "shop_offer.field_poultice",
+      "type": "shop_offer",
+      "grant": {
+        "type": "item",
+        "item_id": "item.field_poultice",
+        "quantity": 1
+      },
+      "price": {
+        "currency_id": "teeth",
+        "amount": 4
+      }
+    },
+    {
+      "id": "shop_offer.cardboard_d4",
+      "type": "shop_offer",
+      "grant": {
+        "type": "die",
+        "dice_profile_id": "dice_profile.cardboard_plain",
+        "size": 4
+      },
+      "price": {
+        "currency_id": "teeth",
+        "amount": 4
+      }
+    },
+    {
+      "id": "shop_offer.cardboard_d6",
+      "type": "shop_offer",
+      "grant": {
+        "type": "die",
+        "dice_profile_id": "dice_profile.cardboard_plain",
+        "size": 6
+      },
+      "price": {
+        "currency_id": "teeth",
+        "amount": 6
+      }
+    },
+    {
+      "id": "shop_offer.cardboard_d8",
+      "type": "shop_offer",
+      "grant": {
+        "type": "die",
+        "dice_profile_id": "dice_profile.cardboard_plain",
+        "size": 8
+      },
+      "price": {
+        "currency_id": "teeth",
+        "amount": 8
+      }
+    },
+    {
+      "id": "shop_offer.goblin_bruiser",
+      "type": "shop_offer",
+      "grant": {
+        "type": "unit",
+        "unit_type_id": "unit_type.bruiser",
+        "kin_id": "kin.goblin"
+      },
+      "price": {
+        "currency_id": "teeth",
+        "amount": 8
+      }
+    }
+  ]
 }

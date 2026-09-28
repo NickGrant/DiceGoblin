@@ -15,11 +15,22 @@ final class ShopOfferContentValidationTest extends TestCase
   /** @var list<string> */ private array $roots = [];
   protected function tearDown(): void { foreach ($this->roots as $root) $this->removeTree($root); }
 
-  public function testEmptyProductionCatalogIsValid(): void
+  public function testProductionCatalogContainsTheUatOffersAndProjectsNoPrices(): void
   {
     $registry = ContentRegistry::load($this->canonicalRoot());
-    $this->assertSame([], $registry->definitionsOfType('shop_offer'));
-    $this->assertSame([], (new ClientContentProjector())->project($registry)['content']['shop_offers']);
+    $ids = ['shop_offer.cardboard_d4', 'shop_offer.cardboard_d6', 'shop_offer.cardboard_d8',
+      'shop_offer.field_poultice', 'shop_offer.goblin_bruiser', 'shop_offer.spark_tonic'];
+    $this->assertSame($ids, array_keys($registry->definitionsOfType('shop_offer')));
+    $offers = (new ClientContentProjector())->project($registry)['content']['shop_offers'];
+    $this->assertSame($ids, array_keys($offers));
+    $this->assertSame([4, 6, 8], array_map(
+      static fn(string $id): int => $offers[$id]['grant']['size'],
+      ['shop_offer.cardboard_d4', 'shop_offer.cardboard_d6', 'shop_offer.cardboard_d8'],
+    ));
+    $this->assertSame('item.spark_tonic', $offers['shop_offer.spark_tonic']['grant']['item_id']);
+    $this->assertSame('item.field_poultice', $offers['shop_offer.field_poultice']['grant']['item_id']);
+    $this->assertSame('unit_type.bruiser', $offers['shop_offer.goblin_bruiser']['grant']['unit_type_id']);
+    $this->assertStringNotContainsString('price', json_encode($offers, JSON_THROW_ON_ERROR));
   }
 
   public function testValidItemAndDieOffersLoadAndProjectWithoutPrices(): void
@@ -212,6 +223,8 @@ final class ShopOfferContentValidationTest extends TestCase
     $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($source, \FilesystemIterator::SKIP_DOTS));
     foreach ($files as $file) { if (!$file->isFile()) continue; $relative = substr($file->getPathname(), strlen($source) + 1);
       $target = $root . '/' . str_replace('\\', '/', $relative); if (!is_dir(dirname($target))) mkdir(dirname($target), 0777, true); copy($file->getPathname(), $target); }
+    file_put_contents($root . '/shop_offers/catalog.json', json_encode(['definitions' => []], JSON_THROW_ON_ERROR));
+    file_put_contents($root . '/unlocks/unit-types.json', json_encode(['definitions' => []], JSON_THROW_ON_ERROR));
     return $root;
   }
   private function removeTree(string $root): void

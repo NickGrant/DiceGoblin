@@ -278,6 +278,8 @@ final class ShopPurchaseCommandTest extends IntegrationTestCase
     mkdir($root, 0777, true); $this->roots[] = $root;
     $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($source, \FilesystemIterator::SKIP_DOTS));
     foreach ($files as $file) { if (!$file->isFile()) continue; $relative = substr($file->getPathname(), strlen($source) + 1); $target = $root . '/' . str_replace('\\', '/', $relative); if (!is_dir(dirname($target))) mkdir(dirname($target), 0777, true); copy($file->getPathname(), $target); }
+    file_put_contents($root . '/shop_offers/catalog.json', json_encode(['definitions' => []], JSON_THROW_ON_ERROR));
+    file_put_contents($root . '/unlocks/unit-types.json', json_encode(['definitions' => []], JSON_THROW_ON_ERROR));
     file_put_contents($root . '/items/test-purchase.json', json_encode(['definitions' => [[
       'id' => 'item.test.scrap', 'type' => 'item', 'display_name' => 'Scrap', 'description' => 'Scrap.', 'category' => 'material', 'rarity' => 'common', 'icon_key' => 'scrap', 'stackable' => true,
     ]]], JSON_THROW_ON_ERROR));

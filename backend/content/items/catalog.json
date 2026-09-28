@@ -1,3 +1,32 @@
 {
-  "definitions": []
+  "definitions": [
+    {
+      "id": "item.spark_tonic",
+      "type": "item",
+      "display_name": "Spark Tonic",
+      "description": "Restores 12 Energy, including beyond the normal maximum.",
+      "category": "consumable",
+      "rarity": "common",
+      "icon_key": "spark_tonic",
+      "stackable": true,
+      "effect": {
+        "type": "energy_restore",
+        "amount": 12
+      }
+    },
+    {
+      "id": "item.field_poultice",
+      "type": "item",
+      "display_name": "Field Poultice",
+      "description": "Restores 9 HP to a participating goblin during an active run.",
+      "category": "consumable",
+      "rarity": "common",
+      "icon_key": "field_poultice",
+      "stackable": true,
+      "effect": {
+        "type": "unit_heal",
+        "amount": 9
+      }
+    }
+  ]
 }
