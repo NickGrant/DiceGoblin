@@ -286,6 +286,10 @@ export class GameScene extends RuntimeScene {
       this.activeScreen.requestBack();
       return;
     }
+    this.completeBackNavigation();
+  }
+
+  private completeBackNavigation(): void {
     if (!['warband', 'shop', 'inventory'].includes(this.activeScreen?.key ?? '')) return;
     this.activateScreen(this.navigator.back('camp'));
   }
@@ -313,10 +317,14 @@ export class GameScene extends RuntimeScene {
       );
     } else if (screen === 'shop') {
       if (!this.runtimeStartup.contentRegistry) { this.scene.start(BOOT_SCENE_KEY); return; }
-      this.activeScreen = this.createShopScreen(this, this.runtimeStartup, this.runtimeViewport, () => this.goBack());
+      this.activeScreen = this.createShopScreen(
+        this, this.runtimeStartup, this.runtimeViewport, () => this.completeBackNavigation(),
+      );
     } else if (screen === 'inventory') {
       if (!this.runtimeStartup.contentRegistry) { this.scene.start(BOOT_SCENE_KEY); return; }
-      this.activeScreen = this.createInventoryScreen(this, this.runtimeStartup, this.runtimeViewport, () => this.goBack());
+      this.activeScreen = this.createInventoryScreen(
+        this, this.runtimeStartup, this.runtimeViewport, () => this.completeBackNavigation(),
+      );
     } else {
       this.activeScreen = this.createCampScreen(
         this, this.runtimeStartup.store, this.runtimeViewport, () => this.showWarband(),

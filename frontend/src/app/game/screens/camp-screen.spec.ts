@@ -451,6 +451,63 @@ describe('CampScreen', () => {
     expect(contentLoader.loadProjection).toHaveBeenCalledTimes(1);
   });
 
+  it('returns from Shop and empty Supplies through visible Return and Escape without re-entering requestBack', async () => {
+    const revision = 'a'.repeat(64);
+    const apiClient = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getBootstrap']);
+    apiClient.getBootstrap.and.resolveTo({ ok: true, data: bootstrap() });
+    const contentLoader = jasmine.createSpyObj<ClientContentLoader>('ClientContentLoader', ['loadProjection']);
+    contentLoader.loadProjection.and.resolveTo({ revision, content: {
+      gameplay: { run_energy_cost: 10 },
+      regions: {}, kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {}, items: {}, shop_offers: {},
+    } });
+    const startup = new RuntimeStartup(apiClient, contentLoader);
+    await startup.start();
+    const viewport = new RuntimeViewport();
+    const camp = jasmine.createSpyObj<GameSceneScreen>('camp', ['create', 'reflow', 'destroy'], { key: 'camp' });
+    const unusedScreen = jasmine.createSpyObj<GameSceneScreen>(
+      'unused', ['create', 'reflow', 'destroy'], { key: 'warband' },
+    );
+    type BackScreenSpy = jasmine.SpyObj<GameSceneScreen> & { requestBack: jasmine.Spy<() => void> };
+    const shop = jasmine.createSpyObj<GameSceneScreen>(
+      'shop', ['create', 'reflow', 'destroy', 'requestBack'], { key: 'shop' },
+    ) as BackScreenSpy;
+    const inventories: BackScreenSpy[] = [];
+    const shopFactory = jasmine.createSpy('shopFactory').and.callFake((_scene, _startup, _viewport, back) => {
+      shop.requestBack.and.callFake(back);
+      return shop;
+    });
+    const inventoryFactory = jasmine.createSpy('inventoryFactory').and.callFake((_scene, _startup, _viewport, back) => {
+      const inventory = jasmine.createSpyObj<GameSceneScreen>(
+        'inventory', ['create', 'reflow', 'destroy', 'requestBack'], { key: 'inventory' },
+      ) as BackScreenSpy;
+      inventory.requestBack.and.callFake(back);
+      inventories.push(inventory);
+      return inventory;
+    });
+    const scene = new GameScene(
+      new RuntimeLifecycleState(), startup, viewport, () => camp, () => unusedScreen,
+      () => unusedScreen, () => unusedScreen, shopFactory, inventoryFactory,
+    );
+
+    scene.showCamp();
+    scene.showShop();
+    shop.requestBack();
+    expect(scene.activeScreenKey).toBe('camp');
+    expect(shop.requestBack).toHaveBeenCalledTimes(1);
+
+    scene.showInventory();
+    inventories[0].requestBack();
+    expect(scene.activeScreenKey).toBe('camp');
+    expect(inventories[0].requestBack).toHaveBeenCalledTimes(1);
+
+    scene.showInventory();
+    scene.goBack();
+    expect(scene.activeScreenKey).toBe('camp');
+    expect(inventories[1].requestBack).toHaveBeenCalledTimes(1);
+    expect(apiClient.getBootstrap).toHaveBeenCalledTimes(1);
+    expect(contentLoader.loadProjection).toHaveBeenCalledTimes(1);
+  });
+
   it('preserves Edit, Activate, Delete, and New intent across Warband navigation inside the same GameScene/runtime', async () => {
     const revision = 'a'.repeat(64);
     const apiClient = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getBootstrap']);
