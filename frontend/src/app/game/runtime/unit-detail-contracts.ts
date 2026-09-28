@@ -30,6 +30,7 @@ export interface UnitDetail {
   readonly kin: ClientKinDefinition;
   readonly level: number;
   readonly xp: number;
+  readonly xpToNextLevel: number;
   readonly lifecycleStatus: 'active';
   readonly promotionHistory: readonly UnitPromotionHistoryEntry[];
   readonly ownedAbilities: readonly ClientAbilityDefinition[];
@@ -97,7 +98,7 @@ function parseUnit(
   bindingMode: 'exact' | 'replacement',
 ): UnitDetail {
   if (!isRecord(candidate) || !exact(candidate, [
-    'id', 'display_name', 'unit_type_id', 'kin_id', 'level', 'xp', 'lifecycle_status',
+    'id', 'display_name', 'unit_type_id', 'kin_id', 'level', 'xp', 'xp_to_next_level', 'lifecycle_status',
     'promotion_history', 'owned_ability_ids', 'ability_loadout', 'dice_bindings',
   ])) throw new UnitDetailContractError('Unit detail is malformed.');
 
@@ -107,8 +108,11 @@ function parseUnit(
   const kinId = candidate['kin_id'];
   const level = candidate['level'];
   const xp = candidate['xp'];
+  const xpToNextLevel = candidate['xp_to_next_level'];
   if (!positiveId(id) || !nonblank(name, 128) || !nonblank(unitTypeId) || !nonblank(kinId)
     || !nonNegativeInteger(level) || level < 1 || !nonNegativeInteger(xp)
+    || !nonNegativeInteger(xpToNextLevel) || xpToNextLevel < 1 || xp >= xpToNextLevel
+    || !Number.isSafeInteger(level) || !Number.isSafeInteger(xp) || !Number.isSafeInteger(xpToNextLevel)
     || candidate['lifecycle_status'] !== 'active') {
     throw new UnitDetailContractError('Unit detail identity is malformed.');
   }
@@ -205,7 +209,7 @@ function parseUnit(
   }
 
   return Object.freeze({
-    id, displayName: name.trim(), unitType, kin, level, xp, lifecycleStatus: 'active',
+    id, displayName: name.trim(), unitType, kin, level, xp, xpToNextLevel, lifecycleStatus: 'active',
     promotionHistory: Object.freeze(promotionHistory), ownedAbilities: Object.freeze(ownedAbilities),
     abilityLoadout: Object.freeze(abilityLoadout), diceBindings: Object.freeze(diceBindings),
   });

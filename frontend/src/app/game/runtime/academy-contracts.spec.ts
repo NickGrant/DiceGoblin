@@ -8,7 +8,7 @@ describe('Academy read contract', () => {
     content: {
       gameplay: { run_energy_cost: 10 }, regions: {}, kin: {}, unit_types: {}, abilities: {},
       dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {}, items: {}, shop_offers: {},
-      academy_upgrades: {
+      unit_promotions: {}, academy_upgrades: {
         'academy_upgrade.one': { id: 'academy_upgrade.one', display_name: 'One', description: 'First.', category: 'energy' },
         'academy_upgrade.two': { id: 'academy_upgrade.two', display_name: 'Two', description: 'Second.', category: 'dice' },
       },

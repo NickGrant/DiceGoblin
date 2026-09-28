@@ -31,6 +31,7 @@ use DiceGoblins\Application\Commands\UnitConfigurationSupport;
 use DiceGoblins\Application\RegionAvailabilityPolicy;
 use DiceGoblins\Application\NormalUnitCreationService;
 use DiceGoblins\Application\UnitTypeAvailabilityPolicy;
+use DiceGoblins\Application\UnitPromotionPolicy;
 use DiceGoblins\Application\Commands\UpdateSquadCommand;
 use DiceGoblins\Application\Queries\ActiveSquadQuery;
 use DiceGoblins\Application\Queries\ActiveRunSummaryQuery;
@@ -43,6 +44,7 @@ use DiceGoblins\Application\Queries\ShopCatalogQuery;
 use DiceGoblins\Application\Queries\SquadCollectionQuery;
 use DiceGoblins\Application\Queries\UnitCollectionQuery;
 use DiceGoblins\Application\Queries\UnitDetailQuery;
+use DiceGoblins\Application\Queries\UnitPromotionOptionsQuery;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Application\UnitSummaryAssembler;
 use DiceGoblins\Domain\Energy\EnergyCalculator;
@@ -195,6 +197,8 @@ final class ControllerServiceFactory
       ),
       'unitCollectionQuery' => new UnitCollectionQuery($unitRepository, $content),
       'unitDetailQuery' => $unitDetailQuery,
+      'unitPromotionOptionsQuery' => new UnitPromotionOptionsQuery($unitRepository, $core['playerStateRepo'],
+        new UnitPromotionPolicy($content), $activeRunPolicy),
       'diceCollectionQuery' => new DiceCollectionQuery($diceRepository, $content),
       'itemCollectionQuery' => new ItemCollectionQuery($itemRepository, $content),
       'shopCatalogQuery' => new ShopCatalogQuery($core['playerStateRepo'], $unlockRepository, $unitTypeAvailability, $content),

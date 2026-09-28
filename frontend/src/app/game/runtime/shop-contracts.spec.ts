@@ -11,7 +11,7 @@ describe('Shop contracts', () => {
       dice_materials: { 'dice_material.cardboard': { id: 'dice_material.cardboard', display_name: 'Cardboard', description: 'Card.', art_key: 'card', allowed_sizes: [4, 6, 8, 10, 12, 20] } },
       dice_aspects: {}, dice_profiles: { 'dice_profile.cardboard': { id: 'dice_profile.cardboard', display_name: 'Cardboard', material_id: 'dice_material.cardboard', rarity: 'common', aspect_ids: [], allowed_sizes: [4, 6, 8, 10, 12, 20] } }, run_node_types: {},
       items: { 'item.test.scrap': { id: 'item.test.scrap', display_name: 'Scrap', description: 'Scrap.', category: 'material', rarity: 'common', icon_key: 'scrap', stackable: true } },
-      academy_upgrades: {}, shop_offers: withOffers ? {
+      unit_promotions: {}, academy_upgrades: {}, shop_offers: withOffers ? {
         'shop_offer.a1': { id: 'shop_offer.a1', grant: { type: 'item', item_id: 'item.test.scrap', quantity: 2 } },
         'shop_offer.a_': { id: 'shop_offer.a_', grant: { type: 'die', dice_profile_id: 'dice_profile.cardboard', size: dieSize } },
         'shop_offer.unit': { id: 'shop_offer.unit', grant: { type: 'unit', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin' } },

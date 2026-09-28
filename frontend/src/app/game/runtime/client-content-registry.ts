@@ -53,6 +53,12 @@ export interface ClientAcademyUpgradeDefinition {
   readonly category: 'unit_type' | 'energy' | 'dice';
 }
 
+export interface ClientUnitPromotionDefinition {
+  readonly id: string;
+  readonly from_unit_type_id: string;
+  readonly to_unit_type_id: string;
+}
+
 export interface ClientKinDefinition {
   readonly id: string;
   readonly display_name: string;
@@ -135,6 +141,7 @@ export interface ClientContentProjection {
     readonly items: Readonly<Record<string, ClientItemDefinition>>;
     readonly shop_offers: Readonly<Record<string, ClientShopOfferDefinition>>;
     readonly academy_upgrades: Readonly<Record<string, ClientAcademyUpgradeDefinition>>;
+    readonly unit_promotions: Readonly<Record<string, ClientUnitPromotionDefinition>>;
   };
 }
 
@@ -170,6 +177,7 @@ const catalogFields = [
   'items',
   'shop_offers',
   'academy_upgrades',
+  'unit_promotions',
 ] as const;
 const contentFields = ['gameplay', ...catalogFields] as const;
 
@@ -310,6 +318,7 @@ export class ClientContentRegistry {
   private readonly items = new Map<string, ClientItemDefinition>();
   private readonly shopOffers = new Map<string, ClientShopOfferDefinition>();
   private readonly academyUpgrades = new Map<string, ClientAcademyUpgradeDefinition>();
+  private readonly unitPromotions = new Map<string, ClientUnitPromotionDefinition>();
 
   constructor(projection: unknown) {
     if (!isRecord(projection))
@@ -372,6 +381,8 @@ export class ClientContentRegistry {
     );
     this.loadCatalog(catalogs.academy_upgrades, this.academyUpgrades,
       (id, value) => this.academyUpgradeDefinition(id, value), false);
+    this.loadCatalog(catalogs.unit_promotions, this.unitPromotions,
+      (id, value) => this.unitPromotionDefinition(id, value), false);
     this.validateReferences();
     this.revision = revision;
   }
@@ -426,6 +437,15 @@ export class ClientContentRegistry {
   }
   listAcademyUpgrades(): readonly ClientAcademyUpgradeDefinition[] {
     return Object.freeze([...this.academyUpgrades.values()]);
+  }
+  getUnitPromotion(stableId: string): ClientUnitPromotionDefinition | undefined {
+    return this.unitPromotions.get(stableId);
+  }
+  listUnitPromotions(): readonly ClientUnitPromotionDefinition[] {
+    return Object.freeze([...this.unitPromotions.values()].sort((a, b) => a.id.localeCompare(b.id)));
+  }
+  listOutgoingUnitPromotions(unitTypeId: string): readonly ClientUnitPromotionDefinition[] {
+    return Object.freeze(this.listUnitPromotions().filter((promotion) => promotion.from_unit_type_id === unitTypeId));
   }
 
   private loadCatalog<T extends { readonly id: string }>(
@@ -708,7 +728,28 @@ export class ClientContentRegistry {
       description: requireNonEmptyString(value, 'description'), category });
   }
 
+  private unitPromotionDefinition(catalogId: string, value: unknown): ClientUnitPromotionDefinition {
+    if (!isRecord(value)) throw new ClientContentError('Client content contains an invalid unit promotion.');
+    requireExactFields(value, ['id', 'from_unit_type_id', 'to_unit_type_id'], `Unit promotion '${catalogId}'`);
+    const id = requireIdentity(value, catalogId, 'unit_promotion.', 'unit promotion');
+    const from = requireNonEmptyString(value, 'from_unit_type_id');
+    const to = requireNonEmptyString(value, 'to_unit_type_id');
+    if (!stableIdPattern.test(from) || !from.startsWith('unit_type.')
+      || !stableIdPattern.test(to) || !to.startsWith('unit_type.') || from === to)
+      throw new ClientContentError(`Unit promotion '${catalogId}' has an invalid edge.`);
+    return Object.freeze({ id, from_unit_type_id: from, to_unit_type_id: to });
+  }
+
   private validateReferences(): void {
+    const pairs = new Set<string>();
+    for (const promotion of this.unitPromotions.values()) {
+      const from = this.unitTypes.get(promotion.from_unit_type_id);
+      const to = this.unitTypes.get(promotion.to_unit_type_id);
+      const pair = `${promotion.from_unit_type_id}:${promotion.to_unit_type_id}`;
+      if (!from || !to || from.tier < 1 || from.tier > 2 || to.tier !== from.tier + 1 || pairs.has(pair))
+        throw new ClientContentError(`Unit promotion '${promotion.id}' has an invalid authored edge.`);
+      pairs.add(pair);
+    }
     for (const unitType of this.unitTypes.values()) {
       for (const abilityId of unitType.ability_ids) {
         if (!this.abilities.has(abilityId))

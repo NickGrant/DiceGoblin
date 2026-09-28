@@ -38,6 +38,21 @@ final class RunStartControllerTest extends IntegrationTestCase
 {
   protected function supportsVnextBaseline(): bool { return true; }
 
+  public function testPromotionReadUsesExactActiveRunParticipationLock(): void
+  {
+    [$userId, $fixture] = $this->fixtureAccount('run-promotion-lock@example.test');
+    $this->commandAt($userId, '2026-09-13 12:10:00')->execute(
+      $userId, ['region_id' => 'region.the_farm'], 'run-promotion-lock',
+    );
+    $query = ControllerServiceFactory::buildContentAware($this->pdo)['unitPromotionOptionsQuery'];
+    $participating = $query->execute($userId, (int)$fixture['unit_ids']['bruiser']);
+    $this->assertTrue($participating['configuration_locked']);
+    foreach ($participating['options'] as $option) $this->assertFalse($option['available']);
+    $reserve = $query->execute($userId, (int)$fixture['unit_ids']['enforcer']);
+    $this->assertFalse($reserve['configuration_locked']);
+    $this->assertCount(1, $reserve['options']);
+  }
+
   public function testRouteRequiresAuthenticationAndCsrf(): void
   {
     $controller = new RunController();

@@ -5,18 +5,21 @@ namespace DiceGoblins\Application\Queries;
 
 use DiceGoblins\Application\WarbandContentGuard;
 use DiceGoblins\Application\WarbandIntegrityException;
+use DiceGoblins\Application\UnitPromotionPolicy;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Repositories\WarbandUnitRepository;
 
 final class UnitDetailQuery
 {
   private readonly WarbandContentGuard $content;
+  private readonly UnitPromotionPolicy $promotions;
 
   public function __construct(
     private readonly WarbandUnitRepository $units,
     ContentRegistry $content,
   ) {
     $this->content = new WarbandContentGuard($content);
+    $this->promotions = new UnitPromotionPolicy($content);
   }
 
   /** @return array<string,mixed> */
@@ -31,6 +34,7 @@ final class UnitDetailQuery
     $kinId = (string)$unit['kin_id'];
     $this->content->unitType($unitTypeId);
     $this->content->kin($kinId);
+    $xpThreshold = $this->promotions->xpThreshold((int)$unit['level'], (int)$unit['xp']);
 
     $promotionHistory = [];
     foreach ($this->units->listPromotions($unitId, $forUpdate) as $promotion) {
@@ -133,6 +137,7 @@ final class UnitDetailQuery
       'kin_id' => $kinId,
       'level' => (int)$unit['level'],
       'xp' => (int)$unit['xp'],
+      'xp_to_next_level' => $xpThreshold,
       'lifecycle_status' => (string)$unit['lifecycle_status'],
       'promotion_history' => $promotionHistory,
       'owned_ability_ids' => $ownedAbilityIds,

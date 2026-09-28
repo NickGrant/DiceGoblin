@@ -20,13 +20,13 @@ describe('Unit detail contracts', () => {
       dice_materials: { 'dice_material.bone': { id: 'dice_material.bone', display_name: 'Bone', description: 'Bone.', art_key: 'bone', allowed_sizes: [6] } },
       dice_aspects: {},
       dice_profiles: { 'dice_profile.bone': { id: 'dice_profile.bone', display_name: 'Bone Die', material_id: 'dice_material.bone', rarity: 'common', aspect_ids: [], allowed_sizes: [6] } },
-      run_node_types: {}, items: {}, academy_upgrades: {}, shop_offers: {},
+      run_node_types: {}, items: {}, unit_promotions: {}, academy_upgrades: {}, shop_offers: {},
     } });
   }
 
   function rawDetail(): Record<string, unknown> {
     return {
-      id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 3, xp: 44, lifecycle_status: 'active',
+      id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 3, xp: 44, xp_to_next_level: 300, lifecycle_status: 'active',
       promotion_history: [{ from_unit_type_id: 'unit_type.bruiser', to_unit_type_id: 'unit_type.veteran', promoted_at: '2026-01-01T00:00:00Z' }],
       owned_ability_ids: ['ability.bash', 'ability.volley', 'ability.thick'],
       ability_loadout: [{ ability_id: 'ability.bash', equip_order: 0 }, { ability_id: 'ability.volley', equip_order: 1 }],
@@ -69,12 +69,13 @@ describe('Unit detail contracts', () => {
       ['ability.bash', 0, '21'], ['ability.volley', 0, '22'], ['ability.volley', 1, '23'],
     ]);
     expect(detail.promotionHistory[0].toUnitType.display_name).toBe('Veteran');
+    expect(detail.xpToNextLevel).toBe(300);
   });
 
   it('accepts a newly purchased unit with owned abilities but no loadout or dice', () => {
     const registry = content();
     const raw = {
-      id: '30', display_name: 'Bruiser', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active',
+      id: '30', display_name: 'Bruiser', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, xp_to_next_level: 100, lifecycle_status: 'active',
       promotion_history: [], owned_ability_ids: ['ability.bash'], ability_loadout: [], dice_bindings: [],
     };
     const detail = parseUnitDetailEnvelope({ ok: true, data: { unit: raw } }, registry, []);
@@ -86,7 +87,7 @@ describe('Unit detail contracts', () => {
   it('rejects dice bindings when the unit has no configured ability loadout', () => {
     const registry = content();
     const raw = {
-      id: '30', display_name: 'Bruiser', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active',
+      id: '30', display_name: 'Bruiser', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, xp_to_next_level: 100, lifecycle_status: 'active',
       promotion_history: [], owned_ability_ids: ['ability.bash'], ability_loadout: [],
       dice_bindings: [{ ability_id: 'ability.bash', slot_index: 0, dice_instance_id: '21' }],
     };
@@ -94,6 +95,8 @@ describe('Unit detail contracts', () => {
   });
 
   it('rejects malformed identity and unknown authored references', () => {
+    expect(() => parse({ ...rawDetail(), xp_to_next_level: 44 })).toThrowError(UnitDetailContractError);
+    expect(() => parse({ ...rawDetail(), xp_to_next_level: Number.MAX_SAFE_INTEGER + 1 })).toThrowError(UnitDetailContractError);
     expect(() => parse({ ...rawDetail(), id: '01' })).toThrowError(UnitDetailContractError);
     expect(() => parse({ ...rawDetail(), unit_type_id: 'unit_type.missing' })).toThrowError(UnitDetailContractError);
     expect(() => parse({ ...rawDetail(), owned_ability_ids: ['ability.bash', 'ability.missing'] })).toThrowError(UnitDetailContractError);

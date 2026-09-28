@@ -33,6 +33,8 @@ import { DiceLifecycleContractError, DiceSellResult, DiceSalvageResult,
   parseDiceSellEnvelope, parseDiceSalvageEnvelope } from './dice-lifecycle-contracts';
 import { AcademyCatalogResult, AcademyContractError, AcademyUpgradePayload, AcademyUpgradeResult,
   canonicalAcademyUpgradePayload, parseAcademyCatalogEnvelope, parseAcademyUpgradeEnvelope } from './academy-contracts';
+import { UnitPromotionContractError, UnitPromotionOptionsResult, canonicalUnitId,
+  parseUnitPromotionOptionsEnvelope } from './unit-promotion-contracts';
 
 export type RuntimeFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
@@ -72,6 +74,16 @@ export class RuntimeApiClient {
 
   async getUnitDetail(unitId: string): Promise<unknown> {
     return this.get(`/api/v1/units/${encodeURIComponent(unitId)}`);
+  }
+
+  async getUnitPromotionOptions(unitId: string, content: ClientContentRegistry): Promise<UnitPromotionOptionsResult> {
+    if (!canonicalUnitId(unitId)) throw new RuntimeApiError('malformed-response');
+    const value = await this.get(`/api/v1/units/${encodeURIComponent(unitId)}/promotion-options`);
+    try { return parseUnitPromotionOptionsEnvelope(value, unitId, content); }
+    catch (error) {
+      if (error instanceof UnitPromotionContractError) throw new RuntimeApiError('malformed-response', 200);
+      throw error;
+    }
   }
 
   async getDice(): Promise<unknown> {

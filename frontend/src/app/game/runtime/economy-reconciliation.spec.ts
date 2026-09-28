@@ -12,7 +12,7 @@ describe('GameStore Package 7 reconciliation', () => {
     run_node_types: { 'run_node_type.combat': { id: 'run_node_type.combat', display_name: 'Combat', description: 'Fight.', icon_key: 'combat' } },
     items: { 'item.test.heal': { id: 'item.test.heal', display_name: 'Poultice', description: 'Heal.', category: 'consumable', rarity: 'common', icon_key: 'heal', stackable: true, effect: { type: 'unit_heal', amount: 5 } },
       'item.test.spark': { id: 'item.test.spark', display_name: 'Spark', description: 'Energy.', category: 'consumable', rarity: 'common', icon_key: 'spark', stackable: true, effect: { type: 'energy_restore', amount: 5 } } },
-    academy_upgrades: {}, shop_offers: {
+    unit_promotions: {}, academy_upgrades: {}, shop_offers: {
       'shop_offer.test.die': { id: 'shop_offer.test.die', grant: { type: 'die', dice_profile_id: 'dice_profile.bone', size: 6 } },
       'shop_offer.test.spark': { id: 'shop_offer.test.spark', grant: { type: 'item', item_id: 'item.test.spark', quantity: 1 } },
       'shop_offer.test.unit': { id: 'shop_offer.test.unit', grant: { type: 'unit', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin' } },

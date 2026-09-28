@@ -162,6 +162,12 @@ final class ContentRegistry
     return $this->definitionOfType($id, 'academy_upgrade');
   }
 
+  /** @return array<string,mixed> */
+  public function unitPromotion(string $id): array
+  {
+    return $this->definitionOfType($id, 'unit_promotion');
+  }
+
   /** @return array<string, mixed> */
   public function event(string $id): array
   {

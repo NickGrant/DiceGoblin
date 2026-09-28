@@ -16,6 +16,7 @@ final class ClientContentProjector
   private const ITEM_FIELDS = ['id', 'display_name', 'description', 'category', 'rarity', 'icon_key', 'stackable', 'effect'];
   private const SHOP_OFFER_FIELDS = ['id', 'grant'];
   private const ACADEMY_UPGRADE_FIELDS = ['id', 'display_name', 'description', 'category'];
+  private const UNIT_PROMOTION_FIELDS = ['id', 'from_unit_type_id', 'to_unit_type_id'];
 
   /** @return array{revision:string,content:array<string,mixed>} */
   public function project(ContentRegistry $registry): array
@@ -35,6 +36,7 @@ final class ClientContentProjector
         'items' => $this->projectType($registry, 'item', self::ITEM_FIELDS),
         'shop_offers' => $this->projectType($registry, 'shop_offer', self::SHOP_OFFER_FIELDS),
         'academy_upgrades' => $this->projectType($registry, 'academy_upgrade', self::ACADEMY_UPGRADE_FIELDS),
+        'unit_promotions' => $this->projectType($registry, 'unit_promotion', self::UNIT_PROMOTION_FIELDS),
       ],
     ];
   }

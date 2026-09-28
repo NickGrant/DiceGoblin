@@ -18,7 +18,7 @@ describe('run contracts', () => {
         'run_node_type.exit': { id: 'run_node_type.exit', display_name: 'Exit', description: 'Leave.', icon_key: 'exit' },
       },
       items: {},
-      academy_upgrades: {}, shop_offers: {},
+      unit_promotions: {}, academy_upgrades: {}, shop_offers: {},
     } });
   }
 

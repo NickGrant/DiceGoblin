@@ -7,6 +7,10 @@
 **Status:** In Progress
 **Priority:** High
 
+#### Problem
+
+Establish the authored Goblin promotion graph and safe progression read contracts before the promotion mutation is implemented.
+
 #### Accepted baseline
 
 Milestone 8 Package 2 - Idempotent Raw Chaos Academy upgrade transaction + first derived-capability/Shop consequences is approved at `a22617e4e63898932c913e6c1290ed346fca9b55`.

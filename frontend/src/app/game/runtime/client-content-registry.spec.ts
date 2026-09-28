@@ -4,9 +4,36 @@ import {
   ClientContentRegistry,
 } from './client-content-registry';
 import { RuntimeFetch } from './runtime-api-client';
+import { UnitPromotionContractError, parseUnitPromotionOptionsEnvelope } from './unit-promotion-contracts';
 
 describe('ClientContentRegistry', () => {
   const revision = 'a'.repeat(64);
+
+  it('validates projected promotion edges and exact promotion option responses', () => {
+    const projection: any = validProjection();
+    projection.content.unit_types['unit_type.enforcer'] = {
+      ...projection.content.unit_types['unit_type.bruiser'], id: 'unit_type.enforcer', tier: 2,
+    };
+    projection.content.unit_promotions['unit_promotion.bruiser.enforcer'] = {
+      id: 'unit_promotion.bruiser.enforcer', from_unit_type_id: 'unit_type.bruiser', to_unit_type_id: 'unit_type.enforcer',
+    };
+    const registry = new ClientContentRegistry(projection);
+    const option = { promotion_id: 'unit_promotion.bruiser.enforcer', target_unit_type_id: 'unit_type.enforcer',
+      required_level: 3, price: { currency_id: 'raw_chaos', amount: 5 }, level_met: true,
+      can_afford: false, available: true, new_ability_ids: [] };
+    const data = { unit_id: '11', unit_type_id: 'unit_type.bruiser', level: 3, xp: 44,
+      xp_to_next_level: 300, raw_chaos: 0, player_revision: 2, configuration_locked: false, options: [option] };
+    const parse = (value: unknown) => parseUnitPromotionOptionsEnvelope({ ok: true, data: value }, '11', registry);
+    expect(parse(data).options[0].promotion.id).toBe(option.promotion_id);
+    for (const invalid of [
+      { ...data, xp: 300 }, { ...data, unit_id: '12' }, { ...data, options: [] },
+      { ...data, options: [{ ...option, available: false }] },
+      { ...data, options: [{ ...option, price: { currency_id: 'teeth', amount: 5 } }] },
+      { ...data, options: [{ ...option, new_ability_ids: ['ability.missing'] }] },
+    ]) expect(() => parse(invalid)).toThrowError(UnitPromotionContractError);
+    projection.content.unit_promotions['unit_promotion.bruiser.enforcer'].to_unit_type_id = 'unit_type.missing';
+    expect(() => new ClientContentRegistry(projection)).toThrowError(ClientContentError);
+  });
 
   it('loads the generated projection and indexes every public domain by stable ID', async () => {
     const projection = validProjection();
@@ -220,7 +247,7 @@ function validProjection() {
           effect: { type: 'unit_heal', amount: 7 },
         },
       },
-      academy_upgrades: {}, shop_offers: {
+      unit_promotions: {}, academy_upgrades: {}, shop_offers: {
         'shop_offer.test_tonic': { id: 'shop_offer.test_tonic', grant: { type: 'item', item_id: 'item.test.tonic', quantity: 2 } },
         'shop_offer.test_die': { id: 'shop_offer.test_die', grant: { type: 'die', dice_profile_id: 'dice_profile.cardboard_striking', size: 6 } },
         'shop_offer.test_unit': { id: 'shop_offer.test_unit', grant: { type: 'unit', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin' } },

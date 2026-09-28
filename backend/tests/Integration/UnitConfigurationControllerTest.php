@@ -78,7 +78,7 @@ final class UnitConfigurationControllerTest extends IntegrationTestCase
     $this->assertSame(200, $renamed['status'], json_encode($renamed['body']));
     $this->assertSame('🐲 名', $renamed['body']['data']['unit']['display_name'] ?? null);
     $this->assertSame($beforeRevision + 2, $renamed['body']['data']['player_revision'] ?? null);
-    $this->assertSame(['id', 'display_name', 'unit_type_id', 'kin_id', 'level', 'xp', 'lifecycle_status', 'promotion_history', 'owned_ability_ids', 'ability_loadout', 'dice_bindings'], array_keys($renamed['body']['data']['unit'] ?? []));
+    $this->assertSame(['id', 'display_name', 'unit_type_id', 'kin_id', 'level', 'xp', 'xp_to_next_level', 'lifecycle_status', 'promotion_history', 'owned_ability_ids', 'ability_loadout', 'dice_bindings'], array_keys($renamed['body']['data']['unit'] ?? []));
 
     $noop = $this->command($userId, 'renameUnit', $unitId, ['name' => '  🐲 名  ']);
     $this->assertSame(200, $noop['status']);

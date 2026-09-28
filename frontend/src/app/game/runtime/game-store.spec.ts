@@ -27,7 +27,7 @@ describe('GameStore Warband cache', () => {
       dice_profiles: { 'dice_profile.bone': { id: 'dice_profile.bone', display_name: 'Bone Die', material_id: 'dice_material.bone', rarity: 'common', aspect_ids: [], allowed_sizes: [6] } },
       run_node_types: { 'run_node_type.combat': { id: 'run_node_type.combat', display_name: 'Combat', description: 'Fight.', icon_key: 'combat' } },
       items: { 'item.test.tonic': { id: 'item.test.tonic', display_name: 'Tonic', description: 'Restores energy.', category: 'consumable', rarity: 'common', icon_key: 'tonic', stackable: true, effect: { type: 'energy_restore', amount: 5 } } },
-      academy_upgrades: {}, shop_offers: { 'shop_offer.test.tonic': { id: 'shop_offer.test.tonic', grant: { type: 'item', item_id: 'item.test.tonic', quantity: 2 } } },
+      unit_promotions: {}, academy_upgrades: {}, shop_offers: { 'shop_offer.test.tonic': { id: 'shop_offer.test.tonic', grant: { type: 'item', item_id: 'item.test.tonic', quantity: 2 } } },
     } });
   }
 
@@ -45,7 +45,7 @@ describe('GameStore Warband cache', () => {
       { offer_id: 'shop_offer.test.tonic', price: { currency_id: 'teeth', amount: 7 }, available: true, can_afford: true },
     ] } });
     result.getUnitDetail.and.resolveTo({ ok: true, data: { unit: {
-      id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active', promotion_history: [],
+      id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, xp_to_next_level: 100, lifecycle_status: 'active', promotion_history: [],
       owned_ability_ids: ['ability.bash', 'ability.smash'], ability_loadout: [{ ability_id: 'ability.bash', equip_order: 0 }],
       dice_bindings: [{ ability_id: 'ability.bash', slot_index: 0, dice_instance_id: '21' }],
     } } });
@@ -190,7 +190,7 @@ describe('GameStore Warband cache', () => {
     expect(store.unitDetail('11').status).toBe('loading');
     expect(client.getUnitDetail).toHaveBeenCalledTimes(1);
     resolve({ ok: true, data: { unit: {
-      id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active', promotion_history: [], owned_ability_ids: ['ability.bash', 'ability.smash'], ability_loadout: [{ ability_id: 'ability.bash', equip_order: 0 }], dice_bindings: [{ ability_id: 'ability.bash', slot_index: 0, dice_instance_id: '21' }],
+      id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, xp_to_next_level: 100, lifecycle_status: 'active', promotion_history: [], owned_ability_ids: ['ability.bash', 'ability.smash'], ability_loadout: [{ ability_id: 'ability.bash', equip_order: 0 }], dice_bindings: [{ ability_id: 'ability.bash', slot_index: 0, dice_instance_id: '21' }],
     } } });
     await first;
     await store.loadUnitDetail('11', client, registry);
@@ -206,7 +206,7 @@ describe('GameStore Warband cache', () => {
     await store.loadWarbandDomains(client, registry);
     const units = store.warband.units.data;
     client.getUnitDetail.and.resolveTo({ ok: true, data: { unit: {
-      id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active', promotion_history: [], owned_ability_ids: ['ability.bash'], ability_loadout: [{ ability_id: 'ability.bash', equip_order: 0 }], dice_bindings: [{ ability_id: 'ability.bash', slot_index: 0, dice_instance_id: '22' }],
+      id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, xp_to_next_level: 100, lifecycle_status: 'active', promotion_history: [], owned_ability_ids: ['ability.bash'], ability_loadout: [{ ability_id: 'ability.bash', equip_order: 0 }], dice_bindings: [{ ability_id: 'ability.bash', slot_index: 0, dice_instance_id: '22' }],
     } } });
     await store.loadUnitDetail('11', client, registry);
     expect(store.unitDetail('11')).toEqual(jasmine.objectContaining({ status: 'error', error: 'integrity' }));

@@ -5,7 +5,7 @@ describe('Consumable contracts', () => {
   function content(): ClientContentRegistry {
     return new ClientContentRegistry({ revision: 'a'.repeat(64), content: {
       gameplay: { run_energy_cost: 10 }, regions: {}, kin: {}, unit_types: {}, abilities: {},
-      dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {}, academy_upgrades: {}, shop_offers: {},
+      dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {}, unit_promotions: {}, academy_upgrades: {}, shop_offers: {},
       items: {
         'item.test.spark': { id: 'item.test.spark', display_name: 'Spark', description: 'Energy.', category: 'consumable', rarity: 'common', icon_key: 'spark', stackable: true, effect: { type: 'energy_restore', amount: 7 } },
         'item.test.heal': { id: 'item.test.heal', display_name: 'Poultice', description: 'Healing.', category: 'consumable', rarity: 'common', icon_key: 'heal', stackable: true, effect: { type: 'unit_heal', amount: 9 } },

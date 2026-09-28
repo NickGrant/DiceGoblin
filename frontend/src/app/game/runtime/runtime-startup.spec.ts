@@ -29,7 +29,7 @@ describe('RuntimeStartup', () => {
         dice_materials: {},
         dice_aspects: {},
         dice_profiles: {},
-        run_node_types: {}, items: {}, academy_upgrades: {}, shop_offers: {},
+        run_node_types: {}, items: {}, unit_promotions: {}, academy_upgrades: {}, shop_offers: {},
       },
     };
   }

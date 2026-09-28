@@ -72,6 +72,7 @@ final class WarbandReadControllerTest extends IntegrationTestCase
     foreach ([
       fn() => $controller->units(),
       fn() => $controller->unitDetail('1'),
+      fn() => $controller->promotionOptions('1'),
       fn() => $controller->dice(),
       fn() => $controller->squads(),
       fn() => (new WarbandFixtureController())->replace(),
@@ -102,6 +103,63 @@ final class WarbandReadControllerTest extends IntegrationTestCase
     $this->assertSame(404, $response['status']);
     $this->assertSame('unit_not_found', $response['body']['error']['code'] ?? null);
     $this->assertStringNotContainsString('Secret', json_encode($response['body']));
+    $promotionResponse = $this->invoke(fn() => $controller->promotionOptions((string)$otherUnitId));
+    $this->assertSame(404, $promotionResponse['status']);
+    $this->assertSame('unit_not_found', $promotionResponse['body']['error']['code'] ?? null);
+  }
+
+  public function testPromotionOptionsReadUsesAuthoredEdgesAndPreservesState(): void
+  {
+    $userId = $this->createAccount('promotion-reader@example.test', 'Promotion Reader');
+    $_SESSION['user_id'] = $userId;
+    $unitId = $this->insertUnit($userId, 'unit_type.bruiser', 'kin.goblin', 'Reader');
+    $this->pdo?->prepare('UPDATE `unit_instances` SET `level` = 3, `xp` = 44 WHERE `id` = ?')->execute([$unitId]);
+    $before = $this->warbandSnapshot($userId);
+    unset($_SERVER['HTTP_X_CSRF_TOKEN']);
+    $response = $this->invoke(fn() => (new WarbandController())->promotionOptions((string)$unitId));
+    $this->assertSame(200, $response['status'], json_encode($response['body']));
+    $data = $response['body']['data'];
+    $this->assertSame(['unit_id', 'unit_type_id', 'level', 'xp', 'xp_to_next_level', 'raw_chaos', 'player_revision', 'configuration_locked', 'options'], array_keys($data));
+    $this->assertSame((string)$unitId, $data['unit_id']);
+    $this->assertSame(3, $data['level']);
+    $this->assertSame(44, $data['xp']);
+    $this->assertSame(300, $data['xp_to_next_level']);
+    $this->assertFalse($data['configuration_locked']);
+    $this->assertCount(2, $data['options']);
+    $this->assertSame(['unit_promotion.bruiser.enforcer', 'unit_promotion.bruiser.pit_fighter'], array_column($data['options'], 'promotion_id'));
+    foreach ($data['options'] as $option) {
+      $this->assertTrue($option['level_met']);
+      $this->assertFalse($option['can_afford']);
+      $this->assertTrue($option['available']);
+      $this->assertSame(['currency_id' => 'raw_chaos', 'amount' => 5], $option['price']);
+    }
+    $this->assertSame($before, $this->warbandSnapshot($userId));
+    $this->pdo?->prepare('UPDATE `unit_instances` SET `level` = 2 WHERE `id` = ?')->execute([$unitId]);
+    $below = $this->invoke(fn() => (new WarbandController())->promotionOptions((string)$unitId));
+    $this->assertFalse($below['body']['data']['options'][0]['level_met']);
+    $this->assertFalse($below['body']['data']['options'][0]['available']);
+  }
+
+  public function testPromotedUnitRequiresAuthoredHistoryAndTerminalTypeHasNoOptions(): void
+  {
+    $userId = $this->createAccount('promotion-history-reader@example.test', 'Promotion History Reader');
+    $_SESSION['user_id'] = $userId;
+    $unitId = $this->insertUnit($userId, 'unit_type.juggernaut', 'kin.goblin', 'Veteran');
+    $controller = new WarbandController();
+    $invalid = $this->invoke(fn() => $controller->promotionOptions((string)$unitId));
+    $this->assertSame(500, $invalid['status']);
+    $this->assertSame('warband_data_integrity_error', $invalid['body']['error']['code']);
+    $stmt = $this->pdo?->prepare('INSERT INTO `unit_promotions` (`unit_id`, `from_unit_type_id`, `to_unit_type_id`, `promoted_at`) VALUES (?, ?, ?, ?)');
+    $stmt?->execute([$unitId, 'unit_type.bruiser', 'unit_type.pit_fighter', '2026-01-01 00:00:00']);
+    $stmt?->execute([$unitId, 'unit_type.pit_fighter', 'unit_type.juggernaut', '2026-01-02 00:00:00']);
+    $valid = $this->invoke(fn() => $controller->promotionOptions((string)$unitId));
+    $this->assertSame(200, $valid['status'], json_encode($valid['body']));
+    $this->assertSame([], $valid['body']['data']['options']);
+    $this->pdo?->prepare('UPDATE `unit_promotions` SET `from_unit_type_id` = ? WHERE `unit_id` = ? AND `to_unit_type_id` = ?')
+      ->execute(['unit_type.guardian', $unitId, 'unit_type.juggernaut']);
+    $broken = $this->invoke(fn() => $controller->promotionOptions((string)$unitId));
+    $this->assertSame(500, $broken['status']);
+    $this->assertSame('warband_data_integrity_error', $broken['body']['error']['code']);
   }
 
   public function testFixturePopulatesOwnedReadModelsWithStableShapesAndNoReadWrites(): void
@@ -135,7 +193,7 @@ final class WarbandReadControllerTest extends IntegrationTestCase
     $this->assertSame(200, $detail['status'], json_encode($detail['body']));
     $unit = $detail['body']['data']['unit'] ?? [];
     $this->assertSame(
-      ['id', 'display_name', 'unit_type_id', 'kin_id', 'level', 'xp', 'lifecycle_status', 'promotion_history', 'owned_ability_ids', 'ability_loadout', 'dice_bindings'],
+      ['id', 'display_name', 'unit_type_id', 'kin_id', 'level', 'xp', 'xp_to_next_level', 'lifecycle_status', 'promotion_history', 'owned_ability_ids', 'ability_loadout', 'dice_bindings'],
       array_keys($unit),
     );
     $this->assertSame('Knuckles', $unit['display_name'] ?? null);

@@ -17,14 +17,14 @@ describe('UnitConfigurationDraft', () => {
       },
       dice_materials: { 'dice_material.bone': { id: 'dice_material.bone', display_name: 'Bone', description: 'Bone.', art_key: 'bone', allowed_sizes: [6] } }, dice_aspects: {},
       dice_profiles: { 'dice_profile.bone': { id: 'dice_profile.bone', display_name: 'Bone Die', material_id: 'dice_material.bone', rarity: 'common', aspect_ids: [], allowed_sizes: [6] } },
-      run_node_types: {}, items: {}, academy_upgrades: {}, shop_offers: {},
+      run_node_types: {}, items: {}, unit_promotions: {}, academy_upgrades: {}, shop_offers: {},
     } });
     const bash = content.getAbility('ability.bash')!; const volley = content.getAbility('ability.volley')!; const passive = content.getAbility('ability.passive')!;
     const material = content.getDiceMaterial('dice_material.bone')!; const profile = content.getDiceProfile('dice_profile.bone')!;
     const die = (id: string, unitId?: string): WarbandDieSummary => ({ id, size: 6, profile, material, aspects: [], lifecycleStatus: 'active', bindings: unitId ? [{ unitId, ability: bash, slotIndex: 0 }] : [] });
     const dice = [die('21', '11'), die('22'), die('23'), die('24', '99')];
     const detail: UnitDetail = {
-      id: '11', displayName: 'Grub', unitType: content.getUnitType('unit_type.bruiser')!, kin: content.getKin('kin.goblin')!, level: 2, xp: 10, lifecycleStatus: 'active', promotionHistory: [],
+      id: '11', displayName: 'Grub', unitType: content.getUnitType('unit_type.bruiser')!, kin: content.getKin('kin.goblin')!, level: 2, xp: 10, xpToNextLevel: 200, lifecycleStatus: 'active', promotionHistory: [],
       ownedAbilities: [bash, volley, passive], abilityLoadout: [{ ability: bash, equipOrder: 0 }], diceBindings: [{ ability: bash, slotIndex: 0, die: dice[0] }],
     };
     return { content, dice, detail, bash, volley, passive };

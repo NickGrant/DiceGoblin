@@ -53,6 +53,25 @@ final class WarbandController
     }
   }
 
+  /** GET /api/v1/units/:unitId/promotion-options */
+  public function promotionOptions(?string $unitId): void
+  {
+    $services = $this->authenticatedServices();
+    if ($services === null) return;
+    $id = $this->unitId($unitId);
+    if ($id === null) return;
+    try {
+      $result = $services['unitPromotionOptionsQuery']->execute($services['userId'], $id);
+      Response::json(['ok' => true, 'data' => $result]);
+    } catch (UnitNotFoundException) {
+      $this->unitNotFound();
+    } catch (WarbandIntegrityException) {
+      $this->integrityError();
+    } catch (Throwable) {
+      $this->serverError();
+    }
+  }
+
   /** GET /api/v1/dice */
   public function dice(): void
   {

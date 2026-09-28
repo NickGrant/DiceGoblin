@@ -32,8 +32,13 @@ final class ActiveRunConfigurationPolicy
 
   public function assertUnitLoadoutAllowed(int $userId, int $unitId): void
   {
+    if ($this->isUnitConfigurationLocked($userId, $unitId)) throw new ActiveRunConfigurationLockedException();
+  }
+
+  public function isUnitConfigurationLocked(int $userId, int $unitId): bool
+  {
     $active = $this->activeParticipation($userId);
-    if ($active !== null && isset($active['unit_ids'][$unitId])) throw new ActiveRunConfigurationLockedException();
+    return $active !== null && isset($active['unit_ids'][$unitId]);
   }
 
   /** @param list<int> $boundUnitIds */

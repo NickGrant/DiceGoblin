@@ -1,5 +1,5 @@
 {
-    "revision": "b66785d3f57d8b7d146a76af7a9178a999896d099e1d64d551da902c50c8d01c",
+    "revision": "6f5be0f6b71942c71b22a4154ec1b56fe15b550b42d9e87b673df1cc9b774963",
     "content": {
         "gameplay": {
             "run_energy_cost": 10
@@ -1395,6 +1395,108 @@
                 "display_name": "Saboteur Research",
                 "description": "Unlock Saboteur recruits.",
                 "category": "unit_type"
+            }
+        },
+        "unit_promotions": {
+            "unit_promotion.bannerbearer.mascot": {
+                "id": "unit_promotion.bannerbearer.mascot",
+                "from_unit_type_id": "unit_type.bannerbearer",
+                "to_unit_type_id": "unit_type.mascot"
+            },
+            "unit_promotion.bannerbearer.warcaller": {
+                "id": "unit_promotion.bannerbearer.warcaller",
+                "from_unit_type_id": "unit_type.bannerbearer",
+                "to_unit_type_id": "unit_type.warcaller"
+            },
+            "unit_promotion.bruiser.enforcer": {
+                "id": "unit_promotion.bruiser.enforcer",
+                "from_unit_type_id": "unit_type.bruiser",
+                "to_unit_type_id": "unit_type.enforcer"
+            },
+            "unit_promotion.bruiser.pit_fighter": {
+                "id": "unit_promotion.bruiser.pit_fighter",
+                "from_unit_type_id": "unit_type.bruiser",
+                "to_unit_type_id": "unit_type.pit_fighter"
+            },
+            "unit_promotion.bulwark.ironwall": {
+                "id": "unit_promotion.bulwark.ironwall",
+                "from_unit_type_id": "unit_type.bulwark",
+                "to_unit_type_id": "unit_type.ironwall"
+            },
+            "unit_promotion.deadeye.sharpshot": {
+                "id": "unit_promotion.deadeye.sharpshot",
+                "from_unit_type_id": "unit_type.deadeye",
+                "to_unit_type_id": "unit_type.sharpshot"
+            },
+            "unit_promotion.enforcer.juggernaut": {
+                "id": "unit_promotion.enforcer.juggernaut",
+                "from_unit_type_id": "unit_type.enforcer",
+                "to_unit_type_id": "unit_type.juggernaut"
+            },
+            "unit_promotion.guardian.bulwark": {
+                "id": "unit_promotion.guardian.bulwark",
+                "from_unit_type_id": "unit_type.guardian",
+                "to_unit_type_id": "unit_type.bulwark"
+            },
+            "unit_promotion.guardian.shieldbreaker": {
+                "id": "unit_promotion.guardian.shieldbreaker",
+                "from_unit_type_id": "unit_type.guardian",
+                "to_unit_type_id": "unit_type.shieldbreaker"
+            },
+            "unit_promotion.marksman.deadeye": {
+                "id": "unit_promotion.marksman.deadeye",
+                "from_unit_type_id": "unit_type.marksman",
+                "to_unit_type_id": "unit_type.deadeye"
+            },
+            "unit_promotion.marksman.trapper": {
+                "id": "unit_promotion.marksman.trapper",
+                "from_unit_type_id": "unit_type.marksman",
+                "to_unit_type_id": "unit_type.trapper"
+            },
+            "unit_promotion.mascot.warchanter": {
+                "id": "unit_promotion.mascot.warchanter",
+                "from_unit_type_id": "unit_type.mascot",
+                "to_unit_type_id": "unit_type.warchanter"
+            },
+            "unit_promotion.pit_fighter.juggernaut": {
+                "id": "unit_promotion.pit_fighter.juggernaut",
+                "from_unit_type_id": "unit_type.pit_fighter",
+                "to_unit_type_id": "unit_type.juggernaut"
+            },
+            "unit_promotion.plaguehand.venomwright": {
+                "id": "unit_promotion.plaguehand.venomwright",
+                "from_unit_type_id": "unit_type.plaguehand",
+                "to_unit_type_id": "unit_type.venomwright"
+            },
+            "unit_promotion.saboteur.plaguehand": {
+                "id": "unit_promotion.saboteur.plaguehand",
+                "from_unit_type_id": "unit_type.saboteur",
+                "to_unit_type_id": "unit_type.plaguehand"
+            },
+            "unit_promotion.saboteur.trickshot": {
+                "id": "unit_promotion.saboteur.trickshot",
+                "from_unit_type_id": "unit_type.saboteur",
+                "to_unit_type_id": "unit_type.trickshot"
+            },
+            "unit_promotion.shieldbreaker.ironwall": {
+                "id": "unit_promotion.shieldbreaker.ironwall",
+                "from_unit_type_id": "unit_type.shieldbreaker",
+                "to_unit_type_id": "unit_type.ironwall"
+            },
+            "unit_promotion.trapper.sharpshot": {
+                "id": "unit_promotion.trapper.sharpshot",
+                "from_unit_type_id": "unit_type.trapper",
+                "to_unit_type_id": "unit_type.sharpshot"
+            },
+            "unit_promotion.trickshot.venomwright": {
+                "id": "unit_promotion.trickshot.venomwright",
+                "from_unit_type_id": "unit_type.trickshot",
+                "to_unit_type_id": "unit_type.venomwright"
+            },
+            "unit_promotion.warcaller.warchanter": {
+                "id": "unit_promotion.warcaller.warchanter",
+                "from_unit_type_id": "unit_type.warcaller",
+                "to_unit_type_id": "unit_type.warchanter"
             }
         }
     }

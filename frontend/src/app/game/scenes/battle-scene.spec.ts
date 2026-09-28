@@ -340,7 +340,7 @@ function content(): ClientContentRegistry {
       'run_node_type.exit': node('run_node_type.exit'),
     },
     items: {},
-    academy_upgrades: {}, shop_offers: {},
+    unit_promotions: {}, academy_upgrades: {}, shop_offers: {},
   } });
 }
 

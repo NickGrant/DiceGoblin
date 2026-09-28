@@ -80,6 +80,7 @@ final class ContentValidator
       'unlock' => $this->validateUnlock($definition, $location),
       'capability' => $this->validateCapability($definition, $location),
       'academy_upgrade' => $this->validateAcademyUpgrade($definition, $location),
+      'unit_promotion' => $this->validateUnitPromotion($definition, $location),
       'event' => $this->validateEvent($definition, $location),
       'reward_definition' => $this->validateRewardDefinition($definition, $location),
       'item' => $this->validateItem($definition, $location),
@@ -148,6 +149,29 @@ final class ContentValidator
       unset($visiting[$id]); $visited[$id] = true;
     };
     foreach ($academyByGrant as $id) $visit($id);
+
+    $promotionPairs = []; $promotionTargets = [];
+    foreach ($definitions as $id => $definition) {
+      if (($definition['type'] ?? null) !== 'unit_promotion') continue;
+      $from = $this->requireReferenceType($definitions, $id, 'from_unit_type_id', $definition['from_unit_type_id'], 'unit_type');
+      $to = $this->requireReferenceType($definitions, $id, 'to_unit_type_id', $definition['to_unit_type_id'], 'unit_type');
+      $pair = $from['id'] . '>' . $to['id'];
+      if ($from['id'] === $to['id'] || $to['tier'] !== $from['tier'] + 1 || !in_array($from['tier'], [1, 2], true)) {
+        throw new ContentValidationException("{$id} must promote to the next supported tier.");
+      }
+      if (isset($promotionPairs[$pair])) throw new ContentValidationException("{$id} duplicates promotion path '{$pair}'.");
+      $promotionPairs[$pair] = true;
+      $promotionTargets[$from['id']][] = $to['id'];
+    }
+    $visiting = []; $visited = [];
+    $visitPromotion = function (string $id) use (&$visitPromotion, &$visiting, &$visited, $promotionTargets): void {
+      if (isset($visiting[$id])) throw new ContentValidationException("Unit promotion cycle at '{$id}'.");
+      if (isset($visited[$id])) return;
+      $visiting[$id] = true;
+      foreach ($promotionTargets[$id] ?? [] as $target) $visitPromotion($target);
+      unset($visiting[$id]); $visited[$id] = true;
+    };
+    foreach (array_keys($promotionTargets) as $id) $visitPromotion($id);
 
     foreach ($definitions as $id => $definition) {
       if (($definition['type'] ?? null) === 'region') {
@@ -348,6 +372,21 @@ final class ContentValidator
       }
       $seen[$prerequisite] = true;
     }
+  }
+
+  /** @param array<string,mixed> $definition */
+  private function validateUnitPromotion(array $definition, string $location): void
+  {
+    $this->requireExactFieldSet($definition, ['id', 'type', 'from_unit_type_id', 'to_unit_type_id', 'required_level', 'price'], [], $location);
+    $this->requireNamespace($definition, 'unit_promotion.', $location);
+    $this->requireStableIdWithNamespace($definition, 'from_unit_type_id', 'unit_type.', $location);
+    $this->requireStableIdWithNamespace($definition, 'to_unit_type_id', 'unit_type.', $location);
+    $this->requireIntegerInRange($definition, 'required_level', 1, ClientSafeInteger::MAXIMUM, $location);
+    $price = $definition['price'] ?? null;
+    if (!is_array($price) || array_is_list($price)) throw new ContentValidationException("{$location} price must be an object.");
+    $this->requireExactFieldSet($price, ['currency_id', 'amount'], [], $location);
+    $this->requireAllowedString($price, 'currency_id', ['raw_chaos'], $location);
+    $this->requireIntegerInRange($price, 'amount', 1, ClientSafeInteger::MAXIMUM, $location);
   }
 
   /** @param array<string, mixed> $definition */

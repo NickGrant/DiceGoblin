@@ -521,7 +521,7 @@ function content(): ClientContentRegistry {
     },
     items: { 'item.test.heal': { id: 'item.test.heal', display_name: 'Poultice', description: 'Healing.',
       category: 'consumable', rarity: 'common', icon_key: 'heal', stackable: true, effect: { type: 'unit_heal', amount: 5 } } },
-    academy_upgrades: {}, shop_offers: {},
+    unit_promotions: {}, academy_upgrades: {}, shop_offers: {},
   } });
 }
 
