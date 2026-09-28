@@ -206,6 +206,19 @@ final class RunStartControllerTest extends IntegrationTestCase
     $this->assertSame(1, $this->receiptCount($userId));
   }
 
+  public function testRunStartUsesOwnedEnergyMaximumForRegenerationAndSpend(): void
+  {
+    [$userId] = $this->fixtureAccount('run-energy-capability@example.test');
+    $this->setPlayerState($userId, 60, '2026-09-13 12:00:00');
+    (new UserUnlockRepository($this->pdo))->insertIfAbsent($userId, 'unlock.capability.energy_max_75');
+    $result = $this->commandAt($userId, '2026-09-13 12:10:00')->execute(
+      $userId, ['region_id' => 'region.the_farm'], 'run-energy-capability',
+    );
+    $this->assertSame(75, $result['energy']['normal_max']);
+    $this->assertSame(52, $result['energy']['current']);
+    $this->assertSame('52', (string)$this->scalar('SELECT `energy_current` FROM `user_state` WHERE `user_id` = ?', [$userId]));
+  }
+
   /** @dataProvider successfulEnergyStateProvider */
   public function testSuccessfulSpendPersistsControlledAnchorSemantics(
     int $current,

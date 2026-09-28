@@ -6,6 +6,7 @@ namespace DiceGoblins\Application\Commands;
 use DateTimeImmutable;
 use DateTimeZone;
 use DiceGoblins\Application\RegionAvailabilityPolicy;
+use DiceGoblins\Application\PermanentCapabilityPolicy;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Domain\Energy\EnergySpendCalculator;
 use DiceGoblins\Domain\Energy\InsufficientEnergyException;
@@ -89,7 +90,7 @@ final class StartRunCommand
         $spend = $this->energy->spend(
           (int)$state['energy_current'],
           $lastRegenerationAt,
-          $this->content->energyNormalMaximum(),
+          (new PermanentCapabilityPolicy($this->content))->energyNormalMaximum($this->unlocks->listIdsForUser($userId, true)),
           $this->content->energyRegenerationPerHour(),
           $this->content->runEnergyCost(),
           $now,

@@ -27,7 +27,7 @@ describe('GameStore Warband cache', () => {
       dice_profiles: { 'dice_profile.bone': { id: 'dice_profile.bone', display_name: 'Bone Die', material_id: 'dice_material.bone', rarity: 'common', aspect_ids: [], allowed_sizes: [6] } },
       run_node_types: { 'run_node_type.combat': { id: 'run_node_type.combat', display_name: 'Combat', description: 'Fight.', icon_key: 'combat' } },
       items: { 'item.test.tonic': { id: 'item.test.tonic', display_name: 'Tonic', description: 'Restores energy.', category: 'consumable', rarity: 'common', icon_key: 'tonic', stackable: true, effect: { type: 'energy_restore', amount: 5 } } },
-      shop_offers: { 'shop_offer.test.tonic': { id: 'shop_offer.test.tonic', grant: { type: 'item', item_id: 'item.test.tonic', quantity: 2 } } },
+      academy_upgrades: {}, shop_offers: { 'shop_offer.test.tonic': { id: 'shop_offer.test.tonic', grant: { type: 'item', item_id: 'item.test.tonic', quantity: 2 } } },
     } });
   }
 

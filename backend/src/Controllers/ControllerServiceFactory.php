@@ -201,7 +201,7 @@ final class ControllerServiceFactory
         $unlockRepository, $unitTypeAvailability, $normalUnitCreation, $content,
       ),
       'restoreEnergyCommand' => new RestoreEnergyCommand(
-        $pdo, $core['playerStateRepo'], $itemRepository, $idempotencyRepository, $content,
+        $pdo, $core['playerStateRepo'], $itemRepository, $idempotencyRepository, $unlockRepository, $content,
         new EnergyRestoreCalculator(), new SystemClock(),
       ),
       'healRunUnitCommand' => new HealRunUnitCommand(

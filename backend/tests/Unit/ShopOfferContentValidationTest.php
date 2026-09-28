@@ -19,7 +19,8 @@ final class ShopOfferContentValidationTest extends TestCase
   {
     $registry = ContentRegistry::load($this->canonicalRoot());
     $ids = ['shop_offer.cardboard_d4', 'shop_offer.cardboard_d6', 'shop_offer.cardboard_d8',
-      'shop_offer.field_poultice', 'shop_offer.goblin_bruiser', 'shop_offer.spark_tonic'];
+      'shop_offer.field_poultice', 'shop_offer.goblin_bannerbearer', 'shop_offer.goblin_bruiser',
+      'shop_offer.goblin_guardian', 'shop_offer.goblin_marksman', 'shop_offer.goblin_saboteur', 'shop_offer.spark_tonic'];
     $this->assertSame($ids, array_keys($registry->definitionsOfType('shop_offer')));
     $offers = (new ClientContentProjector())->project($registry)['content']['shop_offers'];
     $this->assertSame($ids, array_keys($offers));
@@ -114,7 +115,7 @@ final class ShopOfferContentValidationTest extends TestCase
     }
   }
 
-  public function testDieReferenceCompatibilityAndMilestoneSizeCapReject(): void
+  public function testDieReferenceCompatibilityAndStandardSizes(): void
   {
     $missing = $this->dieOffer(); $missing['grant']['dice_profile_id'] = 'dice_profile.missing';
     $incompatible = $this->dieOffer(); $incompatible['grant']['dice_profile_id'] = 'dice_profile.test_d6';
@@ -124,9 +125,11 @@ final class ShopOfferContentValidationTest extends TestCase
     }
     foreach ([10, 12, 20] as $size) {
       $offer = $this->dieOffer(); $offer['grant']['size'] = $size;
-      try { $this->registry([$offer], false); $this->fail('Expected Milestone 7 die-size rejection.'); }
-      catch (ContentValidationException) { $this->addToAssertionCount(1); }
+      $this->assertSame($size, $this->registry([$offer], false)->shopOffer($offer['id'])['grant']['size']);
     }
+    $unsupported = $this->dieOffer(); $unsupported['grant']['size'] = 16;
+    $this->expectException(ContentValidationException::class);
+    $this->registry([$unsupported], false);
   }
 
   public function testTierOneBasicGoblinUnitOfferLoadsProjectsAndUsesAuthoredUnlockAvailability(): void
@@ -225,6 +228,7 @@ final class ShopOfferContentValidationTest extends TestCase
       $target = $root . '/' . str_replace('\\', '/', $relative); if (!is_dir(dirname($target))) mkdir(dirname($target), 0777, true); copy($file->getPathname(), $target); }
     file_put_contents($root . '/shop_offers/catalog.json', json_encode(['definitions' => []], JSON_THROW_ON_ERROR));
     file_put_contents($root . '/unlocks/unit-types.json', json_encode(['definitions' => []], JSON_THROW_ON_ERROR));
+    file_put_contents($root . '/academy_upgrades/catalog.json', json_encode(['definitions' => []], JSON_THROW_ON_ERROR));
     return $root;
   }
   private function removeTree(string $root): void

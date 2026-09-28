@@ -73,7 +73,7 @@ describe('Package 8 persistent economy runtime integration', () => {
       items: { 'item.test.spark': { id: 'item.test.spark', display_name: 'Spark', description: 'Bright.',
         category: 'consumable', rarity: 'common', icon_key: 'spark', stackable: true,
         effect: { type: 'energy_restore', amount: 5 } } },
-      shop_offers: { 'shop_offer.test.spark': { id: 'shop_offer.test.spark',
+      academy_upgrades: {}, shop_offers: { 'shop_offer.test.spark': { id: 'shop_offer.test.spark',
         grant: { type: 'item', item_id: 'item.test.spark', quantity: 2 } } } } });
   }
 

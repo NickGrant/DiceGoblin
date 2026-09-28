@@ -63,7 +63,7 @@ describe('RuntimeApiClient', () => {
     const content = new ClientContentRegistry({ revision: 'a'.repeat(64), content: {
       gameplay: { run_energy_cost: 10 }, regions: {}, kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {},
       items: { 'item.test.scrap': { id: 'item.test.scrap', display_name: 'Scrap', description: 'Scrap.', category: 'material', rarity: 'common', icon_key: 'scrap', stackable: true } },
-      shop_offers: { 'shop_offer.item': { id: 'shop_offer.item', grant: { type: 'item', item_id: 'item.test.scrap', quantity: 2 } } },
+      academy_upgrades: {}, shop_offers: { 'shop_offer.item': { id: 'shop_offer.item', grant: { type: 'item', item_id: 'item.test.scrap', quantity: 2 } } },
     } });
     const request = { offer_id: 'shop_offer.item', expected_price: { currency_id: 'teeth' as const, amount: 7 } };
     const success = { ok: true, data: { offer_id: 'shop_offer.item', spend: { currency_id: 'teeth', amount: 7, balance_before: 10, balance_after: 3 },
@@ -89,7 +89,7 @@ describe('RuntimeApiClient', () => {
 
   it('sends exact contextual consumable routes, bodies, security headers, and parses receipts', async () => {
     const content = new ClientContentRegistry({ revision: 'a'.repeat(64), content: {
-      gameplay: { run_energy_cost: 10 }, regions: {}, kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {}, shop_offers: {},
+      gameplay: { run_energy_cost: 10 }, regions: {}, kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {}, academy_upgrades: {}, shop_offers: {},
       items: {
         'item.test.spark': { id: 'item.test.spark', display_name: 'Spark', description: 'Energy.', category: 'consumable', rarity: 'common', icon_key: 'spark', stackable: true, effect: { type: 'energy_restore', amount: 7 } },
         'item.test.heal': { id: 'item.test.heal', display_name: 'Poultice', description: 'Healing.', category: 'consumable', rarity: 'common', icon_key: 'heal', stackable: true, effect: { type: 'unit_heal', amount: 9 } },
@@ -204,7 +204,7 @@ describe('RuntimeApiClient', () => {
       abilities: { 'ability.bash': { id: 'ability.bash', kind: 'active', display_name: 'Bash', description: 'Bash.', icon_key: 'bash', dice_slot_count: 1 } },
       dice_materials: { 'dice_material.bone': { id: 'dice_material.bone', display_name: 'Bone', description: 'Bone.', art_key: 'bone', allowed_sizes: [6] } }, dice_aspects: {},
       dice_profiles: { 'dice_profile.bone': { id: 'dice_profile.bone', display_name: 'Bone Die', material_id: 'dice_material.bone', rarity: 'common', aspect_ids: [], allowed_sizes: [6] } },
-      run_node_types: {}, items: {}, shop_offers: {},
+      run_node_types: {}, items: {}, academy_upgrades: {}, shop_offers: {},
     } });
     const dice = parseDiceCollectionEnvelope({ ok: true, data: { dice: [
       { id: '21', size: 6, profile_id: 'dice_profile.bone', lifecycle_status: 'active', bindings: [{ unit_id: '11', ability_id: 'ability.bash', slot_index: 0 }] },
@@ -268,7 +268,7 @@ describe('RuntimeApiClient', () => {
   it('sends strict run start and current requests with the required security boundaries', async () => {
     const content = new ClientContentRegistry({ revision: 'a'.repeat(64), content: {
       gameplay: { run_energy_cost: 10 }, regions: { 'region.the_farm': { id: 'region.the_farm', display_name: 'The Farm', art_key: 'farm' } },
-      kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {}, items: {}, shop_offers: {},
+      kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {}, items: {}, academy_upgrades: {}, shop_offers: {},
     } });
     const energy = { current: 40, normal_max: 50, regeneration_per_hour: 12, regeneration_interval_seconds: 300,
       last_regeneration_at: '2026-09-13T12:00:00Z', next_regeneration_at: null, fully_regenerated_at: null };
@@ -308,7 +308,7 @@ describe('RuntimeApiClient', () => {
         'run_node_type.exit': node('run_node_type.exit'),
       },
       items: {},
-      shop_offers: {},
+      academy_upgrades: {}, shop_offers: {},
     } });
     const raw = { ok: true, data: { run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active',
       created_at: '2026-09-19T12:00:00Z', nodes: [
@@ -346,7 +346,7 @@ describe('RuntimeApiClient', () => {
   it('preserves malformed and HTTP 5xx run-start outcomes for ambiguous retry handling', async () => {
     const content = new ClientContentRegistry({ revision: 'a'.repeat(64), content: {
       gameplay: { run_energy_cost: 10 }, regions: { 'region.the_farm': { id: 'region.the_farm', display_name: 'The Farm', art_key: 'farm' } },
-      kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {}, items: {}, shop_offers: {},
+      kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {}, items: {}, academy_upgrades: {}, shop_offers: {},
     } });
     const malformed = jasmine.createSpy<RuntimeFetch>('malformed').and.resolveTo(
       new Response(JSON.stringify({ ok: true, data: {} }), { status: 200 }),

@@ -44,7 +44,9 @@ final class ContentRegistryTest extends TestCase
     $this->assertCount(5, $registry->definitionsOfType('run_node_type'));
     $this->assertCount(2, $registry->definitionsOfType('region'));
     $this->assertCount(2, $registry->definitionsOfType('run_generation'));
-    $this->assertCount(2, $registry->definitionsOfType('unlock'));
+    $this->assertCount(11, $registry->definitionsOfType('unlock'));
+    $this->assertCount(5, $registry->definitionsOfType('capability'));
+    $this->assertCount(9, $registry->definitionsOfType('academy_upgrade'));
     $this->assertSame('region.mountains', $registry->unlock('unlock.region.mountains')['target_id']);
     $this->assertSame('unit_type.bruiser', $registry->unlock('unlock.unit_type.bruiser')['target_id']);
     $this->assertSame('Pig Kin', $registry->kin('kin.pig')['display_name']);
@@ -189,6 +191,44 @@ final class ContentRegistryTest extends TestCase
     $this->assertNotSame($canonical->revision(), ContentRegistry::load($changed)->revision());
   }
 
+  public function testAcademyAndCapabilityDefinitionsRejectInvalidValuesAndRelationships(): void
+  {
+    $canonical = $this->canonicalDefinitions(ContentRegistry::load($this->canonicalRoot()));
+    $cases = [
+      ['capability.die_size_d10', 'kind', 'unsupported', "field 'kind'"],
+      ['capability.die_size_d10', 'value', 16, 'unsupported maximum die size'],
+      ['academy_upgrade.guardian', 'grant_unlock_id', 'unlock.missing', 'references missing unlock'],
+      ['academy_upgrade.guardian', 'prerequisite_unlock_ids', ['unlock.missing'], 'references missing unlock'],
+      ['academy_upgrade.energy_max_100', 'prerequisite_unlock_ids', ['unlock.capability.energy_max_75', 'unlock.capability.energy_max_75'], 'duplicate or self prerequisite'],
+      ['academy_upgrade.energy_max_100', 'prerequisite_unlock_ids', ['unlock.capability.energy_max_100'], 'duplicate or self prerequisite'],
+      ['academy_upgrade.marksman', 'grant_unlock_id', 'unlock.unit_type.guardian', 'duplicates Academy grant'],
+      ['academy_upgrade.energy_max_75', 'prerequisite_unlock_ids', ['unlock.capability.energy_max_100'], 'prerequisite cycle'],
+    ];
+    foreach ($cases as [$id, $field, $value, $message]) {
+      $definitions = $canonical;
+      foreach ($definitions as &$definition) {
+        if ($definition['id'] === $id) $definition[$field] = $value;
+      }
+      unset($definition);
+      try {
+        ContentRegistry::load($this->rootWithFiles(['all.json' => ['definitions' => $definitions]]));
+        $this->fail("Expected invalid {$id} {$field}.");
+      } catch (ContentValidationException $e) {
+        $this->assertStringContainsString($message, $e->getMessage());
+      }
+    }
+  }
+
+  public function testAcademyProjectionDoesNotExposePricesOrCapabilityInternals(): void
+  {
+    $projection = (new ClientContentProjector())->project(ContentRegistry::load($this->canonicalRoot()));
+    $this->assertCount(9, $projection['content']['academy_upgrades']);
+    $this->assertSame(['id', 'display_name', 'description', 'category'],
+      array_keys($projection['content']['academy_upgrades']['academy_upgrade.guardian']));
+    $this->assertArrayNotHasKey('capabilities', $projection['content']);
+    $this->assertStringNotContainsString('raw_chaos', json_encode($projection['content']['academy_upgrades'], JSON_THROW_ON_ERROR));
+  }
+
   private function canonicalRoot(): string
   {
     return dirname(__DIR__, 2) . '/content';
@@ -206,7 +246,7 @@ final class ContentRegistryTest extends TestCase
   private function canonicalDefinitions(ContentRegistry $registry): array
   {
     $definitions = [];
-    foreach (['gameplay_config', 'region', 'kin', 'unit_type', 'enemy_unit_type', 'encounter', 'ability', 'dice_material', 'dice_aspect', 'dice_profile', 'run_node_type', 'run_generation', 'unlock', 'event', 'reward_definition', 'item', 'shop_offer'] as $type) {
+    foreach (['gameplay_config', 'region', 'kin', 'unit_type', 'enemy_unit_type', 'encounter', 'ability', 'dice_material', 'dice_aspect', 'dice_profile', 'run_node_type', 'run_generation', 'unlock', 'capability', 'academy_upgrade', 'event', 'reward_definition', 'item', 'shop_offer'] as $type) {
       foreach ($registry->definitionsOfType($type) as $definition) $definitions[] = $definition;
     }
     return $definitions;

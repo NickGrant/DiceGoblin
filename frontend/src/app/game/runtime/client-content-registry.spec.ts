@@ -220,7 +220,7 @@ function validProjection() {
           effect: { type: 'unit_heal', amount: 7 },
         },
       },
-      shop_offers: {
+      academy_upgrades: {}, shop_offers: {
         'shop_offer.test_tonic': { id: 'shop_offer.test_tonic', grant: { type: 'item', item_id: 'item.test.tonic', quantity: 2 } },
         'shop_offer.test_die': { id: 'shop_offer.test_die', grant: { type: 'die', dice_profile_id: 'dice_profile.cardboard_striking', size: 6 } },
         'shop_offer.test_unit': { id: 'shop_offer.test_unit', grant: { type: 'unit', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin' } },

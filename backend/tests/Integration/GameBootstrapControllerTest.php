@@ -114,6 +114,21 @@ final class GameBootstrapControllerTest extends IntegrationTestCase
     $this->assertSame('1', (string)$this->scalar('SELECT COUNT(*) FROM `user_unlocks` WHERE `user_id` = ?', [$otherUserId]));
   }
 
+  public function testOwnedEnergyCapabilityRaisesRegenerationCapWithoutReadSideWrite(): void
+  {
+    $userId = $this->createAccount('energy-capability@example.test', 'Energy Capability');
+    $this->pdo?->prepare('UPDATE `user_state` SET `energy_current` = 60, `energy_last_regen_at` = DATE_SUB(UTC_TIMESTAMP(), INTERVAL 10 MINUTE) WHERE `user_id` = ?')->execute([$userId]);
+    $this->pdo?->prepare('INSERT INTO `user_unlocks` (`user_id`, `unlock_id`) VALUES (?, ?)')
+      ->execute([$userId, 'unlock.capability.energy_max_75']);
+    $before = $this->playerStateRow($userId);
+    $_SESSION['user_id'] = $userId;
+    $response = $this->invoke(fn() => (new GameBootstrapController())->bootstrap());
+    $this->assertSame(200, $response['status'], json_encode($response['body']));
+    $this->assertSame(75, $response['body']['data']['player']['energy']['normal_max']);
+    $this->assertSame(62, $response['body']['data']['player']['energy']['current']);
+    $this->assertSame($before, $this->playerStateRow($userId));
+  }
+
   public function testMissingPlayerStateReturnsControlledIntegrityFailureWithoutProvisioning(): void
   {
     $core = ControllerServiceFactory::buildCore($this->pdo);

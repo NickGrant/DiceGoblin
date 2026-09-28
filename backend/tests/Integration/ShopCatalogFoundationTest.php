@@ -27,9 +27,24 @@ final class ShopCatalogFoundationTest extends IntegrationTestCase
     $this->assertSame(4, $result['player_revision']);
     $this->assertSame([
       'shop_offer.cardboard_d4', 'shop_offer.cardboard_d6', 'shop_offer.cardboard_d8',
-      'shop_offer.field_poultice', 'shop_offer.goblin_bruiser', 'shop_offer.spark_tonic',
+      'shop_offer.field_poultice', 'shop_offer.goblin_bannerbearer', 'shop_offer.goblin_bruiser',
+      'shop_offer.goblin_guardian', 'shop_offer.goblin_marksman', 'shop_offer.goblin_saboteur', 'shop_offer.spark_tonic',
     ], array_column($result['offers'], 'offer_id'));
     $this->assertFalse($result['offers'][4]['available']);
+  }
+
+  public function testCanonicalAcademyUnitOffersRequireTheirExactUnlock(): void
+  {
+    $userId = $this->user('Academy Shop Units', 20, 2);
+    $query = $this->query(ContentRegistry::load(dirname(__DIR__, 2) . '/content'));
+    $locked = array_column($query->execute($userId)['offers'], 'available', 'offer_id');
+    foreach (['guardian', 'marksman', 'bannerbearer', 'saboteur'] as $unit) {
+      $this->assertFalse($locked['shop_offer.goblin_' . $unit]);
+    }
+    (new UserUnlockRepository($this->pdo))->insertIfAbsent($userId, 'unlock.unit_type.guardian');
+    $available = array_column($query->execute($userId)['offers'], 'available', 'offer_id');
+    $this->assertTrue($available['shop_offer.goblin_guardian']);
+    $this->assertFalse($available['shop_offer.goblin_marksman']);
   }
 
   public function testFixtureOffersAreDeterministicAuthoritativeAndAffordabilityIsPerUser(): void
@@ -64,6 +79,24 @@ final class ShopCatalogFoundationTest extends IntegrationTestCase
   {
     $this->expectException(ShopIntegrityException::class);
     $this->query($this->content())->execute(999999999);
+  }
+
+  public function testHigherDieOfferAvailabilityFollowsOwnedCapability(): void
+  {
+    $root = $this->copyCanonicalRoot();
+    $offers = [];
+    foreach ([10, 12, 20] as $size) $offers[] = [
+      'id' => 'shop_offer.d' . $size, 'type' => 'shop_offer',
+      'grant' => ['type' => 'die', 'dice_profile_id' => 'dice_profile.cardboard_plain', 'size' => $size],
+      'price' => ['currency_id' => 'teeth', 'amount' => 7],
+    ];
+    file_put_contents($root . '/shop_offers/test.json', json_encode(['definitions' => $offers], JSON_THROW_ON_ERROR));
+    $query = $this->query(ContentRegistry::load($root));
+    $userId = $this->user('Shop Higher Dice', 20, 2);
+    $this->assertSame([false, false, false], array_column($query->execute($userId)['offers'], 'available'));
+    (new UserUnlockRepository($this->pdo))->insertIfAbsent($userId, 'unlock.capability.die_size_d12');
+    $this->assertSame([true, true, false], array_column($query->execute($userId)['offers'], 'available'));
+    $this->assertSame('2', (string)$this->scalar('SELECT `player_revision` FROM `user_state` WHERE `user_id` = ?', [$userId]));
   }
 
   public function testClientSafeMaximumWalletRevisionAndPriceAreReturnedExactly(): void
@@ -159,6 +192,7 @@ final class ShopCatalogFoundationTest extends IntegrationTestCase
     foreach ($files as $file) { if (!$file->isFile()) continue; $relative = substr($file->getPathname(), strlen($source) + 1); $target = $root . '/' . str_replace('\\', '/', $relative); if (!is_dir(dirname($target))) mkdir(dirname($target), 0777, true); copy($file->getPathname(), $target); }
     file_put_contents($root . '/shop_offers/catalog.json', json_encode(['definitions' => []], JSON_THROW_ON_ERROR));
     file_put_contents($root . '/unlocks/unit-types.json', json_encode(['definitions' => []], JSON_THROW_ON_ERROR));
+    file_put_contents($root . '/academy_upgrades/catalog.json', json_encode(['definitions' => []], JSON_THROW_ON_ERROR));
     return $root;
   }
   private function removeTree(string $root): void

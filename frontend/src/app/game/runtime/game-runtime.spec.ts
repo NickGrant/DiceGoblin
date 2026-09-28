@@ -152,7 +152,7 @@ describe('GameRuntime', () => {
         dice_profiles: {},
         run_node_types: {},
         items: {},
-        shop_offers: {},
+        academy_upgrades: {}, shop_offers: {},
       },
     });
     const startup = new RuntimeStartup(apiClient, contentLoader);
@@ -224,7 +224,7 @@ describe('GameRuntime', () => {
           dice_profiles: {},
           run_node_types: {},
           items: {},
-          shop_offers: {},
+          academy_upgrades: {}, shop_offers: {},
         },
       });
       return new RuntimeStartup(apiClient, contentLoader);
@@ -297,7 +297,7 @@ describe('GameRuntime', () => {
         dice_profiles: {},
         run_node_types: {},
         items: {},
-        shop_offers: {},
+        academy_upgrades: {}, shop_offers: {},
       },
     });
     const startup = new RuntimeStartup(apiClient, contentLoader);

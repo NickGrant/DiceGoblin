@@ -6,6 +6,7 @@ namespace DiceGoblins\Application\Commands;
 use Closure;
 use DiceGoblins\Application\NormalUnitCreationService;
 use DiceGoblins\Application\UnitTypeAvailabilityPolicy;
+use DiceGoblins\Application\PermanentCapabilityPolicy;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Content\ContentValidationException;
 use DiceGoblins\Repositories\IdempotencyRequestRepository;
@@ -84,6 +85,13 @@ final class PurchaseShopOfferCommand
           throw new ShopPurchaseException('shop_offer_unavailable', 'Shop offer is unavailable.', 403);
         }
       }
+      if (($offer['grant']['type'] ?? null) === 'die') {
+        $profile = $this->content->diceProfile($offer['grant']['dice_profile_id']);
+        if (!(new PermanentCapabilityPolicy($this->content))->canAcquireDie(
+          $offer['grant']['size'], $profile, $this->unlocks->listIdsForUser($userId, true))) {
+          throw new ShopPurchaseException('shop_offer_unavailable', 'Shop offer is unavailable.', 403);
+        }
+      }
       if ($purchase->expectedAmount !== $price) {
         throw new ShopPurchaseException('shop_offer_changed', 'Shop offer changed; refresh before purchasing.', 409);
       }
@@ -138,7 +146,7 @@ final class PurchaseShopOfferCommand
     }
     if (($grant['type'] ?? null) === 'die') {
       $profileId = $grant['dice_profile_id'] ?? null; $size = $grant['size'] ?? null;
-      if (!is_string($profileId) || !is_int($size) || !in_array($size, [4, 6, 8], true)) {
+      if (!is_string($profileId) || !is_int($size) || !in_array($size, [4, 6, 8, 10, 12, 20], true)) {
         throw new ShopPurchaseIntegrityException('Shop die grant is incoherent.');
       }
       $profile = $this->content->diceProfile($profileId);
@@ -185,7 +193,7 @@ final class PurchaseShopOfferCommand
     $dieValid = ($output['type'] ?? null) === 'die' && $this->exact($output, ['type', 'die'])
       && is_array($die) && !array_is_list($die) && $this->exact($die, ['id', 'size', 'profile_id', 'lifecycle_status'])
       && is_string($die['id'] ?? null) && preg_match('/^[1-9][0-9]*$/D', $die['id'])
-      && in_array($die['size'] ?? null, [4, 6, 8], true) && is_string($die['profile_id'] ?? null)
+      && in_array($die['size'] ?? null, [4, 6, 8, 10, 12, 20], true) && is_string($die['profile_id'] ?? null)
       && ($die['lifecycle_status'] ?? null) === 'active';
     $unit = $output['unit'] ?? null;
     $unitValid = ($output['type'] ?? null) === 'unit' && $this->exact($output, ['type', 'unit'])

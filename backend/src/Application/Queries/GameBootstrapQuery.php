@@ -6,6 +6,7 @@ namespace DiceGoblins\Application\Queries;
 use DateTimeImmutable;
 use DateTimeZone;
 use DiceGoblins\Application\RegionAvailabilityPolicy;
+use DiceGoblins\Application\PermanentCapabilityPolicy;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Domain\Energy\EnergyCalculator;
 use DiceGoblins\Repositories\PlayerStateRepository;
@@ -44,15 +45,14 @@ final class GameBootstrapQuery
       (string)$state['energy_last_regen_at'],
       new DateTimeZone('UTC'),
     );
+    $unlockIds = $this->unlocks->listIdsForUser($userId);
     $energy = $this->energyCalculator->calculate(
       (int)$state['energy_current'],
       $lastRegenerationAt,
-      $this->content->energyNormalMaximum(),
+      (new PermanentCapabilityPolicy($this->content))->energyNormalMaximum($unlockIds),
       $this->content->energyRegenerationPerHour(),
       $now,
     );
-
-    $unlockIds = $this->unlocks->listIdsForUser($userId);
 
     return [
       'account' => [

@@ -5,6 +5,10 @@
       "type": "unlock",
       "target_type": "unit_type",
       "target_id": "unit_type.bruiser"
-    }
+    },
+    {"id":"unlock.unit_type.guardian","type":"unlock","target_type":"unit_type","target_id":"unit_type.guardian"},
+    {"id":"unlock.unit_type.marksman","type":"unlock","target_type":"unit_type","target_id":"unit_type.marksman"},
+    {"id":"unlock.unit_type.bannerbearer","type":"unlock","target_type":"unit_type","target_id":"unit_type.bannerbearer"},
+    {"id":"unlock.unit_type.saboteur","type":"unlock","target_type":"unit_type","target_id":"unit_type.saboteur"}
   ]
 }

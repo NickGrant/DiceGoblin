@@ -17,7 +17,7 @@ export interface ShopPurchasePayload {
 export type ShopPurchaseOutput = {
   readonly type: 'item'; readonly itemId: string; readonly quantityGranted: number; readonly ownedQuantityAfter: number;
 } | {
-  readonly type: 'die'; readonly die: { readonly id: string; readonly size: 4 | 6 | 8; readonly profileId: string; readonly lifecycleStatus: 'active' };
+  readonly type: 'die'; readonly die: { readonly id: string; readonly size: 4 | 6 | 8 | 10 | 12 | 20; readonly profileId: string; readonly lifecycleStatus: 'active' };
 } | {
   readonly type: 'unit'; readonly unit: { readonly id: string; readonly displayName: string; readonly unitTypeId: string;
     readonly kinId: 'kin.goblin'; readonly level: 1; readonly xp: 0; readonly lifecycleStatus: 'active' };
@@ -108,11 +108,11 @@ export function parseShopPurchaseEnvelope(
     if (!exact(output, ['type', 'die']) || offer.grant.type !== 'die' || !record(die)
       || !exact(die, ['id', 'size', 'profile_id', 'lifecycle_status'])
       || typeof die['id'] !== 'string' || !/^[1-9][0-9]*$/.test(die['id'])
-      || ![4, 6, 8].includes(die['size'] as number) || die['size'] !== offer.grant.size
+      || ![4, 6, 8, 10, 12, 20].includes(die['size'] as number) || die['size'] !== offer.grant.size
       || die['profile_id'] !== offer.grant.dice_profile_id || die['lifecycle_status'] !== 'active') {
       throw new ShopContractError('Shop die output is incoherent.');
     }
-    parsedOutput = Object.freeze({ type: 'die', die: Object.freeze({ id: die['id'], size: die['size'] as 4 | 6 | 8,
+    parsedOutput = Object.freeze({ type: 'die', die: Object.freeze({ id: die['id'], size: die['size'] as 4 | 6 | 8 | 10 | 12 | 20,
       profileId: die['profile_id'] as string, lifecycleStatus: 'active' }) });
   } else if (output['type'] === 'unit') {
     const unit = output['unit'];

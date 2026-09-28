@@ -19,6 +19,7 @@ use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Repositories\RunNodeResolutionRepository;
 use DiceGoblins\Repositories\RunPersistenceRepository;
 use DiceGoblins\Repositories\UserItemRepository;
+use DiceGoblins\Repositories\UserUnlockRepository;
 use DiceGoblins\Support\ClientSafeInteger;
 use DiceGoblins\Tests\Support\IntegrationTestCase;
 use RuntimeException;
@@ -59,6 +60,17 @@ final class ConsumableCommandTest extends IntegrationTestCase
     $overResult = $this->energyCommand($content, '2026-09-26T12:12:30Z')->execute($over, ['item_id' => 'item.test.spark'], 'energy-over-key');
     $this->assertSame(56, $overResult['energy']['current']);
     $this->assertNull($overResult['energy']['next_regeneration_at']);
+  }
+
+  public function testOwnedEnergyCapabilityAllowsRestoreAboveBaseNormalMaximum(): void
+  {
+    $userId = $this->user(50, '2026-09-26 12:00:00');
+    $this->item($userId, 'item.test.spark', 1);
+    (new UserUnlockRepository($this->pdo))->insertIfAbsent($userId, 'unlock.capability.energy_max_75');
+    $result = $this->energyCommand($this->content(), '2026-09-26T12:00:00Z')
+      ->execute($userId, ['item_id' => 'item.test.spark'], 'energy-higher-cap');
+    $this->assertSame(75, $result['energy']['normal_max']);
+    $this->assertSame(57, $result['energy']['current']);
   }
 
   public function testEnergyRestoreInterpretsPersistedRegenerationTimestampAsUtc(): void
@@ -249,7 +261,8 @@ final class ConsumableCommandTest extends IntegrationTestCase
   private function energyCommand(ContentRegistry $content, string $now = '2026-09-26T12:00:00Z', ?\Closure $beforeCommit = null): RestoreEnergyCommand
   {
     return new RestoreEnergyCommand($this->pdo, new PlayerStateRepository($this->pdo), new UserItemRepository($this->pdo),
-      new IdempotencyRequestRepository($this->pdo), $content, new EnergyRestoreCalculator(), $this->clock($now), $beforeCommit);
+      new IdempotencyRequestRepository($this->pdo), new UserUnlockRepository($this->pdo), $content,
+      new EnergyRestoreCalculator(), $this->clock($now), $beforeCommit);
   }
 
   private function healCommand(ContentRegistry $content, ?\Closure $beforeCommit = null): HealRunUnitCommand

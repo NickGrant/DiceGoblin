@@ -17,6 +17,10 @@ Milestone 7 - Economy and Inventory is complete. Technical closure was approved 
 
 Package 1 begins Milestone 8. Do not carry the prototype Academy or promotion persistence/orchestration forward wholesale.
 
+#### Problem
+
+Permanent Academy progression needs authored unlocks and a consistent authoritative read model before spending and UI packages can use it.
+
 #### Purpose
 
 Establish the permanent-progression vocabulary and authoritative read boundaries that later Milestone 8 mutation/UI packages will use.

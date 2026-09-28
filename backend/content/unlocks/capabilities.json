@@ -1,0 +1,9 @@
+{
+  "definitions": [
+    {"id":"unlock.capability.energy_max_75","type":"unlock","target_type":"capability","target_id":"capability.energy_max_75"},
+    {"id":"unlock.capability.energy_max_100","type":"unlock","target_type":"capability","target_id":"capability.energy_max_100"},
+    {"id":"unlock.capability.die_size_d10","type":"unlock","target_type":"capability","target_id":"capability.die_size_d10"},
+    {"id":"unlock.capability.die_size_d12","type":"unlock","target_type":"capability","target_id":"capability.die_size_d12"},
+    {"id":"unlock.capability.die_size_d20","type":"unlock","target_type":"capability","target_id":"capability.die_size_d20"}
+  ]
+}

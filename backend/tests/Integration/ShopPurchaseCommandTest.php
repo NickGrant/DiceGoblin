@@ -70,6 +70,29 @@ final class ShopPurchaseCommandTest extends IntegrationTestCase
   /** @return list<array{int}> */
   public static function basicDieSizes(): array { return [[4], [6], [8]]; }
 
+  /** @dataProvider higherDieSizes */
+  public function testHigherDieOfferRejectsAtomicallyUntilCapabilityIsOwned(int $size): void
+  {
+    $userId = $this->user(7);
+    $content = $this->content();
+    $offerId = 'shop_offer.d' . $size;
+    try {
+      $this->command($content)->execute($userId, $this->request($offerId, 7), 'locked-d' . $size);
+      $this->fail('Expected locked size.');
+    } catch (ShopPurchaseException $e) { $this->assertSame('shop_offer_unavailable', $e->errorCode); }
+    $this->assertSame('7', (string)$this->scalar('SELECT `teeth` FROM `user_state` WHERE `user_id` = ?', [$userId]));
+    $this->assertSame('1', (string)$this->scalar('SELECT `player_revision` FROM `user_state` WHERE `user_id` = ?', [$userId]));
+    $this->assertSame('0', (string)$this->scalar('SELECT COUNT(*) FROM `dice_instances` WHERE `user_id` = ?', [$userId]));
+    $this->assertSame('0', (string)$this->scalar('SELECT COUNT(*) FROM `idempotency_requests` WHERE `user_id` = ?', [$userId]));
+    (new UserUnlockRepository($this->pdo))->insertIfAbsent($userId, 'unlock.capability.die_size_d' . $size);
+    $result = $this->command($content)->execute($userId, $this->request($offerId, 7), 'locked-d' . $size);
+    $this->assertSame($size, $result['output']['die']['size']);
+    $this->assertSame(0, $result['spend']['balance_after']);
+  }
+
+  /** @return list<array{int}> */
+  public static function higherDieSizes(): array { return [[10], [12], [20]]; }
+
   public function testInsufficientChangedAndMissingOffersChangeNothing(): void
   {
     foreach ([
@@ -280,13 +303,14 @@ final class ShopPurchaseCommandTest extends IntegrationTestCase
     foreach ($files as $file) { if (!$file->isFile()) continue; $relative = substr($file->getPathname(), strlen($source) + 1); $target = $root . '/' . str_replace('\\', '/', $relative); if (!is_dir(dirname($target))) mkdir(dirname($target), 0777, true); copy($file->getPathname(), $target); }
     file_put_contents($root . '/shop_offers/catalog.json', json_encode(['definitions' => []], JSON_THROW_ON_ERROR));
     file_put_contents($root . '/unlocks/unit-types.json', json_encode(['definitions' => []], JSON_THROW_ON_ERROR));
+    file_put_contents($root . '/academy_upgrades/catalog.json', json_encode(['definitions' => []], JSON_THROW_ON_ERROR));
     file_put_contents($root . '/items/test-purchase.json', json_encode(['definitions' => [[
       'id' => 'item.test.scrap', 'type' => 'item', 'display_name' => 'Scrap', 'description' => 'Scrap.', 'category' => 'material', 'rarity' => 'common', 'icon_key' => 'scrap', 'stackable' => true,
     ]]], JSON_THROW_ON_ERROR));
     $offers = [[
       'id' => 'shop_offer.item', 'type' => 'shop_offer', 'grant' => ['type' => 'item', 'item_id' => 'item.test.scrap', 'quantity' => 2], 'price' => ['currency_id' => 'teeth', 'amount' => $itemPrice],
     ]];
-    foreach ([4, 6, 8] as $size) $offers[] = ['id' => 'shop_offer.d' . $size, 'type' => 'shop_offer',
+    foreach ([4, 6, 8, 10, 12, 20] as $size) $offers[] = ['id' => 'shop_offer.d' . $size, 'type' => 'shop_offer',
       'grant' => ['type' => 'die', 'dice_profile_id' => 'dice_profile.cardboard_plain', 'size' => $size], 'price' => ['currency_id' => 'teeth', 'amount' => 7]];
     $offers[] = ['id' => 'shop_offer.unit', 'type' => 'shop_offer',
       'grant' => ['type' => 'unit', 'unit_type_id' => 'unit_type.bruiser', 'kin_id' => 'kin.goblin'],

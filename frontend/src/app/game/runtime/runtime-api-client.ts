@@ -31,6 +31,7 @@ import { ConsumableContractError, ConsumableUsePayload, EnergyRestoreResult, Run
   parseEnergyRestoreEnvelope, parseRunUnitHealEnvelope } from './consumable-contracts';
 import { DiceLifecycleContractError, DiceSellResult, DiceSalvageResult,
   parseDiceSellEnvelope, parseDiceSalvageEnvelope } from './dice-lifecycle-contracts';
+import { AcademyCatalogResult, AcademyContractError, parseAcademyCatalogEnvelope } from './academy-contracts';
 
 export type RuntimeFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
@@ -86,6 +87,15 @@ export class RuntimeApiClient {
 
   async getShop(): Promise<unknown> {
     return this.get('/api/v1/shop');
+  }
+
+  async getAcademy(content: ClientContentRegistry): Promise<AcademyCatalogResult> {
+    const value = await this.get('/api/v1/academy');
+    try { return parseAcademyCatalogEnvelope(value, content); }
+    catch (error) {
+      if (error instanceof AcademyContractError) throw new RuntimeApiError('malformed-response', 200);
+      throw error;
+    }
   }
 
   async sellDie(diceId: string, csrfToken: string, idempotencyKey: string): Promise<DiceSellResult> {

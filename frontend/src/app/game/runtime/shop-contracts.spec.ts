@@ -2,18 +2,18 @@ import { ClientContentRegistry } from './client-content-registry';
 import { ShopContractError, parseShopCatalogEnvelope, parseShopPurchaseEnvelope } from './shop-contracts';
 
 describe('Shop contracts', () => {
-  function content(withOffers = true): ClientContentRegistry {
+  function content(withOffers = true, dieSize: 4 | 6 | 8 | 10 | 12 | 20 = 8): ClientContentRegistry {
     return new ClientContentRegistry({ revision: 'a'.repeat(64), content: {
       gameplay: { run_energy_cost: 10 }, regions: {},
       kin: { 'kin.goblin': { id: 'kin.goblin', display_name: 'Goblin', description: 'Clever.', art_key: 'goblin', trait_summary: 'Quick.', stat_modifiers: { hp: 0, attack: 0, defense: 0, precision: 0, resolve: 0 } } },
       unit_types: { 'unit_type.bruiser': { id: 'unit_type.bruiser', display_name: 'Bruiser', description: 'Strong.', art_key: 'bruiser', role: 'frontline', tier: 1, base_stats: { hp: 1, attack: 1, defense: 1, precision: 1, resolve: 1 }, growth_per_level: { hp: 1, attack: 1, defense: 1, precision: 1, resolve: 1 }, ability_ids: ['ability.bash'] } },
       abilities: { 'ability.bash': { id: 'ability.bash', kind: 'active', display_name: 'Bash', description: 'Bonk.', icon_key: 'bash', dice_slot_count: 1 } },
-      dice_materials: { 'dice_material.cardboard': { id: 'dice_material.cardboard', display_name: 'Cardboard', description: 'Card.', art_key: 'card', allowed_sizes: [4, 6, 8] } },
-      dice_aspects: {}, dice_profiles: { 'dice_profile.cardboard': { id: 'dice_profile.cardboard', display_name: 'Cardboard', material_id: 'dice_material.cardboard', rarity: 'common', aspect_ids: [], allowed_sizes: [4, 6, 8] } }, run_node_types: {},
+      dice_materials: { 'dice_material.cardboard': { id: 'dice_material.cardboard', display_name: 'Cardboard', description: 'Card.', art_key: 'card', allowed_sizes: [4, 6, 8, 10, 12, 20] } },
+      dice_aspects: {}, dice_profiles: { 'dice_profile.cardboard': { id: 'dice_profile.cardboard', display_name: 'Cardboard', material_id: 'dice_material.cardboard', rarity: 'common', aspect_ids: [], allowed_sizes: [4, 6, 8, 10, 12, 20] } }, run_node_types: {},
       items: { 'item.test.scrap': { id: 'item.test.scrap', display_name: 'Scrap', description: 'Scrap.', category: 'material', rarity: 'common', icon_key: 'scrap', stackable: true } },
-      shop_offers: withOffers ? {
+      academy_upgrades: {}, shop_offers: withOffers ? {
         'shop_offer.a1': { id: 'shop_offer.a1', grant: { type: 'item', item_id: 'item.test.scrap', quantity: 2 } },
-        'shop_offer.a_': { id: 'shop_offer.a_', grant: { type: 'die', dice_profile_id: 'dice_profile.cardboard', size: 8 } },
+        'shop_offer.a_': { id: 'shop_offer.a_', grant: { type: 'die', dice_profile_id: 'dice_profile.cardboard', size: dieSize } },
         'shop_offer.unit': { id: 'shop_offer.unit', grant: { type: 'unit', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin' } },
       } : {},
     } });
@@ -72,6 +72,18 @@ describe('Shop contracts', () => {
     expect(unit.output).toEqual({ type: 'unit', unit: { id: '9007199254740994', displayName: 'Bruiser', unitTypeId: 'unit_type.bruiser', kinId: 'kin.goblin', level: 1, xp: 0, lifecycleStatus: 'active' } });
   });
 
+  it('accepts standard higher die sizes when an authored offer grants that exact size', () => {
+    for (const size of [10, 12, 20] as const) {
+      const request = { offer_id: 'shop_offer.a_', expected_price: { currency_id: 'teeth' as const, amount: 10 } };
+      const result = parseShopPurchaseEnvelope({ ok: true, data: {
+        offer_id: 'shop_offer.a_', spend: { currency_id: 'teeth', amount: 10, balance_before: 10, balance_after: 0 },
+        player_revision: 6, output: { type: 'die', die: { id: '9', size, profile_id: 'dice_profile.cardboard', lifecycle_status: 'active' } },
+      } }, request, content(true, size));
+      expect(result.output.type).toBe('die');
+      if (result.output.type === 'die') expect(result.output.die.size).toBe(size);
+    }
+  });
+
   it('rejects unit purchase output that diverges from the authored normal-unit contract', () => {
     const request = { offer_id: 'shop_offer.unit', expected_price: { currency_id: 'teeth' as const, amount: 13 } };
     const base = { ok: true, data: {
@@ -90,7 +102,7 @@ describe('Shop contracts', () => {
     for (const value of invalid) expect(() => parseShopPurchaseEnvelope(value, request, content())).toThrowError(ShopContractError);
   });
 
-  it('rejects expanded, unsafe, arithmetically invalid, mismatched, and greater-than-d8 purchase outputs', () => {
+  it('rejects expanded, unsafe, arithmetically invalid, and mismatched purchase outputs', () => {
     const request = { offer_id: 'shop_offer.a1', expected_price: { currency_id: 'teeth' as const, amount: 7 } };
     const base = { ok: true, data: {
       offer_id: 'shop_offer.a1', spend: { currency_id: 'teeth', amount: 7, balance_before: 10, balance_after: 3 },

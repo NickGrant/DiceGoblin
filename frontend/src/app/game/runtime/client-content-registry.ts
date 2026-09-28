@@ -40,11 +40,18 @@ export type ClientShopOfferDefinition = {
   readonly grant: { readonly type: 'item'; readonly item_id: string; readonly quantity: number };
 } | {
   readonly id: string;
-  readonly grant: { readonly type: 'die'; readonly dice_profile_id: string; readonly size: 4 | 6 | 8 };
+  readonly grant: { readonly type: 'die'; readonly dice_profile_id: string; readonly size: 4 | 6 | 8 | 10 | 12 | 20 };
 } | {
   readonly id: string;
   readonly grant: { readonly type: 'unit'; readonly unit_type_id: string; readonly kin_id: 'kin.goblin' };
 };
+
+export interface ClientAcademyUpgradeDefinition {
+  readonly id: string;
+  readonly display_name: string;
+  readonly description: string;
+  readonly category: 'unit_type' | 'energy' | 'dice';
+}
 
 export interface ClientKinDefinition {
   readonly id: string;
@@ -127,6 +134,7 @@ export interface ClientContentProjection {
     readonly run_node_types: Readonly<Record<string, ClientRunNodeTypeDefinition>>;
     readonly items: Readonly<Record<string, ClientItemDefinition>>;
     readonly shop_offers: Readonly<Record<string, ClientShopOfferDefinition>>;
+    readonly academy_upgrades: Readonly<Record<string, ClientAcademyUpgradeDefinition>>;
   };
 }
 
@@ -161,6 +169,7 @@ const catalogFields = [
   'run_node_types',
   'items',
   'shop_offers',
+  'academy_upgrades',
 ] as const;
 const contentFields = ['gameplay', ...catalogFields] as const;
 
@@ -300,6 +309,7 @@ export class ClientContentRegistry {
   private readonly runNodeTypes = new Map<string, ClientRunNodeTypeDefinition>();
   private readonly items = new Map<string, ClientItemDefinition>();
   private readonly shopOffers = new Map<string, ClientShopOfferDefinition>();
+  private readonly academyUpgrades = new Map<string, ClientAcademyUpgradeDefinition>();
 
   constructor(projection: unknown) {
     if (!isRecord(projection))
@@ -360,6 +370,8 @@ export class ClientContentRegistry {
       (id, value) => this.shopOfferDefinition(id, value),
       false,
     );
+    this.loadCatalog(catalogs.academy_upgrades, this.academyUpgrades,
+      (id, value) => this.academyUpgradeDefinition(id, value), false);
     this.validateReferences();
     this.revision = revision;
   }
@@ -408,6 +420,12 @@ export class ClientContentRegistry {
   }
   listShopOffers(): readonly ClientShopOfferDefinition[] {
     return Object.freeze([...this.shopOffers.values()]);
+  }
+  getAcademyUpgrade(stableId: string): ClientAcademyUpgradeDefinition | undefined {
+    return this.academyUpgrades.get(stableId);
+  }
+  listAcademyUpgrades(): readonly ClientAcademyUpgradeDefinition[] {
+    return Object.freeze([...this.academyUpgrades.values()]);
   }
 
   private loadCatalog<T extends { readonly id: string }>(
@@ -663,10 +681,10 @@ export class ClientContentRegistry {
     if (type === 'die') {
       requireExactFields(grant, ['type', 'dice_profile_id', 'size'], `Shop offer '${catalogId}' grant`);
       const profileId = requireNonEmptyString(grant, 'dice_profile_id');
-      const size = requireInteger(grant, 'size', 4, 8);
-      if (!stableIdPattern.test(profileId) || !profileId.startsWith('dice_profile.') || ![4, 6, 8].includes(size))
+      const size = requireInteger(grant, 'size', 4, 20);
+      if (!stableIdPattern.test(profileId) || !profileId.startsWith('dice_profile.') || !supportedDieSizes.has(size))
         throw new ClientContentError(`Shop offer '${catalogId}' has an invalid die grant.`);
-      return Object.freeze({ id, grant: Object.freeze({ type, dice_profile_id: profileId, size: size as 4 | 6 | 8 }) });
+      return Object.freeze({ id, grant: Object.freeze({ type, dice_profile_id: profileId, size: size as 4 | 6 | 8 | 10 | 12 | 20 }) });
     }
     if (type === 'unit') {
       requireExactFields(grant, ['type', 'unit_type_id', 'kin_id'], `Shop offer '${catalogId}' grant`);
@@ -677,6 +695,17 @@ export class ClientContentRegistry {
       return Object.freeze({ id, grant: Object.freeze({ type, unit_type_id: unitTypeId, kin_id: 'kin.goblin' as const }) });
     }
     throw new ClientContentError(`Shop offer '${catalogId}' has an unsupported grant.`);
+  }
+
+  private academyUpgradeDefinition(catalogId: string, value: unknown): ClientAcademyUpgradeDefinition {
+    if (!isRecord(value)) throw new ClientContentError('Client content contains an invalid Academy upgrade.');
+    requireExactFields(value, ['id', 'display_name', 'description', 'category'], `Academy upgrade '${catalogId}'`);
+    const id = requireIdentity(value, catalogId, 'academy_upgrade.', 'Academy upgrade');
+    const category = requireNonEmptyString(value, 'category');
+    if (category !== 'unit_type' && category !== 'energy' && category !== 'dice')
+      throw new ClientContentError(`Academy upgrade '${catalogId}' has an invalid category.`);
+    return Object.freeze({ id, display_name: requireNonEmptyString(value, 'display_name'),
+      description: requireNonEmptyString(value, 'description'), category });
   }
 
   private validateReferences(): void {

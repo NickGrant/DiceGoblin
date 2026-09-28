@@ -7,6 +7,7 @@ use Closure;
 use DateTimeImmutable;
 use DateTimeZone;
 use DiceGoblins\Content\ContentRegistry;
+use DiceGoblins\Application\PermanentCapabilityPolicy;
 use DiceGoblins\Content\ContentValidationException;
 use DiceGoblins\Domain\Energy\EnergyRestoreCalculator;
 use DiceGoblins\Domain\Energy\EnergyRestoreUnavailableException;
@@ -15,6 +16,7 @@ use DiceGoblins\Infrastructure\Clock;
 use DiceGoblins\Repositories\IdempotencyRequestRepository;
 use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Repositories\UserItemRepository;
+use DiceGoblins\Repositories\UserUnlockRepository;
 use DiceGoblins\Support\ClientSafeInteger;
 use JsonException;
 use PDO;
@@ -29,6 +31,7 @@ final class RestoreEnergyCommand
     private readonly PlayerStateRepository $players,
     private readonly UserItemRepository $items,
     private readonly IdempotencyRequestRepository $idempotency,
+    private readonly UserUnlockRepository $unlocks,
     private readonly ContentRegistry $content,
     private readonly EnergyRestoreCalculator $energy,
     private readonly Clock $clock,
@@ -61,7 +64,8 @@ final class RestoreEnergyCommand
       try {
         $anchor = new DateTimeImmutable($state['energy_last_regen_at'], new DateTimeZone('UTC'));
         $restored = $this->energy->restore(
-          $state['energy_current'], $anchor, $this->content->energyNormalMaximum(),
+          $state['energy_current'], $anchor,
+          (new PermanentCapabilityPolicy($this->content))->energyNormalMaximum($this->unlocks->listIdsForUser($userId, true)),
           $this->content->energyRegenerationPerHour(), $item['effect']['amount'], $now,
         );
       } catch (EnergyRestoreUnavailableException) {

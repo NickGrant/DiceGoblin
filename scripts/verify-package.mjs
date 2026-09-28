@@ -8,12 +8,17 @@ const continueOnFailure = process.argv.includes("--continue-on-failure");
 const outputDir = path.join(root, "artifacts", "verification");
 const summaryPath = path.join(outputDir, "package-summary.json");
 const maxBuffer = 64 * 1024 * 1024;
+const dockerPhp = process.platform === "win32"
+  && spawnSync("where.exe", ["php"], { encoding: "utf8" }).status !== 0;
 
 const gates = [
   { id: "llm-check", label: "LLM/context", command: npmBin, args: ["run", "llm:check"] },
   { id: "docs-lint", label: "Docs lint", command: npmBin, args: ["run", "docs:lint"] },
-  { id: "content-validate", label: "Content", command: npmBin, args: ["run", "content:validate"] },
-  { id: "backend-tests", label: "Backend", command: npmBin, args: ["run", "test:backend"] },
+  dockerPhp
+    ? { id: "content-validate", label: "Content", command: "docker", args: ["compose", "run", "--rm", "-T", "--no-deps", "-v", `${path.join(root, "frontend")}:/frontend`, "backend", "php", "bin/validate-content.php"] }
+    : { id: "content-validate", label: "Content", command: npmBin, args: ["run", "content:validate"] },
+  { id: "backend-tests", label: "Backend", command: npmBin,
+    args: dockerPhp ? ["run", "test:backend:docker"] : ["run", "test:backend"] },
   {
     id: "frontend-tests",
     label: "Frontend",

@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace DiceGoblins\Application\Queries;
 
 use DiceGoblins\Application\UnitTypeAvailabilityPolicy;
+use DiceGoblins\Application\PermanentCapabilityPolicy;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Repositories\UserUnlockRepository;
@@ -29,7 +30,9 @@ final class ShopCatalogQuery
       || $state['player_revision'] > ClientSafeInteger::MAXIMUM) {
       throw new ShopIntegrityException('Required Shop player state is unavailable.');
     }
-    $availableUnitTypes = array_flip($this->unitTypes->availableUnitTypeIds($this->unlocks->listIdsForUser($userId)));
+    $unlockIds = $this->unlocks->listIdsForUser($userId);
+    $availableUnitTypes = array_flip($this->unitTypes->availableUnitTypeIds($unlockIds));
+    $capabilities = new PermanentCapabilityPolicy($this->content);
     $offers = [];
     foreach ($this->content->definitionsOfType('shop_offer') as $id => $definition) {
       $amount = (int)$definition['price']['amount'];
@@ -39,8 +42,12 @@ final class ShopCatalogQuery
       $offers[] = [
         'offer_id' => $id,
         'price' => ['currency_id' => 'teeth', 'amount' => $amount],
-        'available' => ($definition['grant']['type'] ?? null) !== 'unit'
-          || isset($availableUnitTypes[(string)$definition['grant']['unit_type_id']]),
+        'available' => match ($definition['grant']['type']) {
+          'unit' => isset($availableUnitTypes[(string)$definition['grant']['unit_type_id']]),
+          'die' => $capabilities->canAcquireDie($definition['grant']['size'],
+            $this->content->diceProfile($definition['grant']['dice_profile_id']), $unlockIds),
+          default => true,
+        },
         'can_afford' => $state['teeth'] >= $amount,
       ];
     }

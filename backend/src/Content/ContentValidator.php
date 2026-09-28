@@ -78,6 +78,8 @@ final class ContentValidator
       'run_node_type' => $this->validateRunNodeType($definition, $location),
       'run_generation' => $this->validateRunGeneration($definition, $location),
       'unlock' => $this->validateUnlock($definition, $location),
+      'capability' => $this->validateCapability($definition, $location),
+      'academy_upgrade' => $this->validateAcademyUpgrade($definition, $location),
       'event' => $this->validateEvent($definition, $location),
       'reward_definition' => $this->validateRewardDefinition($definition, $location),
       'item' => $this->validateItem($definition, $location),
@@ -97,6 +99,32 @@ final class ContentValidator
     if (!isset($definitions[$regionId]) || ($definitions[$regionId]['type'] ?? null) !== 'region') {
       throw new ContentValidationException("config.gameplay starting_region_id references missing region '{$regionId}'.");
     }
+
+    $academyGrants = [];
+    $academyByGrant = [];
+    foreach ($definitions as $id => $definition) {
+      if (($definition['type'] ?? null) === 'academy_upgrade') {
+        $grant = $definition['grant_unlock_id'];
+        $this->requireReferenceType($definitions, $id, 'grant_unlock_id', $grant, 'unlock');
+        if (isset($academyGrants[$grant])) throw new ContentValidationException("{$id} duplicates Academy grant '{$grant}'.");
+        $academyGrants[$grant] = true;
+        $academyByGrant[$grant] = $id;
+        foreach ($definition['prerequisite_unlock_ids'] as $prerequisite) {
+          $this->requireReferenceType($definitions, $id, 'prerequisite_unlock_ids', $prerequisite, 'unlock');
+        }
+      }
+    }
+    $visiting = []; $visited = [];
+    $visit = function (string $id) use (&$visit, &$visiting, &$visited, $definitions, $academyByGrant): void {
+      if (isset($visiting[$id])) throw new ContentValidationException("Academy prerequisite cycle at '{$id}'.");
+      if (isset($visited[$id])) return;
+      $visiting[$id] = true;
+      foreach ($definitions[$id]['prerequisite_unlock_ids'] as $prerequisite) {
+        if (isset($academyByGrant[$prerequisite])) $visit($academyByGrant[$prerequisite]);
+      }
+      unset($visiting[$id]); $visited[$id] = true;
+    };
+    foreach ($academyByGrant as $id) $visit($id);
 
     foreach ($definitions as $id => $definition) {
       if (($definition['type'] ?? null) === 'region') {
@@ -255,8 +283,47 @@ final class ContentValidator
   {
     $this->requireExactFieldSet($definition, ['id', 'type', 'target_type', 'target_id'], [], $location);
     $this->requireNamespace($definition, 'unlock.', $location);
-    $targetType = $this->requireAllowedString($definition, 'target_type', ['region', 'unit_type'], $location);
+    $targetType = $this->requireAllowedString($definition, 'target_type', ['region', 'unit_type', 'capability'], $location);
     $this->requireStableIdWithNamespace($definition, 'target_id', $targetType . '.', $location);
+  }
+
+  /** @param array<string, mixed> $definition */
+  private function validateCapability(array $definition, string $location): void
+  {
+    $this->requireExactFieldSet($definition, ['id', 'type', 'kind', 'value'], [], $location);
+    $this->requireNamespace($definition, 'capability.', $location);
+    $kind = $this->requireAllowedString($definition, 'kind', ['energy_normal_max', 'max_acquirable_die_size'], $location);
+    if ($kind === 'energy_normal_max') {
+      $this->requireIntegerInRange($definition, 'value', 1, ClientSafeInteger::MAXIMUM, $location);
+    } elseif (!in_array($definition['value'] ?? null, [10, 12, 20], true)) {
+      throw new ContentValidationException("{$location} has an unsupported maximum die size.");
+    }
+  }
+
+  /** @param array<string, mixed> $definition */
+  private function validateAcademyUpgrade(array $definition, string $location): void
+  {
+    $this->requireExactFieldSet($definition, ['id', 'type', 'display_name', 'description', 'category', 'price', 'grant_unlock_id', 'prerequisite_unlock_ids'], [], $location);
+    $this->requireNamespace($definition, 'academy_upgrade.', $location);
+    $this->requireNonEmptyString($definition, 'display_name', $location);
+    $this->requireNonEmptyString($definition, 'description', $location);
+    $this->requireAllowedString($definition, 'category', ['unit_type', 'energy', 'dice'], $location);
+    $this->requireStableIdWithNamespace($definition, 'grant_unlock_id', 'unlock.', $location);
+    $price = $definition['price'] ?? null;
+    if (!is_array($price) || array_is_list($price)) throw new ContentValidationException("{$location} price must be an object.");
+    $this->requireExactFieldSet($price, ['currency_id', 'amount'], [], $location);
+    $this->requireAllowedString($price, 'currency_id', ['raw_chaos'], $location);
+    $this->requireIntegerInRange($price, 'amount', 1, ClientSafeInteger::MAXIMUM, $location);
+    $prerequisites = $definition['prerequisite_unlock_ids'] ?? null;
+    if (!is_array($prerequisites) || !array_is_list($prerequisites)) throw new ContentValidationException("{$location} prerequisites must be a list.");
+    $seen = [];
+    foreach ($prerequisites as $prerequisite) {
+      $this->requireStableIdWithNamespace(['id' => $prerequisite], 'id', 'unlock.', $location);
+      if ($prerequisite === $definition['grant_unlock_id'] || isset($seen[$prerequisite])) {
+        throw new ContentValidationException("{$location} has a duplicate or self prerequisite.");
+      }
+      $seen[$prerequisite] = true;
+    }
   }
 
   /** @param array<string, mixed> $definition */
@@ -369,9 +436,9 @@ final class ContentValidator
     } elseif ($grantType === 'die') {
       $this->requireExactFieldSet($grant, ['type', 'dice_profile_id', 'size'], [], "{$location} field 'grant'");
       $this->requireStableIdWithNamespace($grant, 'dice_profile_id', 'dice_profile.', "{$location} field 'grant'");
-      $this->requireIntegerInRange($grant, 'size', 4, 8, "{$location} field 'grant'");
-      if (!in_array($grant['size'], [4, 6, 8], true)) {
-        throw new ContentValidationException("{$location} field 'grant.size' must be d4, d6, or d8.");
+      $this->requireIntegerInRange($grant, 'size', 4, 20, "{$location} field 'grant'");
+      if (!in_array($grant['size'], self::SUPPORTED_DIE_SIZES, true)) {
+        throw new ContentValidationException("{$location} field 'grant.size' must be a standard die size.");
       }
     } else {
       $this->requireExactFieldSet($grant, ['type', 'unit_type_id', 'kin_id'], [], "{$location} field 'grant'");

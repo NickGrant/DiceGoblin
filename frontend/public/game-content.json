@@ -1,5 +1,5 @@
 {
-    "revision": "6d5e576f7bd2453f3f35d09a3abd6c0ac414843655486e48ceb906378abbe367",
+    "revision": "50e27453d9b5a271abbb75e156ea9f049aafe8b830210327bf261b91116ae9a3",
     "content": {
         "gameplay": {
             "run_energy_cost": 10
@@ -1268,11 +1268,43 @@
                     "quantity": 1
                 }
             },
+            "shop_offer.goblin_bannerbearer": {
+                "id": "shop_offer.goblin_bannerbearer",
+                "grant": {
+                    "type": "unit",
+                    "unit_type_id": "unit_type.bannerbearer",
+                    "kin_id": "kin.goblin"
+                }
+            },
             "shop_offer.goblin_bruiser": {
                 "id": "shop_offer.goblin_bruiser",
                 "grant": {
                     "type": "unit",
                     "unit_type_id": "unit_type.bruiser",
+                    "kin_id": "kin.goblin"
+                }
+            },
+            "shop_offer.goblin_guardian": {
+                "id": "shop_offer.goblin_guardian",
+                "grant": {
+                    "type": "unit",
+                    "unit_type_id": "unit_type.guardian",
+                    "kin_id": "kin.goblin"
+                }
+            },
+            "shop_offer.goblin_marksman": {
+                "id": "shop_offer.goblin_marksman",
+                "grant": {
+                    "type": "unit",
+                    "unit_type_id": "unit_type.marksman",
+                    "kin_id": "kin.goblin"
+                }
+            },
+            "shop_offer.goblin_saboteur": {
+                "id": "shop_offer.goblin_saboteur",
+                "grant": {
+                    "type": "unit",
+                    "unit_type_id": "unit_type.saboteur",
                     "kin_id": "kin.goblin"
                 }
             },
@@ -1283,6 +1315,62 @@
                     "item_id": "item.spark_tonic",
                     "quantity": 1
                 }
+            }
+        },
+        "academy_upgrades": {
+            "academy_upgrade.bannerbearer": {
+                "id": "academy_upgrade.bannerbearer",
+                "display_name": "Bannerbearer Research",
+                "description": "Unlock Bannerbearer recruits.",
+                "category": "unit_type"
+            },
+            "academy_upgrade.die_size_d10": {
+                "id": "academy_upgrade.die_size_d10",
+                "display_name": "D10 Acquisition",
+                "description": "Permit acquiring d10 dice.",
+                "category": "dice"
+            },
+            "academy_upgrade.die_size_d12": {
+                "id": "academy_upgrade.die_size_d12",
+                "display_name": "D12 Acquisition",
+                "description": "Permit acquiring d12 dice.",
+                "category": "dice"
+            },
+            "academy_upgrade.die_size_d20": {
+                "id": "academy_upgrade.die_size_d20",
+                "display_name": "D20 Acquisition",
+                "description": "Permit acquiring d20 dice.",
+                "category": "dice"
+            },
+            "academy_upgrade.energy_max_100": {
+                "id": "academy_upgrade.energy_max_100",
+                "display_name": "Energy Capacity 100",
+                "description": "Raise normal Energy capacity to 100.",
+                "category": "energy"
+            },
+            "academy_upgrade.energy_max_75": {
+                "id": "academy_upgrade.energy_max_75",
+                "display_name": "Energy Capacity 75",
+                "description": "Raise normal Energy capacity to 75.",
+                "category": "energy"
+            },
+            "academy_upgrade.guardian": {
+                "id": "academy_upgrade.guardian",
+                "display_name": "Guardian Research",
+                "description": "Unlock Guardian recruits.",
+                "category": "unit_type"
+            },
+            "academy_upgrade.marksman": {
+                "id": "academy_upgrade.marksman",
+                "display_name": "Marksman Research",
+                "description": "Unlock Marksman recruits.",
+                "category": "unit_type"
+            },
+            "academy_upgrade.saboteur": {
+                "id": "academy_upgrade.saboteur",
+                "display_name": "Saboteur Research",
+                "description": "Unlock Saboteur recruits.",
+                "category": "unit_type"
             }
         }
     }
