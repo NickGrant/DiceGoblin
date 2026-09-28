@@ -7,7 +7,7 @@ Read this for sequencing/planning or when closing/promoting an execution package
 **Status:** Active
 
 ### Related Issues
-- Milestone 7 Package 8 - Economy/inventory integrated verification and closure
+- Milestone 7 Package 9 - Focused manual UAT
 
 Milestone 1 - Walking Skeleton is complete and passed manual user UAT.
 
@@ -60,8 +60,8 @@ Until Milestone 8 introduces authoritative die-size eligibility, no Milestone 7 
 5. ~~Contextual consumables: Energy restore + active-run unit healing.~~ Complete and approved at `a6e21912e686984c7d82ce3cb888bd803259b64c`; full Docker backend 875/3,585/268 skipped.
 6. ~~Dice sell/salvage lifecycle + Teeth/Raw Chaos outputs and active-run/equipment safety.~~ Complete and approved at `5601ba03cfb7072c016cd3788107855119cb745f`; full Docker backend 890/3,631/268 skipped.
 7. ~~Phaser Shop + Inventory surfaces and Camp integration.~~ Complete and approved at `6aeb397050fa8695eeaab2b4d1460de3f82c254c`; full frontend 522/522 and full Docker backend 890/3,631/268 skipped.
-8. **Economy/inventory integrated verification/closure.** Current.
-9. Focused manual UAT; Milestone 8 is not promoted until it passes.
+8. ~~Economy/inventory integrated verification/closure.~~ Complete and approved at `e59b58e709892cc0a72e609576800dc45115813e`; full frontend 515/515, full Docker backend 891/3,676/268 skipped, canonical content revision `6d5e576f7bd2453f3f35d09a3abd6c0ac414843655486e48ceb906378abbe367`.
+9. **Focused manual UAT.** Current; Milestone 8 is not promoted until it passes.
 
 ### Sequencing Notes
 
@@ -72,5 +72,5 @@ Until Milestone 8 introduces authoritative die-size eligibility, no Milestone 7 
 - Package 5 established contextual item consumption through the accepted Energy-restore and active-run-unit-heal commands without a generic scriptable item-use endpoint and was approved at `a6e21912e686984c7d82ce3cb888bd803259b64c` after a focused UTC regeneration-timestamp correction.
 - Package 6 established retained sold/salvaged die lifecycle transitions, Teeth/Raw Chaos valuation, idempotent retry, and equipment/active-run safety and was approved at `5601ba03cfb7072c016cd3788107855119cb745f` after full Docker closure (890 tests / 3,631 assertions / 268 skipped).
 - Package 7 established the Phaser Shop/Supplies interaction surfaces, dice lifecycle controls, contextual consumable UI, Camp/Run integration, cache reconciliation, and retained-idempotency navigation safety and was approved at `6aeb397050fa8695eeaab2b4d1460de3f82c254c`.
-- Package 8 closes the complete repeatable economy technically through integrated persistence/security/idempotency/frontend proof plus narrow retirement of the superseded Angular Shop path.
-- Package 9 is manual UAT. Do not begin Milestone 8 progression work until it passes.
+- Package 8 closed the repeatable economy technically through integrated persistence/security/idempotency/frontend proof, canonical UAT-ready economy content, deterministic responsive captures, and retirement of the superseded Angular Shop path; approved at `e59b58e709892cc0a72e609576800dc45115813e`.
+- Package 9 is focused manual UAT. Do not begin Milestone 8 progression work until it passes.

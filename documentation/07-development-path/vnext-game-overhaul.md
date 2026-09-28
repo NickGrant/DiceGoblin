@@ -120,8 +120,8 @@ The retained prototype combat implementation is behavioral evidence only. It cur
 5. Contextual consumables: Energy restore + active-run unit healing. **Approved at `a6e21912e686984c7d82ce3cb888bd803259b64c`.**
 6. Dice sell/salvage lifecycle + Teeth/Raw Chaos outputs and active-run/equipment safety. **Approved at `5601ba03cfb7072c016cd3788107855119cb745f`.**
 7. Phaser Shop + Inventory surfaces and Camp integration. **Approved at `6aeb397050fa8695eeaab2b4d1460de3f82c254c`.**
-8. Economy/inventory integrated verification/closure. **Current.**
-9. Focused manual UAT before Milestone 8 promotion.
+8. Economy/inventory integrated verification/closure. **Approved at `e59b58e709892cc0a72e609576800dc45115813e`.**
+9. Focused manual UAT before Milestone 8 promotion. **Current.**
 
 
 ## Persistent Quality Gates
