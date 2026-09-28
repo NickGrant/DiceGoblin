@@ -286,6 +286,7 @@ export class WarbandScreen implements GameSceneScreen {
       };
     }), (state.data?.length ?? 0) > layout.pageSize, (index) => { const die = items[index]; if (die) this.selectDie(die.id); },
       items.findIndex((die) => die.id === this.selectedDieId));
+    this.renderPager(root, layout, 'dice', state.data?.length ?? 0);
     const selected = this.selectedDie();
     if (selected) {
       const locked = selected.bindings.length > 0;
@@ -301,7 +302,6 @@ export class WarbandScreen implements GameSceneScreen {
         locked ? `${this.store.activeRunLock ? 'ACTIVE RUN LOCK · ' : ''}Unequip this die before selling or salvaging.` : this.diceMessage,
         { color: '#6a321f', fontFamily: 'system-ui', fontSize: '14px', fontStyle: 'bold' }));
     }
-    this.renderPager(root, layout, 'dice', state.data?.length ?? 0);
   }
 
   private renderSquads(

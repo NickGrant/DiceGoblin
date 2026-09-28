@@ -186,6 +186,26 @@ describe('WarbandScreen', () => {
     expect(openEditor.calls.argsFor(1)).toEqual([jasmine.objectContaining({ id: '32' }), 'delete']);
   });
 
+  it('renders a pending dice confirmation above multi-page inventory controls', async () => {
+    const store = new GameStore(); store.hydrateBootstrap(bootstrap()); const client = api(); const registry = content();
+    client.getDice.and.resolveTo({ ok: true, data: { dice: Array.from({ length: 6 }, (_, index) => ({
+      id: `${20 + index}`, size: 6, profile_id: 'dice_profile.bone', lifecycle_status: 'active' as const, bindings: [],
+    })) } });
+    await store.loadWarbandDomains(client, registry);
+    const harness = sceneHarness();
+    const screen = new WarbandScreen(
+      harness.scene, store, client, registry, new RuntimeViewport(), () => undefined, () => undefined, 'dice',
+    );
+    screen.create();
+    screen.requestDiceLifecycle('sell');
+
+    const confirmIndex = harness.textValues.lastIndexOf('CONFIRM SELL FOR TEETH');
+    let nextIndex = -1;
+    harness.textValues.forEach((value, index) => { if (value.includes('NEXT')) nextIndex = index; });
+    expect(nextIndex).toBeGreaterThan(-1);
+    expect(confirmIndex).toBeGreaterThan(nextIndex);
+  });
+
   it('requires confirmation and retains the same sell key across ambiguity before reconciling', async () => {
     const store = new GameStore(); store.hydrateBootstrap(bootstrap()); const client = api(); const registry = content();
     client.getDice.and.resolveTo({ ok: true, data: { dice: [{ id: '22', size: 6, profile_id: 'dice_profile.bone', lifecycle_status: 'active', bindings: [] }] } });

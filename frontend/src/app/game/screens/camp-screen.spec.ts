@@ -451,7 +451,7 @@ describe('CampScreen', () => {
     expect(contentLoader.loadProjection).toHaveBeenCalledTimes(1);
   });
 
-  it('returns from Shop and empty Supplies through visible Return and Escape without re-entering requestBack', async () => {
+  it('returns from Warband, Shop, and empty Supplies through visible Return and Escape without re-entering requestBack', async () => {
     const revision = 'a'.repeat(64);
     const apiClient = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getBootstrap']);
     apiClient.getBootstrap.and.resolveTo({ ok: true, data: bootstrap() });
@@ -464,10 +464,16 @@ describe('CampScreen', () => {
     await startup.start();
     const viewport = new RuntimeViewport();
     const camp = jasmine.createSpyObj<GameSceneScreen>('camp', ['create', 'reflow', 'destroy'], { key: 'camp' });
-    const unusedScreen = jasmine.createSpyObj<GameSceneScreen>(
-      'unused', ['create', 'reflow', 'destroy'], { key: 'warband' },
-    );
     type BackScreenSpy = jasmine.SpyObj<GameSceneScreen> & { requestBack: jasmine.Spy<() => void> };
+    const warbands: BackScreenSpy[] = [];
+    const warbandFactory = jasmine.createSpy('warbandFactory').and.callFake((_scene, _startup, _viewport, back) => {
+      const warband = jasmine.createSpyObj<GameSceneScreen>(
+        'warband', ['create', 'reflow', 'destroy', 'requestBack'], { key: 'warband' },
+      ) as BackScreenSpy;
+      warband.requestBack.and.callFake(back);
+      warbands.push(warband);
+      return warband;
+    });
     const shop = jasmine.createSpyObj<GameSceneScreen>(
       'shop', ['create', 'reflow', 'destroy', 'requestBack'], { key: 'shop' },
     ) as BackScreenSpy;
@@ -485,11 +491,21 @@ describe('CampScreen', () => {
       return inventory;
     });
     const scene = new GameScene(
-      new RuntimeLifecycleState(), startup, viewport, () => camp, () => unusedScreen,
-      () => unusedScreen, () => unusedScreen, shopFactory, inventoryFactory,
+      new RuntimeLifecycleState(), startup, viewport, () => camp, warbandFactory,
+      () => camp, () => camp, shopFactory, inventoryFactory,
     );
 
     scene.showCamp();
+    scene.showWarband();
+    warbands[0].requestBack();
+    expect(scene.activeScreenKey).toBe('camp');
+    expect(warbands[0].requestBack).toHaveBeenCalledTimes(1);
+
+    scene.showWarband();
+    scene.goBack();
+    expect(scene.activeScreenKey).toBe('camp');
+    expect(warbands[1].requestBack).toHaveBeenCalledTimes(1);
+
     scene.showShop();
     shop.requestBack();
     expect(scene.activeScreenKey).toBe('camp');
