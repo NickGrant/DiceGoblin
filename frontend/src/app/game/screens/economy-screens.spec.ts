@@ -31,6 +31,23 @@ describe('Package 7 Shop and Supplies screens', () => {
     expect(shopGrantLabel(content().listShopOffers()[0], content())).toBe('Spark ×2');
   });
 
+  it('derives Shop wallet and affordability from refreshed shared player state instead of its catalog snapshot', async () => {
+    const client = api(); client.getShop.and.resolveTo({ ok: true, data: { teeth: 20, player_revision: 4, offers: [
+      { offer_id: 'shop_offer.test.spark', price: { currency_id: 'teeth', amount: 25 }, available: true, can_afford: false }] } });
+    const store = new GameStore(); store.hydrateBootstrap(bootstrap()); const harness = scene();
+    const screen = new ShopScreen(harness.value, store, client, content(), new RuntimeViewport(), () => undefined);
+    screen.create(); await store.loadShop(client, content());
+    expect(harness.texts).toContain('20 TEETH');
+    expect(harness.texts).toContain('INSUFFICIENT TEETH');
+
+    const refreshed = bootstrap();
+    store.hydrateBootstrap({ ...refreshed, player: { ...refreshed.player, teeth: 30, player_revision: 5 } });
+
+    expect(harness.texts).toContain('30 TEETH');
+    expect(harness.texts.lastIndexOf('25 TEETH')).toBeGreaterThan(harness.texts.lastIndexOf('INSUFFICIENT TEETH'));
+    expect(store.shop.data && 'teeth' in store.shop.data).toBeFalse();
+  });
+
   it('submits the shown offer/price and retains its key across an ambiguous retry', async () => {
     const client = api(); client.getShop.and.resolveTo({ ok: true, data: { teeth: 20, player_revision: 4, offers: [
       { offer_id: 'shop_offer.test.spark', price: { currency_id: 'teeth', amount: 7 }, available: true, can_afford: true }] } });

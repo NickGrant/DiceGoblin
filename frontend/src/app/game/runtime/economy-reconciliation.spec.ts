@@ -20,7 +20,7 @@ describe('GameStore Package 7 reconciliation', () => {
   const bootstrap = (revision = 4): GameBootstrapData => ({ account: { id: '1', display_name: 'Goblin', role: 'user' }, player: { teeth: 100, raw_chaos: 2, player_revision: revision, energy: { current: 10, normal_max: 50, regeneration_per_hour: 12, regeneration_interval_seconds: 300, last_regeneration_at: '2026-01-01T00:00:00Z', next_regeneration_at: '2026-01-01T00:05:00Z', fully_regenerated_at: '2026-01-01T03:20:00Z' } }, session: { authenticated: true, csrf_token: 'csrf' }, server_time: '2026-01-01T00:00:00Z', content_revision: 'a'.repeat(64), progression: { unlock_ids: [], available_region_ids: ['region.the_farm'] }, active_squad: { id: '31', name: 'Raiders', is_active: true, formation: ['11', null, null, null, null, null, null, null, null], units: [{ id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active' }] }, active_run: null });
   function api(): jasmine.SpyObj<RuntimeApiClient> { const client = jasmine.createSpyObj<RuntimeApiClient>('api', ['getUnits', 'getDice', 'getSquads', 'getItems', 'getShop', 'getCurrentRun']); client.getUnits.and.resolveTo({ ok: true, data: { units: [{ id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active' }] } }); client.getDice.and.resolveTo({ ok: true, data: { dice: [{ id: '21', size: 6, profile_id: 'dice_profile.bone', lifecycle_status: 'active', bindings: [] }] } }); client.getSquads.and.resolveTo({ ok: true, data: { squads: [{ id: '31', name: 'Raiders', is_active: true, formation: ['11', null, null, null, null, null, null, null, null] }] } }); client.getItems.and.resolveTo({ ok: true, data: { items: [{ item_id: 'item.test.heal', quantity: 2 }] } }); return client; }
 
-  it('adds purchased die and unit outputs only to already-loaded caches and refreshes Shop affordability', async () => {
+  it('adds purchased die and unit outputs only to already-loaded caches while the global player owns Teeth', async () => {
     const registry = content();
     for (const output of [
       { type: 'die' as const, die: { id: '22', size: 6 as const, profileId: 'dice_profile.bone', lifecycleStatus: 'active' as const } },
@@ -34,7 +34,8 @@ describe('GameStore Package 7 reconciliation', () => {
       await store.loadShop(client, registry); const offerId = output.type === 'die' ? 'shop_offer.test.die' : 'shop_offer.test.unit';
       store.reconcileShopPurchase({ offerId, spend: { currencyId: 'teeth', amount: 10, balanceBefore: 100, balanceAfter: 90 }, playerRevision: 5, output }, registry);
       expect(output.type === 'die' ? store.warband.dice.data?.some((die) => die.id === '22') : store.warband.units.data?.some((unit) => unit.id === '12')).toBeTrue();
-      expect(store.shop.data?.offers.find((offer) => offer.offer.id === 'shop_offer.test.spark')?.canAfford).toBeFalse();
+      expect(store.bootstrap?.player.teeth).toBe(90);
+      expect(store.shop.data && 'teeth' in store.shop.data).toBeFalse();
     }
   });
 

@@ -28,8 +28,8 @@ describe('Shop contracts', () => {
     expect('shop_offer.a1'.localeCompare('shop_offer.a_')).toBeGreaterThan(0);
     const parsed = parseShopCatalogEnvelope(envelope(), content());
     expect(parsed.teeth).toBe(7); expect(parsed.playerRevision).toBe(4);
-    expect(parsed.offers.map((offer) => [offer.offer.id, offer.offer.grant.type, offer.canAfford])).toEqual([
-      ['shop_offer.a1', 'item', true], ['shop_offer.a_', 'die', false], ['shop_offer.unit', 'unit', false],
+    expect(parsed.offers.map((offer) => [offer.offer.id, offer.offer.grant.type])).toEqual([
+      ['shop_offer.a1', 'item'], ['shop_offer.a_', 'die'], ['shop_offer.unit', 'unit'],
     ]);
     expect(parseShopCatalogEnvelope({ ok: true, data: { teeth: 0, player_revision: 1, offers: [] } }, content(false)).offers).toEqual([]);
   });

@@ -101,7 +101,7 @@ export interface CurrentRunState {
 
 export interface ShopState {
   readonly status: WarbandDomainStatus;
-  readonly data: ShopCatalogResult | null;
+  readonly data: { readonly offers: ShopCatalogResult['offers'] } | null;
   readonly error: WarbandDomainErrorKind | null;
 }
 
@@ -311,7 +311,8 @@ export function parseGameBootstrapEnvelope(value: unknown): GameBootstrapData {
 
 /** Application-lifetime cache of the latest authoritative bootstrap response. */
 export class GameStore {
-  private cachedBootstrap: GameBootstrapData | null = null;
+  private bootstrapCache: GameBootstrapData | null = null;
+  private readonly playerListeners = new Set<(player: GameBootstrapData['player'] | null) => void>();
   private warbandCache: WarbandCacheSnapshot = this.emptyWarbandCache();
   private readonly inFlight: Partial<Record<WarbandDomainName, Promise<void>>> = {};
   private readonly unitDetailCache = new Map<string, UnitDetailState>();
@@ -330,6 +331,18 @@ export class GameStore {
 
   get bootstrap(): GameBootstrapData | null {
     return this.cachedBootstrap;
+  }
+
+  private get cachedBootstrap(): GameBootstrapData | null {
+    return this.bootstrapCache;
+  }
+
+  private set cachedBootstrap(value: GameBootstrapData | null) {
+    const prior = this.bootstrapCache?.player ?? null;
+    this.bootstrapCache = value;
+    if (prior !== (value?.player ?? null)) {
+      for (const listener of this.playerListeners) listener(value?.player ?? null);
+    }
   }
 
   get playerRevision(): number | null {
@@ -382,6 +395,11 @@ export class GameStore {
   subscribeShop(listener: (state: ShopState) => void): () => void {
     this.shopListeners.add(listener);
     return () => this.shopListeners.delete(listener);
+  }
+
+  subscribePlayer(listener: (player: GameBootstrapData['player'] | null) => void): () => void {
+    this.playerListeners.add(listener);
+    return () => this.playerListeners.delete(listener);
   }
 
   markCurrentRunStale(): void {
@@ -573,9 +591,10 @@ export class GameStore {
     const generation = this.cacheGeneration;
     this.setShop({ status: 'loading', data: state.data, error: null });
     const promise = api.getShop().then((value) => {
-      if (generation === this.cacheGeneration) this.setShop({
-        status: 'fresh', data: parseShopCatalogEnvelope(value, content), error: null,
-      });
+      if (generation === this.cacheGeneration) {
+        const catalog = parseShopCatalogEnvelope(value, content);
+        this.setShop({ status: 'fresh', data: Object.freeze({ offers: catalog.offers }), error: null });
+      }
     }).catch((error: unknown) => {
       if (generation === this.cacheGeneration) this.setShop({
         status: 'error', data: state.data, error: domainErrorKind(error),
@@ -597,7 +616,6 @@ export class GameStore {
       throw new ShopContractError('Purchase balance contradicts cached authoritative state.');
     }
     try {
-      this.reconcileShopBalance(result.spend.balanceAfter, result.playerRevision);
       if (result.output.type === 'item') this.reconcileItemQuantity(result.output.itemId, result.output.ownedQuantityAfter,
         content.getItem(result.output.itemId), false, result.output.quantityGranted);
       if (result.output.type === 'die' && this.warbandCache.dice.status === 'fresh' && this.warbandCache.dice.data) {
@@ -646,7 +664,6 @@ export class GameStore {
       ? { ...bootstrap.player, teeth: result.teeth, player_revision: result.playerRevision }
       : { ...bootstrap.player, raw_chaos: result.rawChaos, player_revision: result.playerRevision };
     this.cachedBootstrap = Object.freeze({ ...bootstrap, player: Object.freeze(player) });
-    if (result.lifecycleStatus === 'sold') this.reconcileShopBalance(result.teeth, result.playerRevision);
     const dice = this.warbandCache.dice;
     if (dice.status === 'fresh' && dice.data) {
       const owned = dice.data.find((candidate) => candidate.id === result.diceId);
@@ -1071,13 +1088,6 @@ export class GameStore {
       throw new InventoryContractError('Mutation quantity contradicts the loaded inventory.');
     this.setItems({ status: 'fresh', data: Object.freeze(state.data.flatMap((stack, stackIndex) => stackIndex !== index
       ? [stack] : quantity === 0 ? [] : [Object.freeze({ item: stack.item, quantity })])), error: null });
-  }
-
-  private reconcileShopBalance(teeth: number, playerRevision: number): void {
-    const state = this.shopState;
-    if (state.status !== 'fresh' || !state.data) return;
-    this.setShop({ status: 'fresh', data: Object.freeze({ teeth, playerRevision,
-      offers: Object.freeze(state.data.offers.map((offer) => Object.freeze({ ...offer, canAfford: teeth >= offer.price.amount }))) }), error: null });
   }
 
   private failEconomyReconciliation(output: ShopPurchaseResult['output']['type'], shop: boolean): void {

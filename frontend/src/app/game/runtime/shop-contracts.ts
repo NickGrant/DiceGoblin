@@ -4,7 +4,6 @@ export interface ShopOfferReadModel {
   readonly offer: ClientShopOfferDefinition;
   readonly price: { readonly currencyId: 'teeth'; readonly amount: number };
   readonly available: boolean;
-  readonly canAfford: boolean;
 }
 export interface ShopCatalogResult {
   readonly teeth: number;
@@ -65,7 +64,7 @@ export function parseShopCatalogEnvelope(value: unknown, content: ClientContentR
       throw new ShopContractError('Shop offer identity or affordability is incoherent.');
     seen.add(candidate['offer_id']); prior = candidate['offer_id'];
     return Object.freeze({ offer, price: Object.freeze({ currencyId: 'teeth' as const,
-      amount: candidate['price']['amount'] as number }), available: candidate['available'], canAfford: candidate['can_afford'] });
+      amount: candidate['price']['amount'] as number }), available: candidate['available'] });
   });
   if (offers.length !== content.listShopOffers().length)
     throw new ShopContractError('Shop response does not match the projected authored catalog.');
