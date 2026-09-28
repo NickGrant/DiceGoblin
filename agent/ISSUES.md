@@ -2,356 +2,353 @@
 
 ## Milestone 8 - Permanent Progression
 
-### Milestone 8 Package 1 - Authored Academy upgrades + permanent capability foundation + read contract
+### Milestone 8 Package 2 - Idempotent Raw Chaos Academy upgrade transaction + first derived-capability/Shop consequences
 
 **Status:** In Progress
 **Priority:** High
 
 #### Accepted baseline
 
-Milestone 7 - Economy and Inventory is complete. Technical closure was approved at `e59b58e709892cc0a72e609576800dc45115813e`, and focused manual UAT passed on 2026-09-28 after the following UAT corrections:
+Milestone 8 Package 1 - Authored Academy upgrades + permanent capability foundation + read contract is approved at `0f3069f8aa0d81ff96d7450a006c51230be465a9`.
 
-- `c40f771cc089b649e7f676be0764eba6703ed63e` - fixed Shop/Supplies return-navigation recursion;
-- `35b2b0359b406df231ee459fb68eba8f6160878b` - fixed Warband return navigation and dice-confirmation layering;
-- `ba21115247ee862a739f07906c5e1df0f304e2b7` - made shared player state the single runtime authority for Teeth/Shop affordability.
+Package 1 closure evidence:
+- `npm run verify:package`: PASS;
+- DB provision/reset: PASS;
+- production frontend build/content/docs/bundle/diff gates: PASS;
+- full frontend: **522 tests PASS**;
+- focused backend Academy/capability/Energy/Shop coverage: **117 tests / 716 assertions PASS**;
+- focused frontend contracts: **34 tests PASS**;
+- the complete supported backend suite was confirmed by the user as run successfully; an earlier reduced test-count report was a reporting mistake rather than reduced suite execution.
 
-Package 1 begins Milestone 8. Do not carry the prototype Academy or promotion persistence/orchestration forward wholesale.
-
-#### Problem
-
-Permanent Academy progression needs authored unlocks and a consistent authoritative read model before spending and UI packages can use it.
+Package 1 established canonical Academy/capability content, derived Energy/max-die-size policy, unlock-aware >d8 Shop eligibility, and the strict read-only `GET /api/v1/academy` contract.
 
 #### Purpose
 
-Establish the permanent-progression vocabulary and authoritative read boundaries that later Milestone 8 mutation/UI packages will use.
+Make authored Academy upgrades executable as one authoritative Raw Chaos transaction.
 
-This package owns:
+Package 2 owns:
+- `POST /api/v1/academy/upgrade`;
+- idempotent Raw Chaos debit;
+- permanent upgrade unlock grant through the accepted finalized reward pipeline;
+- Energy-capacity transition semantics at the instant a higher cap is unlocked;
+- immediate authoritative consequences for Academy, Shop, bootstrap, Energy, and die eligibility;
+- canonical d10/d12/d20 basic-die Shop offers after their capability gates exist;
+- a narrow canonical die-price correction that prevents repeatable purchase -> sell Teeth arbitrage before Raw Chaos progression goes live;
+- strict frontend mutation contracts/API support, without a Phaser Academy screen.
 
-- authored permanent capability definitions;
-- authored Academy upgrade definitions;
-- canonical Academy progression content;
-- a shared policy for derived permanent capabilities, initially Energy normal maximum and maximum acquirable die size;
-- the authoritative `GET /api/v1/academy` read contract;
-- strict frontend Academy/content contracts without a Phaser Academy screen yet;
-- integration of the capability policy into existing Energy and die-acquisition eligibility boundaries.
+Do not implement promotion or Academy UI in this package.
 
-This package does **not** spend Raw Chaos, promote units, add Academy UI, or grant progression from the client.
+#### Academy upgrade reward boundary
 
-#### Durable-state rule
+Academy permanent unlocks must use the accepted event -> finalized reward -> transactional grant pipeline rather than creating an Academy-only unlock insertion path.
 
-Do not add an Academy ownership table or generic player-progression table.
-
-An Academy upgrade produces one permanent authored unlock. The durable truth is the existing `user_unlocks` row for that unlock.
-
-Academy upgrade ownership is therefore derived:
+Extend authored `academy_upgrade` with one server-only:
 
 ```text
-academy upgrade
-  -> authored grant_unlock_id
-  -> user owns that unlock
-  -> upgrade is owned
+event_id
 ```
 
-Derived capabilities are calculated from authored content plus owned unlock IDs. Do not persist `energy_max`, `max_die_size`, Academy levels, or duplicate capability flags on `user_state`.
+For every Academy upgrade:
+- `event_id` references one authored `event`;
+- that event references one authored `reward_definition`;
+- the reward definition contains exactly one entry;
+- probability is exactly 10000 basis points;
+- reward type is exactly `unlock`;
+- the reward entry's `unlock_id` equals the upgrade's `grant_unlock_id`;
+- the event/reward pair may not add currency, XP, another unlock, or any extra grant;
+- one Academy event may not be shared across different upgrades.
 
-#### Authored permanent capability model
+Keep `grant_unlock_id` on the Academy definition. It remains the concise durable ownership/read-model identity. Content validation must prove that the linked reward pipeline grants that exact unlock.
 
-Add a narrow authored definition type:
+Use `RewardApplicationService` with:
+- source type `academy_upgrade`;
+- source ID = stable Academy upgrade ID;
+- authoritative post-spend wallet/unlock context.
 
-```text
-capability
-```
+The Academy command owns spending and revision. Reward application owns finalization/application of the upgrade's unlock and does not increment revision.
 
-Supported Package 1 capability kinds are exactly:
+Exact idempotent retry must return the stored Academy command receipt without rerolling/reapplying the reward event or requiring current authored content to remain unchanged.
 
-- `energy_normal_max`
-- `max_acquirable_die_size`
-
-A capability definition contains only stable identity, supported kind, and the integer value required by that kind. Keep this declarative; do not create arbitrary effect scripts/rule trees.
-
-Canonical capability definitions:
-
-- `capability.energy_max_75` -> `energy_normal_max = 75`
-- `capability.energy_max_100` -> `energy_normal_max = 100`
-- `capability.die_size_d10` -> `max_acquirable_die_size = 10`
-- `capability.die_size_d12` -> `max_acquirable_die_size = 12`
-- `capability.die_size_d20` -> `max_acquirable_die_size = 20`
-
-Extend authored `unlock` validation so an unlock may target a `capability` in addition to the already accepted target types. The target must resolve to the exact authored capability definition.
-
-Canonical capability unlocks:
-
-- `unlock.capability.energy_max_75`
-- `unlock.capability.energy_max_100`
-- `unlock.capability.die_size_d10`
-- `unlock.capability.die_size_d12`
-- `unlock.capability.die_size_d20`
-
-No generic feature/effect namespace is required merely to implement these two concrete capability families.
-
-#### Authored Academy upgrade model
-
-Add authored definition type:
-
-```text
-academy_upgrade
-```
-
-Each upgrade must have:
-
-- stable ID;
-- display name;
-- description;
-- category: `unit_type`, `energy`, or `dice`;
-- Raw Chaos price;
-- exactly one `grant_unlock_id`;
-- zero or more `prerequisite_unlock_ids`.
-
-Rules:
-
-- price currency is exactly `raw_chaos`;
-- price amount is a positive client-safe integer;
-- grant/prerequisite IDs must reference authored `unlock` definitions;
-- prerequisite IDs are unique and cannot include the upgrade's own grant;
-- one permanent unlock may be the grant target of at most one Academy upgrade;
-- reject direct or indirect Academy prerequisite cycles;
-- upgrade IDs/order are deterministic;
-- Academy definitions contain no executable scripts.
-
-The generated client projection may expose player-safe presentation fields such as ID, display name, description, and category. Do **not** project authoritative prices or capability numeric internals merely because the Academy screen will eventually need presentation.
-
-#### Canonical Package 1 Academy catalog
-
-Author these provisional upgrades. These values are implementation/UAT balance anchors, not final economy tuning.
-
-**Base unit-type research — 5 Raw Chaos each**
-
-- `academy_upgrade.guardian` -> `unlock.unit_type.guardian`
-- `academy_upgrade.marksman` -> `unlock.unit_type.marksman`
-- `academy_upgrade.bannerbearer` -> `unlock.unit_type.bannerbearer`
-- `academy_upgrade.saboteur` -> `unlock.unit_type.saboteur`
-
-Add the corresponding authored unit-type unlock definitions. Bruiser remains the existing starting/base entitlement and does not need an Academy upgrade.
-
-Also add ordinary 8-Teeth Shop offers for Guardian, Marksman, Bannerbearer, and Saboteur. Existing Shop availability rules must keep those offers unavailable until the corresponding unit-type unlock is owned.
-
-**Energy capacity**
-
-- `academy_upgrade.energy_max_75` -> `unlock.capability.energy_max_75` — 5 Raw Chaos
-- `academy_upgrade.energy_max_100` -> `unlock.capability.energy_max_100` — 10 Raw Chaos
-  - prerequisite: `unlock.capability.energy_max_75`
-
-**Die-size eligibility**
-
-- `academy_upgrade.die_size_d10` -> `unlock.capability.die_size_d10` — 5 Raw Chaos
-- `academy_upgrade.die_size_d12` -> `unlock.capability.die_size_d12` — 10 Raw Chaos
-  - prerequisite: `unlock.capability.die_size_d10`
-- `academy_upgrade.die_size_d20` -> `unlock.capability.die_size_d20` — 20 Raw Chaos
-  - prerequisite: `unlock.capability.die_size_d12`
-
-Do not add higher-die production Shop offers in Package 1. Package 2 will own the first player-visible >d8 acquisition path after the Raw Chaos upgrade mutation exists.
-
-#### Permanent capability policy
-
-Introduce one shared backend policy/service for derived permanent capabilities.
-
-Given the canonical ContentRegistry plus owned unlock IDs it must resolve:
-
-**Energy normal maximum**
-
-- base = `config.gameplay.energy_normal_max`;
-- an owned `energy_normal_max` capability raises the normal maximum to its authored value;
-- multiple owned values resolve to the maximum;
-- current Energy is not clamped merely because normal maximum changes.
-
-Use this policy anywhere the backend currently needs the player's normal Energy maximum, including at minimum:
-
-- game bootstrap;
-- run-start Energy projection/spend;
-- Energy-restoration consumable calculation.
-
-All three boundaries must agree for the same player/unlock state.
-
-**Die acquisition eligibility**
-
-- base acquirable sizes are d4/d6/d8;
-- an owned max-size capability permits standard sizes up to that authored threshold;
-- supported standard sizes are d4/d6/d8/d10/d12/d20;
-- d10 capability permits d10;
-- d12 capability permits d10/d12;
-- d20 capability permits d10/d12/d20;
-- profile `allowed_sizes` remains an independent required constraint.
-
-Unknown/stale persisted unlock IDs must not accidentally grant a capability.
-
-#### Wire die eligibility into existing Shop authority
-
-Replace the Milestone 7 hard-coded purchase assumption that all valid Shop dice are only d4/d6/d8 with the shared eligibility policy.
-
-For authored/test Shop die offers:
-
-- content validation may recognize d4/d6/d8/d10/d12/d20 when the referenced profile allows the size;
-- `GET /api/v1/shop` must mark a >d8 die offer unavailable when the player lacks the required capability;
-- purchase must revalidate capability authoritatively inside its transaction before spending;
-- a locked-size purchase rejection changes no Teeth, die ownership, revision, or idempotency receipt;
-- owning the appropriate capability makes the same authored offer eligible;
-- frontend Shop/purchase contracts must accept all standard die sizes even though canonical production >d8 offers remain deferred to Package 2.
-
-Do not derive die-size entitlement from currently owned dice. The capability unlock is the authority.
-
-#### Academy read contract
+#### Request contract
 
 Implement:
 
 ```text
-GET /api/v1/academy
+POST /api/v1/academy/upgrade
 ```
 
 Requirements:
+- authenticated user;
+- CSRF;
+- valid `Idempotency-Key`;
+- exact JSON body:
 
-- authenticated query;
-- no CSRF;
-- no mutation;
-- no read-side provisioning;
-- no revision increment;
-- no Raw Chaos spend;
-- canonical deterministic ordering.
-
-Response data:
-
-```text
-raw_chaos
-player_revision
-upgrades[]
-  upgrade_id
-  price
-    currency_id = raw_chaos
-    amount
-  owned
-  available
+{
+  "upgrade_id": "academy_upgrade....",
+  "expected_price": {
+    "currency_id": "raw_chaos",
+    "amount": <positive client-safe integer>
+  }
+}
 ```
 
-Semantics:
+No additional fields.
 
-- `owned` is true when the upgrade's `grant_unlock_id` is already owned;
-- `available` is true only when the upgrade is not owned and every prerequisite unlock is owned;
-- insufficient Raw Chaos does **not** change `available`; affordability is a presentation calculation from authoritative wallet + price;
-- query never grants missing prerequisites or repairs state;
-- numeric values are client-safe non-negative integers and upgrade price is positive.
+Semantic idempotency identity is the complete canonical request: upgrade ID plus expected Raw Chaos price.
 
-The endpoint should use the existing player-state and unlock repositories plus ContentRegistry. Do not introduce Academy SQL catalog tables.
+Same key + any different semantic request conflicts.
 
-#### Frontend/runtime contracts
+#### Transaction and lock ordering
 
-Add strict framework-neutral runtime support only; no Phaser Academy screen in Package 1.
+A new upgrade attempt uses one caller-owned transaction.
+
+Required sequence:
+
+1. parse/normalize request and idempotency key;
+2. begin transaction;
+3. lock/read `user_state`;
+4. look up the idempotency receipt;
+5. if receipt exists, validate it against the canonical request, commit the read transaction, and return the stored result;
+6. validate current wallet/revision client-safe state;
+7. resolve the current authored Academy upgrade and linked event/reward definition;
+8. lock/read the user's current unlock IDs;
+9. reject if the upgrade's grant unlock is already owned;
+10. reject if any prerequisite unlock is missing;
+11. require current authored price to equal `expected_price`;
+12. require sufficient Raw Chaos;
+13. apply the Raw Chaos debit;
+14. perform any required Energy-capacity transition described below using the **pre-upgrade** capability state;
+15. finalize/apply the Academy upgrade reward event and require the declared unlock to be granted exactly once;
+16. increment `player_revision` exactly once;
+17. build/finalize the idempotency receipt;
+18. commit.
+
+Receipt replay deliberately precedes current authored-content/ownership/prerequisite checks so a successful exact retry remains valid after:
+- the upgrade is now owned;
+- prerequisite/content definitions change in a later release;
+- the Academy price changes later.
+
+No rejected attempt may debit Raw Chaos, grant an unlock, change Energy persistence, increment revision, create/finalize a reward event, or finalize an idempotency receipt.
+
+#### Failure behavior
+
+Use non-disclosing/stable application errors appropriate to the command:
+
+- unknown current upgrade -> `academy_upgrade_not_found`;
+- already-owned upgrade -> `academy_upgrade_owned`;
+- unmet prerequisite -> `academy_upgrade_unavailable`;
+- current price differs from expected -> `academy_upgrade_changed`;
+- insufficient Raw Chaos -> `insufficient_raw_chaos`;
+- same idempotency key used for another request -> existing idempotency conflict behavior;
+- corrupted persisted/reward state -> integrity/server failure, not speculative repair.
+
+A new idempotency key submitted after an already committed upgrade is **not** another purchase; it rejects as already owned.
+
+#### Exact success result
+
+Return exactly:
+
+```text
+upgrade_id
+spend
+  currency_id = raw_chaos
+  amount
+  balance_before
+  balance_after
+grant
+  unlock_id
+energy
+  <authoritative Energy view or null>
+player_revision
+```
+
+Rules:
+- `upgrade_id` equals the submitted stable identity;
+- spend arithmetic is exact and client-safe;
+- `grant.unlock_id` equals the Academy upgrade's declared permanent unlock;
+- `energy` is non-null only when the upgrade increases the player's Energy normal maximum;
+- when non-null it uses the same exact Energy-view shape already returned by bootstrap/restore;
+- `player_revision` is the single resulting revision.
+
+Persisted receipt validation must be request-bound but must not require resolving current authored content on retry.
+
+#### Energy-capacity upgrade transition
+
+Increasing the normal Energy maximum must not retroactively regenerate into capacity that did not exist before the upgrade.
+
+At the command timestamp, when the grant is an `energy_normal_max` capability whose value exceeds the player's pre-upgrade maximum:
+
+1. calculate the player's effective current Energy under the **old** normal maximum;
+2. preserve all legitimately earned pre-upgrade regeneration;
+3. persist that effective current value;
+4. rebase the regeneration anchor so newly created capacity starts from the upgrade instant when the player had reached/exceeded the old cap;
+5. if the player was still below the old cap, preserve fractional progress toward the next existing regeneration tick rather than resetting it;
+6. do not clamp overcharged Energy;
+7. grant the capability unlock;
+8. return an Energy view under the **new** derived maximum.
+
+This transition must be persistence-only inside the Academy transaction; it must not increment revision separately. Add/extend a repository boundary if needed so the Academy command still increments `player_revision` exactly once for the whole committed upgrade.
+
+Examples:
+- player sat at 50/50 for hours, buys 75-cap upgrade -> remains 50 immediately, with new regeneration toward 75 beginning at purchase time;
+- player is 43/50 with partial progress toward the next tick -> materialize earned whole ticks and retain fractional timing, then continue toward 75;
+- player is overcharged above the old cap -> preserve current Energy; do not clamp it when the normal cap changes.
+
+#### Immediate permanent consequences
+
+After the same committed upgrade:
+
+**Unit-type research**
+- Academy read reports the upgrade owned;
+- the matching canonical Goblin Shop offer becomes available immediately;
+- the entitlement remains separate from acquiring an individual unit with Teeth.
+
+**Energy capacity**
+- bootstrap, run-start spend, and Energy restoration all resolve the new maximum through the shared Package 1 capability policy;
+- no duplicate `energy_max` field is persisted.
+
+**Die-size capability**
+- Shop catalog availability changes immediately;
+- purchase revalidation changes immediately;
+- no duplicate `max_die_size` field is persisted.
+
+#### Canonical higher-die offers and economy-integrity correction
+
+Add canonical plain Cardboard Shop offers:
+
+- `shop_offer.cardboard_d10`
+- `shop_offer.cardboard_d12`
+- `shop_offer.cardboard_d20`
+
+They use the existing `dice_profile.cardboard_plain`.
+
+Their availability is controlled exclusively by the Package 1 max-acquirable-die-size capability policy plus profile compatibility.
+
+Normalize the complete canonical plain Cardboard Shop price curve to the existing deterministic base-value curve:
+
+- d4 -> **12 Teeth**
+- d6 -> **18 Teeth**
+- d8 -> **28 Teeth**
+- d10 -> **34 Teeth**
+- d12 -> **42 Teeth**
+- d20 -> **60 Teeth**
+
+These are provisional integrity anchors, not final economy balancing.
+
+Reason: the previous 4/6/8 Teeth prices were below the existing deterministic sell awards (6/9/14), permitting repeatable Shop purchase -> sell Teeth profit. Before Raw Chaos becomes a spendable progression currency, canonical basic-die acquisition must not contain an obvious positive-Teeth arbitrage loop.
+
+Required invariant:
+- no canonical Shop die may cost less than or equal to its deterministic sell award;
+- canonical purchase -> sell must always lose Teeth;
+- salvage remains a possible expensive Teeth -> Raw Chaos conversion under the already accepted lifecycle design; its final exchange balance remains deferred.
+
+Do not change the Package 6 valuation formulas in this package.
+
+#### Frontend/runtime mutation contract
+
+Add strict framework-neutral support only; no Academy Phaser surface yet.
 
 Add:
+- Academy upgrade request/result types;
+- exact success parser;
+- Runtime API client mutation method with CSRF + idempotency headers;
+- standard error-code propagation through `RuntimeApiError`.
 
-- client-projected Academy presentation definitions;
-- `ClientContentRegistry` Academy accessors;
-- exact `GET /api/v1/academy` parser;
-- Runtime API client method;
-- read-model types suitable for the later GameStore/Academy screen.
+Frontend parser must validate:
+- exact envelope and exact result fields;
+- request-bound `upgrade_id`;
+- spend currency = `raw_chaos`;
+- spend amount equals submitted expected amount;
+- `balance_before - amount = balance_after`;
+- all wallet/revision values client-safe and non-negative;
+- grant unlock identity is stable/canonical;
+- `energy` is either null or the exact established Energy-view shape.
 
-Frontend validation must require:
+Do not trust static projected Academy price/capability internals; authoritative mutation facts come from the API.
 
-- exact response envelope/fields;
-- stable request/result upgrade identity;
-- `raw_chaos` and revision client-safe;
-- Raw Chaos price positive/client-safe;
-- exact `raw_chaos` currency ID;
-- every server upgrade maps to a projected authored Academy definition;
-- no duplicate/missing/extra upgrade IDs compared with projected public Academy content;
-- deterministic ordering.
-
-Do not create an Academy mutation attempt, store cache, or Phaser UI yet unless a narrow existing architecture requirement makes the read contract impossible to test otherwise.
-
-#### Existing Shop/player-state ownership
-
-Preserve the UAT correction at `ba21115247ee862a739f07906c5e1df0f304e2b7`:
-
-- `bootstrap.player` remains the single runtime owner for Teeth;
-- Shop does not regain a second mutable Teeth/affordability snapshot;
-- server Shop `can_afford` is still validated for response coherence.
-
-Package 1 Academy frontend contracts should follow the same authority lesson: Raw Chaos belongs to shared player state once a GameStore surface is introduced later, rather than becoming a second independently mutable Academy wallet.
+Do not add a GameStore Academy cache or mutation UI in Package 2 unless a narrow contract test requires a framework-neutral reconciliation helper.
 
 #### Tests
 
 Add focused coverage for at least:
 
-**Content**
-- valid capability definitions;
-- unsupported capability kind/value rejects;
-- valid Academy definitions;
-- missing grant/prerequisite references reject;
-- duplicate prerequisite/self prerequisite rejects;
-- duplicate grant ownership across Academy upgrades rejects;
-- prerequisite cycle rejects;
-- client projection exposes only allowed Academy presentation data;
-- capability numeric internals and Academy Raw Chaos prices are not leaked through static projection.
+**Authored content/reward linkage**
+- every canonical Academy upgrade has one valid event/reward pair;
+- event/reward grants exactly the declared unlock at 100%;
+- missing/mismatched/shared/extra Academy reward definitions reject;
+- category matches grant target:
+  - `unit_type` -> unit-type unlock;
+  - `energy` -> `energy_normal_max` capability unlock;
+  - `dice` -> `max_acquirable_die_size` capability unlock.
 
-**Capability policy**
-- no capability => Energy 50 and max acquired die d8;
-- Energy 75 then 100 resolve correctly;
-- d10/d12/d20 chains resolve correctly;
-- mixed/unknown unlock IDs cannot grant unintended capability;
-- profile size compatibility remains required.
+**Academy command**
+- unit-type research success debits Raw Chaos, grants unlock, increments revision once;
+- Energy 75 success;
+- Energy 100 unavailable before Energy 75;
+- d10/d12/d20 prerequisite chain;
+- exact retry returns identical result and does not double-spend/regrant/reroll;
+- exact retry survives later current-content/ownership changes;
+- same key different upgrade/price conflicts;
+- new key after already-owned rejects with no mutation;
+- insufficient Raw Chaos atomic reject;
+- expected-price mismatch atomic reject;
+- missing prerequisite atomic reject;
+- injected pre-commit failure rolls back Raw Chaos, unlock, Energy persistence, revision, reward event, and idempotency receipt;
+- caller-owned transaction requirements remain enforced by repositories/reward service.
 
-**Energy integration**
-- bootstrap, run start, and Energy restore all use the same derived normal maximum;
-- persisted current Energy is not rewritten by a read;
-- owning a higher max allows regeneration toward the higher cap;
-- existing overcharge behavior remains intact.
+**Energy transition**
+- at-old-cap upgrade does not receive retroactive newly-created-cap regeneration;
+- below-old-cap upgrade preserves already-earned ticks and fractional progress;
+- overcharge is preserved;
+- post-upgrade bootstrap/restore/run-start all use the same new maximum.
 
-**Shop eligibility**
-- existing d4/d6/d8 remain eligible without a size capability;
-- fixture d10/d12/d20 offers are unavailable/rejected without capability;
-- appropriate capability makes the exact size eligible;
-- rejection is atomic;
-- existing unit/item Shop behavior remains green;
-- newly authored T1 Goblin offers remain unavailable before their unit unlock and become available when that unlock exists.
+**Shop consequences**
+- canonical d4/d6/d8/d10/d12/d20 prices are exactly 12/18/28/34/42/60;
+- no canonical Shop die has purchase price <= deterministic sell value;
+- d10/d12/d20 locked before capability;
+- owning d10 exposes only d10 among higher sizes;
+- owning d12 exposes d10+d12;
+- owning d20 exposes all standard sizes;
+- exact corresponding purchases succeed after entitlement;
+- unit-type Academy unlock immediately exposes its matching T1 Goblin Shop offer.
 
-**Academy query/API/frontend**
-- wallet/revision/current ownership;
-- prerequisite availability chain;
-- owned upgrade state;
-- deterministic order;
-- auth failure;
-- exact strict parser;
-- static content/read response reconciliation;
-- no mutation on read.
+**Frontend**
+- exact request payload;
+- CSRF/idempotency headers;
+- strict response parser;
+- nullable Energy consequence;
+- malformed/mismatched spend/grant/revision rejects;
+- all six standard die sizes remain valid in Shop contracts.
 
 #### Verification
 
 Run:
-
 - `npm run verify:package`;
-- focused authored-content/capability/Academy query tests;
-- focused Energy bootstrap/run-start/restore tests;
-- focused Shop purchase/catalog tests including >d8 fixture eligibility;
-- focused frontend content/Academy/Shop contracts;
+- focused Academy command/reward/idempotency tests;
+- focused Energy capacity-transition/bootstrap/run-start/restore tests;
+- focused Shop catalog/purchase/lifecycle-valuation integrity tests;
+- focused frontend Academy mutation/Shop contracts;
 - DB provision/reset;
-- full Docker backend;
-- full frontend;
-- production frontend build;
+- full supported Docker backend suite;
+- full frontend suite;
+- production build;
 - bundle/content/docs/diff gates.
 
-Report exact test/assertion/skipped counts where available.
+Report exact focused/full counts when available. Ensure the reported full backend count corresponds to the complete suite rather than a focused subset.
 
 #### Out of scope
 
-- `POST /api/v1/academy/upgrade` or any Raw Chaos spend;
-- canonical d10/d12/d20 Shop offers;
 - Phaser Academy screen/Camp Academy navigation;
-- unit promotion options or mutation;
-- promotion costs/level thresholds;
-- retiring/consuming secondary units during promotion;
-- capstone-specific state/endpoints;
+- Academy GameStore cache/reconciliation UI;
+- unit promotion graph/options/mutation;
+- promotion costs/requirements;
+- ability/capstone progression;
 - Wrong Machine/kin progression;
+- changing dice sell/salvage valuation formulas;
+- final Teeth/Raw Chaos exchange tuning;
 - final Academy/economy balance;
 - final visual overhaul.
 
 #### Completion
 
-Implement only Milestone 8 Package 1. Leave it **In Progress** for architectural review. Do not promote Package 2 yourself.
+Implement only Milestone 8 Package 2. Leave it **In Progress** for architectural review. Do not promote Package 3 yourself.

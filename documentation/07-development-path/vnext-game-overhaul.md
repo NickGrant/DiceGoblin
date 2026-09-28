@@ -129,8 +129,8 @@ The retained prototype combat implementation is behavioral evidence only. It cur
 
 
 ## Milestone 8 Package Sequence
-1. Authored Academy upgrades + permanent capability foundation + read contract. **Current.**
-2. Idempotent Raw Chaos Academy upgrade transaction + first derived-capability/Shop consequences.
+1. Authored Academy upgrades + permanent capability foundation + read contract. **Approved at `0f3069f8aa0d81ff96d7450a006c51230be465a9`.**
+2. Idempotent Raw Chaos Academy upgrade transaction + first derived-capability/Shop consequences. **Current.**
 3. Authored unit-promotion graph + promotion-options/unit-progression read contracts.
 4. Promotion transaction + durable ability/history updates + active-run safety.
 5. Phaser Academy + unit-promotion surfaces and Camp/Warband integration.
