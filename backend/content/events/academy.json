@@ -1,0 +1,49 @@
+{
+  "definitions": [
+    {
+      "id": "event.academy_guardian",
+      "type": "event",
+      "reward_definition_id": "reward_definition.academy_guardian"
+    },
+    {
+      "id": "event.academy_marksman",
+      "type": "event",
+      "reward_definition_id": "reward_definition.academy_marksman"
+    },
+    {
+      "id": "event.academy_bannerbearer",
+      "type": "event",
+      "reward_definition_id": "reward_definition.academy_bannerbearer"
+    },
+    {
+      "id": "event.academy_saboteur",
+      "type": "event",
+      "reward_definition_id": "reward_definition.academy_saboteur"
+    },
+    {
+      "id": "event.academy_energy_max_75",
+      "type": "event",
+      "reward_definition_id": "reward_definition.academy_energy_max_75"
+    },
+    {
+      "id": "event.academy_energy_max_100",
+      "type": "event",
+      "reward_definition_id": "reward_definition.academy_energy_max_100"
+    },
+    {
+      "id": "event.academy_die_size_d10",
+      "type": "event",
+      "reward_definition_id": "reward_definition.academy_die_size_d10"
+    },
+    {
+      "id": "event.academy_die_size_d12",
+      "type": "event",
+      "reward_definition_id": "reward_definition.academy_die_size_d12"
+    },
+    {
+      "id": "event.academy_die_size_d20",
+      "type": "event",
+      "reward_definition_id": "reward_definition.academy_die_size_d20"
+    }
+  ]
+}

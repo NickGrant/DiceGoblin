@@ -229,6 +229,58 @@ final class ContentRegistryTest extends TestCase
     $this->assertStringNotContainsString('raw_chaos', json_encode($projection['content']['academy_upgrades'], JSON_THROW_ON_ERROR));
   }
 
+  public function testEveryAcademyUpgradeHasAnExclusiveExactFinalizedUnlockReward(): void
+  {
+    $registry = ContentRegistry::load($this->canonicalRoot());
+    foreach ($registry->definitionsOfType('academy_upgrade') as $upgrade) {
+      $event = $registry->event($upgrade['event_id']);
+      $reward = $registry->rewardDefinition($event['reward_definition_id']);
+      $this->assertCount(1, $reward['entries']);
+      $this->assertSame(10000, $reward['entries'][0]['probability_basis_points']);
+      $this->assertSame('unlock', $reward['entries'][0]['reward_type']);
+      $this->assertSame($upgrade['grant_unlock_id'], $reward['entries'][0]['config']['unlock_id']);
+    }
+    $original = $this->canonicalDefinitions($registry);
+    $cases = [
+      ['academy_upgrade.guardian', 'event_id', 'event.missing', 'references missing event'],
+      ['academy_upgrade.marksman', 'event_id', 'event.academy_guardian', 'shares Academy event'],
+      ['event.academy_marksman', 'reward_definition_id', 'reward_definition.academy_guardian', 'shares Academy reward'],
+      ['academy_upgrade.guardian', 'category', 'energy', 'category does not match'],
+      ['academy_upgrade.energy_max_75', 'grant_unlock_id', 'unlock.region.mountains', 'category does not match'],
+    ];
+    foreach ($cases as [$id, $field, $value, $error]) {
+      $changed = $original;
+      foreach ($changed as &$definition) if ($definition['id'] === $id) $definition[$field] = $value;
+      unset($definition);
+      try { ContentRegistry::load($this->rootWithFiles(['all.json' => ['definitions' => $changed]])); $this->fail($id); }
+      catch (ContentValidationException $e) { $this->assertStringContainsString($error, $e->getMessage()); }
+    }
+    foreach (['probability_basis_points' => 9999, 'reward_type' => 'currency'] as $field => $value) {
+      $changed = $original;
+      foreach ($changed as &$definition) if ($definition['id'] === 'reward_definition.academy_guardian') $definition['entries'][0][$field] = $value;
+      unset($definition);
+      $this->expectAcademyInvalid($changed);
+    }
+    $changed = $original;
+    foreach ($changed as &$definition) if ($definition['id'] === 'reward_definition.academy_guardian')
+      $definition['entries'][] = ['key' => 'extra', 'probability_basis_points' => 10000,
+        'reward_type' => 'unlock', 'config' => ['unlock_id' => 'unlock.region.mountains']];
+    unset($definition);
+    $this->expectAcademyInvalid($changed);
+    $changed = $original;
+    foreach ($changed as &$definition) if ($definition['id'] === 'reward_definition.academy_guardian')
+      $definition['entries'][0]['config']['unlock_id'] = 'unlock.region.mountains';
+    unset($definition);
+    $this->expectAcademyInvalid($changed);
+  }
+
+  /** @param list<array<string,mixed>> $definitions */
+  private function expectAcademyInvalid(array $definitions): void
+  {
+    try { ContentRegistry::load($this->rootWithFiles(['all.json' => ['definitions' => $definitions]])); $this->fail('Expected invalid Academy reward.'); }
+    catch (ContentValidationException) { $this->addToAssertionCount(1); }
+  }
+
   private function canonicalRoot(): string
   {
     return dirname(__DIR__, 2) . '/content';

@@ -102,13 +102,36 @@ final class ContentValidator
 
     $academyGrants = [];
     $academyByGrant = [];
+    $academyEvents = [];
+    $academyRewards = [];
     foreach ($definitions as $id => $definition) {
       if (($definition['type'] ?? null) === 'academy_upgrade') {
         $grant = $definition['grant_unlock_id'];
-        $this->requireReferenceType($definitions, $id, 'grant_unlock_id', $grant, 'unlock');
         if (isset($academyGrants[$grant])) throw new ContentValidationException("{$id} duplicates Academy grant '{$grant}'.");
         $academyGrants[$grant] = true;
         $academyByGrant[$grant] = $id;
+        $unlock = $this->requireReferenceType($definitions, $id, 'grant_unlock_id', $grant, 'unlock');
+        $target = $this->requireReferenceType($definitions, $grant, 'target_id', $unlock['target_id'], $unlock['target_type']);
+        $category = $definition['category'];
+        if (($category === 'unit_type' && $unlock['target_type'] !== 'unit_type')
+          || ($category === 'energy' && ($unlock['target_type'] !== 'capability' || ($target['kind'] ?? null) !== 'energy_normal_max'))
+          || ($category === 'dice' && ($unlock['target_type'] !== 'capability' || ($target['kind'] ?? null) !== 'max_acquirable_die_size'))) {
+          throw new ContentValidationException("{$id} category does not match its grant target.");
+        }
+        $eventId = $definition['event_id'];
+        if (isset($academyEvents[$eventId])) throw new ContentValidationException("{$id} shares Academy event '{$eventId}'.");
+        $academyEvents[$eventId] = true;
+        $event = $this->requireReferenceType($definitions, $id, 'event_id', $eventId, 'event');
+        if (isset($academyRewards[$event['reward_definition_id']])) {
+          throw new ContentValidationException("{$id} shares Academy reward '{$event['reward_definition_id']}'.");
+        }
+        $academyRewards[$event['reward_definition_id']] = true;
+        $reward = $this->requireReferenceType($definitions, $eventId, 'reward_definition_id', $event['reward_definition_id'], 'reward_definition');
+        $entries = $reward['entries'];
+        if (count($entries) !== 1 || $entries[0]['probability_basis_points'] !== 10000
+          || $entries[0]['reward_type'] !== 'unlock' || ($entries[0]['config']['unlock_id'] ?? null) !== $grant) {
+          throw new ContentValidationException("{$id} Academy reward must grant exactly its declared unlock.");
+        }
         foreach ($definition['prerequisite_unlock_ids'] as $prerequisite) {
           $this->requireReferenceType($definitions, $id, 'prerequisite_unlock_ids', $prerequisite, 'unlock');
         }
@@ -303,12 +326,13 @@ final class ContentValidator
   /** @param array<string, mixed> $definition */
   private function validateAcademyUpgrade(array $definition, string $location): void
   {
-    $this->requireExactFieldSet($definition, ['id', 'type', 'display_name', 'description', 'category', 'price', 'grant_unlock_id', 'prerequisite_unlock_ids'], [], $location);
+    $this->requireExactFieldSet($definition, ['id', 'type', 'display_name', 'description', 'category', 'price', 'grant_unlock_id', 'prerequisite_unlock_ids', 'event_id'], [], $location);
     $this->requireNamespace($definition, 'academy_upgrade.', $location);
     $this->requireNonEmptyString($definition, 'display_name', $location);
     $this->requireNonEmptyString($definition, 'description', $location);
     $this->requireAllowedString($definition, 'category', ['unit_type', 'energy', 'dice'], $location);
     $this->requireStableIdWithNamespace($definition, 'grant_unlock_id', 'unlock.', $location);
+    $this->requireStableIdWithNamespace($definition, 'event_id', 'event.', $location);
     $price = $definition['price'] ?? null;
     if (!is_array($price) || array_is_list($price)) throw new ContentValidationException("{$location} price must be an object.");
     $this->requireExactFieldSet($price, ['currency_id', 'amount'], [], $location);

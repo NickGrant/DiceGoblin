@@ -1,13 +1,136 @@
 {
   "definitions": [
-    {"id":"academy_upgrade.guardian","type":"academy_upgrade","display_name":"Guardian Research","description":"Unlock Guardian recruits.","category":"unit_type","price":{"currency_id":"raw_chaos","amount":5},"grant_unlock_id":"unlock.unit_type.guardian","prerequisite_unlock_ids":[]},
-    {"id":"academy_upgrade.marksman","type":"academy_upgrade","display_name":"Marksman Research","description":"Unlock Marksman recruits.","category":"unit_type","price":{"currency_id":"raw_chaos","amount":5},"grant_unlock_id":"unlock.unit_type.marksman","prerequisite_unlock_ids":[]},
-    {"id":"academy_upgrade.bannerbearer","type":"academy_upgrade","display_name":"Bannerbearer Research","description":"Unlock Bannerbearer recruits.","category":"unit_type","price":{"currency_id":"raw_chaos","amount":5},"grant_unlock_id":"unlock.unit_type.bannerbearer","prerequisite_unlock_ids":[]},
-    {"id":"academy_upgrade.saboteur","type":"academy_upgrade","display_name":"Saboteur Research","description":"Unlock Saboteur recruits.","category":"unit_type","price":{"currency_id":"raw_chaos","amount":5},"grant_unlock_id":"unlock.unit_type.saboteur","prerequisite_unlock_ids":[]},
-    {"id":"academy_upgrade.energy_max_75","type":"academy_upgrade","display_name":"Energy Capacity 75","description":"Raise normal Energy capacity to 75.","category":"energy","price":{"currency_id":"raw_chaos","amount":5},"grant_unlock_id":"unlock.capability.energy_max_75","prerequisite_unlock_ids":[]},
-    {"id":"academy_upgrade.energy_max_100","type":"academy_upgrade","display_name":"Energy Capacity 100","description":"Raise normal Energy capacity to 100.","category":"energy","price":{"currency_id":"raw_chaos","amount":10},"grant_unlock_id":"unlock.capability.energy_max_100","prerequisite_unlock_ids":["unlock.capability.energy_max_75"]},
-    {"id":"academy_upgrade.die_size_d10","type":"academy_upgrade","display_name":"D10 Acquisition","description":"Permit acquiring d10 dice.","category":"dice","price":{"currency_id":"raw_chaos","amount":5},"grant_unlock_id":"unlock.capability.die_size_d10","prerequisite_unlock_ids":[]},
-    {"id":"academy_upgrade.die_size_d12","type":"academy_upgrade","display_name":"D12 Acquisition","description":"Permit acquiring d12 dice.","category":"dice","price":{"currency_id":"raw_chaos","amount":10},"grant_unlock_id":"unlock.capability.die_size_d12","prerequisite_unlock_ids":["unlock.capability.die_size_d10"]},
-    {"id":"academy_upgrade.die_size_d20","type":"academy_upgrade","display_name":"D20 Acquisition","description":"Permit acquiring d20 dice.","category":"dice","price":{"currency_id":"raw_chaos","amount":20},"grant_unlock_id":"unlock.capability.die_size_d20","prerequisite_unlock_ids":["unlock.capability.die_size_d12"]}
+    {
+      "id": "academy_upgrade.guardian",
+      "type": "academy_upgrade",
+      "display_name": "Guardian Research",
+      "description": "Unlock Guardian recruits.",
+      "category": "unit_type",
+      "price": {
+        "currency_id": "raw_chaos",
+        "amount": 5
+      },
+      "grant_unlock_id": "unlock.unit_type.guardian",
+      "prerequisite_unlock_ids": [],
+      "event_id": "event.academy_guardian"
+    },
+    {
+      "id": "academy_upgrade.marksman",
+      "type": "academy_upgrade",
+      "display_name": "Marksman Research",
+      "description": "Unlock Marksman recruits.",
+      "category": "unit_type",
+      "price": {
+        "currency_id": "raw_chaos",
+        "amount": 5
+      },
+      "grant_unlock_id": "unlock.unit_type.marksman",
+      "prerequisite_unlock_ids": [],
+      "event_id": "event.academy_marksman"
+    },
+    {
+      "id": "academy_upgrade.bannerbearer",
+      "type": "academy_upgrade",
+      "display_name": "Bannerbearer Research",
+      "description": "Unlock Bannerbearer recruits.",
+      "category": "unit_type",
+      "price": {
+        "currency_id": "raw_chaos",
+        "amount": 5
+      },
+      "grant_unlock_id": "unlock.unit_type.bannerbearer",
+      "prerequisite_unlock_ids": [],
+      "event_id": "event.academy_bannerbearer"
+    },
+    {
+      "id": "academy_upgrade.saboteur",
+      "type": "academy_upgrade",
+      "display_name": "Saboteur Research",
+      "description": "Unlock Saboteur recruits.",
+      "category": "unit_type",
+      "price": {
+        "currency_id": "raw_chaos",
+        "amount": 5
+      },
+      "grant_unlock_id": "unlock.unit_type.saboteur",
+      "prerequisite_unlock_ids": [],
+      "event_id": "event.academy_saboteur"
+    },
+    {
+      "id": "academy_upgrade.energy_max_75",
+      "type": "academy_upgrade",
+      "display_name": "Energy Capacity 75",
+      "description": "Raise normal Energy capacity to 75.",
+      "category": "energy",
+      "price": {
+        "currency_id": "raw_chaos",
+        "amount": 5
+      },
+      "grant_unlock_id": "unlock.capability.energy_max_75",
+      "prerequisite_unlock_ids": [],
+      "event_id": "event.academy_energy_max_75"
+    },
+    {
+      "id": "academy_upgrade.energy_max_100",
+      "type": "academy_upgrade",
+      "display_name": "Energy Capacity 100",
+      "description": "Raise normal Energy capacity to 100.",
+      "category": "energy",
+      "price": {
+        "currency_id": "raw_chaos",
+        "amount": 10
+      },
+      "grant_unlock_id": "unlock.capability.energy_max_100",
+      "prerequisite_unlock_ids": [
+        "unlock.capability.energy_max_75"
+      ],
+      "event_id": "event.academy_energy_max_100"
+    },
+    {
+      "id": "academy_upgrade.die_size_d10",
+      "type": "academy_upgrade",
+      "display_name": "D10 Acquisition",
+      "description": "Permit acquiring d10 dice.",
+      "category": "dice",
+      "price": {
+        "currency_id": "raw_chaos",
+        "amount": 5
+      },
+      "grant_unlock_id": "unlock.capability.die_size_d10",
+      "prerequisite_unlock_ids": [],
+      "event_id": "event.academy_die_size_d10"
+    },
+    {
+      "id": "academy_upgrade.die_size_d12",
+      "type": "academy_upgrade",
+      "display_name": "D12 Acquisition",
+      "description": "Permit acquiring d12 dice.",
+      "category": "dice",
+      "price": {
+        "currency_id": "raw_chaos",
+        "amount": 10
+      },
+      "grant_unlock_id": "unlock.capability.die_size_d12",
+      "prerequisite_unlock_ids": [
+        "unlock.capability.die_size_d10"
+      ],
+      "event_id": "event.academy_die_size_d12"
+    },
+    {
+      "id": "academy_upgrade.die_size_d20",
+      "type": "academy_upgrade",
+      "display_name": "D20 Acquisition",
+      "description": "Permit acquiring d20 dice.",
+      "category": "dice",
+      "price": {
+        "currency_id": "raw_chaos",
+        "amount": 20
+      },
+      "grant_unlock_id": "unlock.capability.die_size_d20",
+      "prerequisite_unlock_ids": [
+        "unlock.capability.die_size_d12"
+      ],
+      "event_id": "event.academy_die_size_d20"
+    }
   ]
 }

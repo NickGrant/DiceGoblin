@@ -64,7 +64,7 @@ export function parseRunUnitHealEnvelope(
     playerRevision: data['player_revision'] });
 }
 
-function parseEnergy(value: unknown): ConsumableEnergyView {
+export function parseEnergy(value: unknown): ConsumableEnergyView {
   if (!record(value) || !exact(value, ['current', 'normal_max', 'regeneration_per_hour',
       'regeneration_interval_seconds', 'last_regeneration_at', 'next_regeneration_at', 'fully_regenerated_at'])
     || !safeNonNegative(value['current']) || !safePositive(value['normal_max'])

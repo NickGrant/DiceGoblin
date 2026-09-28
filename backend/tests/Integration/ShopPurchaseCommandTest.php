@@ -304,6 +304,8 @@ final class ShopPurchaseCommandTest extends IntegrationTestCase
     file_put_contents($root . '/shop_offers/catalog.json', json_encode(['definitions' => []], JSON_THROW_ON_ERROR));
     file_put_contents($root . '/unlocks/unit-types.json', json_encode(['definitions' => []], JSON_THROW_ON_ERROR));
     file_put_contents($root . '/academy_upgrades/catalog.json', json_encode(['definitions' => []], JSON_THROW_ON_ERROR));
+    file_put_contents($root . '/events/academy.json', json_encode(['definitions' => []], JSON_THROW_ON_ERROR));
+    file_put_contents($root . '/rewards/academy.json', json_encode(['definitions' => []], JSON_THROW_ON_ERROR));
     file_put_contents($root . '/items/test-purchase.json', json_encode(['definitions' => [[
       'id' => 'item.test.scrap', 'type' => 'item', 'display_name' => 'Scrap', 'description' => 'Scrap.', 'category' => 'material', 'rarity' => 'common', 'icon_key' => 'scrap', 'stackable' => true,
     ]]], JSON_THROW_ON_ERROR));

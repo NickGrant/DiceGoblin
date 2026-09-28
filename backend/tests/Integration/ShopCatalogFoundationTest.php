@@ -26,11 +26,12 @@ final class ShopCatalogFoundationTest extends IntegrationTestCase
     $this->assertSame(13, $result['teeth']);
     $this->assertSame(4, $result['player_revision']);
     $this->assertSame([
+      'shop_offer.cardboard_d10', 'shop_offer.cardboard_d12', 'shop_offer.cardboard_d20',
       'shop_offer.cardboard_d4', 'shop_offer.cardboard_d6', 'shop_offer.cardboard_d8',
       'shop_offer.field_poultice', 'shop_offer.goblin_bannerbearer', 'shop_offer.goblin_bruiser',
       'shop_offer.goblin_guardian', 'shop_offer.goblin_marksman', 'shop_offer.goblin_saboteur', 'shop_offer.spark_tonic',
     ], array_column($result['offers'], 'offer_id'));
-    $this->assertFalse($result['offers'][4]['available']);
+    $this->assertFalse($result['offers'][7]['available']);
   }
 
   public function testCanonicalAcademyUnitOffersRequireTheirExactUnlock(): void
@@ -193,6 +194,8 @@ final class ShopCatalogFoundationTest extends IntegrationTestCase
     file_put_contents($root . '/shop_offers/catalog.json', json_encode(['definitions' => []], JSON_THROW_ON_ERROR));
     file_put_contents($root . '/unlocks/unit-types.json', json_encode(['definitions' => []], JSON_THROW_ON_ERROR));
     file_put_contents($root . '/academy_upgrades/catalog.json', json_encode(['definitions' => []], JSON_THROW_ON_ERROR));
+    file_put_contents($root . '/events/academy.json', json_encode(['definitions' => []], JSON_THROW_ON_ERROR));
+    file_put_contents($root . '/rewards/academy.json', json_encode(['definitions' => []], JSON_THROW_ON_ERROR));
     return $root;
   }
   private function removeTree(string $root): void

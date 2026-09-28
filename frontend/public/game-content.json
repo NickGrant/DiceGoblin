@@ -1,5 +1,5 @@
 {
-    "revision": "50e27453d9b5a271abbb75e156ea9f049aafe8b830210327bf261b91116ae9a3",
+    "revision": "b66785d3f57d8b7d146a76af7a9178a999896d099e1d64d551da902c50c8d01c",
     "content": {
         "gameplay": {
             "run_energy_cost": 10
@@ -1236,6 +1236,30 @@
             }
         },
         "shop_offers": {
+            "shop_offer.cardboard_d10": {
+                "id": "shop_offer.cardboard_d10",
+                "grant": {
+                    "type": "die",
+                    "dice_profile_id": "dice_profile.cardboard_plain",
+                    "size": 10
+                }
+            },
+            "shop_offer.cardboard_d12": {
+                "id": "shop_offer.cardboard_d12",
+                "grant": {
+                    "type": "die",
+                    "dice_profile_id": "dice_profile.cardboard_plain",
+                    "size": 12
+                }
+            },
+            "shop_offer.cardboard_d20": {
+                "id": "shop_offer.cardboard_d20",
+                "grant": {
+                    "type": "die",
+                    "dice_profile_id": "dice_profile.cardboard_plain",
+                    "size": 20
+                }
+            },
             "shop_offer.cardboard_d4": {
                 "id": "shop_offer.cardboard_d4",
                 "grant": {

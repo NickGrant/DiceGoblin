@@ -31,7 +31,8 @@ import { ConsumableContractError, ConsumableUsePayload, EnergyRestoreResult, Run
   parseEnergyRestoreEnvelope, parseRunUnitHealEnvelope } from './consumable-contracts';
 import { DiceLifecycleContractError, DiceSellResult, DiceSalvageResult,
   parseDiceSellEnvelope, parseDiceSalvageEnvelope } from './dice-lifecycle-contracts';
-import { AcademyCatalogResult, AcademyContractError, parseAcademyCatalogEnvelope } from './academy-contracts';
+import { AcademyCatalogResult, AcademyContractError, AcademyUpgradePayload, AcademyUpgradeResult,
+  canonicalAcademyUpgradePayload, parseAcademyCatalogEnvelope, parseAcademyUpgradeEnvelope } from './academy-contracts';
 
 export type RuntimeFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
@@ -96,6 +97,18 @@ export class RuntimeApiClient {
       if (error instanceof AcademyContractError) throw new RuntimeApiError('malformed-response', 200);
       throw error;
     }
+  }
+
+  async upgradeAcademy(request: AcademyUpgradePayload, csrfToken: string, idempotencyKey: string): Promise<AcademyUpgradeResult> {
+    if (idempotencyKey.trim() === '') throw new RuntimeApiError('malformed-response');
+    let canonical: AcademyUpgradePayload;
+    try { canonical = canonicalAcademyUpgradePayload(request); }
+    catch (error) {
+      if (error instanceof AcademyContractError) throw new RuntimeApiError('malformed-response');
+      throw error;
+    }
+    return this.mutate('/api/v1/academy/upgrade', 'POST', csrfToken, canonical, idempotencyKey,
+      (value) => parseAcademyUpgradeEnvelope(value, canonical));
   }
 
   async sellDie(diceId: string, csrfToken: string, idempotencyKey: string): Promise<DiceSellResult> {
@@ -301,7 +314,8 @@ export class RuntimeApiClient {
     } catch (error) {
       if (error instanceof WarbandContractError || error instanceof UnitDetailContractError || error instanceof RunContractError
         || error instanceof RunNodeResolutionContractError || error instanceof ShopContractError
-        || error instanceof ConsumableContractError || error instanceof DiceLifecycleContractError) {
+        || error instanceof ConsumableContractError || error instanceof DiceLifecycleContractError
+        || error instanceof AcademyContractError) {
         throw new RuntimeApiError('malformed-response', response.status);
       }
       throw error;

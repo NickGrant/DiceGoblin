@@ -151,7 +151,7 @@ final class RewardContentValidationTest extends TestCase
   {
     $registry = ContentRegistry::load($this->canonicalRoot());
     $definitions = [];
-    foreach (['gameplay_config', 'region', 'kin', 'unit_type', 'enemy_unit_type', 'encounter', 'ability', 'dice_material', 'dice_aspect', 'dice_profile', 'run_node_type', 'run_generation', 'unlock', 'event', 'reward_definition'] as $type) {
+    foreach (['gameplay_config', 'region', 'kin', 'unit_type', 'enemy_unit_type', 'encounter', 'ability', 'dice_material', 'dice_aspect', 'dice_profile', 'run_node_type', 'run_generation', 'unlock', 'capability', 'academy_upgrade', 'event', 'reward_definition'] as $type) {
       foreach ($registry->definitionsOfType($type) as $definition) $definitions[] = $definition;
     }
     $definitions[] = [

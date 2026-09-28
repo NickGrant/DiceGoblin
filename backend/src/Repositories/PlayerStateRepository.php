@@ -81,6 +81,15 @@ final class PlayerStateRepository
     return $this->revisionForUser($userId);
   }
 
+  public function persistEnergyWithoutRevision(int $userId, int $energyCurrent, DateTimeImmutable $lastRegenerationAt): void
+  {
+    if (!$this->pdo->inTransaction() || $energyCurrent < 0) throw new RuntimeException('Energy transition requires a caller-owned transaction.');
+    $stmt = $this->pdo->prepare('UPDATE `user_state` SET `energy_current` = ?, `energy_last_regen_at` = ? WHERE `user_id` = ?');
+    $stmt->execute([$energyCurrent, $lastRegenerationAt->format('Y-m-d H:i:s'), $userId]);
+    if ($stmt->rowCount() === 0 && $this->getPlayerStateForUpdate($userId) === null)
+      throw new RuntimeException('Required player state is unavailable.');
+  }
+
   public function applyCurrencyTransition(int $userId, string $currencyId, int $before, int $after): void
   {
     if (!$this->pdo->inTransaction()) throw new RuntimeException('Currency credit requires a caller-owned transaction.');

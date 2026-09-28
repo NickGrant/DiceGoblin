@@ -36,7 +36,7 @@
       },
       "price": {
         "currency_id": "teeth",
-        "amount": 4
+        "amount": 12
       }
     },
     {
@@ -49,7 +49,7 @@
       },
       "price": {
         "currency_id": "teeth",
-        "amount": 6
+        "amount": 18
       }
     },
     {
@@ -62,13 +62,61 @@
       },
       "price": {
         "currency_id": "teeth",
+        "amount": 28
+      }
+    },
+    {
+      "id": "shop_offer.goblin_guardian",
+      "type": "shop_offer",
+      "grant": {
+        "type": "unit",
+        "unit_type_id": "unit_type.guardian",
+        "kin_id": "kin.goblin"
+      },
+      "price": {
+        "currency_id": "teeth",
         "amount": 8
       }
     },
-    {"id":"shop_offer.goblin_guardian","type":"shop_offer","grant":{"type":"unit","unit_type_id":"unit_type.guardian","kin_id":"kin.goblin"},"price":{"currency_id":"teeth","amount":8}},
-    {"id":"shop_offer.goblin_marksman","type":"shop_offer","grant":{"type":"unit","unit_type_id":"unit_type.marksman","kin_id":"kin.goblin"},"price":{"currency_id":"teeth","amount":8}},
-    {"id":"shop_offer.goblin_bannerbearer","type":"shop_offer","grant":{"type":"unit","unit_type_id":"unit_type.bannerbearer","kin_id":"kin.goblin"},"price":{"currency_id":"teeth","amount":8}},
-    {"id":"shop_offer.goblin_saboteur","type":"shop_offer","grant":{"type":"unit","unit_type_id":"unit_type.saboteur","kin_id":"kin.goblin"},"price":{"currency_id":"teeth","amount":8}},
+    {
+      "id": "shop_offer.goblin_marksman",
+      "type": "shop_offer",
+      "grant": {
+        "type": "unit",
+        "unit_type_id": "unit_type.marksman",
+        "kin_id": "kin.goblin"
+      },
+      "price": {
+        "currency_id": "teeth",
+        "amount": 8
+      }
+    },
+    {
+      "id": "shop_offer.goblin_bannerbearer",
+      "type": "shop_offer",
+      "grant": {
+        "type": "unit",
+        "unit_type_id": "unit_type.bannerbearer",
+        "kin_id": "kin.goblin"
+      },
+      "price": {
+        "currency_id": "teeth",
+        "amount": 8
+      }
+    },
+    {
+      "id": "shop_offer.goblin_saboteur",
+      "type": "shop_offer",
+      "grant": {
+        "type": "unit",
+        "unit_type_id": "unit_type.saboteur",
+        "kin_id": "kin.goblin"
+      },
+      "price": {
+        "currency_id": "teeth",
+        "amount": 8
+      }
+    },
     {
       "id": "shop_offer.goblin_bruiser",
       "type": "shop_offer",
@@ -80,6 +128,45 @@
       "price": {
         "currency_id": "teeth",
         "amount": 8
+      }
+    },
+    {
+      "id": "shop_offer.cardboard_d10",
+      "type": "shop_offer",
+      "grant": {
+        "type": "die",
+        "dice_profile_id": "dice_profile.cardboard_plain",
+        "size": 10
+      },
+      "price": {
+        "currency_id": "teeth",
+        "amount": 34
+      }
+    },
+    {
+      "id": "shop_offer.cardboard_d12",
+      "type": "shop_offer",
+      "grant": {
+        "type": "die",
+        "dice_profile_id": "dice_profile.cardboard_plain",
+        "size": 12
+      },
+      "price": {
+        "currency_id": "teeth",
+        "amount": 42
+      }
+    },
+    {
+      "id": "shop_offer.cardboard_d20",
+      "type": "shop_offer",
+      "grant": {
+        "type": "die",
+        "dice_profile_id": "dice_profile.cardboard_plain",
+        "size": 20
+      },
+      "price": {
+        "currency_id": "teeth",
+        "amount": 60
       }
     }
   ]

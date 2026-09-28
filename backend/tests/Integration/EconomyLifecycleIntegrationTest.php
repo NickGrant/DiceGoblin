@@ -26,7 +26,7 @@ final class EconomyLifecycleIntegrationTest extends IntegrationTestCase
     $services = ControllerServiceFactory::buildContentAware($this->pdo, null, $content);
     $initial = $services['gameBootstrapQuery']->execute($userId, new DateTimeImmutable('now', new DateTimeZone('UTC')));
     $lockedCatalog = $services['shopCatalogQuery']->execute($userId);
-    $this->assertSame([100, 1, 6], [$initial['player']['teeth'], $initial['player']['player_revision'], count($lockedCatalog['offers'])]);
+    $this->assertSame([100, 1, 13], [$initial['player']['teeth'], $initial['player']['player_revision'], count($lockedCatalog['offers'])]);
     $this->assertFalse($this->offer($lockedCatalog, 'shop_offer.goblin_bruiser')['available']);
     (new UserUnlockRepository($this->pdo))->insertIfAbsent($userId, 'unlock.unit_type.bruiser');
     $catalog = $services['shopCatalogQuery']->execute($userId);
@@ -39,9 +39,9 @@ final class EconomyLifecycleIntegrationTest extends IntegrationTestCase
     $this->assertRevision($energyPurchase, 2);
     $healPurchase = $purchase->execute($userId, $this->purchaseRequest('shop_offer.field_poultice', 4), 'closure-purchase-heal');
     $this->assertRevision($healPurchase, 3);
-    $sellDiePurchase = $purchase->execute($userId, $this->purchaseRequest('shop_offer.cardboard_d8', 8), 'closure-purchase-d8');
+    $sellDiePurchase = $purchase->execute($userId, $this->purchaseRequest('shop_offer.cardboard_d8', 28), 'closure-purchase-d8');
     $this->assertRevision($sellDiePurchase, 4);
-    $salvageDiePurchase = $purchase->execute($userId, $this->purchaseRequest('shop_offer.cardboard_d6', 6), 'closure-purchase-d6');
+    $salvageDiePurchase = $purchase->execute($userId, $this->purchaseRequest('shop_offer.cardboard_d6', 18), 'closure-purchase-d6');
     $this->assertRevision($salvageDiePurchase, 5);
     $unitPurchase = $purchase->execute($userId, $this->purchaseRequest('shop_offer.goblin_bruiser', 8), 'closure-purchase-unit');
     $this->assertRevision($unitPurchase, 6);

@@ -22,6 +22,10 @@ Package 1 closure evidence:
 
 Package 1 established canonical Academy/capability content, derived Energy/max-die-size policy, unlock-aware >d8 Shop eligibility, and the strict read-only `GET /api/v1/academy` contract.
 
+#### Problem
+
+Authored Academy upgrades cannot yet be purchased with Raw Chaos, and higher die offers need their capability-gated Shop entries and safe base prices.
+
 #### Purpose
 
 Make authored Academy upgrades executable as one authoritative Raw Chaos transaction.
