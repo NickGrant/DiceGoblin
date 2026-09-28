@@ -1,193 +1,353 @@
 # Active Execution Issue
 
-## Milestone 7 - Economy and Inventory
+## Milestone 8 - Permanent Progression
 
-### Milestone 7 Package 9 - Focused manual UAT
+### Milestone 8 Package 1 - Authored Academy upgrades + permanent capability foundation + read contract
 
 **Status:** In Progress
 **Priority:** High
 
-#### Accepted technical baseline
+#### Accepted baseline
 
-Milestone 7 Package 8 - Economy/inventory integrated verification and closure is approved at `e59b58e709892cc0a72e609576800dc45115813e`.
+Milestone 7 - Economy and Inventory is complete. Technical closure was approved at `e59b58e709892cc0a72e609576800dc45115813e`, and focused manual UAT passed on 2026-09-28 after the following UAT corrections:
 
-Closure evidence:
-- focused backend content/economy: **102 tests / 408 assertions**;
-- focused frontend: **127/127 PASS**;
-- full frontend: **515/515 PASS**;
-- full Docker backend: **891 tests / 3,676 assertions / 268 skipped**;
-- DB provision/reset: PASS;
-- production frontend build: PASS;
-- bundle check: PASS, largest main bundle **339.09 KiB**;
-- content validation/client projection: PASS at revision `6d5e576f7bd2453f3f35d09a3abd6c0ac414843655486e48ceb906378abbe367`;
-- deterministic Shop, Supplies, and Run Supplies captures: PASS;
-- `npm run llm:check`, docs lint, and `git diff --check`: PASS.
+- `c40f771cc089b649e7f676be0764eba6703ed63e` - fixed Shop/Supplies return-navigation recursion;
+- `35b2b0359b406df231ee459fb68eba8f6160878b` - fixed Warband return navigation and dice-confirmation layering;
+- `ba21115247ee862a739f07906c5e1df0f304e2b7` - made shared player state the single runtime authority for Teeth/Shop affordability.
 
-The canonical production economy now includes:
-- Spark Tonic — 4 Teeth, restores 12 Energy;
-- Field Poultice — 4 Teeth, restores 9 active-run HP;
-- Plain Cardboard d4 — 4 Teeth;
-- Plain Cardboard d6 — 6 Teeth;
-- Plain Cardboard d8 — 8 Teeth;
-- Goblin Bruiser — 8 Teeth, available only when the player owns `unlock.unit_type.bruiser`.
+Package 1 begins Milestone 8. Do not carry the prototype Academy or promotion persistence/orchestration forward wholesale.
 
-Package 9 is manual user UAT. Do not implement Milestone 8 during this package.
+#### Purpose
 
-#### UAT objective
+Establish the permanent-progression vocabulary and authoritative read boundaries that later Milestone 8 mutation/UI packages will use.
 
-Verify that the ordinary player-facing economy is understandable and functional through the real Phaser UI, survives navigation/reload, and does not expose an obvious state/reconciliation defect.
+This package owns:
 
-This is not balance approval and not final visual/UI approval. Record balance/presentation observations separately unless they prevent meaningful use.
+- authored permanent capability definitions;
+- authored Academy upgrade definitions;
+- canonical Academy progression content;
+- a shared policy for derived permanent capabilities, initially Energy normal maximum and maximum acquirable die size;
+- the authoritative `GET /api/v1/academy` read contract;
+- strict frontend Academy/content contracts without a Phaser Academy screen yet;
+- integration of the capability policy into existing Energy and die-acquisition eligibility boundaries.
 
-#### 1. Camp entry points
+This package does **not** spend Raw Chaos, promote units, add Academy UI, or grant progression from the client.
 
-From Camp:
+#### Durable-state rule
 
-- confirm **Shop**, **Supplies**, and **Warband** are reachable;
-- confirm Teeth, Energy, and other displayed resources remain coherent;
-- enter Shop and return to Camp;
-- enter Supplies and return to Camp;
-- verify Back/Escape behaves naturally and does not leave a broken/blank screen.
+Do not add an Academy ownership table or generic player-progression table.
 
-**Pass:** all destinations are reachable and return cleanly without losing the current session/game state.
+An Academy upgrade produces one permanent authored unlock. The durable truth is the existing `user_unlocks` row for that unlock.
 
-#### 2. Shop catalog and affordability
+Academy upgrade ownership is therefore derived:
 
-Open Shop with the canonical production content.
+```text
+academy upgrade
+  -> authored grant_unlock_id
+  -> user owns that unlock
+  -> upgrade is owned
+```
 
-Verify:
-- Spark Tonic and Field Poultice are present;
-- Cardboard d4, d6, and d8 are present;
-- no die larger than d8 is offered;
-- prices shown are 4 / 4 / 4 / 6 / 8 Teeth for the two consumables and d4/d6/d8 respectively;
-- affordability changes correctly relative to the current Teeth balance;
-- the Bruiser offer is visibly unavailable if this account does not own its unit-type entitlement.
+Derived capabilities are calculated from authored content plus owned unlock IDs. Do not persist `energy_max`, `max_die_size`, Academy levels, or duplicate capability flags on `user_state`.
 
-If the account already owns `unlock.unit_type.bruiser`, verify the Bruiser is available for 8 Teeth and may be purchased. Otherwise, the unavailable state is the expected UAT result; technical integration coverage already proves the entitled purchase path.
+#### Authored permanent capability model
 
-#### 3. Purchase and persistence
+Add a narrow authored definition type:
 
-Purchase at least:
-- one Spark Tonic;
-- one Field Poultice;
-- two unbound dice suitable for the sell/salvage checks below.
+```text
+capability
+```
 
-After each purchase:
-- Teeth should decrease once by the displayed price;
-- the Shop should immediately reflect the new Teeth balance/affordability;
-- Supplies or Warband should show the acquired asset when opened;
-- ordinary navigation should remain available after a successful purchase.
+Supported Package 1 capability kinds are exactly:
 
-Reload the game after at least one purchase.
+- `energy_normal_max`
+- `max_acquirable_die_size`
 
-**Pass:** purchased assets and the reduced Teeth balance survive reload without duplicate grants or another charge.
+A capability definition contains only stable identity, supported kind, and the integer value required by that kind. Keep this declarative; do not create arbitrary effect scripts/rule trees.
 
-#### 4. Supplies and Energy restore
+Canonical capability definitions:
 
-Open Supplies.
+- `capability.energy_max_75` -> `energy_normal_max = 75`
+- `capability.energy_max_100` -> `energy_normal_max = 100`
+- `capability.die_size_d10` -> `max_acquirable_die_size = 10`
+- `capability.die_size_d12` -> `max_acquirable_die_size = 12`
+- `capability.die_size_d20` -> `max_acquirable_die_size = 20`
 
-Verify:
-- Spark Tonic is shown with its owned quantity and Energy-restoration purpose;
-- Field Poultice is visible but clearly presented as a run-use healing item rather than a Camp healing action;
-- materials, if present, do not expose a Use action.
+Extend authored `unlock` validation so an unlock may target a `capability` in addition to the already accepted target types. The target must resolve to the exact authored capability definition.
 
-Use Spark Tonic while current Energy is below normal maximum.
+Canonical capability unlocks:
 
-Verify:
-- exactly one tonic is consumed;
-- Energy increases by the authoritative amount;
-- the displayed quantity and Energy update without a full game restart;
-- returning to Camp preserves the new Energy state.
+- `unlock.capability.energy_max_75`
+- `unlock.capability.energy_max_100`
+- `unlock.capability.die_size_d10`
+- `unlock.capability.die_size_d12`
+- `unlock.capability.die_size_d20`
 
-If practical, reload and confirm the resulting Energy/item quantity persists.
+No generic feature/effect namespace is required merely to implement these two concrete capability families.
 
-Do not block UAT on waiting for natural Energy regeneration merely to test overcharge; automated coverage owns the detailed regeneration/overcharge edge cases.
+#### Authored Academy upgrade model
 
-#### 5. Dice sell and salvage
+Add authored definition type:
 
-Open Warband -> Dice.
+```text
+academy_upgrade
+```
 
-For an existing equipped die:
-- verify Sell/Salvage is visibly unavailable/guarded.
+Each upgrade must have:
 
-For an unbound purchased die:
-- request Sell;
-- verify a destructive confirmation appears;
-- confirm it;
-- verify the die disappears from the active owned-dice list and Teeth increases once.
+- stable ID;
+- display name;
+- description;
+- category: `unit_type`, `energy`, or `dice`;
+- Raw Chaos price;
+- exactly one `grant_unlock_id`;
+- zero or more `prerequisite_unlock_ids`.
 
-For another unbound purchased die:
-- request Salvage;
-- confirm it;
-- verify the die disappears from the active owned-dice list and Raw Chaos increases once.
+Rules:
 
-Navigate away and back, then reload.
+- price currency is exactly `raw_chaos`;
+- price amount is a positive client-safe integer;
+- grant/prerequisite IDs must reference authored `unlock` definitions;
+- prerequisite IDs are unique and cannot include the upgrade's own grant;
+- one permanent unlock may be the grant target of at most one Academy upgrade;
+- reject direct or indirect Academy prerequisite cycles;
+- upgrade IDs/order are deterministic;
+- Academy definitions contain no executable scripts.
 
-**Pass:** terminal dice do not reappear as active, wallet changes persist, and equipped dice remain protected.
+The generated client projection may expose player-safe presentation fields such as ID, display name, description, and category. Do **not** project authoritative prices or capability numeric internals merely because the Academy screen will eventually need presentation.
 
-#### 6. Active-run healing
+#### Canonical Package 1 Academy catalog
 
-Start or resume a real run with at least one participating goblin below maximum HP.
+Author these provisional upgrades. These values are implementation/UAT balance anchors, not final economy tuning.
 
-Open **Supplies** from RunScene.
+**Base unit-type research — 5 Raw Chaos each**
 
-Verify:
-- Field Poultice appears;
-- participating goblins are selectable with current HP presentation;
-- selecting the poultice and an injured participant enables the heal action;
-- one use consumes exactly one poultice;
-- the chosen run participant's HP increases;
-- the run remains active;
-- current node/map state does not advance or otherwise change because of healing.
+- `academy_upgrade.guardian` -> `unlock.unit_type.guardian`
+- `academy_upgrade.marksman` -> `unlock.unit_type.marksman`
+- `academy_upgrade.bannerbearer` -> `unlock.unit_type.bannerbearer`
+- `academy_upgrade.saboteur` -> `unlock.unit_type.saboteur`
 
-Close Supplies and continue normal RunScene interaction.
+Add the corresponding authored unit-type unlock definitions. Bruiser remains the existing starting/base entitlement and does not need an Academy upgrade.
 
-**Pass:** healing changes only the intended active-run HP/item quantity and does not disrupt the run lifecycle.
+Also add ordinary 8-Teeth Shop offers for Guardian, Marksman, Bannerbearer, and Saboteur. Existing Shop availability rules must keep those offers unavailable until the corresponding unit-type unlock is owned.
 
-If producing an injured participant naturally is inconvenient, this is the one UAT step that may be deferred to the already-passing integration/capture proof rather than introducing test-only gameplay behavior.
+**Energy capacity**
 
-#### 7. Retry/navigation sanity
+- `academy_upgrade.energy_max_75` -> `unlock.capability.energy_max_75` — 5 Raw Chaos
+- `academy_upgrade.energy_max_100` -> `unlock.capability.energy_max_100` — 10 Raw Chaos
+  - prerequisite: `unlock.capability.energy_max_75`
 
-During ordinary UAT, pay attention to mutation transitions.
+**Die-size eligibility**
 
-Verify:
-- buttons do not remain permanently disabled after a successful or definitively rejected action;
-- Back/Escape works after settled actions;
-- no double-click produces obvious duplicate assets or double wallet changes;
-- no stale Shop/Supplies/Warband presentation persists after navigating away and returning.
+- `academy_upgrade.die_size_d10` -> `unlock.capability.die_size_d10` — 5 Raw Chaos
+- `academy_upgrade.die_size_d12` -> `unlock.capability.die_size_d12` — 10 Raw Chaos
+  - prerequisite: `unlock.capability.die_size_d10`
+- `academy_upgrade.die_size_d20` -> `unlock.capability.die_size_d20` — 20 Raw Chaos
+  - prerequisite: `unlock.capability.die_size_d12`
 
-Do not intentionally simulate packet loss unless convenient. Automated retained-idempotency tests own ambiguous-network retry semantics.
+Do not add higher-die production Shop offers in Package 1. Package 2 will own the first player-visible >d8 acquisition path after the Raw Chaos upgrade mutation exists.
 
-#### 8. Final reload check
+#### Permanent capability policy
 
-After completing the economy interactions, reload from the browser and revisit:
-- Camp;
-- Shop;
-- Supplies;
-- Warband Dice;
-- active RunScene if one remains active.
+Introduce one shared backend policy/service for derived permanent capabilities.
 
-Verify the authoritative state matches the actions performed:
-- Teeth;
-- Raw Chaos;
-- Energy;
-- item quantities;
-- active dice;
-- run HP/state.
+Given the canonical ContentRegistry plus owned unlock IDs it must resolve:
 
-#### UAT reporting
+**Energy normal maximum**
 
-Report each section as:
-- **PASS**
-- **FAIL** — include the exact step and observed behavior
-- **NOT EXERCISED** — only for the entitlement-dependent Bruiser purchase or naturally injured-run healing case
+- base = `config.gameplay.energy_normal_max`;
+- an owned `energy_normal_max` capability raises the normal maximum to its authored value;
+- multiple owned values resolve to the maximum;
+- current Energy is not clamped merely because normal maximum changes.
 
-Also report any non-blocking UX/balance observations separately from functional failures.
+Use this policy anywhere the backend currently needs the player's normal Energy maximum, including at minimum:
+
+- game bootstrap;
+- run-start Energy projection/spend;
+- Energy-restoration consumable calculation.
+
+All three boundaries must agree for the same player/unlock state.
+
+**Die acquisition eligibility**
+
+- base acquirable sizes are d4/d6/d8;
+- an owned max-size capability permits standard sizes up to that authored threshold;
+- supported standard sizes are d4/d6/d8/d10/d12/d20;
+- d10 capability permits d10;
+- d12 capability permits d10/d12;
+- d20 capability permits d10/d12/d20;
+- profile `allowed_sizes` remains an independent required constraint.
+
+Unknown/stale persisted unlock IDs must not accidentally grant a capability.
+
+#### Wire die eligibility into existing Shop authority
+
+Replace the Milestone 7 hard-coded purchase assumption that all valid Shop dice are only d4/d6/d8 with the shared eligibility policy.
+
+For authored/test Shop die offers:
+
+- content validation may recognize d4/d6/d8/d10/d12/d20 when the referenced profile allows the size;
+- `GET /api/v1/shop` must mark a >d8 die offer unavailable when the player lacks the required capability;
+- purchase must revalidate capability authoritatively inside its transaction before spending;
+- a locked-size purchase rejection changes no Teeth, die ownership, revision, or idempotency receipt;
+- owning the appropriate capability makes the same authored offer eligible;
+- frontend Shop/purchase contracts must accept all standard die sizes even though canonical production >d8 offers remain deferred to Package 2.
+
+Do not derive die-size entitlement from currently owned dice. The capability unlock is the authority.
+
+#### Academy read contract
+
+Implement:
+
+```text
+GET /api/v1/academy
+```
+
+Requirements:
+
+- authenticated query;
+- no CSRF;
+- no mutation;
+- no read-side provisioning;
+- no revision increment;
+- no Raw Chaos spend;
+- canonical deterministic ordering.
+
+Response data:
+
+```text
+raw_chaos
+player_revision
+upgrades[]
+  upgrade_id
+  price
+    currency_id = raw_chaos
+    amount
+  owned
+  available
+```
+
+Semantics:
+
+- `owned` is true when the upgrade's `grant_unlock_id` is already owned;
+- `available` is true only when the upgrade is not owned and every prerequisite unlock is owned;
+- insufficient Raw Chaos does **not** change `available`; affordability is a presentation calculation from authoritative wallet + price;
+- query never grants missing prerequisites or repairs state;
+- numeric values are client-safe non-negative integers and upgrade price is positive.
+
+The endpoint should use the existing player-state and unlock repositories plus ContentRegistry. Do not introduce Academy SQL catalog tables.
+
+#### Frontend/runtime contracts
+
+Add strict framework-neutral runtime support only; no Phaser Academy screen in Package 1.
+
+Add:
+
+- client-projected Academy presentation definitions;
+- `ClientContentRegistry` Academy accessors;
+- exact `GET /api/v1/academy` parser;
+- Runtime API client method;
+- read-model types suitable for the later GameStore/Academy screen.
+
+Frontend validation must require:
+
+- exact response envelope/fields;
+- stable request/result upgrade identity;
+- `raw_chaos` and revision client-safe;
+- Raw Chaos price positive/client-safe;
+- exact `raw_chaos` currency ID;
+- every server upgrade maps to a projected authored Academy definition;
+- no duplicate/missing/extra upgrade IDs compared with projected public Academy content;
+- deterministic ordering.
+
+Do not create an Academy mutation attempt, store cache, or Phaser UI yet unless a narrow existing architecture requirement makes the read contract impossible to test otherwise.
+
+#### Existing Shop/player-state ownership
+
+Preserve the UAT correction at `ba21115247ee862a739f07906c5e1df0f304e2b7`:
+
+- `bootstrap.player` remains the single runtime owner for Teeth;
+- Shop does not regain a second mutable Teeth/affordability snapshot;
+- server Shop `can_afford` is still validated for response coherence.
+
+Package 1 Academy frontend contracts should follow the same authority lesson: Raw Chaos belongs to shared player state once a GameStore surface is introduced later, rather than becoming a second independently mutable Academy wallet.
+
+#### Tests
+
+Add focused coverage for at least:
+
+**Content**
+- valid capability definitions;
+- unsupported capability kind/value rejects;
+- valid Academy definitions;
+- missing grant/prerequisite references reject;
+- duplicate prerequisite/self prerequisite rejects;
+- duplicate grant ownership across Academy upgrades rejects;
+- prerequisite cycle rejects;
+- client projection exposes only allowed Academy presentation data;
+- capability numeric internals and Academy Raw Chaos prices are not leaked through static projection.
+
+**Capability policy**
+- no capability => Energy 50 and max acquired die d8;
+- Energy 75 then 100 resolve correctly;
+- d10/d12/d20 chains resolve correctly;
+- mixed/unknown unlock IDs cannot grant unintended capability;
+- profile size compatibility remains required.
+
+**Energy integration**
+- bootstrap, run start, and Energy restore all use the same derived normal maximum;
+- persisted current Energy is not rewritten by a read;
+- owning a higher max allows regeneration toward the higher cap;
+- existing overcharge behavior remains intact.
+
+**Shop eligibility**
+- existing d4/d6/d8 remain eligible without a size capability;
+- fixture d10/d12/d20 offers are unavailable/rejected without capability;
+- appropriate capability makes the exact size eligible;
+- rejection is atomic;
+- existing unit/item Shop behavior remains green;
+- newly authored T1 Goblin offers remain unavailable before their unit unlock and become available when that unlock exists.
+
+**Academy query/API/frontend**
+- wallet/revision/current ownership;
+- prerequisite availability chain;
+- owned upgrade state;
+- deterministic order;
+- auth failure;
+- exact strict parser;
+- static content/read response reconciliation;
+- no mutation on read.
+
+#### Verification
+
+Run:
+
+- `npm run verify:package`;
+- focused authored-content/capability/Academy query tests;
+- focused Energy bootstrap/run-start/restore tests;
+- focused Shop purchase/catalog tests including >d8 fixture eligibility;
+- focused frontend content/Academy/Shop contracts;
+- DB provision/reset;
+- full Docker backend;
+- full frontend;
+- production frontend build;
+- bundle/content/docs/diff gates.
+
+Report exact test/assertion/skipped counts where available.
+
+#### Out of scope
+
+- `POST /api/v1/academy/upgrade` or any Raw Chaos spend;
+- canonical d10/d12/d20 Shop offers;
+- Phaser Academy screen/Camp Academy navigation;
+- unit promotion options or mutation;
+- promotion costs/level thresholds;
+- retiring/consuming secondary units during promotion;
+- capstone-specific state/endpoints;
+- Wrong Machine/kin progression;
+- final Academy/economy balance;
+- final visual overhaul.
 
 #### Completion
 
-Package 9 passes when the focused manual checks expose no blocking Milestone 7 defect.
-
-Do not mark Milestone 7 complete or begin Milestone 8 implementation automatically. After the user reports UAT results, architectural review will either:
-- close Milestone 7 and promote Milestone 8; or
-- issue a focused Milestone 7 UAT correction package.
+Implement only Milestone 8 Package 1. Leave it **In Progress** for architectural review. Do not promote Package 2 yourself.

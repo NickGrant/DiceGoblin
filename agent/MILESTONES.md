@@ -2,12 +2,12 @@
 
 Read this for sequencing/planning or when closing/promoting an execution package. Normal implementation should use `agent/ISSUES.md` instead.
 
-## Milestone 7 - Economy and Inventory
+## Milestone 8 - Permanent Progression
 
 **Status:** Active
 
 ### Related Issues
-- Milestone 7 Package 9 - Focused manual UAT
+- Milestone 8 Package 1 - Authored Academy upgrades + permanent capability foundation + read contract
 
 Milestone 1 - Walking Skeleton is complete and passed manual user UAT.
 
@@ -21,56 +21,51 @@ Milestone 5 - Complete Farm is complete and passed manual user UAT on 2026-09-19
 
 Milestone 6 - Prove Region Generalization is complete and passed manual user UAT on 2026-09-25. Integrated technical closure was approved at `5c8548d8b70f10d16470a564c53d13d48d10b3e2`; UAT playback corrections through `bb49a28b41381b8ececb7fb3cf74b3a346d2116a` passed final review and Full Verification (backend 792 / 1,626 assertions; frontend 481).
 
+Milestone 7 - Economy and Inventory is complete and passed focused manual user UAT on 2026-09-28. Technical closure was approved at `e59b58e709892cc0a72e609576800dc45115813e`; UAT corrections through `ba21115247ee862a739f07906c5e1df0f304e2b7` fixed economy-screen navigation, Warband dice-confirmation layering, and shared Teeth/Shop state.
+
 The major game-wide visual/UI overhaul remains intentionally deferred.
 
 ### Outcome
 
-Implement the ordinary repeatable economy and owned inventory through accepted vNext boundaries:
-- Teeth as the common spend currency;
-- authored Shop goods/offers;
-- stackable item inventory;
-- contextual consumables;
-- ordinary/basic dice and unit acquisition;
-- dice sale/salvage lifecycle;
-- Phaser Shop/Inventory interaction.
+Implement permanent progression through the accepted vNext boundaries:
+- Raw Chaos as the scarce permanent-progression currency;
+- authored Academy upgrades backed by permanent unlock ownership;
+- unit-type research and repeatable Teeth acquisition after unlock;
+- derived permanent capabilities such as Energy normal maximum;
+- one authoritative die-size acquisition eligibility policy for progression beyond d8;
+- unit promotion with surviving unit identity, durable promotion history, and permanent ability ownership;
+- Phaser Academy and unit-progression interaction.
 
-Raw Chaos permanent progression remains Milestone 8+, except that salvage may award Raw Chaos if retained by accepted product design.
-
-Until Milestone 8 introduces authoritative die-size eligibility, no Milestone 7 acquisition path may create dice larger than d8.
+Wrong Machine/kin reconstruction remains Milestone 9.
 
 ### Architectural Direction
 
-- JSON in Git defines items, Shop offers, prices/rules, and presentation; MySQL stores mutable ownership and transaction state only.
-- Teeth and Raw Chaos remain explicit wallet fields on `user_state` with common transaction semantics; Energy remains separate.
-- Purchases/sales/salvage/consumption are explicit player intentions with one transaction owner.
-- Spending/random/durable-asset creation uses idempotency where retries could duplicate cost or output.
-- Player inventory uses `user_items`; do not recreate prototype item/catalog tables.
-- Shop output should create normal unit/dice/item instances through shared asset/inventory boundaries, not Shop-specific ownership tables.
-- Equipped or active-run-locked dice cannot be sold/salvaged illegally.
-- Consumables use contextual commands rather than a generic arbitrary `use item` endpoint.
-- Do not import prototype daily-deal/feature-unlock breadth by default; mine individual behavior only when the package explicitly accepts it.
-- No >d8 dice acquisition until Milestone 8.
+- Academy definitions and progression tuning live in canonical JSON; MySQL stores only owned unlocks, unit progression state/history, and wallet state.
+- Academy upgrade ownership is represented by the permanent unlock it grants; do not add a parallel Academy-ownership table.
+- Raw Chaos spends use the same wallet/transaction/idempotency semantics already proven for Teeth.
+- Derived capability values are calculated from authored content plus owned unlocks. Do not persist `energy_max` or a duplicate max-die-size field.
+- Unit promotion changes the surviving unit instance and records promotion history; it does not replace the unit with a new identity.
+- Permanently unlocked abilities remain in `unit_abilities`; capstones are ordinary ability ownership, not separate capstone state.
+- Active-run participating unit progression/configuration remains locked.
+- Prototype Academy/promotion code is behavioral evidence only; do not revive SQL-authored unit catalogs, feature-upgrade rows, three-unit sacrifice semantics, old team tables, or catch-all profile refreshes without explicit re-approval.
+- Permanent access and repeatable acquisition remain separate: Raw Chaos unlocks capability/type; Teeth acquires ordinary individual assets after unlock.
 
 ### Package Queue
 
-1. ~~Authored item + inventory foundation.~~ Complete and architecturally approved at `3b15fc3024ef12499624e71df8740f3d5912fadb`; MySQL inventory 6/20, baseline 8/66, full backend 613/2,554/150 skipped.
-2. ~~Shop authored-offer model + authoritative Shop read contract.~~ Complete and approved at `a1cebe4527c0ea3fb5e9d92ce5314760a887c0b5`; full Docker backend 834/3,374/268 skipped.
-3. ~~Idempotent Teeth purchase transaction + ordinary item/basic-die acquisition (d8 maximum).~~ Complete and approved at `21825dde6bccfb0d925252eea4e76716aec0f3fd`; full Docker backend 845/3,467/268 skipped.
-4. ~~Base-unit purchase through unlocked authored unit types + shared unit creation.~~ Complete and approved at `b323b170f200159c047e8f22195cc98e7bfbcf27`; full Docker backend 853/3,505/268 skipped.
-5. ~~Contextual consumables: Energy restore + active-run unit healing.~~ Complete and approved at `a6e21912e686984c7d82ce3cb888bd803259b64c`; full Docker backend 875/3,585/268 skipped.
-6. ~~Dice sell/salvage lifecycle + Teeth/Raw Chaos outputs and active-run/equipment safety.~~ Complete and approved at `5601ba03cfb7072c016cd3788107855119cb745f`; full Docker backend 890/3,631/268 skipped.
-7. ~~Phaser Shop + Inventory surfaces and Camp integration.~~ Complete and approved at `6aeb397050fa8695eeaab2b4d1460de3f82c254c`; full frontend 522/522 and full Docker backend 890/3,631/268 skipped.
-8. ~~Economy/inventory integrated verification/closure.~~ Complete and approved at `e59b58e709892cc0a72e609576800dc45115813e`; full frontend 515/515, full Docker backend 891/3,676/268 skipped, canonical content revision `6d5e576f7bd2453f3f35d09a3abd6c0ac414843655486e48ceb906378abbe367`.
-9. **Focused manual UAT.** Current; Milestone 8 is not promoted until it passes.
+1. **Authored Academy upgrades + permanent capability foundation + read contract.** Current.
+2. Idempotent Raw Chaos Academy upgrade transaction + first derived-capability/Shop consequences.
+3. Authored unit-promotion graph + promotion-options/unit-progression read contracts.
+4. Promotion transaction + durable ability/history updates + active-run safety.
+5. Phaser Academy + unit-promotion surfaces and Camp/Warband integration.
+6. Permanent-progression integrated verification/closure.
+7. Focused manual UAT before Milestone 9 promotion.
 
 ### Sequencing Notes
 
-- Package 1 established the authored-item, `user_items`, inventory query, and strict content/runtime boundary and was approved at `3b15fc3024ef12499624e71df8740f3d5912fadb` after MySQL/Docker proof.
-- Package 2 established authored Shop offers and the player-specific read model and was approved at `a1cebe4527c0ea3fb5e9d92ce5314760a887c0b5` after client-safe numeric corrections and full Docker proof.
-- Package 3 proved the common repeatable Teeth transaction with items/basic dice and was approved at `21825dde6bccfb0d925252eea4e76716aec0f3fd` after request-bound receipt correction and full Docker proof. Dice acquisition remains capped at d8 pending Milestone 8.
-- Package 4 established generic unit-type entitlements plus unlock-aware repeatable tier-1 Basic Goblin purchase through shared unit creation and was approved at `b323b170f200159c047e8f22195cc98e7bfbcf27` after full Docker proof (853 tests / 3,505 assertions / 268 skipped).
-- Package 5 established contextual item consumption through the accepted Energy-restore and active-run-unit-heal commands without a generic scriptable item-use endpoint and was approved at `a6e21912e686984c7d82ce3cb888bd803259b64c` after a focused UTC regeneration-timestamp correction.
-- Package 6 established retained sold/salvaged die lifecycle transitions, Teeth/Raw Chaos valuation, idempotent retry, and equipment/active-run safety and was approved at `5601ba03cfb7072c016cd3788107855119cb745f` after full Docker closure (890 tests / 3,631 assertions / 268 skipped).
-- Package 7 established the Phaser Shop/Supplies interaction surfaces, dice lifecycle controls, contextual consumable UI, Camp/Run integration, cache reconciliation, and retained-idempotency navigation safety and was approved at `6aeb397050fa8695eeaab2b4d1460de3f82c254c`.
-- Package 8 closed the repeatable economy technically through integrated persistence/security/idempotency/frontend proof, canonical UAT-ready economy content, deterministic responsive captures, and retirement of the superseded Angular Shop path; approved at `e59b58e709892cc0a72e609576800dc45115813e`.
-- Package 9 is focused manual UAT. Do not begin Milestone 8 progression work until it passes.
+- Package 1 establishes authored Academy/capability vocabulary, canonical progression content, shared Energy/die-size capability policy, and the read-only Academy API/client contract.
+- Package 2 spends Raw Chaos idempotently and proves that permanent unlocks immediately change authoritative unit-type, Energy-capacity, and >d8 acquisition eligibility without duplicate progression state.
+- Package 3 explicitly authors/re-approves promotion paths and eligibility rather than copying prototype slug/tier inference or old three-unit sacrifice rules.
+- Package 4 performs promotion atomically while preserving unit identity, promotion history, permanent abilities, loadout validity, and active-run locks.
+- Package 5 makes Academy and promotion player-usable inside the persistent Phaser runtime.
+- Package 6 closes the complete permanent-progression slice technically.
+- Package 7 is manual UAT. Do not begin Milestone 9 Wrong Machine/kin work until it passes.

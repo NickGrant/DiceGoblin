@@ -1,7 +1,7 @@
 ---
 Title: "Dice Goblins vNext Game Overhaul"
 Status: Active Implementation Plan
-Last Updated: 2026-09-27
+Last Updated: 2026-09-28
 Owner: Product + Engineering
 Depends On:
   - documentation/07-development-path/README.md
@@ -54,9 +54,13 @@ All seven implementation/technical-closure packages passed architectural review,
 
 Milestone 6 made Mountains/kobolds the second playable authored region and proved that region availability, run start/generation, node resolution, combat/playback, persistence, and terminal reconciliation operate without Farm-specific duplication. Technical closure was approved at `5c8548d8b70f10d16470a564c53d13d48d10b3e2`; focused UAT playback corrections closed at `bb49a28b41381b8ececb7fb3cf74b3a346d2116a`, with final Full Verification at backend 792 / 1,626 assertions and frontend 481.
 
-**Milestone 7 - Economy and Inventory: Active.**
+**Milestone 7 - Economy and Inventory: Complete; manual UAT passed.**
 
-Milestone 7 builds the ordinary repeatable Teeth economy, stackable inventory, Shop acquisition, contextual consumables, and dice lifecycle actions. Until Milestone 8 introduces authoritative die-size eligibility, Milestone 7 acquisition paths must not create dice larger than d8.
+Milestone 7 established the ordinary repeatable Teeth economy, stackable inventory, authored Shop acquisition, contextual consumables, dice sell/salvage into Teeth/Raw Chaos, and persistent Phaser Shop/Supplies interaction. Technical closure was approved at `e59b58e709892cc0a72e609576800dc45115813e`. Focused UAT passed on 2026-09-28 after corrections through `ba21115247ee862a739f07906c5e1df0f304e2b7`.
+
+**Milestone 8 - Permanent Progression: Active.**
+
+Milestone 8 owns Academy/Raw Chaos permanent progression, derived capability upgrades such as Energy maximum and >d8 acquisition eligibility, unit-type research, and unit promotion/permanent ability progression.
 
 ## Milestones
 | # | Milestone | Exit criterion |
@@ -68,8 +72,8 @@ Milestone 7 builds the ordinary repeatable Teeth economy, stackable inventory, S
 | 4 | Combat | Authoritative combat adaptation, run HP/state, persisted playback, `BattleScene`, reconnect-safe result. **Complete; UAT passed.** |
 | 5 | Complete Farm | Event/reward pipeline, XP/progression, Mudking, terminal run flow, Mountains unlock; no claim/reroll/double-grant path. **Complete; UAT passed.** |
 | 6 | Prove region generalization | Mountains/kobolds operate through the same region/run architecture without Farm-specific duplication. **Complete; UAT passed.** |
-| 7 | Economy and inventory | Shop, Teeth, inventory/consumables, dice sale/salvage, recharge items and repeatable economy. Until Milestone 8 introduces die-size progression eligibility, acquisition tables must not grant dice larger than d8. **Active.** |
-| 8 | Permanent progression | Academy, Raw Chaos capability upgrades, promotion/ability progression, derived upgrades such as Energy max, plus one authoritative die-size acquisition eligibility capability/policy for progression beyond d8. |
+| 7 | Economy and inventory | Shop, Teeth, inventory/consumables, dice sale/salvage, recharge items and repeatable economy. **Complete; UAT passed.** |
+| 8 | Permanent progression | Academy, Raw Chaos capability upgrades, promotion/ability progression, derived upgrades such as Energy max, plus one authoritative die-size acquisition eligibility capability/policy for progression beyond d8. **Active.** |
 | 9 | Kin and Wrong Machine | Kin unlock/restoration, Pig/Lizard reconstruction, first-unlock vs deterministic repeat behavior. |
 | 10 | Run encounter depth | Branch-capable run topology and route choice, Rest, hazards, shrines, Chaos, run modifiers, contextual consumables, and multi-step node interactions where needed. |
 | 11 | Knowledge and objectives | Codex/knowledge dialogue, objectives/bounties, gameplay-fact progress and automatic completion rewards. |
@@ -121,7 +125,17 @@ The retained prototype combat implementation is behavioral evidence only. It cur
 6. Dice sell/salvage lifecycle + Teeth/Raw Chaos outputs and active-run/equipment safety. **Approved at `5601ba03cfb7072c016cd3788107855119cb745f`.**
 7. Phaser Shop + Inventory surfaces and Camp integration. **Approved at `6aeb397050fa8695eeaab2b4d1460de3f82c254c`.**
 8. Economy/inventory integrated verification/closure. **Approved at `e59b58e709892cc0a72e609576800dc45115813e`.**
-9. Focused manual UAT before Milestone 8 promotion. **Current.**
+9. Focused manual UAT before Milestone 8 promotion. **Passed on 2026-09-28 after UAT corrections through `ba21115247ee862a739f07906c5e1df0f304e2b7`.**
+
+
+## Milestone 8 Package Sequence
+1. Authored Academy upgrades + permanent capability foundation + read contract. **Current.**
+2. Idempotent Raw Chaos Academy upgrade transaction + first derived-capability/Shop consequences.
+3. Authored unit-promotion graph + promotion-options/unit-progression read contracts.
+4. Promotion transaction + durable ability/history updates + active-run safety.
+5. Phaser Academy + unit-promotion surfaces and Camp/Warband integration.
+6. Permanent-progression integrated verification/closure.
+7. Focused manual UAT before Milestone 9 promotion.
 
 
 ## Persistent Quality Gates
