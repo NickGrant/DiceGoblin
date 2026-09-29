@@ -133,8 +133,8 @@ The retained prototype combat implementation is behavioral evidence only. It cur
 2. Idempotent Raw Chaos Academy upgrade transaction + first derived-capability/Shop consequences. **Approved at `a22617e4e63898932c913e6c1290ed346fca9b55`.**
 3. Authored unit-promotion graph + promotion-options/unit-progression read contracts. **Approved at `58cf57732790d91784ecfba080bd136006586f44`.**
 4. Promotion transaction + durable ability/history updates + active-run safety. **Approved at `a1067fbdf1fc3fe101198f17dbbd21e5ebd0a93d`.**
-5. Phaser Academy + unit-promotion surfaces and Camp/Warband integration. **Current.**
-6. Permanent-progression integrated verification/closure.
+5. Phaser Academy + unit-promotion surfaces and Camp/Warband integration. **Approved at `f9d077b840376a9c80a7011cc1a4a5e2a7ae195c`.**
+6. Permanent-progression integrated verification/closure. **Current.**
 7. Focused manual UAT before Milestone 9 promotion.
 
 

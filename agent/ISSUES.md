@@ -2,506 +2,291 @@
 
 ## Milestone 8 - Permanent Progression
 
-### Milestone 8 Package 5 - Phaser Academy + unit-promotion surfaces and Camp/Warband integration
+### Milestone 8 Package 6 - Permanent-progression integrated verification and technical closure
 
 **Status:** In Progress
 **Priority:** High
 
-#### Problem
-
-The accepted Academy and unit-promotion backend contracts need player-usable Phaser destinations, safe mutation retries, and exact shared-state reconciliation.
-
 #### Accepted baseline
 
-Milestone 8 Package 4 - Promotion transaction + durable ability/history updates + active-run safety is approved at `a1067fbdf1fc3fe101198f17dbbd21e5ebd0a93d`.
+Milestone 8 Package 5 - Phaser Academy + unit-promotion surfaces and Camp/Warband integration is approved at `f9d077b840376a9c80a7011cc1a4a5e2a7ae195c`.
 
-Package 4 established and verified:
-- `POST /api/v1/units/:unitId/promote`;
-- receipt-first idempotent Raw Chaos spending;
-- same-unit type transition;
-- durable authored promotion history;
-- permanent branch ability ownership;
-- zero/nonzero target-ability grants;
-- preserved ID/name/kin/level/XP/loadout/dice bindings;
-- exact active-run participant locking;
-- full authoritative mutation response and strict frontend mutation contract.
+Package 5 architectural review approved:
+- lazy Academy and per-unit promotion-option caches;
+- shared `bootstrap.player.raw_chaos` authority;
+- retained idempotency attempts for Academy upgrades and promotion;
+- Academy -> Shop invalidation without fabricated availability;
+- same-unit promotion reconciliation into roster/detail/active-squad summaries;
+- Camp -> Academy and Warband -> Unit Configuration -> Unit Promotion navigation;
+- responsive/debug capture support;
+- retirement of the superseded unrouted Angular Academy page/service.
 
-The user confirmed Package 4 verification passed.
+The user confirmed Package 5 verification passed.
 
-Package 5 makes the permanent-progression slice player-usable inside the existing persistent Phaser runtime. Do not redesign the whole game UI in this package.
+Package 6 closes Milestone 8 technically. Do not add new permanent-progression mechanics.
 
 #### Purpose
 
-Add:
-- a GameScene-owned Academy destination reachable from Camp;
-- lazy Academy read/cache/retry state;
-- retained-idempotency Academy upgrade interaction;
-- shared-state reconciliation after Academy upgrades;
-- a GameScene-owned unit-promotion destination reachable from Unit Configuration;
-- lazy per-unit promotion-options read/cache/retry state;
-- retained-idempotency promotion confirmation/interaction;
-- exact local reconciliation after a committed promotion;
-- navigation/reflow/reload-safe behavior;
-- deterministic responsive capture states;
-- narrow retirement of the superseded unrouted Angular Academy page/service.
+Prove the complete permanent-progression slice works as one coherent production system across:
 
-No new backend progression mechanics are introduced here.
+- authored content;
+- MySQL persistence;
+- Raw Chaos acquisition/spend;
+- Academy reads/upgrades;
+- unit-type research -> Shop acquisition;
+- Energy-cap upgrades;
+- die-size capability -> Shop acquisition;
+- unit XP/level eligibility;
+- unit promotion/history/permanent ability ownership;
+- active-run participation locks;
+- Phaser Academy/promotion flows;
+- GameStore invalidation/reconciliation;
+- reload/re-entry persistence.
 
-#### Runtime authority rules
+Fix only narrow defects found by this integrated proof.
 
-Preserve the existing architecture:
+#### Production-content integration
 
-- backend/MySQL remains authoritative;
-- `GameStore` is a cache, never a second progression store;
-- `bootstrap.player.raw_chaos` is the **single runtime owner** of Raw Chaos;
-- Academy and promotion caches must not retain an independently mutable wallet;
-- static projected content remains presentation/identity only;
-- Academy prices, promotion prices, prerequisites, level requirements, ownership, and availability come from the authoritative APIs;
-- affected-domain mutation results update only the state they authoritatively describe;
-- when dependent state cannot be derived exactly, mark it stale and re-read rather than fabricating it.
+Add/extend integration coverage using the real repository content registry rather than temporary replacement catalogs wherever possible.
 
-Do not introduce a global profile refresh.
+Prove the canonical production catalog contains and coherently links:
 
-#### Academy GameStore state
+- all Milestone 8 Academy upgrades;
+- capability unlocks;
+- unit-type research unlocks;
+- Academy event/reward definitions;
+- all 20 Goblin promotion edges;
+- canonical d4/d6/d8/d10/d12/d20 Cardboard Shop offers;
+- target unit types and target abilities.
 
-Add a lazy Academy cache analogous to Shop/items:
+Do not weaken validators or create test-only production content.
 
-```text
-AcademyState
-  status = not-loaded | loading | fresh | stale | error
-  data
-    upgrades[]
-  error
-```
+#### Integrated lifecycle proof
 
-Do not retain the Academy read's `raw_chaos` or `player_revision` as a second wallet/revision snapshot.
+Create one or more integration scenarios that exercise the real boundaries in sequence.
 
-Add:
-- `academy` getter;
-- `subscribeAcademy`;
-- `loadAcademy(api, content, reload = false)`;
-- `retryAcademy`;
-- reset/clear behavior.
+At minimum prove:
 
-On a successful Academy read:
-- require cached bootstrap to exist;
-- require read `rawChaos` to equal `bootstrap.player.raw_chaos`;
-- require read `playerRevision` to equal `bootstrap.player.player_revision`;
-- only then retain the upgrade list as fresh.
+1. **Raw Chaos source**
+   - ordinary dice salvage produces Raw Chaos through the accepted Milestone 7 lifecycle;
+   - resulting wallet/revision are authoritative and persist.
 
-If those shared facts disagree, do not partially advance bootstrap from a read that lacks the other player domains. Treat the Academy slice as integrity/error and require authoritative reload/recovery.
+2. **Academy unit-type research**
+   - before research, the corresponding T1 Goblin Shop offer is unavailable;
+   - Academy read reports the authored upgrade;
+   - idempotent Academy upgrade spends Raw Chaos once and grants the permanent unlock;
+   - after research, Shop read exposes the same canonical unit offer;
+   - ordinary Teeth purchase creates one persistent unit through the shared creation path;
+   - reload preserves unlock, wallet, and acquired unit.
 
-Academy must not be fetched during startup merely because the cache exists. It loads when the Academy screen is entered.
+3. **Energy capacity**
+   - buy the 75-cap upgrade through the real Academy command;
+   - immediate result does not fabricate retroactive Energy;
+   - bootstrap/restore/run-start all agree on the new normal maximum;
+   - reload preserves the capability through unlock ownership;
+   - then prove the prerequisite chain to 100.
 
-#### Academy upgrade reconciliation
+4. **Die-size progression**
+   - d10/d12/d20 canonical offers remain unavailable before their required capability;
+   - buy capability upgrades through their real prerequisite chain;
+   - each Shop boundary changes at the correct threshold;
+   - purchase of the newly eligible canonical die succeeds;
+   - reload preserves capability and die ownership;
+   - no purchase -> sell positive-Teeth arbitrage exists for any canonical Cardboard die.
 
-Add one GameStore reconciliation path for `AcademyUpgradeResult`.
+5. **Unit promotion**
+   - use one real persistent Goblin unit at the exact authored required level;
+   - read promotion options;
+   - promote tier 1 -> one tier-2 branch;
+   - prove ID/name/kin/level/XP/loadout/dice bindings persist;
+   - prove one history row and permanent target ability delta;
+   - read now exposes exactly the authored tier-2 -> tier-3 edge;
+   - promote to tier 3;
+   - prove branch abilities remain permanently owned;
+   - prove terminal options are empty;
+   - reload and Unit Detail reproduce the exact persisted type/history/abilities.
 
-On a successful committed result:
+6. **Idempotency**
+   - replay at least one Academy spend and one promotion spend with the original key/request;
+   - no duplicate wallet debit, unlock, history, ability grant, revision, or receipt;
+   - same key + changed semantic request still conflicts.
 
-1. require non-regressing revision;
-2. update shared `bootstrap.player.raw_chaos` to `spend.balanceAfter`;
-3. update shared `player_revision`;
-4. add the granted unlock ID to `bootstrap.progression.unlock_ids`;
-5. if the result contains Energy, replace the shared bootstrap Energy view with the returned authoritative view;
-6. preserve Teeth, account/session, active squad/run, regions and unrelated state;
-7. mark Academy stale when loaded, because dependent prerequisite/owned states are server-authored;
-8. mark Shop stale when loaded, because unit-type or die-size unlocks may change offer availability;
-9. do not fabricate a dependent Academy chain or Shop availability locally.
+7. **Active-run safety**
+   - participating unit promotion is rejected atomically;
+   - non-participating reserve unit remains promotable during another active run;
+   - starting a run and promotion continue to serialize through the accepted player-state lock order.
 
-The grant unlock must not already exist in cached bootstrap before a new successful upgrade. If it does, treat reconciliation as an integrity contradiction while still preserving the authoritative affected wallet/revision result.
+#### Run/progression cache regression
 
-The Academy screen should re-read Academy after successful reconciliation. If that read fails:
-- the committed upgrade remains committed;
-- shared Raw Chaos/revision/unlock/Energy remain updated;
-- Academy shows stale/error recovery UI;
-- navigation is no longer blocked by the settled mutation.
+Explicitly exercise progression after real run activity.
 
-#### AcademyScreen
+A unit may have a previously loaded Unit Detail/promotion-options cache, then gain XP/level through run/battle progression before returning to GameScene.
 
-Add a `GameSceneScreen` with key:
+Prove that after:
+- normal run completion/exit; and
+- run abandonment after any already-persisted progression,
 
-```text
-academy
-```
+the next Unit Configuration / Unit Promotion flow does not become permanently stuck behind a false local integrity contradiction.
 
-Use the established Camp/economy visual language; final visual overhaul remains deferred.
+Accepted outcomes:
+- affected Unit Detail/options are proactively marked stale and re-read; or
+- the first disagreement safely marks stale/error and the standard retry path deterministically recovers.
 
-Minimum presentation:
-- RETURN;
-- ACADEMY heading;
-- shared Raw Chaos wallet display;
-- authored upgrade name;
-- description;
-- category;
-- Raw Chaos price;
-- state:
-  - OWNED;
-  - LOCKED / PREREQUISITE REQUIRED;
-  - AVAILABLE;
-  - INSUFFICIENT RAW CHAOS.
+A normal supported player flow must not require deleting local state or issuing a second progression mutation.
 
-Affordability displayed by the screen is always recomputed from:
-`store.bootstrap.player.raw_chaos >= upgrade.price.amount`.
+If this test exposes stale-detail invalidation missing from an existing run reconciliation path, make the narrow cache-invalidation correction in Package 6.
 
-Do not retain a screen-local wallet.
+#### GameStore cross-domain closure
 
-Support more entries than fit vertically through deterministic paging/scrolling appropriate to existing Phaser conventions. All canonical upgrades must remain reachable at Compact, Standard and Wide layouts.
+Add focused tests proving:
 
-Read states:
-- not-loaded/loading;
-- fresh;
-- error with retry;
-- empty catalog as an explicit safe state.
+**Academy**
+- Academy remains lazy at normal startup;
+- read wallet/revision equality with bootstrap;
+- upgrade result updates shared Raw Chaos/revision/unlock/Energy;
+- loaded Academy becomes stale then refreshes;
+- loaded Shop becomes stale;
+- later Academy/Shop reads use server state, not fabricated prerequisite/availability changes.
 
-#### Academy mutation UX
+**Promotion**
+- promotion-options remain lazy per unit;
+- Raw Chaos is always rendered from shared bootstrap state;
+- successful promotion updates roster, Unit Detail, active-squad summary, shared wallet/revision;
+- only the promoted unit's options are invalidated by promotion;
+- run lifecycle invalidates lock-sensitive promotion caches;
+- local reconciliation failure preserves committed wallet/revision and leaves affected slices recoverable.
 
-Use `RetainedMutationAttempt<AcademyUpgradePayload, AcademyUpgradeResult>`.
+**Cross-surface**
+- Academy spend is visible when Unit Promotion is opened later;
+- promotion spend is visible when Academy is opened later;
+- neither screen retains a second wallet snapshot;
+- reload bootstrap can replace all lazy progression caches cleanly.
 
-Required behavior:
-- selecting another upgrade is blocked while state is submitting or retryable;
-- mutation identity includes exact upgrade ID + expected Raw Chaos amount;
-- first action presents/uses an explicit upgrade confirmation;
-- submitting disables duplicate submission;
-- ambiguous network/server outcome retains the exact request + idempotency key;
-- RETRY uses the exact retained attempt;
-- Back/Escape is blocked while submitting or retryable;
-- definitive rejection releases the attempt and navigation;
-- success reconciles GameStore, then refreshes Academy;
-- committed-but-local-reconciliation failure displays reload/recovery guidance without resubmitting under a new key.
+#### Phaser integrated flow proof
 
-The action is enabled only when:
-- upgrade not owned;
-- server says available;
-- shared Raw Chaos can afford the authoritative returned price;
-- no mutation is in flight/uncertain.
-
-#### Camp integration
-
-Add Academy as a normal `GameScene` destination, not a Phaser scene.
-
-Update:
-- `GameScreenKey`;
-- navigator/back handling;
-- GameScene screen factory/activation;
-- Escape behavior;
-- debug screen identity;
-- Camp button layout.
-
-Camp now has:
-- WARBAND;
-- SHOP;
-- SUPPLIES;
-- ACADEMY.
-
-The four destinations must fit cleanly at Compact/Standard/Wide and safe-inset layouts. A two-row layout at constrained widths is acceptable; do not shrink controls below practical interaction size merely to preserve one row.
-
-Returning from Academy recreates Camp from current shared player state so Raw Chaos/Energy changes are visible.
-
-#### Promotion-options GameStore state
-
-Add lazy per-unit promotion-options state:
+Add/extend focused runtime integration tests for:
 
 ```text
-Map<unitId, UnitPromotionOptionsState>
-  status = not-loaded | loading | fresh | stale | error
-  data = UnitPromotionOptionsResult | null
-  error
+Camp
+ -> Academy
+ -> upgrade
+ -> Camp
+ -> Shop
+ -> Warband
+ -> Unit Configuration
+ -> Unit Promotion
+ -> Unit Configuration
+ -> Warband
+ -> Camp
 ```
 
-Add:
-- getter by unit ID;
-- subscription suitable for the active unit-promotion screen;
-- load/retry methods;
-- clear behavior.
+Prove:
+- navigation history/back/Escape remains coherent;
+- settled mutations release navigation;
+- ambiguous mutations retain exact attempts and block leaving only until resolved;
+- definitive rejections release navigation;
+- no duplicate screen-local wallet state;
+- returning screens render reconciled state without global profile refresh.
 
-On successful read:
-- require response unit ID/current unit type to agree with the current cached Unit Detail when that detail is fresh;
-- require response Raw Chaos/revision to equal shared bootstrap Raw Chaos/revision;
-- require server `configurationLocked` to agree with current runtime active-run participation when that relationship is known;
-- then retain the result.
+Do not redesign screen visuals.
 
-Do not use the cached response's `canAfford` as a long-lived wallet authority. Rendering recomputes affordability from shared Raw Chaos + authoritative option price. The parser still validates that `can_afford` was coherent at response time.
+#### Deterministic capture closure
 
-Invalidate/mark stale:
-- the promoted unit's options after a successful promotion;
-- all loaded promotion-options states when run participation begins/ends in ways that can change `configuration_locked`;
-- any loaded unit option whose current unit detail/type/level becomes stale after authoritative progression/run reconciliation.
+Run and retain deterministic proof for representative permanent-progression surfaces at the accepted viewport matrix:
 
-Do not eagerly reload every unit.
+- Compact landscape;
+- 1600x900 reference;
+- Wide landscape;
+- safe-inset landscape;
+- portrait mobile rotate gate.
 
-#### Promotion reconciliation
+At minimum inspect:
+- Academy default catalog;
+- Academy owned/locked/unaffordable states;
+- Unit Promotion two-choice state;
+- below-level state;
+- active-run locked state;
+- terminal no-options state.
 
-Add `GameStore.reconcileUnitPromotion(result)` or equivalent.
+Fail the package for clipped controls, inaccessible actions, safe-inset violations, or critical status/wallet text outside bounds.
 
-A successful committed promotion authoritatively changes:
-- Raw Chaos;
-- player revision;
-- the promoted unit summary;
-- promoted Unit Detail.
+Capture fixtures remain debug-only and may not alter normal runtime authority.
 
-Require a fresh reconciliation context when possible:
-- bootstrap;
-- roster unit summary;
-- Unit Detail;
-- dice summary needed to validate retained bindings.
+#### Prototype/runtime closure
 
-Validate against prior cached state:
-- same unit ID;
-- same display name;
-- same kin;
-- same level and XP;
-- same lifecycle;
-- loadout unchanged;
-- dice bindings unchanged;
-- target type equals result promotion target;
-- prior permanent abilities are retained;
-- granted abilities are the only newly added ability IDs;
-- history equals prior history plus exactly the returned from->to row.
+Verify:
+- Angular Academy page/service are absent and no imports/routes reference them;
+- live gameplay remains routed only through `/game`;
+- no new dependency on prototype `AcademyService` or old `PromotionService`;
+- no SQL-authored Academy/promotion catalog was introduced;
+- no duplicate `energy_max`, max-die-size, Academy ownership, tier, or capstone state exists;
+- Wrong Machine/kin progression remains untouched for Milestone 9.
 
-Then:
-- update shared Raw Chaos to balanceAfter;
-- update player revision;
-- replace roster unit type with target type;
-- update matching `bootstrap.active_squad.units` summary if that unit is represented there;
-- replace Unit Detail with returned detail;
-- mark that unit's promotion-options stale;
-- leave dice/squad topology unchanged.
+Do not perform broad prototype deletion beyond clearly dead Milestone 8 frontend/runtime artifacts found by this verification.
 
-If local cache prerequisites are missing, the mutation result is still committed. Preserve the authoritative wallet/revision and mark affected unit/roster/promotion slices stale/error for re-read rather than inventing missing prior state.
+#### Regression requirements
 
-Other units' promotion affordability should render from shared Raw Chaos, so they do not require fabricated `canAfford` rewrites.
+Keep green:
+- Milestone 7 Shop/Supplies/dice lifecycle;
+- run start/abandon/current-run reconciliation;
+- battle return/reward progression;
+- Warband unit detail/rename/loadout;
+- unit purchase;
+- Energy restoration;
+- all Academy Package 1-2 contracts;
+- all promotion Package 3-4 contracts;
+- startup/content revision handling.
 
-#### UnitPromotionScreen
-
-Add a `GameSceneScreen` with key:
-
-```text
-unit-promotion
-```
-
-It is opened for one exact unit ID from Unit Configuration.
-
-On create:
-- ensure Unit Detail and required Warband/dice caches are available;
-- lazy-load promotion options for the unit;
-- show loading/error/retry states safely.
-
-Minimum presentation:
-- RETURN TO UNIT;
-- goblin display name;
-- current authored unit type;
-- level and XP / XP-to-next-level;
-- shared Raw Chaos;
-- active-run lock state when applicable;
-- each promotion option:
-  - target type name;
-  - required level;
-  - Raw Chaos cost;
-  - newly granted abilities by display name;
-  - level requirement state;
-  - affordability state;
-  - locked state.
-
-Terminal tier-3 unit with no outgoing options:
-- show a clear "No further promotions" state;
-- do not treat the unit as missing.
-
-#### Promotion mutation UX
-
-Use `RetainedMutationAttempt<UnitPromotionPayload, UnitPromotionResult>`.
-
-Required:
-- select one authored option;
-- explicit confirmation before spending;
-- confirmation names current -> target type and Raw Chaos cost;
-- action enabled only when server says available, shared Raw Chaos affords it, and the unit is not configuration-locked;
-- attempt identity includes unit ID + promotion ID + expected price;
-- ambiguous outcome retains exact request/key;
-- Back/Escape and option changes blocked while submitting/retryable;
-- exact RETRY reuses the retained attempt;
-- definitive rejection releases the attempt;
-- success reconciles GameStore and refreshes promotion options for the same unit.
-
-After a tier-1 -> tier-2 success:
-- remain on promotion screen;
-- display the new current type;
-- refresh to the exact tier-2 -> tier-3 option;
-- if preserved level already satisfies level 6, it may immediately show eligible.
-
-After a tier-2 -> tier-3 success:
-- refresh to the terminal no-options state.
-
-Do not auto-equip newly granted abilities.
-
-#### Unit Configuration / Warband integration
-
-Keep Warband unit rows opening Unit Configuration as today.
-
-Add a **PROMOTION** / **PROGRESSION** action to Unit Configuration that opens `unit-promotion` for the same unit.
-
-Rules:
-- opening promotion must be blocked while a Unit Configuration mutation is submitting or in an ambiguous retry state;
-- participating active-run units may open promotion to inspect the locked state, but cannot submit;
-- returning from promotion must show the reconciled target type/abilities without requiring a whole-page reload;
-- existing rename/loadout behavior remains unchanged.
-
-Navigation history:
-
-```text
-Camp -> Warband -> Unit Configuration -> Unit Promotion
-```
-
-Back/Escape must return one level at a time without losing the Warband tab/history.
-
-#### Runtime navigation/debug support
-
-Update GameScene activation/factories/history for:
-- `academy`;
-- `unit-promotion`.
-
-Debug capture may enter these screens deterministically without altering normal startup routing.
-
-If debug capture requests unit-promotion, use a deterministic fixture unit identity after Warband fixture state is loaded rather than hardcoding production database IDs.
-
-#### Responsive/layout requirements
-
-Academy and Unit Promotion must support the existing runtime classes:
-- Compact 844x390;
-- Standard 1600x900;
-- Wide 2560x1080;
-- safe-inset variants;
-- portrait 390x844 remains behind the rotate-device gate.
-
-No critical text/action may render outside safe bounds or underneath navigation/action controls.
-
-Use existing reusable layout helpers where sensible; do not fork a second viewport system.
-
-#### Deterministic capture proof
-
-Extend `scripts/capture-scene.mjs` and debug fixture support for deterministic:
-- Academy catalog;
-- Academy owned/locked/available/unaffordable states;
-- Academy retained/retryable mutation presentation if capture tooling supports mutation-state injection cleanly;
-- Unit Promotion with two tier-2 choices;
-- Unit Promotion active-run locked state;
-- Unit Promotion terminal no-options state.
-
-Capture at least the representative progression screens at:
-- Compact;
-- Standard;
-- Wide;
-- safe inset;
-- portrait gate.
-
-Review for clipping, overlap, unreadable text, inaccessible actions, and incorrect wallet/status presentation.
-
-Do not use deterministic fixtures as substitutes for the authoritative API contracts in normal runtime.
-
-#### Narrow Angular Academy retirement
-
-Once the Phaser Academy route is live and tests pass, remove the isolated prototype Angular Academy gameplay UI:
-- `frontend/src/app/pages/academy-page/**`;
-- `frontend/src/app/core/services/academy/**`;
-- their isolated tests/imports if no live platform dependency remains.
-
-The current Angular router already routes gameplay through `/game`; do not disturb public/auth/account shell behavior.
-
-Do **not** broadly delete backend prototype `AcademyService` or unrelated prototype progression code in this package. Backend prototype retirement remains evidence-driven/final-hardening work.
-
-Update the prototype disposition document if required to record the frontend Academy retirement.
-
-#### Tests
-
-Add focused coverage for at least:
-
-**Academy store**
-- remains not-loaded before screen entry;
-- read wallet/revision must match shared bootstrap;
-- load/retry/error;
-- upgrade reconciliation updates shared Raw Chaos/revision/unlock;
-- Energy upgrade updates shared Energy;
-- Academy and Shop invalidation;
-- no duplicate wallet snapshot;
-- reconciliation contradiction preserves committed affected state and marks recovery slices stale/error.
-
-**Academy screen**
-- all canonical upgrades reachable;
-- owned/locked/available/unaffordable labels;
-- shared wallet changes re-render affordability;
-- exact retained attempt identity/key;
-- ambiguous retry;
-- definitive rejection releases navigation;
-- success refreshes Academy;
-- Back/Escape blocked only while uncertain;
-- responsive layouts.
-
-**Promotion store**
-- lazy per-unit load;
-- shared wallet/revision agreement;
-- active-run lock agreement;
-- promotion reconciliation preserves ID/name/kin/level/XP/loadout/bindings;
-- roster + active-squad summary update;
-- permanent ability delta/history update;
-- options stale after success;
-- run lifecycle invalidates lock-sensitive cached options.
-
-**Promotion screen**
-- level/XP/current/target presentation;
-- two branch choices;
-- insufficient Raw Chaos;
-- below-level requirement;
-- active-run locked;
-- zero/new ability lists;
-- retained exact retry;
-- success refresh to next tier;
-- tier-3 no-options state;
-- back/navigation semantics.
-
-**Integration**
-- Camp -> Academy -> upgrade -> Camp;
-- Academy unit-type unlock -> Shop stale/reload -> matching offer available;
-- Academy die capability -> Shop reload -> correct higher die available;
-- Academy Energy cap -> Camp/Supplies shared Energy maximum;
-- Warband -> Unit Configuration -> Promotion -> promote -> Unit Configuration;
-- promotion Raw Chaos spend reflected in Academy wallet when opened later;
-- normal reload reproduces server progression state.
-
-**Regression**
-- Shop/Supplies retained mutation navigation behavior remains green;
-- Warband dice lifecycle retained mutation behavior remains green;
-- rename/loadout remains green;
-- active run routes still start in RunScene;
-- no eager Academy/promotion fetch during normal startup.
+No accepted architecture may be relaxed merely to make integrated tests pass.
 
 #### Verification
 
 Run:
 - `npm run verify:package`;
-- focused GameStore Academy/promotion reconciliation tests;
-- focused AcademyScreen/UnitPromotionScreen/navigation tests;
-- focused Camp/Warband/Unit Configuration regressions;
-- focused economy/progression runtime integration tests;
-- deterministic progression captures;
+- focused production-content permanent-progression integration tests;
+- focused Academy + Shop lifecycle tests;
+- focused Energy capability tests;
+- focused die-size progression + valuation integrity tests;
+- focused promotion lifecycle/idempotency/history/active-run tests;
+- focused GameStore progression reconciliation/invalidation tests;
+- focused Phaser progression navigation/screen tests;
+- deterministic progression capture matrix;
 - DB provision/reset;
 - full supported Docker backend suite;
 - full frontend suite;
 - production frontend build;
 - bundle/content/docs/diff gates.
 
-Report exact focused/full counts where available.
+Report exact:
+- focused backend tests/assertions;
+- full backend tests/assertions/skipped;
+- focused frontend tests;
+- full frontend tests;
+- production content revision;
+- deterministic capture results.
+
+#### Closure evidence
+
+At completion, add a concise Package 6 closure section to this issue recording:
+- implementation SHA;
+- exact verification counts;
+- production content revision;
+- integrated lifecycle scenarios covered;
+- capture matrix result;
+- any narrow corrections made.
+
+Leave Package 6 **In Progress** for architectural review.
+
+Do not promote Package 7 or Milestone 9 yourself.
 
 #### Out of scope
 
-- new backend progression mechanics;
-- changing Academy or promotion prices/graph;
-- final economy/progression balancing;
+- new Academy upgrades;
+- new promotion paths;
+- balance redesign;
+- new currencies;
 - automatic ability equipping;
-- capstone-specific UI/state;
-- Wrong Machine/kin progression;
+- capstone-specific systems;
+- Wrong Machine/kin reconstruction;
 - final game-wide visual overhaul;
-- broad backend prototype deletion.
-
-#### Completion
-
-Implement only Milestone 8 Package 5. Leave it **In Progress** for architectural review. Do not promote Package 6 yourself.
+- Milestone 9 work.
