@@ -283,6 +283,17 @@ Leave Package 6 **In Progress** for architectural review.
 
 Do not promote Package 7 or Milestone 9 yourself.
 
+#### Package 6 closure record
+
+- Implementation SHA: `6314877766187931124c4d8fa5013da02354adfc`.
+- Production content revision: `6f5be0f6b71942c71b22a4154ec1b56fe15b550b42d9e87b673df1cc9b774963`.
+- Focused backend: 57 tests, 394 assertions, 17 skipped; focused GameStore/progression frontend: 37 tests passed.
+- Full `verify:package`: passed; Docker backend 355 tests, 1673 assertions, 173 skipped; frontend 528 tests passed; production build, bundle, content, docs, context, and diff gates passed. Isolated Docker test DB provision and vNext baseline reset passed.
+- Production registry proof covers all 9 Academy upgrades, their unlock/event/reward links, all 20 Goblin promotion edges and target types/abilities, and d4/d6/d8/d10/d12/d20 Cardboard offers with sell value no greater than purchase price. The integrated persistent lifecycle covers ordinary dice salvage and Raw Chaos, research to Shop availability and unit purchase, 75/100 Energy caps, the d10/d12/d20 capability and purchase chain, tier-1 to tier-2 to tier-3 promotion, permanent abilities/history, exact Academy/promotion replay and key conflicts, and reload of wallet/unlocks/unit/dice/progression. Existing focused command suites cover active-run participant locking, reserve promotion, run-start serialization, Energy restore/run-start, rollback, and battle/reward progression.
+- GameStore and Phaser focused tests cover lazy reads, shared Raw Chaos, Academy/Shop invalidation, promotion reconciliation, retained retries, navigation release, reload cache clearing, and run XP recovery after battle return/abandon. The narrow correction stales roster/detail/options after run progression and accepts fresh roster/detail XP when reconciling promotion into an older active-squad summary.
+- Deterministic capture matrix: 15/15 passed and inspected. Academy: Compact, 1600x900, Wide, safe inset, owned, locked/unaffordable, portrait rotate gate. Promotion: Compact, 1600x900, Wide, safe inset, two choices, below level, active-run locked, terminal, portrait rotate gate. No clipped controls or out-of-bounds critical status/wallet text.
+- Prototype/runtime check: Angular Academy page/service and references remain absent; gameplay uses `/game`; no SQL-authored progression catalog, duplicate derived-capability state, or Milestone 9 work was introduced.
+
 #### Out of scope
 
 - new Academy upgrades;
