@@ -449,9 +449,10 @@ describe('GameStore Warband cache', () => {
     expect(store.currentRun).toEqual({ status: 'fresh', data: null, error: null });
   });
 
-  it('reconciles a retained battle against the authoritative current run without patching its facts', () => {
+  it('reconciles a retained battle and invalidates cached unit progression', async () => {
     const active = { ...bootstrap(), active_run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active' as const } };
     const store = new GameStore(); store.hydrateBootstrap(active);
+    const client = api(); await store.loadWarbandDomains(client, content()); await store.loadUnitDetail('11', client, content());
     const run = { id: '41', regionId: 'region.the_farm', squadId: '31', status: 'active' as const,
       createdAt: '2026-09-13T12:00:00Z', nodes: [{ id: '10', nodeIndex: 0, nodeTypeId: 'run_node_type.combat',
         status: 'completed' as const, completedAt: '2026-09-13T12:02:00Z', battleId: '81', position: { column: 0, row: 1 } }],
@@ -462,6 +463,7 @@ describe('GameStore Warband cache', () => {
     expect(store.currentRun).toEqual({ status: 'fresh', data: run, error: null });
     expect(store.currentRun.data?.units[0].currentHp).toBe(7);
     expect(store.playerRevision).toBe(8);
+    expect(store.warband.units.status).toBe('stale'); expect(store.unitDetail('11').status).toBe('stale');
   });
 
   it('accepts the retained battle relationship for a completed Boss node', () => {
@@ -475,7 +477,7 @@ describe('GameStore Warband cache', () => {
       { battleId: '82', runId: '41', runNodeId: '13', minimumPlayerRevision: 8 })).toBe(run);
   });
 
-  it('clears terminal run authority and its Warband lock while preserving Energy and loaded Warband caches', async () => {
+  it('clears terminal run authority and its Warband lock while preserving Energy and invalidating loaded units', async () => {
     const active = { ...bootstrap(), active_run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active' as const } };
     const store = new GameStore(); store.hydrateBootstrap(active); await store.loadWarbandDomains(api(), content());
     const energy = store.bootstrap!.player.energy; const warband = store.warband;
@@ -486,7 +488,9 @@ describe('GameStore Warband cache', () => {
 
     expect(store.currentRun).toEqual({ status: 'fresh', data: null, error: null });
     expect(store.bootstrap?.active_run).toBeNull(); expect(store.activeRunLock).toBeNull();
-    expect(store.playerRevision).toBe(8); expect(store.bootstrap?.player.energy).toBe(energy); expect(store.warband).toBe(warband);
+    expect(store.playerRevision).toBe(8); expect(store.bootstrap?.player.energy).toBe(energy);
+    expect(store.warband.units.status).toBe('stale');
+    expect(store.warband.dice).toBe(warband.dice); expect(store.warband.squads).toBe(warband.squads);
   });
 
   it('rejects a regressed or contradictory retained-battle reconciliation without committing authority', () => {
@@ -504,10 +508,10 @@ describe('GameStore Warband cache', () => {
     expect(store.bootstrap).toBe(before); expect(store.playerRevision).toBe(7);
   });
 
-  it('reconciles abandon without refunding Energy or disturbing Warband and active-squad caches', async () => {
+  it('reconciles abandon without refunding Energy and invalidates progression after persisted run XP', async () => {
     const active = { ...bootstrap(), active_run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active' as const } };
     const store = new GameStore(); store.hydrateBootstrap(active); const client = api(); const registry = content();
-    await store.loadWarbandDomains(client, registry);
+    await store.loadWarbandDomains(client, registry); await store.loadUnitDetail('11', client, registry);
     client.getCurrentRun.and.resolveTo({ run: { id: '41', regionId: 'region.the_farm', squadId: '31', status: 'active',
       createdAt: '2026-09-13T12:00:00Z', nodes: [{ id: '10', nodeIndex: 0, nodeTypeId: 'run_node_type.combat',
         status: 'available', completedAt: null, battleId: null, position: { column: 0, row: 1 } }], edges: [],
@@ -526,7 +530,18 @@ describe('GameStore Warband cache', () => {
     expect(store.currentRun).toEqual({ status: 'fresh', data: null, error: null });
     expect(store.bootstrap?.player.energy).toBe(energy);
     expect(store.bootstrap?.active_squad).toBe(activeSquad);
-    expect(store.warband).toBe(warband);
+    expect(store.warband.units.status).toBe('stale'); expect(store.unitDetail('11').status).toBe('stale');
+    expect(store.warband.dice).toBe(warband.dice); expect(store.warband.squads).toBe(warband.squads);
+    client.getUnits.and.resolveTo({ ok: true, data: { units: [{ id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 3, xp: 12, lifecycle_status: 'active' }] } });
+    client.getUnitDetail.and.resolveTo({ ok: true, data: { unit: {
+      id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 3, xp: 12,
+      xp_to_next_level: 88, lifecycle_status: 'active', promotion_history: [], owned_ability_ids: ['ability.bash', 'ability.smash'],
+      ability_loadout: [{ ability_id: 'ability.bash', equip_order: 0 }],
+      dice_bindings: [{ ability_id: 'ability.bash', slot_index: 0, dice_instance_id: '21' }],
+    } } });
+    await store.loadUnits(client, registry); await store.loadUnitDetail('11', client, registry);
+    expect(store.warband.units.status).toBe('fresh');
+    expect(store.unitDetail('11').data?.level).toBe(3); expect(store.unitDetail('11').status).toBe('fresh');
   });
 
   it('rejects abandon revision or identity disagreement without changing committed run state', () => {

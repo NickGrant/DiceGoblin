@@ -197,4 +197,68 @@ describe('Package 5 progression screens', () => {
     await screen.submitUpgrade(); expect(screen.actionState).toBe('rejected');
     screen.requestBack(); expect(back).toHaveBeenCalledTimes(1); screen.destroy();
   });
+
+  it('shares Raw Chaos across Academy and promotion and drops lazy caches on bootstrap reload', async () => {
+    const client = api(); const store = new GameStore(); const content = registry(); store.hydrateBootstrap(bootstrap());
+    await store.loadWarbandDomains(client, content); await store.loadUnitDetail('11', client, content);
+    store.reconcileAcademyUpgrade({ upgradeId: 'academy_upgrade.one', spend: { currencyId: 'raw_chaos',
+      amount: 5, balanceBefore: 10, balanceAfter: 5 }, grant: { unlockId: 'unlock.capability.energy_max_75' },
+      energy: null, playerRevision: 5 });
+    expect(store.academy.status).toBe('not-loaded'); expect(store.promotionOptions('11').status).toBe('not-loaded');
+    client.getUnitPromotionOptions.and.resolveTo({ unitId: '11', unitType: content.getUnitType('unit_type.bruiser')!,
+      level: 3, xp: 44, xpToNextLevel: 300, rawChaos: 5, playerRevision: 5, configurationLocked: false,
+      options: [{ promotion: content.getUnitPromotion('unit_promotion.bruiser.enforcer')!,
+        targetUnitType: content.getUnitType('unit_type.enforcer')!, requiredLevel: 3, price: 5,
+        levelMet: true, canAfford: true, available: true, newAbilities: [content.getAbility('ability.smash')!] }] });
+    await store.loadPromotionOptions('11', client, content);
+    expect(store.promotionOptions('11').data?.rawChaos).toBe(store.bootstrap?.player.raw_chaos);
+    const prior = store.unitDetail('11').data!;
+    store.reconcileUnitPromotion({ promotion: content.getUnitPromotion('unit_promotion.bruiser.enforcer')!,
+      spend: { currencyId: 'raw_chaos', amount: 5, balanceBefore: 5, balanceAfter: 0 }, playerRevision: 6,
+      grantedAbilities: [content.getAbility('ability.smash')!],
+      unit: { ...prior, unitType: content.getUnitType('unit_type.enforcer')!,
+        ownedAbilities: [...prior.ownedAbilities, content.getAbility('ability.smash')!],
+        promotionHistory: [{ fromUnitType: prior.unitType, toUnitType: content.getUnitType('unit_type.enforcer')!,
+          promotedAt: '2026-09-28T00:00:00Z' }] } });
+    client.getAcademy.and.resolveTo(academyRead(0, 6)); await store.loadAcademy(client, content);
+    expect(store.academy.status).toBe('fresh'); expect(store.bootstrap?.player.raw_chaos).toBe(0);
+    expect(store.promotionOptions('11').status).toBe('stale');
+    const reloaded = bootstrap(); store.clear(); store.hydrateBootstrap({ ...reloaded, player: { ...reloaded.player, raw_chaos: 0,
+      player_revision: 6 } });
+    expect(store.academy.status).toBe('not-loaded'); expect(store.promotionOptions('11').status).toBe('not-loaded');
+  });
+
+  it('promotes after abandoned-run XP without contradicting the old active-squad summary', async () => {
+    const client = api(); const store = new GameStore(); const content = registry();
+    store.hydrateBootstrap({ ...bootstrap(), active_run: { id: '41', region_id: 'region.the_farm',
+      squad_id: '31', status: 'active' } });
+    await store.loadWarbandDomains(client, content); await store.loadUnitDetail('11', client, content);
+    store.reconcileRunAbandon({ run: { id: '41', regionId: 'region.the_farm', squadId: '31',
+      status: 'abandoned', endedAt: '2026-09-28T00:00:00Z' }, activeRun: null, playerRevision: 5 });
+    expect(store.warband.units.status).toBe('stale'); expect(store.unitDetail('11').status).toBe('stale');
+    client.getUnits.and.resolveTo({ ok: true, data: { units: [{ id: '11', display_name: 'Grub',
+      unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 4, xp: 12, lifecycle_status: 'active' }] } });
+    client.getUnitDetail.and.resolveTo({ ok: true, data: { unit: { ...detailRead().data.unit,
+      level: 4, xp: 12, xp_to_next_level: 400 } } });
+    await store.loadWarbandDomains(client, content); await store.loadUnitDetail('11', client, content);
+    client.getUnitPromotionOptions.and.resolveTo({ unitId: '11', unitType: content.getUnitType('unit_type.bruiser')!,
+      level: 4, xp: 12, xpToNextLevel: 400, rawChaos: 10, playerRevision: 5, configurationLocked: false,
+      options: [{ promotion: content.getUnitPromotion('unit_promotion.bruiser.enforcer')!,
+        targetUnitType: content.getUnitType('unit_type.enforcer')!, requiredLevel: 3, price: 5,
+        levelMet: true, canAfford: true, available: true, newAbilities: [content.getAbility('ability.smash')!] }] });
+    await store.loadPromotionOptions('11', client, content);
+    expect(store.promotionOptions('11').status).toBe('fresh');
+    const prior = store.unitDetail('11').data!;
+    store.reconcileUnitPromotion({ promotion: content.getUnitPromotion('unit_promotion.bruiser.enforcer')!,
+      spend: { currencyId: 'raw_chaos', amount: 5, balanceBefore: 10, balanceAfter: 5 }, playerRevision: 6,
+      grantedAbilities: [content.getAbility('ability.smash')!],
+      unit: { ...prior, unitType: content.getUnitType('unit_type.enforcer')!,
+        ownedAbilities: [...prior.ownedAbilities, content.getAbility('ability.smash')!],
+        promotionHistory: [{ fromUnitType: prior.unitType, toUnitType: content.getUnitType('unit_type.enforcer')!,
+          promotedAt: '2026-09-28T00:00:00Z' }] } });
+    expect(store.unitDetail('11').status).toBe('fresh');
+    expect(store.bootstrap?.active_squad?.units[0]).toEqual(jasmine.objectContaining({
+      id: '11', unit_type_id: 'unit_type.enforcer', level: 4, xp: 12 }));
+    expect(store.bootstrap?.player.raw_chaos).toBe(5);
+  });
 });

@@ -7,6 +7,10 @@
 **Status:** In Progress
 **Priority:** High
 
+#### Problem
+
+Permanent progression needs integrated production verification and closure evidence before architectural review.
+
 #### Accepted baseline
 
 Milestone 8 Package 5 - Phaser Academy + unit-promotion surfaces and Camp/Warband integration is approved at `f9d077b840376a9c80a7011cc1a4a5e2a7ae195c`.

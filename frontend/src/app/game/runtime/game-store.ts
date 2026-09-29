@@ -519,7 +519,7 @@ export class GameStore {
     this.cachedBootstrap = Object.freeze({ ...bootstrap,
       player: Object.freeze({ ...bootstrap.player, player_revision: result.playerRevision }), active_run: null });
     this.setCurrentRun({ status: 'fresh', data: null, error: null });
-    this.markAllPromotionOptionsStale();
+    this.invalidateRunProgressionCaches();
   }
 
   loadCurrentRun(api: RuntimeApiClient, content: ClientContentRegistry, reload = false): Promise<void> {
@@ -558,6 +558,7 @@ export class GameStore {
           throw new RunContractError('Current run contradicts the retained battle relationship.');
       }
       this.reconcileCurrentRun(result);
+      this.invalidateRunProgressionCaches();
       return this.currentRunState.data;
     } catch (error) {
       this.setCurrentRun({ status: 'error', data: prior.data, error: runErrorKind(error) });
@@ -747,8 +748,7 @@ export class GameStore {
       && rosterUnit.displayName === prior.displayName && rosterUnit.kin.id === prior.kin.id
       && rosterUnit.level === prior.level && rosterUnit.xp === prior.xp
       && (!activeSummary || (activeSummary.unit_type_id === prior.unitType.id
-        && activeSummary.display_name === prior.displayName && activeSummary.kin_id === prior.kin.id
-        && activeSummary.level === prior.level && activeSummary.xp === prior.xp))
+        && activeSummary.display_name === prior.displayName && activeSummary.kin_id === prior.kin.id))
       && prior.unitType.id === result.promotion.from_unit_type_id
       && result.unit.unitType.id === result.promotion.to_unit_type_id
       && prior.displayName === result.unit.displayName && prior.kin.id === result.unit.kin.id
@@ -767,7 +767,8 @@ export class GameStore {
         player_revision: result.playerRevision }),
       active_squad: valid && bootstrap.active_squad ? Object.freeze({ ...bootstrap.active_squad,
         units: Object.freeze(bootstrap.active_squad.units.map((unit) => unit.id === unitId
-          ? Object.freeze({ ...unit, unit_type_id: result.unit.unitType.id }) : unit)) }) : bootstrap.active_squad });
+          ? Object.freeze({ ...unit, unit_type_id: result.unit.unitType.id,
+            level: result.unit.level, xp: result.unit.xp }) : unit)) }) : bootstrap.active_squad });
     this.markPromotionOptionsStale(unitId);
     if (!valid) {
       this.setUnitDetail(unitId, { status: 'error', data: prior, error: 'integrity' });
@@ -1089,7 +1090,7 @@ export class GameStore {
       this.cachedBootstrap = Object.freeze({ ...bootstrap,
         player: Object.freeze({ ...bootstrap.player, player_revision: result.playerRevision }), active_run: null });
       this.setCurrentRun({ status: 'fresh', data: null, error: null });
-      this.markAllPromotionOptionsStale();
+      this.invalidateRunProgressionCaches();
       return;
     }
     if (bootstrap.active_squad && bootstrap.active_squad.id !== result.run.squadId)
@@ -1111,6 +1112,15 @@ export class GameStore {
   private setCurrentRun(state: CurrentRunState): void {
     this.currentRunState = Object.freeze(state);
     this.emitRun();
+  }
+
+  private invalidateRunProgressionCaches(): void {
+    this.markWarbandDomainStale('units');
+    for (const [unitId, detail] of this.unitDetailCache) {
+      if (detail.status !== 'not-loaded')
+        this.setUnitDetail(unitId, { status: 'stale', data: detail.data, error: null });
+    }
+    this.markAllPromotionOptionsStale();
   }
 
   private emitRun(): void {
