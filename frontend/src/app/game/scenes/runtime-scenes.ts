@@ -13,6 +13,8 @@ import { WarbandSquadSummary } from '../runtime/warband-contracts';
 import { UnitConfigurationScreen } from '../screens/unit-configuration-screen';
 import { ShopScreen } from '../screens/shop-screen';
 import { InventoryScreen } from '../screens/inventory-screen';
+import { AcademyScreen } from '../screens/academy-screen';
+import { UnitPromotionScreen } from '../screens/unit-promotion-screen';
 import { RuntimeViewportSnapshot } from '../runtime/runtime-viewport';
 import { RuntimeApiError } from '../runtime/runtime-api-client';
 import { createRunMapLayout, createRunMapPresentation, runNodeColors } from '../runtime/run-map-model';
@@ -132,7 +134,7 @@ export class BootScene extends Phaser.Scene {
     if (next) {
       const preview = (readDebugCaptureRequest()?.scene ?? window.__DG_DEBUG__?.requestedScene ?? '').toLowerCase();
       // Capture-only navigation can inspect Warband lock presentation while real startup still routes to RunScene.
-      this.scene.start(next === RUN_SCENE_KEY && ['warband', 'shop', 'inventory', 'squad-editor', 'unit-configuration'].includes(preview ?? '')
+      this.scene.start(next === RUN_SCENE_KEY && ['warband', 'shop', 'inventory', 'academy', 'squad-editor', 'unit-configuration', 'unit-promotion'].includes(preview ?? '')
         ? GAME_SCENE_KEY : next);
       return;
     }
@@ -166,9 +168,10 @@ export class GameScene extends RuntimeScene {
       startup: RuntimeStartup,
       openShop: () => void,
       openInventory: () => void,
-    ) => GameSceneScreen = (scene, store, viewport, openWarband, enterRun, startup, openShop, openInventory) => new CampScreen(
+      openAcademy: () => void,
+    ) => GameSceneScreen = (scene, store, viewport, openWarband, enterRun, startup, openShop, openInventory, openAcademy) => new CampScreen(
       scene, store, viewport, openWarband, enterRun, startup.apiClient, startup.contentRegistry,
-      () => crypto.randomUUID(), openShop, openInventory,
+      () => crypto.randomUUID(), openShop, openInventory, openAcademy,
     ),
     private readonly createWarbandScreen: (
       scene: Phaser.Scene,
@@ -197,8 +200,9 @@ export class GameScene extends RuntimeScene {
       viewport: RuntimeViewport,
       unitId: string,
       returnToWarband: () => void,
-    ) => GameSceneScreen = (scene, startup, viewport, unitId, returnToWarband) => new UnitConfigurationScreen(
-      scene, startup.store, startup.apiClient, startup.contentRegistry!, viewport, unitId, returnToWarband,
+      openPromotion: (unitId: string) => void,
+    ) => GameSceneScreen = (scene, startup, viewport, unitId, returnToWarband, openPromotion) => new UnitConfigurationScreen(
+      scene, startup.store, startup.apiClient, startup.contentRegistry!, viewport, unitId, returnToWarband, openPromotion,
     ),
     private readonly createShopScreen: (scene: Phaser.Scene, startup: RuntimeStartup, viewport: RuntimeViewport,
       back: () => void) => GameSceneScreen = (scene, startup, viewport, back) => new ShopScreen(
@@ -206,6 +210,12 @@ export class GameScene extends RuntimeScene {
     private readonly createInventoryScreen: (scene: Phaser.Scene, startup: RuntimeStartup, viewport: RuntimeViewport,
       back: () => void) => GameSceneScreen = (scene, startup, viewport, back) => new InventoryScreen(
         scene, startup.store, startup.apiClient, startup.contentRegistry!, viewport, back),
+    private readonly createAcademyScreen: (scene: Phaser.Scene, startup: RuntimeStartup, viewport: RuntimeViewport,
+      back: () => void) => GameSceneScreen = (scene, startup, viewport, back) => new AcademyScreen(
+        scene, startup.store, startup.apiClient, startup.contentRegistry!, viewport, back),
+    private readonly createUnitPromotionScreen: (scene: Phaser.Scene, startup: RuntimeStartup, viewport: RuntimeViewport,
+      unitId: string, back: () => void) => GameSceneScreen = (scene, startup, viewport, unitId, back) => new UnitPromotionScreen(
+        scene, startup.store, startup.apiClient, startup.contentRegistry!, viewport, unitId, back),
   ) {
     super(GAME_SCENE_KEY, runtimeState, runtimeStartup, runtimeViewport);
   }
@@ -225,12 +235,14 @@ export class GameScene extends RuntimeScene {
     const debugTab = debug?.initialTab ?? window.__DG_DEBUG__?.initialTab ?? '';
     const wantsSquadEditor = debugScene.toLowerCase() === 'squad-editor';
     const wantsUnitConfiguration = debugScene.toLowerCase() === 'unit-configuration';
+    const wantsUnitPromotion = debugScene.toLowerCase() === 'unit-promotion';
     const requested = debugScene.toLowerCase();
     const initialScreen: GameScreenKey = requested === 'shop' ? 'shop' : requested === 'inventory' ? 'inventory'
-      : requested === 'warband' || wantsSquadEditor || wantsUnitConfiguration ? 'warband' : 'camp';
+      : requested === 'academy' ? 'academy'
+        : requested === 'warband' || wantsSquadEditor || wantsUnitConfiguration || wantsUnitPromotion ? 'warband' : 'camp';
     this.navigator.start(initialScreen);
     this.activateScreen(initialScreen, debugTab === 'units' || debugTab === 'dice' ? debugTab : 'squads');
-    if ((wantsSquadEditor || wantsUnitConfiguration) && this.runtimeStartup.contentRegistry) {
+    if ((wantsSquadEditor || wantsUnitConfiguration || wantsUnitPromotion) && this.runtimeStartup.contentRegistry) {
       void this.runtimeStartup.store.loadWarbandDomains(this.runtimeStartup.apiClient, this.runtimeStartup.contentRegistry)
         .then(() => {
           if (!this.scene.isActive(GAME_SCENE_KEY)) return;
@@ -239,7 +251,10 @@ export class GameScene extends RuntimeScene {
             if (squad) this.showSquadEditor(squad);
           } else {
             const unit = this.runtimeStartup.store.warband.units.data?.[0];
-            if (unit) this.showUnitConfiguration(unit.id);
+            if (unit) {
+              this.showUnitConfiguration(unit.id);
+              if (wantsUnitPromotion) this.showUnitPromotion(unit.id);
+            }
           }
         });
     }
@@ -270,6 +285,7 @@ export class GameScene extends RuntimeScene {
 
   showShop(): void { this.navigator.navigate('shop'); this.activateScreen('shop'); }
   showInventory(): void { this.navigator.navigate('inventory'); this.activateScreen('inventory'); }
+  showAcademy(): void { this.navigator.navigate('academy'); this.activateScreen('academy'); }
 
   showSquadEditor(squad: WarbandSquadSummary | null, initialAction: SquadEditorInitialAction = 'none'): void {
     this.navigator.navigate('squad-editor');
@@ -281,6 +297,11 @@ export class GameScene extends RuntimeScene {
     this.activateUnitConfiguration(unitId);
   }
 
+  showUnitPromotion(unitId: string): void {
+    this.navigator.navigate('unit-promotion');
+    this.activateUnitPromotion(unitId);
+  }
+
   goBack(): void {
     if (this.activeScreen?.requestBack) {
       this.activeScreen.requestBack();
@@ -290,7 +311,7 @@ export class GameScene extends RuntimeScene {
   }
 
   private completeBackNavigation(): void {
-    if (!['warband', 'shop', 'inventory'].includes(this.activeScreen?.key ?? '')) return;
+    if (!['warband', 'shop', 'inventory', 'academy'].includes(this.activeScreen?.key ?? '')) return;
     this.activateScreen(this.navigator.back('camp'));
   }
 
@@ -325,10 +346,16 @@ export class GameScene extends RuntimeScene {
       this.activeScreen = this.createInventoryScreen(
         this, this.runtimeStartup, this.runtimeViewport, () => this.completeBackNavigation(),
       );
+    } else if (screen === 'academy') {
+      if (!this.runtimeStartup.contentRegistry) { this.scene.start(BOOT_SCENE_KEY); return; }
+      this.activeScreen = this.createAcademyScreen(
+        this, this.runtimeStartup, this.runtimeViewport, () => this.completeBackNavigation(),
+      );
     } else {
       this.activeScreen = this.createCampScreen(
         this, this.runtimeStartup.store, this.runtimeViewport, () => this.showWarband(),
         () => this.scene.start(RUN_SCENE_KEY), this.runtimeStartup, () => this.showShop(), () => this.showInventory(),
+        () => this.showAcademy(),
       );
     }
     (this.sys as Phaser.Scenes.Systems & { game?: Phaser.Game }).game?.canvas.parentElement
@@ -357,9 +384,20 @@ export class GameScene extends RuntimeScene {
     this.activeScreen = this.createUnitConfigurationScreen(
       this, this.runtimeStartup, this.runtimeViewport, unitId,
       () => this.activateScreen(this.navigator.back('warband'), 'units'),
+      (id) => this.showUnitPromotion(id),
     );
     (this.sys as Phaser.Scenes.Systems & { game?: Phaser.Game }).game?.canvas.parentElement
       ?.setAttribute('data-game-screen', 'unit-configuration');
+    this.activeScreen.create();
+  }
+
+  private activateUnitPromotion(unitId: string): void {
+    if (!this.runtimeStartup.contentRegistry) { this.scene.start(BOOT_SCENE_KEY); return; }
+    this.destroyActiveScreen();
+    this.activeScreen = this.createUnitPromotionScreen(this, this.runtimeStartup, this.runtimeViewport, unitId,
+      () => { this.navigator.back('unit-configuration'); this.activateUnitConfiguration(unitId); });
+    (this.sys as Phaser.Scenes.Systems & { game?: Phaser.Game }).game?.canvas.parentElement
+      ?.setAttribute('data-game-screen', 'unit-promotion');
     this.activeScreen.create();
   }
 

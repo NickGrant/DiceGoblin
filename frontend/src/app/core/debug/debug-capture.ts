@@ -17,6 +17,8 @@ type DebugState = {
   ready: boolean;
   route: string | null;
   initialTab: string;
+  sceneData: Record<string, unknown>;
+  safeInsets: string | null;
 };
 
 const DEFAULT_DISPLAY_NAME = 'Debug Goblin';
@@ -28,6 +30,8 @@ const DEBUG_SCENE_ROUTE_ALIASES: Record<string, string> = {
   warband: '/game',
   shop: '/game',
   inventory: '/game',
+  academy: '/game',
+  'unit-promotion': '/game',
   run: '/game',
   'run-combat-available': '/game',
   'run-loot-available': '/game',
@@ -107,6 +111,8 @@ export function publishDebugCaptureState(request: DebugCaptureRequest, route: st
     ready,
     route,
     initialTab: request.initialTab,
+    sceneData: request.sceneData,
+    safeInsets: new URLSearchParams(window.location.search).get('debugSafeInsets') ?? window.__DG_DEBUG__?.safeInsets ?? null,
   };
 }
 

@@ -7,6 +7,10 @@
 **Status:** In Progress
 **Priority:** High
 
+#### Problem
+
+The accepted Academy and unit-promotion backend contracts need player-usable Phaser destinations, safe mutation retries, and exact shared-state reconciliation.
+
 #### Accepted baseline
 
 Milestone 8 Package 4 - Promotion transaction + durable ability/history updates + active-run safety is approved at `a1067fbdf1fc3fe101198f17dbbd21e5ebd0a93d`.

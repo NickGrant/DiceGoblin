@@ -60,6 +60,7 @@ export class UnitConfigurationScreen implements GameSceneScreen {
   private activeSection: UnitConfigurationSection = 'loadout';
   private command: UnitCommand = 'idle';
   private confirmation = false;
+  private discardDestination: 'warband' | 'promotion' = 'warband';
   private portraitGateActive = false;
   private integrityBlocked = false;
   private message = '';
@@ -73,6 +74,7 @@ export class UnitConfigurationScreen implements GameSceneScreen {
     private readonly viewport: RuntimeViewport,
     readonly unitId: string,
     private readonly returnToWarband: () => void,
+    private readonly openPromotion: (unitId: string) => void = () => undefined,
   ) {}
 
   get draft(): UnitConfigurationDraft | null { return this.draftValue; }
@@ -113,12 +115,26 @@ export class UnitConfigurationScreen implements GameSceneScreen {
   requestBack(): void {
     if (this.command !== 'idle') return;
     if (this.draftValue?.dirty) {
+      this.discardDestination = 'warband';
       this.confirmation = true;
       this.reflow(this.viewport.snapshot);
     } else this.returnToWarband();
   }
 
-  confirmDiscard(): void { if (this.confirmation) this.returnToWarband(); }
+  openProgression(): void {
+    if (this.command !== 'idle' || this.confirmation || this.integrityBlocked) return;
+    if (this.draftValue?.dirty) {
+      this.discardDestination = 'promotion';
+      this.confirmation = true;
+      this.reflow(this.viewport.snapshot);
+    } else this.openPromotion(this.unitId);
+  }
+
+  confirmDiscard(): void {
+    if (!this.confirmation) return;
+    if (this.discardDestination === 'promotion') this.openPromotion(this.unitId);
+    else this.returnToWarband();
+  }
   cancelConfirmation(): void {
     if (!this.confirmation) return;
     this.confirmation = false;
@@ -377,8 +393,10 @@ export class UnitConfigurationScreen implements GameSceneScreen {
     this.addButton(root, box(layout.actions.x, layout.actions.y, width, layout.actions.height), 'CANCEL', () => this.requestBack(), false, !this.interactionBlocked);
     this.addButton(root, box(layout.actions.x + width + gap, layout.actions.y, width, layout.actions.height), this.command === 'renaming' ? 'RENAMING...' : 'SAVE NAME', () => { void this.saveRename(); }, draft.renameDirty, draft.renameDirty && !this.interactionBlocked);
     this.addButton(root, box(layout.actions.x + (width + gap) * 2, layout.actions.y, width + 30, layout.actions.height), this.command === 'saving-loadout' ? 'SAVING...' : 'SAVE LOADOUT', () => { void this.saveLoadout(); }, draft.loadoutDirty, draft.loadoutDirty && !this.loadoutLocked && !this.interactionBlocked);
+    this.addButton(root, box(layout.actions.x + (width + gap) * 3 + 30, layout.actions.y, width + 20, layout.actions.height),
+      'PROMOTION', () => this.openProgression(), false, !this.interactionBlocked);
     const status = this.integrityBlocked ? 'STATE INTEGRITY BLOCK' : draft.loadoutValidationError ?? this.message;
-    if (status) root.add(this.scene.add.text(layout.actions.right, layout.actions.y + layout.actions.height / 2, status, { color: this.integrityBlocked || draft.loadoutValidationError ? '#ffd09b' : '#d8e6bd', fontFamily: 'system-ui', fontSize: '15px', fontStyle: 'bold', wordWrap: { width: Math.max(280, layout.actions.width - 640) }, align: 'right' }).setOrigin(1, 0.5));
+    if (status && layout.actions.width > 1100) root.add(this.scene.add.text(layout.actions.right, layout.actions.y + layout.actions.height / 2, status, { color: this.integrityBlocked || draft.loadoutValidationError ? '#ffd09b' : '#d8e6bd', fontFamily: 'system-ui', fontSize: '15px', fontStyle: 'bold', wordWrap: { width: Math.max(280, layout.actions.width - 900) }, align: 'right' }).setOrigin(1, 0.5));
   }
 
   private renderConfirmation(root: Phaser.GameObjects.Container, snapshot: RuntimeViewportSnapshot): void {

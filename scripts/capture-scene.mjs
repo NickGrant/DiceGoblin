@@ -23,6 +23,8 @@ function parseArgs(argv) {
     sceneData: "{}",
     initialTab: "",
     activeRun: false,
+    progressionState: 'default',
+    safeInsets: '',
     settleMs: DEFAULT_SETTLE_MS,
     timeoutMs: DEFAULT_WAIT_TIMEOUT_MS,
     useExistingServer: false,
@@ -81,6 +83,14 @@ function parseArgs(argv) {
         break;
       case "--active-run":
         options.activeRun = true;
+        break;
+      case "--progression-state":
+        options.progressionState = next ?? 'default';
+        index += 1;
+        break;
+      case "--safe-insets":
+        options.safeInsets = next ?? '';
+        index += 1;
         break;
       case "--settle-ms":
         options.settleMs = Number.parseInt(next ?? `${DEFAULT_SETTLE_MS}`, 10);
@@ -147,6 +157,8 @@ Options:
   --scene-data <json>       JSON object passed to scene init/create
   --initial-tab <tab>       Optional debugInitialTab query value for tabbed scenes
   --active-run              Preview Warband/squad/unit with a coherent active Farm run
+  --progression-state <s>   default | owned | terminal | locked | unaffordable | below-level
+  --safe-insets <t,r,b,l>   Inject debug-only CSS safe insets in pixels
   --settle-ms <ms>          Extra wait after the scene signals ready (default: ${DEFAULT_SETTLE_MS})
   --timeout-ms <ms>         Overall timeout waiting for app and scene readiness
   --full-page               Capture full page instead of viewport only
@@ -169,7 +181,7 @@ async function installGameFixtureRoutes(page, options) {
     'battle-result-victory', 'battle-result-defeat', 'battle-result-stalemate', 'battle-result-compact', 'battle-result-wide', 'battle-result-error', 'battle-result-portrait'];
   const runScenes = ['run', 'run-abandon', 'run-portrait', 'run-combat-available',
     'run-loot-available', 'run-loot-result', 'run-rest-result', 'run-supplies'];
-  if (!['camp', 'camp-portrait', 'warband', 'shop', 'inventory', 'squad-editor', 'unit-configuration', ...runScenes, ...battleScenes].includes(scene)) return;
+  if (!['camp', 'camp-portrait', 'warband', 'shop', 'inventory', 'academy', 'unit-promotion', 'squad-editor', 'unit-configuration', ...runScenes, ...battleScenes].includes(scene)) return;
 
   if (battleScenes.includes(scene)) {
     await page.addInitScript(({ accountId }) => sessionStorage.setItem('dice-goblins:battle-presentation:v1', JSON.stringify({
@@ -183,13 +195,16 @@ async function installGameFixtureRoutes(page, options) {
     'item.capture.ore': { id: 'item.capture.ore', display_name: 'Raw Scrap', description: 'Useful material with no direct action.', category: 'material', rarity: 'common', icon_key: 'capture_ore', stackable: true },
   };
   const revision = projection.revision;
+  const fixtureChaos = options.progressionState === 'unaffordable' ? 4 : 17;
+  const fixtureLevel = options.progressionState === 'below-level' ? 2 : 5;
+  const fixtureXp = options.progressionState === 'below-level' ? 74 : 185;
   await page.route('**/game-content.json', (route) => route.fulfill({
     status: 200,
     contentType: 'application/json',
     body: JSON.stringify(projection),
   }));
   const unitRows = [
-    ['101', 'Ashback', 'unit_type.bruiser', 'kin.goblin', 5],
+    ['101', 'Ashback', options.progressionState === 'terminal' && scene === 'unit-promotion' ? 'unit_type.juggernaut' : 'unit_type.bruiser', 'kin.goblin', fixtureLevel],
     ['102', 'Bogwort', 'unit_type.guardian', 'kin.pig', 4],
     ['103', 'Stitch', 'unit_type.marksman', 'kin.goblin', 4],
     ['104', 'Knuckles', 'unit_type.bannerbearer', 'kin.goblin', 3],
@@ -198,7 +213,7 @@ async function installGameFixtureRoutes(page, options) {
     ['107', 'Splint', 'unit_type.trapper', 'kin.goblin', 5],
     ['108', 'Nib', 'unit_type.mascot', 'kin.pig', 2],
   ].map(([id, display_name, unit_type_id, kin_id, level]) => ({
-    id, display_name, unit_type_id, kin_id, level, xp: Number(level) * 37, lifecycle_status: 'active',
+    id, display_name, unit_type_id, kin_id, level, xp: id === '101' ? fixtureXp : Number(level) * 37, lifecycle_status: 'active',
   }));
   const activeFormation = ['101', '102', null, '103', '104', null, '105', null, null];
   await page.route('**/api/v1/game/bootstrap', (route) => route.fulfill({
@@ -210,7 +225,7 @@ async function installGameFixtureRoutes(page, options) {
         account: { id: options.userId, display_name: options.displayName, role: 'user' },
         player: {
           teeth: 1234,
-          raw_chaos: 17,
+          raw_chaos: fixtureChaos,
           energy: {
             current: 57,
             normal_max: 50,
@@ -233,7 +248,7 @@ async function installGameFixtureRoutes(page, options) {
           id: '301', name: 'Bogbreakers', is_active: true, formation: activeFormation,
           units: unitRows.filter((unit) => activeFormation.includes(unit.id)),
         },
-        active_run: options.activeRun || runScenes.includes(scene)
+        active_run: options.activeRun || (scene === 'unit-promotion' && options.progressionState === 'locked') || runScenes.includes(scene)
           || (battleScenes.includes(scene) && !['battle-defeat', 'battle-result-defeat', 'battle-result-stalemate'].includes(scene))
           ? { id: '401', region_id: 'region.the_farm', squad_id: '301', status: 'active' }
           : null,
@@ -259,6 +274,16 @@ async function installGameFixtureRoutes(page, options) {
       ],
     } }),
   }));
+  if (scene === 'academy') {
+    const definitions = JSON.parse(await readFile(path.resolve(process.cwd(), 'backend/content/academy_upgrades/catalog.json'), 'utf8')).definitions;
+    const catalog = definitions.map((upgrade) => ({ upgrade_id: upgrade.id, price: upgrade.price,
+      owned: upgrade.id === 'academy_upgrade.guardian',
+      available: upgrade.prerequisite_unlock_ids.length === 0 && upgrade.id !== 'academy_upgrade.guardian' }));
+    await page.route('**/api/v1/academy', (route) => route.fulfill({ status: 200, contentType: 'application/json',
+      body: JSON.stringify({ ok: true, data: { raw_chaos: fixtureChaos, player_revision: 3,
+        upgrades: catalog.sort((a, b) => a.upgrade_id.localeCompare(b.upgrade_id)) } }) }));
+    return;
+  }
   if (battleScenes.includes(scene)) {
     const defeat = ['battle-defeat', 'battle-result-defeat'].includes(scene);
     const stalemate = scene === 'battle-result-stalemate';
@@ -351,7 +376,7 @@ async function installGameFixtureRoutes(page, options) {
     return;
   }
   if (['shop', 'inventory'].includes(scene)) return;
-  if (!['warband', 'squad-editor', 'unit-configuration'].includes(scene)) return;
+  if (!['warband', 'squad-editor', 'unit-configuration', 'unit-promotion'].includes(scene)) return;
   await page.route('**/api/v1/units', (route) => route.fulfill({
     status: 200, contentType: 'application/json',
     body: JSON.stringify({ ok: true, data: { units: unitRows } }),
@@ -360,10 +385,12 @@ async function installGameFixtureRoutes(page, options) {
     status: 200, contentType: 'application/json',
     body: JSON.stringify({ ok: true, data: { dice: (options.activeRun ? [
       { id: '201', size: 8, profile_id: 'dice_profile.bone_executioner', lifecycle_status: 'active', bindings: [{ unit_id: '101', ability_id: 'ability.heavy_strike', slot_index: 0 }] },
+      { id: '203', size: 6, profile_id: 'dice_profile.wood_precise', lifecycle_status: 'active', bindings: [{ unit_id: '101', ability_id: 'ability.basic_attack_melee', slot_index: 0 }] },
       { id: '204', size: 4, profile_id: 'dice_profile.cardboard_guarding', lifecycle_status: 'active', bindings: [] },
     ] : [
       { id: '204', size: 4, profile_id: 'dice_profile.cardboard_guarding', lifecycle_status: 'active', bindings: [] },
       { id: '201', size: 8, profile_id: 'dice_profile.bone_executioner', lifecycle_status: 'active', bindings: [{ unit_id: '101', ability_id: 'ability.heavy_strike', slot_index: 0 }] },
+      { id: '203', size: 6, profile_id: 'dice_profile.wood_precise', lifecycle_status: 'active', bindings: [{ unit_id: '101', ability_id: 'ability.basic_attack_melee', slot_index: 0 }] },
       { id: '202', size: 6, profile_id: 'dice_profile.wood_precise', lifecycle_status: 'active', bindings: [{ unit_id: '103', ability_id: 'ability.aimed_shot', slot_index: 0 }] },
     ]) } }),
   }));
@@ -377,9 +404,12 @@ async function installGameFixtureRoutes(page, options) {
   await page.route('**/api/v1/units/101', (route) => route.fulfill({
     status: 200, contentType: 'application/json',
     body: JSON.stringify({ ok: true, data: { unit: {
-      id: '101', display_name: 'Ashback', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin',
-      level: 5, xp: 185, lifecycle_status: 'active',
-      promotion_history: [],
+      id: '101', display_name: 'Ashback', unit_type_id: unitRows[0].unit_type_id, kin_id: 'kin.goblin',
+      level: fixtureLevel, xp: fixtureXp, xp_to_next_level: 300, lifecycle_status: 'active',
+      promotion_history: options.progressionState === 'terminal' && scene === 'unit-promotion' ? [
+        { from_unit_type_id: 'unit_type.bruiser', to_unit_type_id: 'unit_type.enforcer', promoted_at: '2026-09-01T00:00:00Z' },
+        { from_unit_type_id: 'unit_type.enforcer', to_unit_type_id: 'unit_type.juggernaut', promoted_at: '2026-09-02T00:00:00Z' },
+      ] : [],
       owned_ability_ids: ['ability.basic_attack_melee', 'ability.heavy_strike', 'ability.thick_hide', 'ability.menacing_follow_through'],
       ability_loadout: [
         { ability_id: 'ability.heavy_strike', equip_order: 0 },
@@ -391,6 +421,24 @@ async function installGameFixtureRoutes(page, options) {
       ],
     } } }),
   }));
+  if (scene === 'unit-promotion') {
+    const definitions = JSON.parse(await readFile(path.resolve(process.cwd(), 'backend/content/unit_promotions/catalog.json'), 'utf8')).definitions;
+    const unitTypeId = unitRows[0].unit_type_id;
+    const locked = options.activeRun || options.progressionState === 'locked';
+    const optionsRows = definitions.filter((promotion) => promotion.from_unit_type_id === unitTypeId)
+      .map((promotion) => ({ promotion_id: promotion.id, target_unit_type_id: promotion.to_unit_type_id,
+        required_level: promotion.required_level, price: promotion.price, level_met: fixtureLevel >= promotion.required_level,
+        can_afford: fixtureChaos >= promotion.price.amount, available: fixtureLevel >= promotion.required_level && !locked,
+        new_ability_ids: projection.content.unit_types[promotion.to_unit_type_id].ability_ids
+          .filter((id) => !['ability.basic_attack_melee', 'ability.heavy_strike', 'ability.thick_hide', 'ability.menacing_follow_through'].includes(id)) }))
+      .sort((a, b) => a.promotion_id.localeCompare(b.promotion_id));
+    await page.route('**/api/v1/units/101/promotion-options', (route) => route.fulfill({
+      status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, data: {
+        unit_id: '101', unit_type_id: unitTypeId, level: fixtureLevel, xp: fixtureXp, xp_to_next_level: 300,
+        raw_chaos: fixtureChaos, player_revision: 3, configuration_locked: locked, options: optionsRows,
+      } }),
+    }));
+  }
 }
 
 function createCaptureUrl(options) {
@@ -400,8 +448,10 @@ function createCaptureUrl(options) {
   url.searchParams.set("debugAuth", options.auth);
   url.searchParams.set("debugDisplayName", options.displayName);
   url.searchParams.set("debugUserId", options.userId);
-  url.searchParams.set("debugSceneData", options.sceneData);
+  url.searchParams.set("debugSceneData", options.progressionState === 'owned' && options.scene === 'academy'
+    ? JSON.stringify({ page: 1 }) : options.sceneData);
   url.searchParams.set("debugSettleMs", `${options.settleMs}`);
+  if (options.safeInsets) url.searchParams.set('debugSafeInsets', options.safeInsets);
   if (options.initialTab) {
     url.searchParams.set("debugInitialTab", options.initialTab);
   }
@@ -570,13 +620,13 @@ async function captureScene(options) {
             { timeout: options.timeoutMs },
           );
         }
-        if (['camp', 'camp-portrait', 'warband', 'shop', 'inventory', 'squad-editor', 'unit-configuration', 'run', 'run-abandon', 'run-portrait', 'run-combat-available',
+        if (['camp', 'camp-portrait', 'warband', 'shop', 'inventory', 'academy', 'unit-promotion', 'squad-editor', 'unit-configuration', 'run', 'run-abandon', 'run-portrait', 'run-combat-available',
           'run-loot-available', 'run-loot-result', 'run-rest-result', 'run-supplies',
           'battle-early', 'battle-mid', 'battle-complete', 'battle-compact', 'battle-wide', 'battle-portrait', 'battle-defeat',
           'battle-result-victory', 'battle-result-defeat', 'battle-result-stalemate', 'battle-result-compact', 'battle-result-wide', 'battle-result-error', 'battle-result-portrait'].includes(options.scene.trim().toLowerCase())) {
           await page.waitForSelector('.game-host__mount canvas', { timeout: options.timeoutMs });
           const requestedGameScreen = options.scene.trim().toLowerCase();
-          const gameScreen = ['warband', 'shop', 'inventory', 'squad-editor', 'unit-configuration'].includes(requestedGameScreen)
+          const gameScreen = ['warband', 'shop', 'inventory', 'academy', 'unit-promotion', 'squad-editor', 'unit-configuration'].includes(requestedGameScreen)
             ? requestedGameScreen : requestedGameScreen.startsWith('battle-') ? 'battle'
               : ['run', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-loot-available', 'run-loot-result', 'run-rest-result', 'run-supplies'].includes(requestedGameScreen) ? 'run' : 'camp';
           await page.waitForSelector(`[data-game-screen="${gameScreen}"]`, { timeout: options.timeoutMs });
@@ -588,6 +638,12 @@ async function captureScene(options) {
           }
           if (gameScreen === 'unit-configuration') {
             await page.waitForSelector('[data-unit-configuration-ready="true"]', { timeout: options.timeoutMs });
+          }
+          if (gameScreen === 'academy') {
+            await page.waitForSelector('[data-academy-ready="true"]', { timeout: options.timeoutMs });
+          }
+          if (gameScreen === 'unit-promotion') {
+            await page.waitForSelector('[data-unit-promotion-ready="true"]', { timeout: options.timeoutMs });
           }
           if (gameScreen === 'run') {
             await page.waitForSelector('[data-run-map-ready="true"]', { state: 'attached', timeout: options.timeoutMs });

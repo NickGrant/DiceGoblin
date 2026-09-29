@@ -128,16 +128,20 @@ export class BrowserRuntimeViewportEnvironment implements RuntimeViewportEnviron
     const cssHeight = parent.clientHeight || rect.height || window.innerHeight;
     const probe = this.getSafeAreaProbe(parent);
     const style = window.getComputedStyle(probe);
+    const debugInsets = new URLSearchParams(window.location.search).has('debugScene')
+      ? new URLSearchParams(window.location.search).get('debugSafeInsets')
+      : window.__DG_DEBUG__?.safeInsets ?? null;
+    const parsedDebugInsets = debugInsets?.split(',').map((value) => Number(value));
+    const safeInsetsCss = parsedDebugInsets?.length === 4 && parsedDebugInsets.every((value) =>
+      Number.isFinite(value) && value >= 0)
+      ? { top: parsedDebugInsets[0], right: parsedDebugInsets[1], bottom: parsedDebugInsets[2], left: parsedDebugInsets[3] }
+      : { top: Number.parseFloat(style.paddingTop) || 0, right: Number.parseFloat(style.paddingRight) || 0,
+        bottom: Number.parseFloat(style.paddingBottom) || 0, left: Number.parseFloat(style.paddingLeft) || 0 };
 
     return {
       cssWidth,
       cssHeight,
-      safeInsetsCss: {
-        top: Number.parseFloat(style.paddingTop) || 0,
-        right: Number.parseFloat(style.paddingRight) || 0,
-        bottom: Number.parseFloat(style.paddingBottom) || 0,
-        left: Number.parseFloat(style.paddingLeft) || 0,
-      },
+      safeInsetsCss,
       coarsePointer: window.matchMedia('(pointer: coarse)').matches,
       noHover: window.matchMedia('(hover: none)').matches,
     };

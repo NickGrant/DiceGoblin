@@ -67,13 +67,13 @@ describe('UnitConfigurationScreen', () => {
       sys: { game: { canvas } }, graphics, textValues } as unknown as Phaser.Scene;
   }
 
-  async function readyHarness() {
+  async function readyHarness(openPromotion: (unitId: string) => void = () => undefined) {
     const registry = content(); const client = api(); const store = new GameStore(); store.hydrateBootstrap(bootstrap());
     await store.loadWarbandDomains(client, registry); await store.loadUnitDetail('11', client, registry);
     const scene = sceneHarness(); const parent = (scene.sys as Phaser.Scenes.Systems & { game?: Phaser.Game }).game!.canvas.parentElement!;
     document.body.appendChild(parent);
     const viewport = new RuntimeViewport(); const returned = jasmine.createSpy('returned');
-    const screen = new UnitConfigurationScreen(scene, store, client, registry, viewport, '11', returned);
+    const screen = new UnitConfigurationScreen(scene, store, client, registry, viewport, '11', returned, openPromotion);
     screen.create();
     return { screen, store, client, registry, viewport, returned, parent, scene, input: parent.querySelector<HTMLInputElement>('[data-unit-name-input="true"]')! };
   }
@@ -129,6 +129,17 @@ describe('UnitConfigurationScreen', () => {
     expect(screen.draft!.name).toBe('Submitted Grub'); expect(store.unitDetail('11').data).toBe(committed);
     reject(new RuntimeApiError('network')); await pending;
     expect(input.disabled).toBeFalse(); expect(input.readOnly).toBeFalse(); expect(screen.draft!.name).toBe('Submitted Grub');
+    screen.destroy(); parent.remove();
+  });
+
+  it('opens promotion for the same unit and confirms discarding unsaved edits before leaving', async () => {
+    const openPromotion = jasmine.createSpy('openPromotion');
+    const { screen, input, parent } = await readyHarness(openPromotion);
+    screen.openProgression(); expect(openPromotion).toHaveBeenCalledOnceWith('11');
+    openPromotion.calls.reset();
+    input.value = 'Unsaved Grub'; input.dispatchEvent(new Event('input'));
+    screen.openProgression(); expect(openPromotion).not.toHaveBeenCalled();
+    screen.confirmDiscard(); expect(openPromotion).toHaveBeenCalledOnceWith('11');
     screen.destroy(); parent.remove();
   });
 

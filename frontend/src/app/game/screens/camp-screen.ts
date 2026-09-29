@@ -41,6 +41,7 @@ export interface CampLayout {
   readonly warbandButton: Bounds;
   readonly shopButton: Bounds;
   readonly suppliesButton: Bounds;
+  readonly academyButton: Bounds;
   readonly regionSelector: Bounds;
   readonly runButton: Bounds;
   readonly headingY: number;
@@ -133,16 +134,14 @@ export function createCampLayout(snapshot: RuntimeViewportSnapshot): CampLayout 
     ),
     panel,
     resourcePlaques: resources,
-    warbandButton: box(
-      panel.right - (mode === 'compact' ? 630 : 570) - 38,
-      panel.y + 40,
-      mode === 'compact' ? 200 : 180,
-      mode === 'compact' ? 92 : 58,
-    ),
-    shopButton: box(panel.right - (mode === 'compact' ? 418 : 378) - 38, panel.y + 40,
-      mode === 'compact' ? 200 : 180, mode === 'compact' ? 92 : 58),
-    suppliesButton: box(panel.right - (mode === 'compact' ? 206 : 186) - 38, panel.y + 40,
-      mode === 'compact' ? 200 : 180, mode === 'compact' ? 92 : 58),
+    warbandButton: box(panel.right - (mode === 'compact' ? 724 : 756) - 38, panel.y + 40,
+      mode === 'compact' ? 170 : 180, mode === 'compact' ? 92 : 58),
+    shopButton: box(panel.right - (mode === 'compact' ? 542 : 564) - 38, panel.y + 40,
+      mode === 'compact' ? 170 : 180, mode === 'compact' ? 92 : 58),
+    suppliesButton: box(panel.right - (mode === 'compact' ? 360 : 372) - 38, panel.y + 40,
+      mode === 'compact' ? 170 : 180, mode === 'compact' ? 92 : 58),
+    academyButton: box(panel.right - (mode === 'compact' ? 178 : 180) - 38, panel.y + 40,
+      mode === 'compact' ? 170 : 180, mode === 'compact' ? 92 : 58),
     regionSelector: box(centerX - (mode === 'compact' ? 310 : 260), panel.y + 195,
       mode === 'compact' ? 620 : 520, mode === 'compact' ? 54 : 48),
     runButton: box(centerX - (mode === 'compact' ? 230 : 190), panel.y + (mode === 'compact' ? 270 : 260),
@@ -180,6 +179,7 @@ export class CampScreen implements GameSceneScreen {
     private readonly createIdempotencyKey: () => string = () => crypto.randomUUID(),
     private readonly openShop: () => void = () => undefined,
     private readonly openInventory: () => void = () => undefined,
+    private readonly openAcademy: () => void = () => undefined,
   ) {}
 
   static preload(scene: Phaser.Scene): void {
@@ -279,6 +279,7 @@ export class CampScreen implements GameSceneScreen {
     this.addCampDestinationButton(root, layout.warbandButton, 'WARBAND', this.openWarband, layout);
     this.addCampDestinationButton(root, layout.shopButton, 'SHOP', this.openShop, layout);
     this.addCampDestinationButton(root, layout.suppliesButton, 'SUPPLIES', this.openInventory, layout);
+    this.addCampDestinationButton(root, layout.academyButton, 'ACADEMY', this.openAcademy, layout);
     this.addRegionSelector(root, layout, view);
     this.addRunButton(root, layout, view);
     const divider = this.scene.add.graphics();

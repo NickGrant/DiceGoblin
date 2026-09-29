@@ -105,6 +105,18 @@ export interface ShopState {
   readonly error: WarbandDomainErrorKind | null;
 }
 
+export interface AcademyState {
+  readonly status: WarbandDomainStatus;
+  readonly data: { readonly upgrades: AcademyCatalogResult['upgrades'] } | null;
+  readonly error: WarbandDomainErrorKind | null;
+}
+
+export interface UnitPromotionOptionsState {
+  readonly status: WarbandDomainStatus;
+  readonly data: UnitPromotionOptionsResult | null;
+  readonly error: WarbandDomainErrorKind | null;
+}
+
 export interface BattleReturnIdentity {
   readonly battleId: string;
   readonly runId: string;
@@ -321,12 +333,18 @@ export class GameStore {
   private readonly runListeners = new Set<(state: CurrentRunState) => void>();
   private readonly itemListeners = new Set<(state: WarbandDomainState<OwnedItemStack>) => void>();
   private readonly shopListeners = new Set<(state: ShopState) => void>();
+  private readonly academyListeners = new Set<(state: AcademyState) => void>();
+  private readonly promotionListeners = new Set<(unitId: string, state: UnitPromotionOptionsState) => void>();
   private currentRunState: CurrentRunState = Object.freeze({ status: 'not-loaded', data: null, error: null });
   private currentRunInFlight: Promise<void> | null = null;
   private itemInventoryState: WarbandDomainState<OwnedItemStack> = emptyDomain<OwnedItemStack>();
   private itemInventoryInFlight: Promise<void> | null = null;
   private shopState: ShopState = Object.freeze({ status: 'not-loaded', data: null, error: null });
   private shopInFlight: Promise<void> | null = null;
+  private academyState: AcademyState = Object.freeze({ status: 'not-loaded', data: null, error: null });
+  private academyInFlight: Promise<void> | null = null;
+  private readonly promotionCache = new Map<string, UnitPromotionOptionsState>();
+  private readonly promotionInFlight = new Map<string, Promise<void>>();
   private cacheGeneration = 0;
 
   get bootstrap(): GameBootstrapData | null {
@@ -365,6 +383,12 @@ export class GameStore {
     return this.shopState;
   }
 
+  get academy(): AcademyState { return this.academyState; }
+
+  promotionOptions(unitId: string): UnitPromotionOptionsState {
+    return this.promotionCache.get(unitId) ?? Object.freeze({ status: 'not-loaded', data: null, error: null });
+  }
+
   get activeRunLock(): ActiveRunLock | null {
     return activeRunLock(this.cachedBootstrap);
   }
@@ -395,6 +419,16 @@ export class GameStore {
   subscribeShop(listener: (state: ShopState) => void): () => void {
     this.shopListeners.add(listener);
     return () => this.shopListeners.delete(listener);
+  }
+
+  subscribeAcademy(listener: (state: AcademyState) => void): () => void {
+    this.academyListeners.add(listener);
+    return () => this.academyListeners.delete(listener);
+  }
+
+  subscribePromotionOptions(listener: (unitId: string, state: UnitPromotionOptionsState) => void): () => void {
+    this.promotionListeners.add(listener);
+    return () => this.promotionListeners.delete(listener);
   }
 
   subscribePlayer(listener: (player: GameBootstrapData['player'] | null) => void): () => void {
@@ -446,6 +480,7 @@ export class GameStore {
       this.unitDetailCache.set(unitId, Object.freeze({ status: detail.data ? 'stale' : 'not-loaded', data: detail.data, error: null }));
     }
     this.setCurrentRun({ status: 'fresh', data: null, error: null });
+    this.markAllPromotionOptionsStale();
     this.emit();
   }
 
@@ -464,6 +499,7 @@ export class GameStore {
       active_run: result.run,
     });
     this.setCurrentRun({ status: 'stale', data: null, error: null });
+    this.markAllPromotionOptionsStale();
   }
 
   reconcileRunAbandon(result: RunAbandonResult): void {
@@ -483,6 +519,7 @@ export class GameStore {
     this.cachedBootstrap = Object.freeze({ ...bootstrap,
       player: Object.freeze({ ...bootstrap.player, player_revision: result.playerRevision }), active_run: null });
     this.setCurrentRun({ status: 'fresh', data: null, error: null });
+    this.markAllPromotionOptionsStale();
   }
 
   loadCurrentRun(api: RuntimeApiClient, content: ClientContentRegistry, reload = false): Promise<void> {
@@ -605,6 +642,141 @@ export class GameStore {
 
   retryShop(api: RuntimeApiClient, content: ClientContentRegistry): Promise<void> {
     return this.loadShop(api, content, true);
+  }
+
+  loadAcademy(api: RuntimeApiClient, content: ClientContentRegistry, reload = false): Promise<void> {
+    const state = this.academyState;
+    if (!reload && state.status === 'fresh') return Promise.resolve();
+    if (this.academyInFlight) return this.academyInFlight;
+    const generation = this.cacheGeneration;
+    this.setAcademy({ status: 'loading', data: state.data, error: null });
+    const promise = api.getAcademy(content).then((catalog) => {
+      if (generation !== this.cacheGeneration) return;
+      const player = this.cachedBootstrap?.player;
+      if (!player || player.raw_chaos !== catalog.rawChaos || player.player_revision !== catalog.playerRevision)
+        throw new AcademyContractError('Academy read disagrees with shared player state.');
+      this.setAcademy({ status: 'fresh', data: Object.freeze({ upgrades: catalog.upgrades }), error: null });
+    }).catch((error: unknown) => {
+      if (generation === this.cacheGeneration) this.setAcademy({ status: 'error', data: state.data,
+        error: error instanceof AcademyContractError ? 'integrity' : domainErrorKind(error) });
+    }).finally(() => { if (this.academyInFlight === promise) this.academyInFlight = null; });
+    this.academyInFlight = promise;
+    return promise;
+  }
+
+  retryAcademy(api: RuntimeApiClient, content: ClientContentRegistry): Promise<void> {
+    return this.loadAcademy(api, content, true);
+  }
+
+  reconcileAcademyUpgrade(result: AcademyUpgradeResult): void {
+    const bootstrap = this.cachedBootstrap;
+    if (!bootstrap || result.playerRevision < bootstrap.player.player_revision)
+      throw new AcademyContractError('Authoritative player revision regressed.');
+    const grantAlreadyOwned = bootstrap.progression.unlock_ids.includes(result.grant.unlockId);
+    const contradiction = bootstrap.player.raw_chaos !== result.spend.balanceBefore || grantAlreadyOwned;
+    this.cachedBootstrap = Object.freeze({ ...bootstrap,
+      player: Object.freeze({ ...bootstrap.player, raw_chaos: result.spend.balanceAfter,
+        player_revision: result.playerRevision,
+        energy: result.energy ? Object.freeze({ current: result.energy.current, normal_max: result.energy.normalMax,
+          regeneration_per_hour: result.energy.regenerationPerHour,
+          regeneration_interval_seconds: result.energy.regenerationIntervalSeconds,
+          last_regeneration_at: result.energy.lastRegenerationAt,
+          next_regeneration_at: result.energy.nextRegenerationAt,
+          fully_regenerated_at: result.energy.fullyRegeneratedAt }) : bootstrap.player.energy }),
+      progression: Object.freeze({ ...bootstrap.progression,
+        unlock_ids: grantAlreadyOwned ? bootstrap.progression.unlock_ids
+          : Object.freeze([...bootstrap.progression.unlock_ids, result.grant.unlockId]) }) });
+    if (this.academyState.status !== 'not-loaded') this.setAcademy({ status: contradiction ? 'error' : 'stale',
+      data: this.academyState.data, error: contradiction ? 'integrity' : null });
+    if (this.shopState.status !== 'not-loaded') this.setShop({ status: 'stale', data: this.shopState.data, error: null });
+    if (contradiction) throw new AcademyContractError('Academy upgrade contradicts cached progression. Reload authoritative state.');
+  }
+
+  loadPromotionOptions(unitId: string, api: RuntimeApiClient, content: ClientContentRegistry, reload = false): Promise<void> {
+    const state = this.promotionOptions(unitId);
+    if (!reload && state.status === 'fresh') return Promise.resolve();
+    const existing = this.promotionInFlight.get(unitId);
+    if (existing) return existing;
+    const generation = this.cacheGeneration;
+    this.setPromotionOptions(unitId, { status: 'loading', data: state.data, error: null });
+    const promise = api.getUnitPromotionOptions(unitId, content).then((result) => {
+      if (generation !== this.cacheGeneration) return;
+      const player = this.cachedBootstrap?.player;
+      const detail = this.unitDetail(unitId);
+      const lock = this.activeRunLock;
+      if (!player || player.raw_chaos !== result.rawChaos || player.player_revision !== result.playerRevision
+        || (detail.status === 'fresh' && detail.data && (detail.data.id !== result.unitId
+          || detail.data.unitType.id !== result.unitType.id || detail.data.level !== result.level
+          || detail.data.xp !== result.xp))
+        || (lock !== null && result.configurationLocked !== lock.unitIds.has(unitId))
+        || (lock === null && result.configurationLocked))
+        throw new UnitPromotionContractError('Promotion options disagree with shared player state.');
+      this.setPromotionOptions(unitId, { status: 'fresh', data: result, error: null });
+    }).catch((error: unknown) => {
+      if (generation === this.cacheGeneration) this.setPromotionOptions(unitId, { status: 'error', data: state.data,
+        error: error instanceof UnitPromotionContractError ? 'integrity' : domainErrorKind(error) });
+    }).finally(() => { if (this.promotionInFlight.get(unitId) === promise) this.promotionInFlight.delete(unitId); });
+    this.promotionInFlight.set(unitId, promise);
+    return promise;
+  }
+
+  retryPromotionOptions(unitId: string, api: RuntimeApiClient, content: ClientContentRegistry): Promise<void> {
+    return this.loadPromotionOptions(unitId, api, content, true);
+  }
+
+  reconcileUnitPromotion(result: UnitPromotionResult): void {
+    const bootstrap = this.cachedBootstrap;
+    if (!bootstrap || result.playerRevision < bootstrap.player.player_revision)
+      throw new UnitPromotionContractError('Authoritative player revision regressed.');
+    const unitId = result.unit.id;
+    const detail = this.unitDetail(unitId);
+    const units = this.warbandCache.units;
+    const dice = this.warbandCache.dice;
+    const prior = detail.data;
+    const rosterUnit = units.data?.find((unit) => unit.id === unitId);
+    const sameBindings = prior && JSON.stringify(prior.diceBindings.map((binding) => [binding.ability.id, binding.slotIndex, binding.die.id]))
+      === JSON.stringify(result.unit.diceBindings.map((binding) => [binding.ability.id, binding.slotIndex, binding.die.id]));
+    const oldAbilityIds = new Set(prior?.ownedAbilities.map((ability) => ability.id));
+    const grantedIds = result.grantedAbilities.map((ability) => ability.id);
+    const newAbilityIds = result.unit.ownedAbilities.map((ability) => ability.id).filter((id) => !oldAbilityIds.has(id));
+    const history = result.unit.promotionHistory;
+    const activeSummary = bootstrap.active_squad?.units.find((unit) => unit.id === unitId);
+    const valid = detail.status === 'fresh' && prior && units.status === 'fresh' && rosterUnit
+      && dice.status === 'fresh' && dice.data && bootstrap.player.raw_chaos === result.spend.balanceBefore
+      && prior.id === unitId && rosterUnit.unitType.id === prior.unitType.id
+      && rosterUnit.displayName === prior.displayName && rosterUnit.kin.id === prior.kin.id
+      && rosterUnit.level === prior.level && rosterUnit.xp === prior.xp
+      && (!activeSummary || (activeSummary.unit_type_id === prior.unitType.id
+        && activeSummary.display_name === prior.displayName && activeSummary.kin_id === prior.kin.id
+        && activeSummary.level === prior.level && activeSummary.xp === prior.xp))
+      && prior.unitType.id === result.promotion.from_unit_type_id
+      && result.unit.unitType.id === result.promotion.to_unit_type_id
+      && prior.displayName === result.unit.displayName && prior.kin.id === result.unit.kin.id
+      && prior.level === result.unit.level && prior.xp === result.unit.xp
+      && prior.lifecycleStatus === result.unit.lifecycleStatus && sameBindings
+      && JSON.stringify(prior.abilityLoadout.map((entry) => [entry.ability.id, entry.equipOrder]))
+        === JSON.stringify(result.unit.abilityLoadout.map((entry) => [entry.ability.id, entry.equipOrder]))
+      && prior.ownedAbilities.every((ability) => result.unit.ownedAbilities.some((next) => next.id === ability.id))
+      && JSON.stringify(newAbilityIds) === JSON.stringify(grantedIds)
+      && history.length === prior.promotionHistory.length + 1
+      && history.slice(0, -1).every((entry, index) => JSON.stringify(entry) === JSON.stringify(prior.promotionHistory[index]))
+      && history.at(-1)?.fromUnitType.id === prior.unitType.id
+      && history.at(-1)?.toUnitType.id === result.unit.unitType.id;
+    this.cachedBootstrap = Object.freeze({ ...bootstrap,
+      player: Object.freeze({ ...bootstrap.player, raw_chaos: result.spend.balanceAfter,
+        player_revision: result.playerRevision }),
+      active_squad: valid && bootstrap.active_squad ? Object.freeze({ ...bootstrap.active_squad,
+        units: Object.freeze(bootstrap.active_squad.units.map((unit) => unit.id === unitId
+          ? Object.freeze({ ...unit, unit_type_id: result.unit.unitType.id }) : unit)) }) : bootstrap.active_squad });
+    this.markPromotionOptionsStale(unitId);
+    if (!valid) {
+      this.setUnitDetail(unitId, { status: 'error', data: prior, error: 'integrity' });
+      if (units.status !== 'not-loaded') this.setDomain('units', { status: 'stale', data: units.data, error: 'integrity' });
+      throw new UnitPromotionContractError('Promotion result needs authoritative unit recovery.');
+    }
+    this.setDomain('units', { status: 'fresh', data: Object.freeze(units.data!.map((unit) => unit.id === unitId
+      ? Object.freeze({ ...unit, unitType: result.unit.unitType }) : unit)), error: null });
+    this.setUnitDetail(unitId, { status: 'fresh', data: result.unit, error: null });
   }
 
   reconcileShopPurchase(result: ShopPurchaseResult, content: ClientContentRegistry): void {
@@ -748,6 +920,7 @@ export class GameStore {
   markUnitDetailStale(unitId: string): void {
     const state = this.unitDetail(unitId);
     if (state.status === 'fresh') this.setUnitDetail(unitId, { status: 'stale', data: state.data, error: null });
+    this.markPromotionOptionsStale(unitId);
   }
 
   markWarbandDomainStale(domain: WarbandDomainName): void {
@@ -877,6 +1050,7 @@ export class GameStore {
   }
 
   clear(): void {
+    const promotionIds = [...this.promotionCache.keys()];
     this.cachedBootstrap = null;
     this.cacheGeneration += 1;
     this.warbandCache = this.emptyWarbandCache();
@@ -888,11 +1062,20 @@ export class GameStore {
     this.itemInventoryInFlight = null;
     this.shopState = Object.freeze({ status: 'not-loaded', data: null, error: null });
     this.shopInFlight = null;
+    this.academyState = Object.freeze({ status: 'not-loaded', data: null, error: null });
+    this.academyInFlight = null;
+    this.promotionCache.clear();
+    this.promotionInFlight.clear();
     for (const key of Object.keys(this.inFlight) as WarbandDomainName[]) delete this.inFlight[key];
     this.emit();
     this.emitRun();
     for (const listener of this.itemListeners) listener(this.itemInventoryState);
     for (const listener of this.shopListeners) listener(this.shopState);
+    for (const listener of this.academyListeners) listener(this.academyState);
+    for (const unitId of promotionIds) {
+      const empty = this.promotionOptions(unitId);
+      for (const listener of this.promotionListeners) listener(unitId, empty);
+    }
   }
 
   private reconcileCurrentRun(result: CurrentRunResult): void {
@@ -906,6 +1089,7 @@ export class GameStore {
       this.cachedBootstrap = Object.freeze({ ...bootstrap,
         player: Object.freeze({ ...bootstrap.player, player_revision: result.playerRevision }), active_run: null });
       this.setCurrentRun({ status: 'fresh', data: null, error: null });
+      this.markAllPromotionOptionsStale();
       return;
     }
     if (bootstrap.active_squad && bootstrap.active_squad.id !== result.run.squadId)
@@ -921,6 +1105,7 @@ export class GameStore {
     this.cachedBootstrap = Object.freeze({ ...bootstrap,
       player: Object.freeze({ ...bootstrap.player, player_revision: result.playerRevision }), active_run: returnedSummary });
     this.setCurrentRun({ status: 'fresh', data: result.run, error: null });
+    this.markAllPromotionOptionsStale();
   }
 
   private setCurrentRun(state: CurrentRunState): void {
@@ -1107,6 +1292,27 @@ export class GameStore {
     for (const listener of this.shopListeners) listener(this.shopState);
   }
 
+  private setAcademy(state: AcademyState): void {
+    this.academyState = Object.freeze(state);
+    for (const listener of this.academyListeners) listener(this.academyState);
+  }
+
+  private setPromotionOptions(unitId: string, state: UnitPromotionOptionsState): void {
+    const frozen = Object.freeze(state);
+    this.promotionCache.set(unitId, frozen);
+    for (const listener of this.promotionListeners) listener(unitId, frozen);
+  }
+
+  private markPromotionOptionsStale(unitId: string): void {
+    const state = this.promotionCache.get(unitId);
+    if (state && state.status !== 'not-loaded') this.setPromotionOptions(unitId,
+      { status: 'stale', data: state.data, error: null });
+  }
+
+  private markAllPromotionOptionsStale(): void {
+    for (const unitId of this.promotionCache.keys()) this.markPromotionOptionsStale(unitId);
+  }
+
   private setDomain(domain: WarbandDomainName, state: WarbandDomainState<WarbandCollectionItem>): void {
     if (domain === 'units') {
       this.warbandCache = Object.freeze({
@@ -1166,6 +1372,9 @@ import { InventoryContractError, OwnedItemStack, parseItemCollectionEnvelope } f
 import { ShopCatalogResult, ShopContractError, ShopPurchaseResult, parseShopCatalogEnvelope } from './shop-contracts';
 import { EnergyRestoreResult, RunUnitHealResult } from './consumable-contracts';
 import { DiceSalvageResult, DiceSellResult } from './dice-lifecycle-contracts';
+import { AcademyCatalogResult, AcademyContractError, AcademyUpgradeResult } from './academy-contracts';
+import { UnitPromotionContractError, UnitPromotionOptionsResult } from './unit-promotion-contracts';
+import { UnitPromotionMutationContractError, UnitPromotionResult } from './unit-promotion-mutation-contracts';
 
 function unitDetailErrorKind(error: unknown): WarbandDomainErrorKind {
   if (error instanceof RuntimeApiError) return error.kind;
