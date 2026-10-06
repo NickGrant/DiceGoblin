@@ -1,98 +1,128 @@
 # Active Execution Issue
 
-## Milestone 8 - Permanent Progression
+## Milestone 9 - Kin and Wrong Machine
 
-### Milestone 8 Package 7 - Focused manual UAT before Milestone 9 promotion
+### Milestone 9 Package 1 - Authored kin/reconstruction foundation + ownership/read contract
 
 **Status:** In Progress
 **Priority:** High
 
 #### Problem
 
-Milestone 8 has passed integrated technical closure, but the permanent-progression slice still needs focused player-facing manual UAT before Milestone 8 can close and Milestone 9 Wrong Machine/kin work can begin.
+Milestone 8 is complete and passed focused manual UAT on 2026-10-05. Milestone 9 now needs the canonical authored and persistence foundation for Kin restoration and Wrong Machine reconstruction before any reconstruction mutation or Phaser surface is implemented.
 
 #### Accepted baseline
 
-Milestone 8 Package 6 - Permanent-progression integrated verification and technical closure is approved at `6314877766187931124c4d8fa5013da02354adfc`.
+Milestone 8 - Permanent Progression is complete. Technical closure was approved at `6314877766187931124c4d8fa5013da02354adfc`, and focused manual UAT passed on 2026-10-05 with no blocking findings requiring a correction package.
 
-Package 6 proved the production permanent-progression lifecycle across authored content, MySQL persistence, Raw Chaos, Academy upgrades, Shop consequences, Energy/die-size capabilities, promotion/history/abilities, active-run safety, GameStore reconciliation, reload persistence, and deterministic responsive captures. Its closure record is preserved in git history at `1d3a49b190fda6d29466eb89187bc33e63f42293`.
+The vNext roadmap defines Milestone 9 as Kin unlock/restoration, Pig/Lizard reconstruction, and first-unlock versus deterministic repeat behavior.
 
-Do not add new permanent-progression mechanics during UAT. Fix only narrow defects that block or materially contradict the accepted Milestone 8 behavior.
+Preserve the accepted vNext architecture:
+- authored gameplay definitions belong in canonical content JSON rather than SQL-authored catalogs;
+- durable player ownership/state belongs in MySQL;
+- permanent ownership and repeatable acquisition are distinct concepts;
+- server/API state remains authoritative and the Phaser client must not fabricate progression state;
+- prototype Wrong Machine/Kin implementation is behavioral evidence only and is not an API/schema compatibility target.
+
+Do not implement the reconstruction spend/mutation or final player-facing Wrong Machine UI in Package 1.
 
 #### Purpose
 
-Validate the Milestone 8 slice as a player experiences it through the normal Phaser runtime, with emphasis on clarity, authoritative cross-screen state, persistence, and progression gating.
+Establish one canonical vocabulary and read boundary for Kin and reconstruction so later Milestone 9 packages can implement the transaction and Phaser interaction without inventing parallel state or duplicating authored data.
 
-#### Focused manual UAT path
+#### Required authored model
 
-Exercise the following supported flow using normal player-facing controls and reload/re-entry where specified:
+Add the smallest canonical content model needed to describe Milestone 9 reconstruction behavior.
 
-1. **Academy entry and catalog**
-   - enter Academy from Camp;
-   - confirm owned, available, locked/prerequisite, and unaffordable states are understandable;
-   - confirm displayed Raw Chaos matches the shared player wallet;
-   - buy an available upgrade and verify the mutation settles cleanly without trapping navigation.
+At minimum it must support:
+- stable Kin definitions for the Milestone 9 Pig and Lizard families;
+- stable reconstruction recipe definitions linked to their resulting Kin/unit output;
+- authored ingredient/currency requirements rather than hard-coded controller/service constants;
+- explicit distinction between first restoration/unlock behavior and repeat reconstruction behavior;
+- stable references to every item, unit type, Kin, unlock, reward/event definition, or other authored dependency used by a recipe;
+- validator coverage for missing, duplicate, malformed, cyclic, or incompatible references where applicable.
 
-2. **Unit-type research -> Shop acquisition**
-   - verify a researched Goblin type becomes available through the normal Shop flow;
-   - purchase one unit with Teeth;
-   - confirm the new unit appears in Warband without a global profile refresh;
-   - reload/re-enter and confirm the research ownership, wallet state, and purchased unit persist.
+Do not expose server-only catalog data wholesale to the browser. Extend the client content projection only for fields that are actually needed by the read contract/runtime.
 
-3. **Energy capability progression**
-   - exercise the 75-cap upgrade and its prerequisite path to 100;
-   - verify increasing the cap does not retroactively refill Energy;
-   - verify later Camp/run Energy presentation uses the new authoritative maximum;
-   - reload/re-enter and confirm the capability persists.
+#### Durable ownership/state
 
-4. **Die-size progression**
-   - verify d10/d12/d20 acquisition remains gated until the corresponding Academy capability is owned;
-   - advance through the capability chain and confirm each newly eligible Cardboard die appears at the correct threshold;
-   - purchase at least one newly unlocked die and verify it appears in inventory/Warband dice state;
-   - reload/re-enter and confirm both capability and die ownership persist.
+Define the minimal MySQL persistence required to answer authoritative Kin ownership/restoration state.
 
-5. **Unit promotion**
-   - open Unit Configuration -> Unit Promotion for a Goblin with promotion options;
-   - verify below-level and insufficient-Raw-Chaos states are clear and non-destructive;
-   - complete a legal tier-1 -> tier-2 promotion and verify the same unit identity/name/kin/loadout/dice bindings remain intact;
-   - confirm the next authored branch/options update correctly and permanent abilities/history are represented consistently;
-   - where practical, complete tier-2 -> tier-3 and verify terminal no-options behavior;
-   - reload/re-enter Unit Detail and confirm the promoted type/history/abilities persist.
+Requirements:
+- one canonical durable representation of which Kin a player has restored/unlocked;
+- no duplicate boolean/feature state representing the same ownership;
+- persistence must survive reload/re-entry and clean database reset/provisioning;
+- ownership must be player-scoped and enforce normal cross-player isolation;
+- do not persist authored recipe/catalog definitions in SQL;
+- do not introduce reconstruction transaction/history tables unless they are required for a concrete accepted invariant in this package.
 
-6. **Cross-surface wallet/state coherence**
-   - spend Raw Chaos in Academy, then open Unit Promotion and confirm the same remaining balance is shown;
-   - spend Raw Chaos on promotion, then return to Academy and confirm the same remaining balance is shown;
-   - verify no screen appears to retain an independent stale wallet snapshot.
+Prefer reuse of the existing permanent-unlock model if it can represent Kin restoration without semantic ambiguity. If Kin restoration requires distinct durable state, make that boundary explicit and justify it in tests/docs rather than silently adding parallel ownership.
 
-7. **Run/progression interaction**
-   - with a previously viewed unit detail/promotion state, allow that unit to gain persisted XP/level through supported run/battle progression;
-   - after normal run completion/exit, return to Unit Configuration/Promotion and confirm the fresh level/XP is usable without deleting local state or performing a second mutation;
-   - repeat the recovery check after abandoning a run that has already persisted progression;
-   - verify a participating unit remains blocked from promotion during an active run while a legal reserve unit is not falsely blocked.
+#### Authoritative read contract
 
-8. **Navigation and presentation smoke check**
-   - traverse `Camp -> Academy -> Camp -> Shop -> Warband -> Unit Configuration -> Unit Promotion -> Unit Configuration -> Warband -> Camp`;
-   - confirm Back/Escape/navigation remains coherent after successful and rejected actions;
-   - note any clipped/inaccessible controls or critical status/wallet text on the device/viewport used for UAT.
+Add the backend/application read boundary required for a future Wrong Machine screen.
 
-#### Defect policy
+It must allow an authenticated player to determine, for each currently relevant Milestone 9 recipe:
+- recipe identity and authored presentation-safe metadata;
+- target Kin/unit output;
+- whether the target Kin is already restored/owned;
+- first-restoration versus repeat mode;
+- required ingredients/currency and the player's authoritative owned amounts needed to render availability;
+- whether prerequisites are met;
+- whether the recipe is currently reconstructable;
+- player revision or equivalent authority needed to reconcile later mutations safely.
 
-If UAT finds a defect:
-- record the exact player path and observed/expected behavior;
-- make the smallest correction that restores the accepted Milestone 8 contract;
-- add focused regression coverage for the defect;
-- run the applicable package gates from `agent/QUALITY_GATES.md`;
-- leave Package 7 **In Progress** for recheck.
+The read response must derive availability from authoritative inventory/wallet/unlock state. Do not store or return a second mutable availability flag that can drift from those sources.
 
-Do not broaden scope into balance redesign, new Academy upgrades, new promotion branches, Wrong Machine/kin work, or the deferred game-wide visual overhaul.
+#### Pig and Lizard scope
 
-#### Completion
+Package 1 must establish valid authored/read coverage for both Pig and Lizard reconstruction families because both are part of the Milestone 9 exit criterion.
 
-Package 7 completes only when the user confirms the focused manual UAT passes after any required corrections.
+This package does not need to make both reconstructable through a mutation yet. It must prove their content graph and read semantics are representable without family-specific schema/controller branches.
 
-On confirmed pass:
-- mark Milestone 8 complete in the roadmap/milestone state;
-- record the UAT date and any correction SHA(s);
-- then promote Milestone 9 just in time from the roadmap.
+Do not add Frog Kin; Swamp/Frog Kin remains Milestone 13.
 
-Do not begin Milestone 9 before explicit user confirmation that this UAT package passed.
+#### Compatibility and boundaries
+
+Keep green and preserve:
+- Milestone 7 inventory, Shop, dice lifecycle, Teeth, and Raw Chaos ownership;
+- Milestone 8 Academy/permanent unlocks, unit acquisition, promotion, and shared player revision semantics;
+- unit identity/kin/type semantics already used by Warband and combat;
+- clean vNext database bootstrap/reset;
+- content revision/client projection validation.
+
+Do not:
+- revive prototype Angular Wrong Machine pages/services as the runtime architecture;
+- introduce SQL-authored recipes/Kin catalogs;
+- duplicate wallet or inventory ownership inside Wrong Machine state;
+- implement randomized reconstruction if the authored contract calls for deterministic repeat behavior;
+- add final reconstruction transaction/idempotency behavior yet;
+- begin Milestone 10 encounter-depth work.
+
+#### Verification
+
+Run targeted checks while implementing, then the applicable package gates from `agent/QUALITY_GATES.md`.
+
+At minimum verify:
+- production content validation for all added Kin/recipe references;
+- persistence and cross-player ownership isolation;
+- clean DB provision/reset;
+- authoritative read behavior for unowned/restored Kin and first/repeat modes;
+- inventory/wallet/prerequisite-derived availability;
+- Pig and Lizard families use the same generic model/read path;
+- backend auth/ownership/validation negative paths;
+- client content projection exposes no unnecessary server-only fields;
+- full supported backend suite and frontend/content/docs gates required by the package.
+
+#### Completion evidence
+
+At completion, report:
+- implementation SHA;
+- schema/persistence choice for Kin ownership and why it is not duplicate state;
+- canonical content definitions added and production content revision;
+- focused and full verification counts;
+- exact read-contract shape/endpoint introduced;
+- confirmation that Pig and Lizard both resolve through the same generic foundation;
+- confirmation that no reconstruction mutation or Milestone 10 work was introduced.
+
+Leave Package 1 **In Progress** for architectural review. Do not promote Package 2 yourself.
