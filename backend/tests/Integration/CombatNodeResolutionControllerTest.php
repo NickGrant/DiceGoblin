@@ -11,6 +11,8 @@ use DiceGoblins\Application\Commands\ResolveRunNodeCommand;
 use DiceGoblins\Application\RunNodes\CombatNodeResolutionHandler;
 use DiceGoblins\Application\Queries\CurrentRunQuery;
 use DiceGoblins\Application\Queries\UnitDetailQuery;
+use DiceGoblins\Application\Rewards\VictoryItemDropPolicy;
+use DiceGoblins\Application\Rewards\VictoryItemGrantService;
 use DiceGoblins\Combat\Vnext\CombatInput;
 use DiceGoblins\Combat\Vnext\CombatResolver;
 use DiceGoblins\Combat\Vnext\CombatResult;
@@ -26,6 +28,7 @@ use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Repositories\RunNodeResolutionRepository;
 use DiceGoblins\Repositories\RunPersistenceRepository;
 use DiceGoblins\Repositories\SquadRepository;
+use DiceGoblins\Repositories\UserItemRepository;
 use DiceGoblins\Repositories\WarbandDiceRepository;
 use DiceGoblins\Repositories\WarbandFixtureRepository;
 use DiceGoblins\Repositories\WarbandUnitRepository;
@@ -272,6 +275,7 @@ final class CombatNodeResolutionControllerTest extends IntegrationTestCase
         $nodes, new BattlePersistenceRepository($this->pdo),
         new CombatSnapshotAssembler($content, new SquadRepository($this->pdo), new UnitDetailQuery($units, $content),
           new WarbandDiceRepository($this->pdo)), $resolver, new CombatSeedDeriver(),
+        new VictoryItemGrantService(new VictoryItemDropPolicy($content), new UserItemRepository($this->pdo)),
       )], $clock);
   }
 

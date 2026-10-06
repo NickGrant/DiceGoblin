@@ -21,6 +21,8 @@ use DiceGoblins\Application\Commands\RunParticipationValidator;
 use DiceGoblins\Application\Commands\StartRunCommand;
 use DiceGoblins\Application\Commands\ResolveRunNodeCommand;
 use DiceGoblins\Application\Rewards\RewardApplicationService;
+use DiceGoblins\Application\Rewards\VictoryItemDropPolicy;
+use DiceGoblins\Application\Rewards\VictoryItemGrantService;
 use DiceGoblins\Application\RunNodes\CombatNodeResolutionHandler;
 use DiceGoblins\Application\RunNodes\BossNodeResolutionHandler;
 use DiceGoblins\Application\RunNodes\LootNodeResolutionHandler;
@@ -170,6 +172,7 @@ final class ControllerServiceFactory
       new CombatSnapshotAssembler($content, $squadRepository, $unitDetailQuery, $diceRepository, new BaseLevelStatResolver()),
       $combatResolver ?? new CombatEngine(),
       new CombatSeedDeriver(),
+      new VictoryItemGrantService(new VictoryItemDropPolicy($content), $itemRepository),
     );
 
     return array_merge($core, [

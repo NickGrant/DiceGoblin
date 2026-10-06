@@ -5,6 +5,7 @@ namespace DiceGoblins\Application\RunNodes;
 
 use DiceGoblins\Application\Combat\CombatSnapshotAssembler;
 use DiceGoblins\Application\Commands\CombatResolutionIntegrityException;
+use DiceGoblins\Application\Rewards\VictoryItemGrantService;
 use DiceGoblins\Combat\Vnext\CombatResolver;
 use DiceGoblins\Domain\Battles\CombatSeedDeriver;
 use DiceGoblins\Domain\Battles\FinalizedBattle;
@@ -19,6 +20,7 @@ final class CombatNodeResolutionHandler implements RunNodeResolutionHandler
     private readonly CombatSnapshotAssembler $assembler,
     private readonly CombatResolver $resolver,
     private readonly CombatSeedDeriver $seeds,
+    private readonly VictoryItemGrantService $itemGrants,
   ) {}
 
   public function nodeTypeId(): string { return 'run_node_type.combat'; }
@@ -53,12 +55,14 @@ final class CombatNodeResolutionHandler implements RunNodeResolutionHandler
       $terminalHp[(string)$unitId] = $hp;
     }
     ksort($terminalHp, SORT_NUMERIC);
+    $grantedItems = $result['outcome'] === 'victory' ? $this->itemGrants->grant($userId, $encounterId) : [];
 
     return new RunNodeResolutionOutcome('combat', [
       'battle' => ['id' => (string)$battleId, 'outcome' => $result['outcome'],
         'engine_version' => $result['engine_version'], 'playback_version' => $result['playback_version'],
         'ending_round' => $result['ending_round'], 'ending_tick' => $result['ending_tick']],
       'terminal_player_hp' => $terminalHp,
+      ...($grantedItems !== [] ? ['item_grants' => $grantedItems] : []),
     ], $result['outcome'] !== 'victory');
   }
 }

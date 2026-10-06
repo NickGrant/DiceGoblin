@@ -33,3 +33,5 @@ When the Wrong Machine targets a kin not yet unlocked, successful reconstruction
 There is no generic "first kin" flag and no separate first-ownership progression record. Kin unlock ownership is the durable capability truth.
 
 Pig and Lizard recipes each require permanent Wrong Machine access, 5 Raw Chaos, 3 lineage materials, and 1 boss catalyst for either mode. The recipe JSON owns these costs and the selection rule; the server read contract derives current availability from the player's unlocks, wallet, inventory, and unlocked unit types. The reconstruction transaction is a later package.
+
+The item catalog authors victory drops by source region, encounter kind, and enemy unit type. The vNext run resolver grants materials inside the node-resolution transaction on victory: Farm mud combat grants one Pig Ear, the Mudking boss grants two Pig Ears and one crown fragment, Mountains Kobold combat grants one Kobold Scale, and the Chief Engineer boss grants one lens. The reward resolver remains authoritative; the browser receives only the resulting inventory and resolution facts.

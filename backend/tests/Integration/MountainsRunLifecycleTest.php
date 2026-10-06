@@ -12,6 +12,8 @@ use DiceGoblins\Application\Commands\RunStartException;
 use DiceGoblins\Application\Queries\CurrentRunQuery;
 use DiceGoblins\Application\Queries\UnitDetailQuery;
 use DiceGoblins\Application\Rewards\RewardApplicationService;
+use DiceGoblins\Application\Rewards\VictoryItemDropPolicy;
+use DiceGoblins\Application\Rewards\VictoryItemGrantService;
 use DiceGoblins\Application\RunNodes\BossNodeResolutionHandler;
 use DiceGoblins\Application\RunNodes\CombatNodeResolutionHandler;
 use DiceGoblins\Application\RunNodes\ExitNodeResolutionHandler;
@@ -35,6 +37,7 @@ use DiceGoblins\Repositories\RunNodeResolutionRepository;
 use DiceGoblins\Repositories\RunPersistenceRepository;
 use DiceGoblins\Repositories\SquadRepository;
 use DiceGoblins\Repositories\UserUnlockRepository;
+use DiceGoblins\Repositories\UserItemRepository;
 use DiceGoblins\Repositories\WarbandDiceRepository;
 use DiceGoblins\Repositories\WarbandFixtureRepository;
 use DiceGoblins\Repositories\WarbandUnitRepository;
@@ -73,6 +76,7 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
     $farmCombat = $services['resolveRunNodeCommand']->execute(
       $userId, $farmRunId, $farmNodeIds[0], 'integrated-farm-combat');
     $this->assertBattleResolution($farmCombat, $farmRunId, $farmNodeIds[0], $farmNodeIds[1]);
+    $this->assertSame([['item_id' => 'item.pig_ear', 'quantity' => 1, 'owned_after' => 1]], $farmCombat['item_grants']);
     $services['resolveRunNodeCommand']->execute($userId, $farmRunId, $farmNodeIds[1], 'integrated-farm-loot');
     $services['resolveRunNodeCommand']->execute($userId, $farmRunId, $farmNodeIds[2], 'integrated-farm-rest');
     $farmBoss = $services['resolveRunNodeCommand']->execute(
@@ -80,6 +84,10 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
     $this->assertBattleResolution($farmBoss, $farmRunId, $farmNodeIds[3], $farmNodeIds[4], 'boss');
     $this->assertSame([['outcome' => 'granted', 'unlock_id' => 'unlock.region.mountains']],
       $farmBoss['rewards']['unlocks']);
+    $this->assertSame([
+      ['item_id' => 'item.mudking_crown_fragment', 'quantity' => 1, 'owned_after' => 1],
+      ['item_id' => 'item.pig_ear', 'quantity' => 2, 'owned_after' => 3],
+    ], $farmBoss['item_grants']);
     $this->assertSame($farmBoss, $services['resolveRunNodeCommand']->execute(
       $userId, $farmRunId, $farmNodeIds[3], 'integrated-farm-boss'));
     $farmExit = $services['resolveRunNodeCommand']->execute(
@@ -125,6 +133,7 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
     $command = $services['resolveRunNodeCommand'];
     $combatOne = $command->execute($userId, $runId, $nodeIds[0], 'mountains-combat-1');
     $this->assertBattleResolution($combatOne, $runId, $nodeIds[0], $nodeIds[1]);
+    $this->assertSame([['item_id' => 'item.kobold_scale', 'quantity' => 1, 'owned_after' => 1]], $combatOne['item_grants']);
     $this->assertStatuses($runId, ['completed', 'available', 'locked', 'locked', 'locked', 'locked', 'locked']);
 
     $loot = $command->execute($userId, $runId, $nodeIds[1], 'mountains-loot');
@@ -137,6 +146,7 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
 
     $combatTwo = $command->execute($userId, $runId, $nodeIds[2], 'mountains-combat-2');
     $this->assertBattleResolution($combatTwo, $runId, $nodeIds[2], $nodeIds[3]);
+    $this->assertSame([['item_id' => 'item.kobold_scale', 'quantity' => 1, 'owned_after' => 2]], $combatTwo['item_grants']);
     $this->pdo?->prepare('UPDATE `run_unit_state` SET `current_hp` = 1 WHERE `run_id` = ?')->execute([$runId]);
     $rest = $command->execute($userId, $runId, $nodeIds[3], 'mountains-rest');
     $this->assertSame([(string)$nodeIds[4]], $rest['newly_available_node_ids']);
@@ -147,8 +157,10 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
 
     $combatThree = $command->execute($userId, $runId, $nodeIds[4], 'mountains-combat-3');
     $this->assertBattleResolution($combatThree, $runId, $nodeIds[4], $nodeIds[5]);
+    $this->assertSame([['item_id' => 'item.kobold_scale', 'quantity' => 1, 'owned_after' => 3]], $combatThree['item_grants']);
     $boss = $command->execute($userId, $runId, $nodeIds[5], 'mountains-boss');
     $this->assertBattleResolution($boss, $runId, $nodeIds[5], $nodeIds[6], 'boss');
+    $this->assertSame([['item_id' => 'item.chief_engineer_lens', 'quantity' => 1, 'owned_after' => 1]], $boss['item_grants']);
     $this->assertSame([], $boss['rewards']['unlocks']);
     $participantIds = array_column($this->rows(
       'SELECT `unit_id` FROM `run_unit_state` WHERE `run_id` = ? ORDER BY `unit_id`', [$runId]), 'unit_id');
@@ -158,6 +170,11 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
     $this->assertNotSame($mountainsProgressBefore, $progressAfter);
     $bossReplay = $command->execute($userId, $runId, $nodeIds[5], 'mountains-boss');
     $this->assertSame($boss, $bossReplay);
+    $this->assertSame([
+      ['item.chief_engineer_lens', 1], ['item.kobold_scale', 3],
+      ['item.mudking_crown_fragment', 1], ['item.pig_ear', 3],
+    ], array_map(static fn(array $row): array => [$row['item_id'], (int)$row['quantity']],
+      $this->rows('SELECT `item_id`, `quantity` FROM `user_items` WHERE `user_id` = ? ORDER BY `item_id`', [$userId])));
     $this->assertSame($progressAfter, $this->unitProgress($userId));
 
     $revisionBeforeExit = (int)$this->scalar('SELECT `player_revision` FROM `user_state` WHERE `user_id` = ?', [$userId]);
@@ -212,6 +229,7 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
     $this->assertSame($before, $this->unitProgress($userId));
     $this->assertSame('0', (string)$this->scalar(
       "SELECT COUNT(*) FROM `resolved_events` WHERE `user_id` = ? AND `event_id` = 'event.mountains_boss_completed'", [$userId]));
+    $this->assertSame([], $this->rows('SELECT `item_id` FROM `user_items` WHERE `user_id` = ?', [$userId]));
   }
 
   /** @return array{0:int,1:array<string,mixed>} */
@@ -257,7 +275,8 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
     $battles = new BattlePersistenceRepository($this->pdo);
     $combat = new CombatNodeResolutionHandler($nodes, $battles,
       new CombatSnapshotAssembler($content, new SquadRepository($this->pdo), new UnitDetailQuery($units, $content),
-        new WarbandDiceRepository($this->pdo)), $resolver, new CombatSeedDeriver());
+        new WarbandDiceRepository($this->pdo)), $resolver, new CombatSeedDeriver(),
+      new VictoryItemGrantService(new VictoryItemDropPolicy($content), new UserItemRepository($this->pdo)));
     $rewards = new RewardApplicationService($this->pdo, $content,
       new RewardFinalizer(new ScriptedRewardRollSource([1, 1])), new ResolvedEventRepository($this->pdo),
       $state, $units, $unlocks);

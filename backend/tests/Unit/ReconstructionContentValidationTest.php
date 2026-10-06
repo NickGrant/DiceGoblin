@@ -7,6 +7,7 @@ use DiceGoblins\Content\ClientContentProjector;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Content\ContentValidationException;
 use DiceGoblins\Content\ContentValidator;
+use DiceGoblins\Application\Rewards\VictoryItemDropPolicy;
 use PHPUnit\Framework\TestCase;
 
 final class ReconstructionContentValidationTest extends TestCase
@@ -35,6 +36,7 @@ final class ReconstructionContentValidationTest extends TestCase
     $this->assertArrayNotHasKey('reconstruction_recipes', $content);
     $this->assertArrayNotHasKey('source_region_id', $content['items']['item.kobold_scale']);
     $this->assertArrayNotHasKey('source_encounter_id', $content['items']['item.chief_engineer_lens']);
+    $this->assertArrayNotHasKey('victory_drops', $content['items']['item.kobold_scale']);
   }
 
   public function testInvalidRecipeReferencesAndRequirementsFail(): void
@@ -100,6 +102,60 @@ final class ReconstructionContentValidationTest extends TestCase
     $this->expectException(ContentValidationException::class);
     $this->expectExceptionMessage('must target its access capability');
     (new ContentValidator())->validate($this->documents([$unlock['id'] => $unlock]));
+  }
+
+  public function testAuthoredVictoryDropsResolveOnlyForMatchingRegionKindAndEnemy(): void
+  {
+    $drops = new VictoryItemDropPolicy(ContentRegistry::load(dirname(__DIR__, 2) . '/content'));
+    $this->assertSame([['item_id' => 'item.kobold_scale', 'quantity' => 1]],
+      $drops->grants('encounter.mountains_kobold_combat_1'));
+    $this->assertSame([['item_id' => 'item.chief_engineer_lens', 'quantity' => 1]],
+      $drops->grants('encounter.mountains_kobold_boss_1'));
+    $this->assertSame([['item_id' => 'item.pig_ear', 'quantity' => 1]],
+      $drops->grants('encounter.the_farm_mud_combat_1'));
+    $this->assertSame([
+      ['item_id' => 'item.mudking_crown_fragment', 'quantity' => 1],
+      ['item_id' => 'item.pig_ear', 'quantity' => 2],
+    ], $drops->grants('encounter.the_farm_mud_boss_1'));
+    foreach ($drops->grants('encounter.the_farm_mud_combat_1') as $grant) {
+      $this->assertNotContains($grant['item_id'], ['item.kobold_scale', 'item.chief_engineer_lens']);
+    }
+    foreach ($drops->grants('encounter.mountains_kobold_combat_2') as $grant) {
+      $this->assertNotSame('item.chief_engineer_lens', $grant['item_id']);
+    }
+  }
+
+  public function testVictoryDropReferencesMustExistAndBeReachable(): void
+  {
+    $registry = ContentRegistry::load(dirname(__DIR__, 2) . '/content');
+    $scale = $registry->item('item.kobold_scale');
+    $lens = $registry->item('item.chief_engineer_lens');
+    $missingEnemy = $scale;
+    $missingEnemy['victory_drops'][0]['enemy_unit_type_ids'] = ['enemy_unit_type.missing'];
+    $wrongRegionEnemy = $scale;
+    $wrongRegionEnemy['victory_drops'][0]['enemy_unit_type_ids'] = ['enemy_unit_type.mudwrestler'];
+    $wrongKind = $lens;
+    $wrongKind['victory_drops'][0]['node_type'] = 'combat';
+    $wrongKind['victory_drops'][0]['enemy_unit_type_ids'] = ['enemy_unit_type.kobold_skirmisher'];
+    $duplicateKind = $scale;
+    $duplicateKind['victory_drops'][] = $scale['victory_drops'][0];
+    $zeroQuantity = $scale;
+    $zeroQuantity['victory_drops'][0]['quantity'] = 0;
+    $cases = [
+      [$missingEnemy, 'missing enemy_unit_type'],
+      [$wrongRegionEnemy, 'no matching source encounter'],
+      [$wrongKind, 'no matching source encounter'],
+      [$duplicateKind, 'duplicates victory drop node type'],
+      [$zeroQuantity, 'quantity'],
+    ];
+    foreach ($cases as [$invalid, $message]) {
+      try {
+        (new ContentValidator())->validate($this->documents([$invalid['id'] => $invalid]));
+        $this->fail('Expected invalid authored item drop.');
+      } catch (ContentValidationException $e) {
+        $this->assertStringContainsString($message, $e->getMessage());
+      }
+    }
   }
 
   /** @param array<string,array<string,mixed>> $replacements

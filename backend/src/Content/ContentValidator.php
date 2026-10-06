@@ -252,6 +252,24 @@ final class ContentValidator
             throw new ContentValidationException("{$id} source encounter is not in its source region.");
           }
         }
+        foreach ($definition['victory_drops'] ?? [] as $drop) {
+          foreach ($drop['enemy_unit_type_ids'] as $enemyId) {
+            $this->requireReferenceType($definitions, $id, 'victory_drops.enemy_unit_type_ids', $enemyId, 'enemy_unit_type');
+          }
+          $encounters = isset($definition['source_encounter_id'])
+            ? [$definitions[$definition['source_encounter_id']]]
+            : array_filter($definitions, static fn(array $candidate): bool => ($candidate['type'] ?? null) === 'encounter'
+              && $candidate['region_id'] === $definition['source_region_id'] && $candidate['kind'] === $drop['node_type']);
+          $reachable = false;
+          foreach ($encounters as $encounter) {
+            if ($encounter['kind'] !== $drop['node_type']) continue;
+            if (array_intersect($drop['enemy_unit_type_ids'], array_column($encounter['combatants'], 'enemy_unit_type_id')) !== []) {
+              $reachable = true;
+              break;
+            }
+          }
+          if (!$reachable) throw new ContentValidationException("{$id} victory drop has no matching source encounter.");
+        }
       }
 
       if (($definition['type'] ?? null) === 'event') {
@@ -550,7 +568,7 @@ final class ContentValidator
   {
     $this->requireExactFieldSet($definition,
       ['id', 'type', 'display_name', 'description', 'category', 'rarity', 'icon_key', 'stackable'],
-      ['effect', 'source_region_id', 'source_encounter_id'], $location);
+      ['effect', 'source_region_id', 'source_encounter_id', 'victory_drops'], $location);
     $this->requireNamespace($definition, 'item.', $location);
     $this->requireBoundedNonEmptyString($definition, 'display_name', 128, $location);
     $this->requireBoundedNonEmptyString($definition, 'description', 512, $location);
@@ -564,6 +582,23 @@ final class ContentValidator
     $effect = $definition['effect'] ?? null;
     if ($category === 'material') {
       if ($effect !== null) throw new ContentValidationException("{$location} material items must not define an effect.");
+      if (array_key_exists('victory_drops', $definition)) {
+        if (!isset($definition['source_region_id'])) throw new ContentValidationException("{$location} victory_drops requires source_region_id.");
+        $drops = $definition['victory_drops'];
+        if (!is_array($drops) || !array_is_list($drops) || $drops === []) {
+          throw new ContentValidationException("{$location} victory_drops must be a non-empty list.");
+        }
+        $nodeTypes = [];
+        foreach ($drops as $drop) {
+          if (!is_array($drop) || array_is_list($drop)) throw new ContentValidationException("{$location} victory drop must be an object.");
+          $this->requireExactFieldSet($drop, ['node_type', 'enemy_unit_type_ids', 'quantity'], [], "{$location} victory drop");
+          $nodeType = $this->requireAllowedString($drop, 'node_type', ['combat', 'boss'], "{$location} victory drop");
+          if (isset($nodeTypes[$nodeType])) throw new ContentValidationException("{$location} duplicates victory drop node type.");
+          $nodeTypes[$nodeType] = true;
+          $this->requireStableIdList($drop, 'enemy_unit_type_ids', 'enemy_unit_type.', false, "{$location} victory drop");
+          $this->requireIntegerInRange($drop, 'quantity', 1, ClientSafeInteger::MAXIMUM, "{$location} victory drop");
+        }
+      }
       if (array_key_exists('source_encounter_id', $definition) && !array_key_exists('source_region_id', $definition)) {
         throw new ContentValidationException("{$location} source_encounter_id requires source_region_id.");
       }
@@ -575,7 +610,8 @@ final class ContentValidator
       }
       return;
     }
-    if (array_key_exists('source_region_id', $definition) || array_key_exists('source_encounter_id', $definition)) {
+    if (array_key_exists('source_region_id', $definition) || array_key_exists('source_encounter_id', $definition)
+      || array_key_exists('victory_drops', $definition)) {
       throw new ContentValidationException("{$location} consumable items cannot declare a material source.");
     }
     if (!is_array($effect) || array_is_list($effect)) {
