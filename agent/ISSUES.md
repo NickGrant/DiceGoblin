@@ -82,6 +82,36 @@ This package does not need to make both reconstructable through a mutation yet. 
 
 Do not add Frog Kin; Swamp/Frog Kin remains Milestone 13.
 
+#### Authored Milestone 9 content decisions
+
+These values are accepted for Milestone 9 production content. They may be balance-tuned later through authored content, but Package 1 must not substitute different values or invent alternate materials.
+
+**Wrong Machine prerequisite**
+- Wrong Machine access is a hard prerequisite for every reconstruction recipe.
+- A player without the permanent Wrong Machine access unlock must see the recipe as not currently reconstructable even if all currency and item requirements are otherwise met.
+- Use the canonical permanent-unlock key established by the authored content model; do not duplicate machine access as recipe-local player state.
+
+**Lizard Kin**
+- Kin key: `lizard_kin`.
+- Display name: `Lizard Kin`.
+- Description: `Quick, sharp-eyed mountain goblin-kin with scaled features and a knack for striking precisely before heavier foes can pin them down.`
+- Gameplay identity: precision/offense specialist with reduced durability; deliberately contrasts Pig Kin's defensive identity.
+- Stat modifiers use `Attack / Defense / Max HP / Precision / Resolve` order: `+1 / -1 / -1 / +2 / 0`.
+- Visual/presentation direction: recognizably goblin first, with a leaner silhouette, subtle scaled skin patches, angular reptilian facial accents, narrow pupils, and small ridge/frill details. Avoid turning the unit into a full kobold or generic humanoid lizard. Mountains scrap/tinkerer cues may appear in clothing or accessories but are not part of the Kin's body mechanics.
+
+**Lizard reconstruction recipe**
+- Recipe key: `reconstruct_lizard_kin`.
+- Result: exactly one new Lizard Kin unit per successful reconstruction.
+- Raw Chaos: `40`.
+- Repeatable lineage material: item key `kobold_scale`, quantity `15`.
+- Boss catalyst: item key `chief_engineer_lens`, quantity `1`.
+- First reconstruction and repeat reconstruction use the same costs.
+- First reconstruction additionally records/restores Lizard Kin ownership and enables whatever future Kin-aware reward/recruitment behavior is derived from that ownership.
+- Repeat reconstruction creates another Lizard Kin unit without replaying first-restoration effects.
+- Existing units are not transformed into Lizard Kin.
+
+The new `kobold_scale` and `chief_engineer_lens` items are Milestone 9 authored progression materials. Package 1 should define them in the canonical item/content model and connect them to Mountains/Kobold progression generically. Do not revive legacy SQL-authored region-item catalogs merely to supply these ingredients.
+
 #### Compatibility and boundaries
 
 Keep green and preserve:
