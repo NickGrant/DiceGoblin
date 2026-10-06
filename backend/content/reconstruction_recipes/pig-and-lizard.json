@@ -1,0 +1,54 @@
+{
+  "definitions": [
+    {
+      "id": "reconstruction_recipe.reconstruct_pig_kin",
+      "type": "reconstruction_recipe",
+      "display_name": "Restore Pig Kin",
+      "description": "Reconstruct a Pig Kin goblin from farmyard remains.",
+      "kin_id": "kin.pig",
+      "kin_unlock_id": "unlock.kin.pig",
+      "prerequisite_unlock_ids": ["unlock.capability.wrong_machine_access"],
+      "first_restoration": {
+        "unit_type_selection": "random_unlocked",
+        "price": {"currency_id": "raw_chaos", "amount": 5},
+        "ingredients": [
+          {"item_id": "item.pig_ear", "quantity": 3},
+          {"item_id": "item.mudking_crown_fragment", "quantity": 1}
+        ]
+      },
+      "repeat_reconstruction": {
+        "unit_type_selection": "chosen_unlocked",
+        "price": {"currency_id": "raw_chaos", "amount": 5},
+        "ingredients": [
+          {"item_id": "item.pig_ear", "quantity": 3},
+          {"item_id": "item.mudking_crown_fragment", "quantity": 1}
+        ]
+      }
+    },
+    {
+      "id": "reconstruction_recipe.reconstruct_lizard_kin",
+      "type": "reconstruction_recipe",
+      "display_name": "Restore Lizard Kin",
+      "description": "Reconstruct a Lizard Kin goblin from mountain remains.",
+      "kin_id": "kin.lizard_kin",
+      "kin_unlock_id": "unlock.kin.lizard_kin",
+      "prerequisite_unlock_ids": ["unlock.capability.wrong_machine_access"],
+      "first_restoration": {
+        "unit_type_selection": "random_unlocked",
+        "price": {"currency_id": "raw_chaos", "amount": 5},
+        "ingredients": [
+          {"item_id": "item.kobold_scale", "quantity": 3},
+          {"item_id": "item.chief_engineer_lens", "quantity": 1}
+        ]
+      },
+      "repeat_reconstruction": {
+        "unit_type_selection": "chosen_unlocked",
+        "price": {"currency_id": "raw_chaos", "amount": 5},
+        "ingredients": [
+          {"item_id": "item.kobold_scale", "quantity": 3},
+          {"item_id": "item.chief_engineer_lens", "quantity": 1}
+        ]
+      }
+    }
+  ]
+}

@@ -96,7 +96,7 @@ final class FarmCombatContentValidationTest extends TestCase
     $this->assertArrayNotHasKey('ability.mud_slam', $projection['content']['abilities']);
     $this->assertArrayHasKey('ability.basic_attack_melee', $projection['content']['abilities']);
     $encoded = json_encode($projection, JSON_THROW_ON_ERROR);
-    foreach (['Mudwrestler', 'Mudslinger', 'Mudking', 'enemy_mudking', 'the_farm_mud_combat_1',
+    foreach (['Mudwrestler', 'Mudslinger', 'enemy_mudking', 'the_farm_mud_combat_1',
       'the_farm_mud_boss_1', 'mud_slam', 'virtual_ability_dice', 'cracked_armor', 'wrestled'] as $secret) {
       $this->assertStringNotContainsString($secret, $encoded);
     }

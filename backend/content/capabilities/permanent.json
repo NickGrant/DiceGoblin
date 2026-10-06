@@ -4,6 +4,7 @@
     {"id":"capability.energy_max_100","type":"capability","kind":"energy_normal_max","value":100},
     {"id":"capability.die_size_d10","type":"capability","kind":"max_acquirable_die_size","value":10},
     {"id":"capability.die_size_d12","type":"capability","kind":"max_acquirable_die_size","value":12},
-    {"id":"capability.die_size_d20","type":"capability","kind":"max_acquirable_die_size","value":20}
+    {"id":"capability.die_size_d20","type":"capability","kind":"max_acquirable_die_size","value":20},
+    {"id":"capability.wrong_machine_access","type":"capability","kind":"feature_access","value":1}
   ]
 }

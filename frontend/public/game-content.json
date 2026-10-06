@@ -1,5 +1,5 @@
 {
-    "revision": "6f5be0f6b71942c71b22a4154ec1b56fe15b550b42d9e87b673df1cc9b774963",
+    "revision": "a96f6659fc6a7875a89299d6b6eaa8a5c04735e02ab92503fa55f30b321699a9",
     "content": {
         "gameplay": {
             "run_energy_cost": 10
@@ -28,6 +28,20 @@
                     "attack": 0,
                     "defense": 0,
                     "precision": 0,
+                    "resolve": 0
+                }
+            },
+            "kin.lizard_kin": {
+                "id": "kin.lizard_kin",
+                "display_name": "Lizard Kin",
+                "description": "Quick, sharp-eyed mountain goblin-kin with scaled features and a knack for striking precisely before heavier foes can pin them down.",
+                "art_key": "goblin_lizard_kin",
+                "trait_summary": "+1 Attack, -1 Defense, -1 HP, +2 Precision.",
+                "stat_modifiers": {
+                    "hp": -1,
+                    "attack": 1,
+                    "defense": -1,
+                    "precision": 2,
                     "resolve": 0
                 }
             },
@@ -1208,6 +1222,15 @@
             }
         },
         "items": {
+            "item.chief_engineer_lens": {
+                "id": "item.chief_engineer_lens",
+                "display_name": "Chief Engineer Lens",
+                "description": "A lens from the Chief Engineer's apparatus used as a reconstruction catalyst.",
+                "category": "material",
+                "rarity": "rare",
+                "icon_key": "chief_engineer_lens",
+                "stackable": true
+            },
             "item.field_poultice": {
                 "id": "item.field_poultice",
                 "display_name": "Field Poultice",
@@ -1220,6 +1243,33 @@
                     "type": "unit_heal",
                     "amount": 9
                 }
+            },
+            "item.kobold_scale": {
+                "id": "item.kobold_scale",
+                "display_name": "Kobold Scale",
+                "description": "A mountain lineage material shed by kobold foes.",
+                "category": "material",
+                "rarity": "common",
+                "icon_key": "kobold_scale",
+                "stackable": true
+            },
+            "item.mudking_crown_fragment": {
+                "id": "item.mudking_crown_fragment",
+                "display_name": "Mudking Crown Fragment",
+                "description": "A fragment from the Mudking's crown used as a reconstruction catalyst.",
+                "category": "material",
+                "rarity": "rare",
+                "icon_key": "mudking_crown_fragment",
+                "stackable": true
+            },
+            "item.pig_ear": {
+                "id": "item.pig_ear",
+                "display_name": "Pig Ear",
+                "description": "A farmyard lineage material recovered from pigs.",
+                "category": "material",
+                "rarity": "common",
+                "icon_key": "pig_ear",
+                "stackable": true
             },
             "item.spark_tonic": {
                 "id": "item.spark_tonic",

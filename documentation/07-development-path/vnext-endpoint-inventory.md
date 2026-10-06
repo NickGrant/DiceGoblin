@@ -217,6 +217,8 @@ While a run is active, mutations to player-controlled combat configuration used 
 
 - `GET /api/v1/wrong-machine`
   - Returns current player-specific reconstruction options, costs, eligibility, and target-selection rules for authored recipes.
+  - Authenticated response data contains `raw_chaos`, `player_revision`, and a stable-ID-ordered `recipes` list. Each recipe includes `recipe_id`, safe display metadata, `kin_id`, `kin_restored`, `mode`, `unit_type_selection`, `eligible_unit_type_ids`, prerequisite unlock IDs and owned flags, `prerequisites_met`, Raw Chaos `price`, ingredient item IDs with required and owned quantities, and derived `reconstructable`.
+  - First restoration uses a random currently unlocked unit type; a restored Kin uses a chosen currently unlocked unit type. Permanent Wrong Machine access is required in both modes. Recipe catalog internals remain server-side.
 
 ### Command
 

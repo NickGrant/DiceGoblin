@@ -149,6 +149,7 @@ final class InventoryFoundationTest extends IntegrationTestCase
       foreach ($files as $file) {
         if (!$file->isFile()) continue;
         $relative = substr($file->getPathname(), strlen($source) + 1);
+        if (str_starts_with(str_replace('\\', '/', $relative), 'reconstruction_recipes/')) continue;
         $target = $this->contentRoot . '/' . str_replace('\\', '/', $relative);
         if (!is_dir(dirname($target))) mkdir(dirname($target), 0777, true);
         copy($file->getPathname(), $target);

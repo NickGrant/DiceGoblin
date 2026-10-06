@@ -22,11 +22,12 @@ final class ItemContentValidationTest extends TestCase
   public function testProductionCatalogContainsTheUatConsumablesAndProjectsThem(): void
   {
     $registry = ContentRegistry::load($this->canonicalRoot());
-    $this->assertSame(['item.field_poultice', 'item.spark_tonic'], array_keys($registry->definitionsOfType('item')));
+    $this->assertSame(['item.chief_engineer_lens', 'item.field_poultice', 'item.kobold_scale',
+      'item.mudking_crown_fragment', 'item.pig_ear', 'item.spark_tonic'], array_keys($registry->definitionsOfType('item')));
     $this->assertSame(['type' => 'unit_heal', 'amount' => 9], $registry->item('item.field_poultice')['effect']);
     $this->assertSame(['type' => 'energy_restore', 'amount' => 12], $registry->item('item.spark_tonic')['effect']);
     $projected = (new ClientContentProjector())->project($registry)['content']['items'];
-    $this->assertSame(['item.field_poultice', 'item.spark_tonic'], array_keys($projected));
+    $this->assertSame(array_keys($registry->definitionsOfType('item')), array_keys($projected));
     $this->assertSame($registry->item('item.field_poultice')['effect'], $projected['item.field_poultice']['effect']);
     $this->assertSame($registry->item('item.spark_tonic')['effect'], $projected['item.spark_tonic']['effect']);
   }
@@ -146,6 +147,7 @@ final class ItemContentValidationTest extends TestCase
     foreach ($files as $file) {
       if (!$file->isFile()) continue;
       $relative = substr($file->getPathname(), strlen($source) + 1);
+      if (str_starts_with(str_replace('\\', '/', $relative), 'reconstruction_recipes/')) continue;
       $target = $root . '/' . str_replace('\\', '/', $relative);
       if (!is_dir(dirname($target))) mkdir(dirname($target), 0777, true);
       copy($file->getPathname(), $target);

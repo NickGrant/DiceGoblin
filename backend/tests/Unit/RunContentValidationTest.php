@@ -73,7 +73,6 @@ final class RunContentValidationTest extends TestCase
     $this->assertStringNotContainsString('Mud Sling', $encoded);
     $this->assertStringNotContainsString('encounter.the_farm_mud_combat_1', $encoded);
     $this->assertStringNotContainsString('encounter.the_farm_mud_boss_1', $encoded);
-    $this->assertStringNotContainsString('Mudking', $encoded);
     $this->assertStringNotContainsString('Mud Slam', $encoded);
     $this->assertStringNotContainsString('event.farm_loot_completed', $encoded);
   }
@@ -150,7 +149,7 @@ final class RunContentValidationTest extends TestCase
   {
     $registry = ContentRegistry::load($this->canonicalRoot());
     $definitions = [];
-    foreach (['gameplay_config', 'region', 'kin', 'unit_type', 'enemy_unit_type', 'encounter', 'ability', 'dice_material', 'dice_aspect', 'dice_profile', 'run_node_type', 'run_generation', 'unlock', 'capability', 'academy_upgrade', 'event', 'reward_definition', 'item', 'shop_offer'] as $type) {
+    foreach (['gameplay_config', 'region', 'kin', 'unit_type', 'enemy_unit_type', 'encounter', 'ability', 'dice_material', 'dice_aspect', 'dice_profile', 'run_node_type', 'run_generation', 'unlock', 'capability', 'academy_upgrade', 'unit_promotion', 'reconstruction_recipe', 'event', 'reward_definition', 'item', 'shop_offer'] as $type) {
       foreach ($registry->definitionsOfType($type) as $definition) $definitions[] = $definition;
     }
     return $definitions;

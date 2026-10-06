@@ -1,7 +1,7 @@
 ---
 Title: "Kin Type Design Reference"
 Status: Transitional vNext Reference
-Last Updated: 2026-09-12
+Last Updated: 2026-10-05
 Owner: Content Design
 Depends On:
   - documentation/07-development-path/vnext-progression-state-model.md
@@ -16,13 +16,13 @@ Kin are restored goblin forms associated with creature families. The durable acc
 
 ## Implemented Definitions
 
-Basic Goblin and Pig Kin are implemented in `backend/content/kin/goblins.json`. That JSON owns their stable IDs, presentation, traits, and exact stat modifiers.
+Basic Goblin, Pig Kin, and Lizard Kin are implemented in `backend/content/kin/goblins.json`. That JSON owns their stable IDs, presentation, traits, and exact stat modifiers. The Pig and Lizard reconstruction recipes, materials, and Kin unlocks are authored in `backend/content`; restored Kin ownership is recorded once in the player-scoped `user_unlocks` table.
 
 ## Planned Opening Allocation
 
 - Basic Goblin - neutral/default goblin identity (implemented).
 - Pig Kin - associated with the Farm/pigs (implemented).
-- Lizard Kin - associated with Mountains/kobolds (planned).
+- Lizard Kin - associated with Mountains/kobolds (implemented).
 - Frog Kin - associated with Swamps/frogmen (planned).
 
 The complete planned base-game family/kin allocation is in `07-development-path/01-base-game-content-roster.md`. Later entries are planning allocation, not automatically implemented content.
@@ -32,4 +32,4 @@ When the Wrong Machine targets a kin not yet unlocked, successful reconstruction
 
 There is no generic "first kin" flag and no separate first-ownership progression record. Kin unlock ownership is the durable capability truth.
 
-Exact recipes/costs and reward eligibility must be authored in canonical JSON when those systems enter implementation. Prototype Pig Kin recipes and first-ownership behavior are not automatically carried forward.
+Pig and Lizard recipes each require permanent Wrong Machine access, 5 Raw Chaos, 3 lineage materials, and 1 boss catalyst for either mode. The recipe JSON owns these costs and the selection rule; the server read contract derives current availability from the player's unlocks, wallet, inventory, and unlocked unit types. The reconstruction transaction is a later package.

@@ -27,6 +27,30 @@
         "type": "unit_heal",
         "amount": 9
       }
+    },
+    {
+      "id": "item.pig_ear", "type": "item", "display_name": "Pig Ear",
+      "description": "A farmyard lineage material recovered from pigs.",
+      "category": "material", "rarity": "common", "icon_key": "pig_ear", "stackable": true,
+      "source_region_id": "region.the_farm"
+    },
+    {
+      "id": "item.mudking_crown_fragment", "type": "item", "display_name": "Mudking Crown Fragment",
+      "description": "A fragment from the Mudking's crown used as a reconstruction catalyst.",
+      "category": "material", "rarity": "rare", "icon_key": "mudking_crown_fragment", "stackable": true,
+      "source_region_id": "region.the_farm", "source_encounter_id": "encounter.the_farm_mud_boss_1"
+    },
+    {
+      "id": "item.kobold_scale", "type": "item", "display_name": "Kobold Scale",
+      "description": "A mountain lineage material shed by kobold foes.",
+      "category": "material", "rarity": "common", "icon_key": "kobold_scale", "stackable": true,
+      "source_region_id": "region.mountains"
+    },
+    {
+      "id": "item.chief_engineer_lens", "type": "item", "display_name": "Chief Engineer Lens",
+      "description": "A lens from the Chief Engineer's apparatus used as a reconstruction catalyst.",
+      "category": "material", "rarity": "rare", "icon_key": "chief_engineer_lens", "stackable": true,
+      "source_region_id": "region.mountains", "source_encounter_id": "encounter.mountains_kobold_boss_1"
     }
   ]
 }

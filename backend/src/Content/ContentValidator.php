@@ -17,6 +17,7 @@ final class ContentValidator
   private const RARITIES = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
   private const RUN_GENERATION_ALGORITHMS = ['fixed_graph_v1'];
   private const LOCAL_NODE_KEY_PATTERN = '/^[a-z][a-z0-9_]*$/';
+  private const WRONG_MACHINE_ACCESS_UNLOCK_ID = 'unlock.capability.wrong_machine_access';
 
   /** @param list<array{path: string, document: mixed}> $documents
    *  @return array<string, array<string, mixed>>
@@ -81,6 +82,7 @@ final class ContentValidator
       'capability' => $this->validateCapability($definition, $location),
       'academy_upgrade' => $this->validateAcademyUpgrade($definition, $location),
       'unit_promotion' => $this->validateUnitPromotion($definition, $location),
+      'reconstruction_recipe' => $this->validateReconstructionRecipe($definition, $location),
       'event' => $this->validateEvent($definition, $location),
       'reward_definition' => $this->validateRewardDefinition($definition, $location),
       'item' => $this->validateItem($definition, $location),
@@ -150,6 +152,49 @@ final class ContentValidator
     };
     foreach ($academyByGrant as $id) $visit($id);
 
+    $recipeByGrant = [];
+    foreach ($definitions as $id => $definition) {
+      if (($definition['type'] ?? null) !== 'reconstruction_recipe') continue;
+      $kin = $this->requireReferenceType($definitions, $id, 'kin_id', $definition['kin_id'], 'kin');
+      $unlock = $this->requireReferenceType($definitions, $id, 'kin_unlock_id', $definition['kin_unlock_id'], 'unlock');
+      if ($unlock['target_type'] !== 'kin' || $unlock['target_id'] !== $kin['id']) {
+        throw new ContentValidationException("{$id} kin_unlock_id must restore its target Kin.");
+      }
+      if (isset($recipeByGrant[$unlock['id']])) throw new ContentValidationException("{$id} duplicates Kin restoration '{$unlock['id']}'.");
+      $recipeByGrant[$unlock['id']] = $id;
+      if (!in_array(self::WRONG_MACHINE_ACCESS_UNLOCK_ID, $definition['prerequisite_unlock_ids'], true)) {
+        throw new ContentValidationException("{$id} must require Wrong Machine access.");
+      }
+      $machineUnlock = $this->requireReferenceType($definitions, $id, 'prerequisite_unlock_ids',
+        self::WRONG_MACHINE_ACCESS_UNLOCK_ID, 'unlock');
+      if ($machineUnlock['target_type'] !== 'capability'
+        || $machineUnlock['target_id'] !== 'capability.wrong_machine_access') {
+        throw new ContentValidationException("{$id} Wrong Machine prerequisite must target its access capability.");
+      }
+      foreach ($definition['prerequisite_unlock_ids'] as $prerequisite) {
+        $this->requireReferenceType($definitions, $id, 'prerequisite_unlock_ids', $prerequisite, 'unlock');
+      }
+      foreach (['first_restoration', 'repeat_reconstruction'] as $mode) {
+        foreach ($definition[$mode]['ingredients'] as $ingredient) {
+          $item = $this->requireReferenceType($definitions, $id, "{$mode}.ingredients.item_id", $ingredient['item_id'], 'item');
+          if ($item['category'] !== 'material' || $item['stackable'] !== true) {
+            throw new ContentValidationException("{$id} {$mode} ingredient must be a stackable material.");
+          }
+        }
+      }
+    }
+    $visiting = []; $visited = [];
+    $visitRecipe = function (string $id) use (&$visitRecipe, &$visiting, &$visited, $definitions, $recipeByGrant): void {
+      if (isset($visiting[$id])) throw new ContentValidationException("Reconstruction prerequisite cycle at '{$id}'.");
+      if (isset($visited[$id])) return;
+      $visiting[$id] = true;
+      foreach ($definitions[$id]['prerequisite_unlock_ids'] as $prerequisite) {
+        if (isset($recipeByGrant[$prerequisite])) $visitRecipe($recipeByGrant[$prerequisite]);
+      }
+      unset($visiting[$id]); $visited[$id] = true;
+    };
+    foreach ($recipeByGrant as $id) $visitRecipe($id);
+
     $promotionPairs = []; $promotionTargets = [];
     foreach ($definitions as $id => $definition) {
       if (($definition['type'] ?? null) !== 'unit_promotion') continue;
@@ -197,6 +242,16 @@ final class ContentValidator
 
       if (($definition['type'] ?? null) === 'unlock') {
         $this->requireReferenceType($definitions, $id, 'target_id', $definition['target_id'], $definition['target_type']);
+      }
+
+      if (($definition['type'] ?? null) === 'item' && array_key_exists('source_region_id', $definition)) {
+        $this->requireReferenceType($definitions, $id, 'source_region_id', $definition['source_region_id'], 'region');
+        if (array_key_exists('source_encounter_id', $definition)) {
+          $encounter = $this->requireReferenceType($definitions, $id, 'source_encounter_id', $definition['source_encounter_id'], 'encounter');
+          if ($encounter['region_id'] !== $definition['source_region_id']) {
+            throw new ContentValidationException("{$id} source encounter is not in its source region.");
+          }
+        }
       }
 
       if (($definition['type'] ?? null) === 'event') {
@@ -330,7 +385,7 @@ final class ContentValidator
   {
     $this->requireExactFieldSet($definition, ['id', 'type', 'target_type', 'target_id'], [], $location);
     $this->requireNamespace($definition, 'unlock.', $location);
-    $targetType = $this->requireAllowedString($definition, 'target_type', ['region', 'unit_type', 'capability'], $location);
+    $targetType = $this->requireAllowedString($definition, 'target_type', ['region', 'unit_type', 'capability', 'kin'], $location);
     $this->requireStableIdWithNamespace($definition, 'target_id', $targetType . '.', $location);
   }
 
@@ -339,9 +394,11 @@ final class ContentValidator
   {
     $this->requireExactFieldSet($definition, ['id', 'type', 'kind', 'value'], [], $location);
     $this->requireNamespace($definition, 'capability.', $location);
-    $kind = $this->requireAllowedString($definition, 'kind', ['energy_normal_max', 'max_acquirable_die_size'], $location);
+    $kind = $this->requireAllowedString($definition, 'kind', ['energy_normal_max', 'max_acquirable_die_size', 'feature_access'], $location);
     if ($kind === 'energy_normal_max') {
       $this->requireIntegerInRange($definition, 'value', 1, ClientSafeInteger::MAXIMUM, $location);
+    } elseif ($kind === 'feature_access') {
+      if (($definition['value'] ?? null) !== 1) throw new ContentValidationException("{$location} feature access value must be 1.");
     } elseif (!in_array($definition['value'] ?? null, [10, 12, 20], true)) {
       throw new ContentValidationException("{$location} has an unsupported maximum die size.");
     }
@@ -387,6 +444,53 @@ final class ContentValidator
     $this->requireExactFieldSet($price, ['currency_id', 'amount'], [], $location);
     $this->requireAllowedString($price, 'currency_id', ['raw_chaos'], $location);
     $this->requireIntegerInRange($price, 'amount', 1, ClientSafeInteger::MAXIMUM, $location);
+  }
+
+  /** @param array<string,mixed> $definition */
+  private function validateReconstructionRecipe(array $definition, string $location): void
+  {
+    $this->requireExactFieldSet($definition,
+      ['id', 'type', 'display_name', 'description', 'kin_id', 'kin_unlock_id', 'prerequisite_unlock_ids',
+        'first_restoration', 'repeat_reconstruction'], [], $location);
+    $this->requireNamespace($definition, 'reconstruction_recipe.', $location);
+    $this->requireBoundedNonEmptyString($definition, 'display_name', 128, $location);
+    $this->requireBoundedNonEmptyString($definition, 'description', 512, $location);
+    $this->requireStableIdWithNamespace($definition, 'kin_id', 'kin.', $location);
+    $this->requireStableIdWithNamespace($definition, 'kin_unlock_id', 'unlock.kin.', $location);
+    $prerequisites = $definition['prerequisite_unlock_ids'] ?? null;
+    if (!is_array($prerequisites) || !array_is_list($prerequisites))
+      throw new ContentValidationException("{$location} prerequisites must be a list.");
+    $seen = [];
+    foreach ($prerequisites as $prerequisite) {
+      $this->requireStableIdWithNamespace(['id' => $prerequisite], 'id', 'unlock.', $location);
+      if ($prerequisite === $definition['kin_unlock_id'] || isset($seen[$prerequisite]))
+        throw new ContentValidationException("{$location} has a duplicate or self prerequisite.");
+      $seen[$prerequisite] = true;
+    }
+    foreach (['first_restoration' => 'random_unlocked', 'repeat_reconstruction' => 'chosen_unlocked'] as $mode => $selection) {
+      $value = $definition[$mode] ?? null;
+      if (!is_array($value) || array_is_list($value)) throw new ContentValidationException("{$location} {$mode} must be an object.");
+      $this->requireExactFieldSet($value, ['unit_type_selection', 'price', 'ingredients'], [], "{$location} {$mode}");
+      $this->requireAllowedString($value, 'unit_type_selection', [$selection], "{$location} {$mode}");
+      $price = $value['price'] ?? null;
+      if (!is_array($price) || array_is_list($price)) throw new ContentValidationException("{$location} {$mode} price must be an object.");
+      $this->requireExactFieldSet($price, ['currency_id', 'amount'], [], "{$location} {$mode} price");
+      $this->requireAllowedString($price, 'currency_id', ['raw_chaos'], "{$location} {$mode} price");
+      $this->requireIntegerInRange($price, 'amount', 1, ClientSafeInteger::MAXIMUM, "{$location} {$mode} price");
+      $ingredients = $value['ingredients'] ?? null;
+      if (!is_array($ingredients) || !array_is_list($ingredients))
+        throw new ContentValidationException("{$location} {$mode} ingredients must be a list.");
+      $items = [];
+      foreach ($ingredients as $ingredient) {
+        if (!is_array($ingredient) || array_is_list($ingredient))
+          throw new ContentValidationException("{$location} {$mode} ingredient must be an object.");
+        $this->requireExactFieldSet($ingredient, ['item_id', 'quantity'], [], "{$location} {$mode} ingredient");
+        $this->requireStableIdWithNamespace($ingredient, 'item_id', 'item.', "{$location} {$mode} ingredient");
+        $this->requireIntegerInRange($ingredient, 'quantity', 1, ClientSafeInteger::MAXIMUM, "{$location} {$mode} ingredient");
+        if (isset($items[$ingredient['item_id']])) throw new ContentValidationException("{$location} {$mode} duplicates an ingredient.");
+        $items[$ingredient['item_id']] = true;
+      }
+    }
   }
 
   /** @param array<string, mixed> $definition */
@@ -446,7 +550,7 @@ final class ContentValidator
   {
     $this->requireExactFieldSet($definition,
       ['id', 'type', 'display_name', 'description', 'category', 'rarity', 'icon_key', 'stackable'],
-      ['effect'], $location);
+      ['effect', 'source_region_id', 'source_encounter_id'], $location);
     $this->requireNamespace($definition, 'item.', $location);
     $this->requireBoundedNonEmptyString($definition, 'display_name', 128, $location);
     $this->requireBoundedNonEmptyString($definition, 'description', 512, $location);
@@ -460,7 +564,19 @@ final class ContentValidator
     $effect = $definition['effect'] ?? null;
     if ($category === 'material') {
       if ($effect !== null) throw new ContentValidationException("{$location} material items must not define an effect.");
+      if (array_key_exists('source_encounter_id', $definition) && !array_key_exists('source_region_id', $definition)) {
+        throw new ContentValidationException("{$location} source_encounter_id requires source_region_id.");
+      }
+      if (array_key_exists('source_region_id', $definition)) {
+        $this->requireStableIdWithNamespace($definition, 'source_region_id', 'region.', $location);
+      }
+      if (array_key_exists('source_encounter_id', $definition)) {
+        $this->requireStableIdWithNamespace($definition, 'source_encounter_id', 'encounter.', $location);
+      }
       return;
+    }
+    if (array_key_exists('source_region_id', $definition) || array_key_exists('source_encounter_id', $definition)) {
+      throw new ContentValidationException("{$location} consumable items cannot declare a material source.");
     }
     if (!is_array($effect) || array_is_list($effect)) {
       throw new ContentValidationException("{$location} consumable items must define an effect object.");

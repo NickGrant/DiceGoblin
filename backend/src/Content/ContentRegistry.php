@@ -169,6 +169,12 @@ final class ContentRegistry
   }
 
   /** @return array<string, mixed> */
+  public function reconstructionRecipe(string $id): array
+  {
+    return $this->definitionOfType($id, 'reconstruction_recipe');
+  }
+
+  /** @return array<string, mixed> */
   public function event(string $id): array
   {
     return $this->definitionOfType($id, 'event');
