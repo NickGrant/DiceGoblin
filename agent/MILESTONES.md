@@ -2,12 +2,12 @@
 
 Read this for sequencing/planning or when closing/promoting an execution package. Normal implementation should use `agent/ISSUES.md` instead.
 
-## Milestone 8 - Permanent Progression
+## Milestone 9 - Kin and Wrong Machine
 
 **Status:** Active
 
 ### Related Issues
-- Milestone 8 Package 7 - Focused manual UAT before Milestone 9 promotion
+- Milestone 9 Package 1 - Authored kin/reconstruction foundation + ownership/read contract
 
 Milestone 1 - Walking Skeleton is complete and passed manual user UAT.
 
@@ -23,49 +23,47 @@ Milestone 6 - Prove Region Generalization is complete and passed manual user UAT
 
 Milestone 7 - Economy and Inventory is complete and passed focused manual user UAT on 2026-09-28. Technical closure was approved at `e59b58e709892cc0a72e609576800dc45115813e`; UAT corrections through `ba21115247ee862a739f07906c5e1df0f304e2b7` fixed economy-screen navigation, Warband dice-confirmation layering, and shared Teeth/Shop state.
 
+Milestone 8 - Permanent Progression is complete and passed focused manual user UAT on 2026-10-05. Technical closure was approved at `6314877766187931124c4d8fa5013da02354adfc`; Package 7 UAT passed with no blocking findings requiring a correction package.
+
 The major game-wide visual/UI overhaul remains intentionally deferred.
 
 ### Outcome
 
-Implement permanent progression through the accepted vNext boundaries:
-- Raw Chaos as the scarce permanent-progression currency;
-- authored Academy upgrades backed by permanent unlock ownership;
-- unit-type research and repeatable Teeth acquisition after unlock;
-- derived permanent capabilities such as Energy normal maximum;
-- one authoritative die-size acquisition eligibility policy for progression beyond d8;
-- unit promotion with surviving unit identity, durable promotion history, and permanent ability ownership;
-- Phaser Academy and unit-progression interaction.
+Implement Kin restoration and Wrong Machine reconstruction through the accepted vNext boundaries:
+- canonical authored Kin and reconstruction definitions;
+- durable player-scoped Kin restoration/ownership;
+- Pig and Lizard reconstruction through one generic architecture;
+- explicit first-restoration versus deterministic repeat behavior;
+- authoritative ingredient/currency availability and transactional reconstruction;
+- Phaser Wrong Machine interaction integrated into the persistent runtime;
+- integrated persistence/reload/reconciliation verification and focused manual UAT.
 
-Wrong Machine/kin reconstruction remains Milestone 9.
+Frog Kin and Swamp parity remain Milestone 13. Run encounter-depth work remains Milestone 10.
 
 ### Architectural Direction
 
-- Academy definitions and progression tuning live in canonical JSON; MySQL stores only owned unlocks, unit progression state/history, and wallet state.
-- Academy upgrade ownership is represented by the permanent unlock it grants; do not add a parallel Academy-ownership table.
-- Raw Chaos spends use the same wallet/transaction/idempotency semantics already proven for Teeth.
-- Derived capability values are calculated from authored content plus owned unlocks. Do not persist `energy_max` or a duplicate max-die-size field.
-- Unit promotion changes the surviving unit instance and records promotion history; it does not replace the unit with a new identity.
-- Permanently unlocked abilities remain in `unit_abilities`; capstones are ordinary ability ownership, not separate capstone state.
-- Active-run participating unit progression/configuration remains locked.
-- Prototype Academy/promotion code is behavioral evidence only; do not revive SQL-authored unit catalogs, feature-upgrade rows, three-unit sacrifice semantics, old team tables, or catch-all profile refreshes without explicit re-approval.
-- Permanent access and repeatable acquisition remain separate: Raw Chaos unlocks capability/type; Teeth acquires ordinary individual assets after unlock.
+- Kin and reconstruction definitions live in canonical content JSON; do not author gameplay catalogs in SQL.
+- MySQL stores only durable player ownership/state and reconstruction results that truly need persistence.
+- Reuse the existing permanent-unlock model for Kin restoration where semantically valid; do not create duplicate ownership flags.
+- Inventory and wallet remain authoritative sources for ingredient/currency ownership; Wrong Machine state must not mirror them.
+- First-restoration and repeat reconstruction are explicit authored/domain semantics, not frontend guesses.
+- Repeat reconstruction is deterministic unless a later accepted decision explicitly changes it.
+- Reconstruction that creates a unit must use the shared unit-creation/ownership boundaries rather than a Wrong-Machine-only unit model.
+- Server/API state is authoritative. Phaser caches may reconcile/invalidate but may not fabricate availability or ownership.
+- Prototype Wrong Machine/Kin code is behavioral evidence only; no prototype API/schema/Angular compatibility requirement exists.
 
 ### Package Queue
 
-1. ~~Authored Academy upgrades + permanent capability foundation + read contract.~~ Complete and approved at `0f3069f8aa0d81ff96d7450a006c51230be465a9`; full frontend 522 passed, focused backend 117/716, focused frontend 34; complete supported backend suite confirmed passed.
-2. ~~Idempotent Raw Chaos Academy upgrade transaction + first derived-capability/Shop consequences.~~ Complete and approved at `a22617e4e63898932c913e6c1290ed346fca9b55`; required verification confirmed passed by the user after architectural review.
-3. ~~Authored unit-promotion graph + promotion-options/unit-progression read contracts.~~ Complete and approved at `58cf57732790d91784ecfba080bd136006586f44`; required verification confirmed passed by the user.
-4. ~~Promotion transaction + durable ability/history updates + active-run safety.~~ Complete and approved at `a1067fbdf1fc3fe101198f17dbbd21e5ebd0a93d`; required verification confirmed passed by the user.
-5. ~~Phaser Academy + unit-promotion surfaces and Camp/Warband integration.~~ Complete and approved at `f9d077b840376a9c80a7011cc1a4a5e2a7ae195c`; required verification confirmed passed by the user.
-6. ~~Permanent-progression integrated verification/closure.~~ Complete and approved at `6314877766187931124c4d8fa5013da02354adfc`; closure evidence was recorded at `1d3a49b190fda6d29466eb89187bc33e63f42293` after architectural review.
-7. **Focused manual UAT before Milestone 9 promotion.** Current.
+1. **Authored kin/reconstruction foundation + ownership/read contract.** Current.
+2. Idempotent reconstruction transaction + first-restoration/repeat semantics.
+3. Phaser Wrong Machine surface + Camp/runtime integration.
+4. Kin/Wrong Machine integrated verification/technical closure.
+5. Focused manual UAT before Milestone 10 promotion.
 
 ### Sequencing Notes
 
-- Package 1 established authored Academy/capability vocabulary, canonical progression content, shared Energy/die-size capability policy, and the read-only Academy API/client contract and was approved at `0f3069f8aa0d81ff96d7450a006c51230be465a9` after full package verification; an initially reported reduced backend count was confirmed to be a reporting mistake rather than reduced suite execution.
-- Package 2 spends Raw Chaos idempotently through the accepted reward/unlock boundary, proves immediate unit-type/Energy/>d8 consequences, closes the canonical basic-die purchase/sell arbitrage, and was approved at `a22617e4e63898932c913e6c1290ed346fca9b55` after required verification was confirmed passed.
-- Package 3 authored the 20-edge single-unit promotion graph, read contracts, history integrity, level/XP semantics, and shared active-run lock and was approved at `58cf57732790d91784ecfba080bd136006586f44` after verification passed.
-- Package 4 performs promotion atomically with Raw Chaos idempotency while preserving unit identity, level/XP, promotion history, permanent branch abilities, loadout/dice bindings, and active-run safety; approved at `a1067fbdf1fc3fe101198f17dbbd21e5ebd0a93d` after verification passed.
-- Package 5 made Academy and promotion player-usable inside the persistent Phaser runtime with lazy authoritative caches, retained mutation attempts, shared Raw Chaos ownership, responsive capture proof, and retired the superseded Angular Academy UI; approved at `f9d077b840376a9c80a7011cc1a4a5e2a7ae195c` after verification passed.
-- Package 6 closed the complete permanent-progression slice technically through production-content lifecycle, persistence/reload, cross-domain reconciliation, run-progression cache recovery, and deterministic capture proof; approved at `6314877766187931124c4d8fa5013da02354adfc` after architectural review.
-- Package 7 is manual UAT. Do not begin Milestone 9 Wrong Machine/kin work until it passes and the user explicitly confirms promotion.
+- Package 1 establishes the canonical Pig/Lizard Kin and reconstruction vocabulary, durable ownership boundary, and authoritative read model before any reconstruction mutation is added.
+- Package 2 will own resource consumption, deterministic unit/output creation, idempotency, first-restoration effects, repeat behavior, rollback, and persistence.
+- Package 3 will make the accepted backend behavior player-usable in the persistent Phaser runtime without reviving the prototype Angular Wrong Machine architecture.
+- Package 4 will close the complete Milestone 9 technical slice through production-content lifecycle, MySQL persistence/reload, cross-domain reconciliation, and deterministic capture proof.
+- Package 5 is manual UAT. Do not begin Milestone 10 encounter-depth work until it passes and the user explicitly confirms promotion.
