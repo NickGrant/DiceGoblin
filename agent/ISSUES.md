@@ -91,6 +91,18 @@ These values are accepted for Milestone 9 production content. They may be balanc
 - A player without the permanent Wrong Machine access unlock must see the recipe as not currently reconstructable even if all currency and item requirements are otherwise met.
 - Use the canonical permanent-unlock key established by the authored content model; do not duplicate machine access as recipe-local player state.
 
+**Shared reconstruction cost baseline**
+- Pig Kin and Lizard Kin both use the same provisional first/repeat cost shape for Milestone 9: `5` Raw Chaos, `3` repeatable lineage materials, and `1` boss catalyst.
+- This is a balance baseline, not a permanent tuning constraint; future authored content may adjust either recipe independently without schema or code changes.
+
+**Pig reconstruction recipe**
+- Raw Chaos: `5`.
+- Repeatable lineage material: item key `pig_ear`, quantity `3`.
+- Boss catalyst: item key `mudking_crown_fragment`, quantity `1`.
+- First reconstruction and repeat reconstruction use the same costs.
+- First reconstruction establishes Pig Kin restoration/ownership in addition to creating one Pig Kin unit.
+- Repeat reconstruction creates another Pig Kin unit without replaying first-restoration effects.
+
 **Lizard Kin**
 - Kin key: `lizard_kin`.
 - Display name: `Lizard Kin`.
@@ -102,8 +114,8 @@ These values are accepted for Milestone 9 production content. They may be balanc
 **Lizard reconstruction recipe**
 - Recipe key: `reconstruct_lizard_kin`.
 - Result: exactly one new Lizard Kin unit per successful reconstruction.
-- Raw Chaos: `40`.
-- Repeatable lineage material: item key `kobold_scale`, quantity `15`.
+- Raw Chaos: `5`.
+- Repeatable lineage material: item key `kobold_scale`, quantity `3`.
 - Boss catalyst: item key `chief_engineer_lens`, quantity `1`.
 - First reconstruction and repeat reconstruction use the same costs.
 - First reconstruction additionally records/restores Lizard Kin ownership and enables whatever future Kin-aware reward/recruitment behavior is derived from that ownership.
