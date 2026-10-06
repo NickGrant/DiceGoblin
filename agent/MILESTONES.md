@@ -7,7 +7,7 @@ Read this for sequencing/planning or when closing/promoting an execution package
 **Status:** Active
 
 ### Related Issues
-- Milestone 8 Package 6 - Permanent-progression integrated verification and technical closure
+- Milestone 8 Package 7 - Focused manual UAT before Milestone 9 promotion
 
 Milestone 1 - Walking Skeleton is complete and passed manual user UAT.
 
@@ -57,8 +57,8 @@ Wrong Machine/kin reconstruction remains Milestone 9.
 3. ~~Authored unit-promotion graph + promotion-options/unit-progression read contracts.~~ Complete and approved at `58cf57732790d91784ecfba080bd136006586f44`; required verification confirmed passed by the user.
 4. ~~Promotion transaction + durable ability/history updates + active-run safety.~~ Complete and approved at `a1067fbdf1fc3fe101198f17dbbd21e5ebd0a93d`; required verification confirmed passed by the user.
 5. ~~Phaser Academy + unit-promotion surfaces and Camp/Warband integration.~~ Complete and approved at `f9d077b840376a9c80a7011cc1a4a5e2a7ae195c`; required verification confirmed passed by the user.
-6. **Permanent-progression integrated verification/closure.** Current.
-7. Focused manual UAT before Milestone 9 promotion.
+6. ~~Permanent-progression integrated verification/closure.~~ Complete and approved at `6314877766187931124c4d8fa5013da02354adfc`; closure evidence was recorded at `1d3a49b190fda6d29466eb89187bc33e63f42293` after architectural review.
+7. **Focused manual UAT before Milestone 9 promotion.** Current.
 
 ### Sequencing Notes
 
@@ -67,5 +67,5 @@ Wrong Machine/kin reconstruction remains Milestone 9.
 - Package 3 authored the 20-edge single-unit promotion graph, read contracts, history integrity, level/XP semantics, and shared active-run lock and was approved at `58cf57732790d91784ecfba080bd136006586f44` after verification passed.
 - Package 4 performs promotion atomically with Raw Chaos idempotency while preserving unit identity, level/XP, promotion history, permanent branch abilities, loadout/dice bindings, and active-run safety; approved at `a1067fbdf1fc3fe101198f17dbbd21e5ebd0a93d` after verification passed.
 - Package 5 made Academy and promotion player-usable inside the persistent Phaser runtime with lazy authoritative caches, retained mutation attempts, shared Raw Chaos ownership, responsive capture proof, and retired the superseded Angular Academy UI; approved at `f9d077b840376a9c80a7011cc1a4a5e2a7ae195c` after verification passed.
-- Package 6 closes the complete permanent-progression slice technically through production-content lifecycle, persistence/reload, cross-domain reconciliation, run-progression cache recovery, and deterministic capture proof.
-- Package 7 is manual UAT. Do not begin Milestone 9 Wrong Machine/kin work until it passes.
+- Package 6 closed the complete permanent-progression slice technically through production-content lifecycle, persistence/reload, cross-domain reconciliation, run-progression cache recovery, and deterministic capture proof; approved at `6314877766187931124c4d8fa5013da02354adfc` after architectural review.
+- Package 7 is manual UAT. Do not begin Milestone 9 Wrong Machine/kin work until it passes and the user explicitly confirms promotion.
