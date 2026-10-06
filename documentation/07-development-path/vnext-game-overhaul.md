@@ -1,7 +1,7 @@
 ---
 Title: "Dice Goblins vNext Game Overhaul"
 Status: Active Implementation Plan
-Last Updated: 2026-09-28
+Last Updated: 2026-10-05
 Owner: Product + Engineering
 Depends On:
   - documentation/07-development-path/README.md
@@ -60,7 +60,7 @@ Milestone 7 established the ordinary repeatable Teeth economy, stackable invento
 
 **Milestone 8 - Permanent Progression: Active.**
 
-Milestone 8 owns Academy/Raw Chaos permanent progression, derived capability upgrades such as Energy maximum and >d8 acquisition eligibility, unit-type research, and unit promotion/permanent ability progression.
+Milestone 8 owns Academy/Raw Chaos permanent progression, derived capability upgrades such as Energy maximum and >d8 acquisition eligibility, unit-type research, and unit promotion/permanent ability progression. Integrated technical closure was approved at `6314877766187931124c4d8fa5013da02354adfc`; focused manual UAT is now the remaining milestone gate before Milestone 9 promotion.
 
 ## Milestones
 | # | Milestone | Exit criterion |
@@ -73,7 +73,7 @@ Milestone 8 owns Academy/Raw Chaos permanent progression, derived capability upg
 | 5 | Complete Farm | Event/reward pipeline, XP/progression, Mudking, terminal run flow, Mountains unlock; no claim/reroll/double-grant path. **Complete; UAT passed.** |
 | 6 | Prove region generalization | Mountains/kobolds operate through the same region/run architecture without Farm-specific duplication. **Complete; UAT passed.** |
 | 7 | Economy and inventory | Shop, Teeth, inventory/consumables, dice sale/salvage, recharge items and repeatable economy. **Complete; UAT passed.** |
-| 8 | Permanent progression | Academy, Raw Chaos capability upgrades, promotion/ability progression, derived upgrades such as Energy max, plus one authoritative die-size acquisition eligibility capability/policy for progression beyond d8. **Active.** |
+| 8 | Permanent progression | Academy, Raw Chaos capability upgrades, promotion/ability progression, derived upgrades such as Energy max, plus one authoritative die-size acquisition eligibility capability/policy for progression beyond d8. **Active; technical closure approved, UAT current.** |
 | 9 | Kin and Wrong Machine | Kin unlock/restoration, Pig/Lizard reconstruction, first-unlock vs deterministic repeat behavior. |
 | 10 | Run encounter depth | Branch-capable run topology and route choice, Rest, hazards, shrines, Chaos, run modifiers, contextual consumables, and multi-step node interactions where needed. |
 | 11 | Knowledge and objectives | Codex/knowledge dialogue, objectives/bounties, gameplay-fact progress and automatic completion rewards. |
@@ -134,8 +134,8 @@ The retained prototype combat implementation is behavioral evidence only. It cur
 3. Authored unit-promotion graph + promotion-options/unit-progression read contracts. **Approved at `58cf57732790d91784ecfba080bd136006586f44`.**
 4. Promotion transaction + durable ability/history updates + active-run safety. **Approved at `a1067fbdf1fc3fe101198f17dbbd21e5ebd0a93d`.**
 5. Phaser Academy + unit-promotion surfaces and Camp/Warband integration. **Approved at `f9d077b840376a9c80a7011cc1a4a5e2a7ae195c`.**
-6. Permanent-progression integrated verification/closure. **Current.**
-7. Focused manual UAT before Milestone 9 promotion.
+6. Permanent-progression integrated verification/closure. **Approved at `6314877766187931124c4d8fa5013da02354adfc`; closure evidence recorded at `1d3a49b190fda6d29466eb89187bc33e63f42293`.**
+7. Focused manual UAT before Milestone 9 promotion. **Current.**
 
 
 ## Persistent Quality Gates
