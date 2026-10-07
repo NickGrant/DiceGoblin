@@ -7,7 +7,7 @@ Read this for sequencing/planning or when closing/promoting an execution package
 **Status:** Active
 
 ### Related Issues
-- Milestone 9 Package 1 - Authored kin/reconstruction foundation + ownership/read contract
+- Milestone 9 Package 2 - Idempotent reconstruction transaction + first-restoration/repeat semantics
 
 Milestone 1 - Walking Skeleton is complete and passed manual user UAT.
 
@@ -54,16 +54,16 @@ Frog Kin and Swamp parity remain Milestone 13. Run encounter-depth work remains 
 
 ### Package Queue
 
-1. **Authored kin/reconstruction foundation + ownership/read contract.** Current.
-2. Idempotent reconstruction transaction + first-restoration/repeat semantics.
+1. **Authored kin/reconstruction foundation + ownership/read contract.** Approved through `2126bb76f65b753bef227f68c048de1738808bf7` with production-drop correction `79e38a5a41d25fd36a97ea630ee2379d0e2f6049`.
+2. **Idempotent reconstruction transaction + first-restoration/repeat semantics.** Current.
 3. Phaser Wrong Machine surface + Camp/runtime integration.
 4. Kin/Wrong Machine integrated verification/technical closure.
-5. Focused manual UAT before Milestone 10 promotion.
+5. Focused manual UAT before Milestone 10.
 
 ### Sequencing Notes
 
-- Package 1 establishes the canonical Pig/Lizard Kin and reconstruction vocabulary, durable ownership boundary, and authoritative read model before any reconstruction mutation is added.
-- Package 2 will own resource consumption, deterministic unit/output creation, idempotency, first-restoration effects, repeat behavior, rollback, and persistence.
+- Package 1 established the canonical Pig/Lizard Kin and reconstruction vocabulary, durable ownership boundary, authoritative read model, and generic authored reconstruction-material acquisition path.
+- Package 2 owns resource consumption, deterministic/retry-safe output creation, idempotency, first-restoration effects, repeat behavior, rollback, and persistence.
 - Package 3 will make the accepted backend behavior player-usable in the persistent Phaser runtime without reviving the prototype Angular Wrong Machine architecture.
 - Package 4 will close the complete Milestone 9 technical slice through production-content lifecycle, MySQL persistence/reload, cross-domain reconciliation, and deterministic capture proof.
 - Package 5 is manual UAT. Do not begin Milestone 10 encounter-depth work until it passes and the user explicitly confirms promotion.
