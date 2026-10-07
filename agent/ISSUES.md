@@ -2,169 +2,184 @@
 
 ## Milestone 9 - Kin and Wrong Machine
 
-### Milestone 9 Package 1 - Authored kin/reconstruction foundation + ownership/read contract
+### Milestone 9 Package 2 - Idempotent reconstruction transaction + first-restoration/repeat semantics
 
 **Status:** In Progress
 **Priority:** High
 
-#### Problem
-
-Milestone 8 is complete and passed focused manual UAT on 2026-10-05. Milestone 9 now needs the canonical authored and persistence foundation for Kin restoration and Wrong Machine reconstruction before any reconstruction mutation or Phaser surface is implemented.
-
 #### Accepted baseline
 
-Milestone 8 - Permanent Progression is complete. Technical closure was approved at `6314877766187931124c4d8fa5013da02354adfc`, and focused manual UAT passed on 2026-10-05 with no blocking findings requiring a correction package.
+Milestone 9 Package 1 is approved through implementation `2126bb76f65b753bef227f68c048de1738808bf7` plus focused production-drop correction `79e38a5a41d25fd36a97ea630ee2379d0e2f6049`.
 
-The vNext roadmap defines Milestone 9 as Kin unlock/restoration, Pig/Lizard reconstruction, and first-unlock versus deterministic repeat behavior.
+Package 1 established:
+- canonical Pig and Lizard Kin definitions;
+- canonical reconstruction recipes for both families;
+- permanent Kin ownership through the existing unlock model;
+- permanent Wrong Machine access as a recipe prerequisite;
+- authoritative `GET /api/v1/wrong-machine` read semantics;
+- generic authored Mountains/Farm reconstruction-material victory drops;
+- shared first-restoration `random_unlocked` and repeat `chosen_unlocked` selection semantics.
 
-Preserve the accepted vNext architecture:
-- authored gameplay definitions belong in canonical content JSON rather than SQL-authored catalogs;
-- durable player ownership/state belongs in MySQL;
-- permanent ownership and repeatable acquisition are distinct concepts;
-- server/API state remains authoritative and the Phaser client must not fabricate progression state;
-- prototype Wrong Machine/Kin implementation is behavioral evidence only and is not an API/schema compatibility target.
-
-Do not implement the reconstruction spend/mutation or final player-facing Wrong Machine UI in Package 1.
+Preserve all accepted Milestone 7/8 inventory, economy, permanent progression, unit ownership, idempotency, transaction, and `player_revision` behavior.
 
 #### Purpose
 
-Establish one canonical vocabulary and read boundary for Kin and reconstruction so later Milestone 9 packages can implement the transaction and Phaser interaction without inventing parallel state or duplicating authored data.
+Add the one authoritative Wrong Machine mutation that consumes the authored recipe requirements and creates exactly one Kin unit, while making first restoration and repeat reconstruction atomic, retry-safe, ownership-safe, and server authoritative.
 
-#### Required authored model
+Do not begin the Phaser Wrong Machine surface in this package.
 
-Add the smallest canonical content model needed to describe Milestone 9 reconstruction behavior.
+#### Mutation contract
 
-At minimum it must support:
-- stable Kin definitions for the Milestone 9 Pig and Lizard families;
-- stable reconstruction recipe definitions linked to their resulting Kin/unit output;
-- authored ingredient/currency requirements rather than hard-coded controller/service constants;
-- explicit distinction between first restoration/unlock behavior and repeat reconstruction behavior;
-- stable references to every item, unit type, Kin, unlock, reward/event definition, or other authored dependency used by a recipe;
-- validator coverage for missing, duplicate, malformed, cyclic, or incompatible references where applicable.
+Add a dedicated authenticated Wrong Machine reconstruction mutation under the existing `/api/v1/wrong-machine` domain.
 
-Do not expose server-only catalog data wholesale to the browser. Extend the client content projection only for fields that are actually needed by the read contract/runtime.
+The request must identify:
+- the reconstruction recipe;
+- the expected authoritative mode/cost state needed to reject stale client intent safely;
+- a chosen unit type only when the current authoritative mode is repeat reconstruction;
+- the shared idempotency key using the existing mutation convention.
 
-#### Durable ownership/state
+The server, not the client, determines the current mode from Kin unlock ownership inside the transaction.
 
-Define the minimal MySQL persistence required to answer authoritative Kin ownership/restoration state.
+A stale request must not silently reinterpret first-restoration intent as repeat reconstruction, or vice versa. Return a conflict that tells the caller to refresh rather than spending resources under different semantics.
 
-Requirements:
-- one canonical durable representation of which Kin a player has restored/unlocked;
-- no duplicate boolean/feature state representing the same ownership;
-- persistence must survive reload/re-entry and clean database reset/provisioning;
-- ownership must be player-scoped and enforce normal cross-player isolation;
-- do not persist authored recipe/catalog definitions in SQL;
-- do not introduce reconstruction transaction/history tables unless they are required for a concrete accepted invariant in this package.
+Do not accept arbitrary Kin IDs, prices, ingredient lists, or output stats from the client. Those come from canonical authored content.
 
-Prefer reuse of the existing permanent-unlock model if it can represent Kin restoration without semantic ambiguity. If Kin restoration requires distinct durable state, make that boundary explicit and justify it in tests/docs rather than silently adding parallel ownership.
+#### First restoration
 
-#### Authoritative read contract
+When the Kin unlock is not yet owned and all prerequisites/resources are satisfied:
+- resolve the recipe's `first_restoration` mode;
+- require permanent Wrong Machine access and all authored prerequisites;
+- debit exactly the authored Raw Chaos amount;
+- consume exactly the authored item quantities;
+- choose one unit type from the player's currently unlocked/eligible unit types using a server-owned deterministic/retry-safe random decision;
+- create exactly one active level-1 unit with the recipe's Kin through the existing shared `NormalUnitCreationService`/normal unit-ownership boundary;
+- grant the recipe's Kin unlock exactly once;
+- increment `player_revision` exactly once for the complete committed intention;
+- return a finalized authoritative receipt containing the created unit, spend/consumption results, Kin restoration result, and resulting revision.
 
-Add the backend/application read boundary required for a future Wrong Machine screen.
+The first-restoration random choice must be frozen by the command's idempotency boundary. Retrying the same finalized request must return the same unit/output without another roll, spend, unlock grant, or unit creation.
 
-It must allow an authenticated player to determine, for each currently relevant Milestone 9 recipe:
-- recipe identity and authored presentation-safe metadata;
-- target Kin/unit output;
-- whether the target Kin is already restored/owned;
-- first-restoration versus repeat mode;
-- required ingredients/currency and the player's authoritative owned amounts needed to render availability;
-- whether prerequisites are met;
-- whether the recipe is currently reconstructable;
-- player revision or equivalent authority needed to reconcile later mutations safely.
+Do not create a separate first-restoration history/boolean table. Kin unlock ownership remains the durable restoration truth.
 
-The read response must derive availability from authoritative inventory/wallet/unlock state. Do not store or return a second mutable availability flag that can drift from those sources.
+#### Repeat reconstruction
 
-#### Pig and Lizard scope
+When the Kin unlock is already owned:
+- resolve the recipe's `repeat_reconstruction` mode;
+- require the caller to provide one chosen unit type;
+- reject missing, malformed, locked, nonexistent, or otherwise ineligible unit types;
+- debit/consume the authored repeat requirements exactly once;
+- create exactly one unit with the selected unit type and recipe Kin through the same shared unit-creation boundary;
+- do not replay or duplicate the Kin unlock grant;
+- increment `player_revision` exactly once;
+- finalize and replay the same authoritative receipt through idempotency.
 
-Package 1 must establish valid authored/read coverage for both Pig and Lizard reconstruction families because both are part of the Milestone 9 exit criterion.
+Repeat reconstruction contains no gameplay randomness after the player selects the unit type.
 
-This package does not need to make both reconstructable through a mutation yet. It must prove their content graph and read semantics are representable without family-specific schema/controller branches.
+#### Transaction and concurrency invariants
 
-Do not add Frog Kin; Swamp/Frog Kin remains Milestone 13.
+The reconstruction command owns one database transaction for the full player intention.
 
-#### Authored Milestone 9 content decisions
+Inside that transaction, lock/re-read the authoritative state needed to prevent races across:
+- Raw Chaos balance;
+- ingredient quantities;
+- permanent prerequisite/Kin unlock ownership;
+- player revision;
+- idempotency identity.
 
-These values are accepted for Milestone 9 production content. They may be balance-tuned later through authored content, but Package 1 must not substitute different values or invent alternate materials.
+All of the following must commit together or none of them may persist:
+- Raw Chaos debit;
+- ingredient decrements;
+- Kin unlock grant when applicable;
+- unit creation;
+- player revision increment;
+- finalized idempotency receipt.
 
-**Wrong Machine prerequisite**
-- Wrong Machine access is a hard prerequisite for every reconstruction recipe.
-- A player without the permanent Wrong Machine access unlock must see the recipe as not currently reconstructable even if all currency and item requirements are otherwise met.
-- Use the canonical permanent-unlock key established by the authored content model; do not duplicate machine access as recipe-local player state.
+Use the existing idempotency infrastructure and conventions rather than introducing a Wrong-Machine-specific retry table.
 
-**Shared reconstruction cost baseline**
-- Pig Kin and Lizard Kin both use the same provisional first/repeat cost shape for Milestone 9: `5` Raw Chaos, `3` repeatable lineage materials, and `1` boss catalyst.
-- This is a balance baseline, not a permanent tuning constraint; future authored content may adjust either recipe independently without schema or code changes.
+A reused idempotency key with a different canonical request must conflict without mutation.
 
-**Pig reconstruction recipe**
-- Raw Chaos: `5`.
-- Repeatable lineage material: item key `pig_ear`, quantity `3`.
-- Boss catalyst: item key `mudking_crown_fragment`, quantity `1`.
-- First reconstruction and repeat reconstruction use the same costs.
-- First reconstruction establishes Pig Kin restoration/ownership in addition to creating one Pig Kin unit.
-- Repeat reconstruction creates another Pig Kin unit without replaying first-restoration effects.
+Failures before commit—including injected failure after resource debit, after unlock work, or after unit creation—must roll back all reconstruction effects.
 
-**Lizard Kin**
-- Kin key: `lizard_kin`.
-- Display name: `Lizard Kin`.
-- Description: `Quick, sharp-eyed mountain goblin-kin with scaled features and a knack for striking precisely before heavier foes can pin them down.`
-- Gameplay identity: precision/offense specialist with reduced durability; deliberately contrasts Pig Kin's defensive identity.
-- Stat modifiers use `Attack / Defense / Max HP / Precision / Resolve` order: `+1 / -1 / -1 / +2 / 0`.
-- Visual/presentation direction: recognizably goblin first, with a leaner silhouette, subtle scaled skin patches, angular reptilian facial accents, narrow pupils, and small ridge/frill details. Avoid turning the unit into a full kobold or generic humanoid lizard. Mountains scrap/tinkerer cues may appear in clothing or accessories but are not part of the Kin's body mechanics.
+#### Resource and ownership rules
 
-**Lizard reconstruction recipe**
-- Recipe key: `reconstruct_lizard_kin`.
-- Result: exactly one new Lizard Kin unit per successful reconstruction.
-- Raw Chaos: `5`.
-- Repeatable lineage material: item key `kobold_scale`, quantity `3`.
-- Boss catalyst: item key `chief_engineer_lens`, quantity `1`.
-- First reconstruction and repeat reconstruction use the same costs.
-- First reconstruction additionally records/restores Lizard Kin ownership and enables whatever future Kin-aware reward/recruitment behavior is derived from that ownership.
-- Repeat reconstruction creates another Lizard Kin unit without replaying first-restoration effects.
-- Existing units are not transformed into Lizard Kin.
+Reject without mutation when:
+- recipe does not exist;
+- Wrong Machine access or another authored prerequisite is missing;
+- authoritative mode differs from the client's expected mode;
+- Raw Chaos is insufficient;
+- any ingredient is insufficient;
+- repeat mode has no chosen unit type;
+- selected unit type is not currently eligible;
+- player state/revision/resource data is incoherent;
+- referenced authored output data is invalid.
 
-The new `kobold_scale` and `chief_engineer_lens` items are Milestone 9 authored progression materials. Package 1 should define them in the canonical item/content model and connect them to Mountains/Kobold progression generically. Do not revive legacy SQL-authored region-item catalogs merely to supply these ingredients.
+Do not mirror wallet or inventory state in Wrong Machine persistence.
 
-#### Compatibility and boundaries
+Do not allow resources or unlocks belonging to another player to satisfy reconstruction.
 
-Keep green and preserve:
-- Milestone 7 inventory, Shop, dice lifecycle, Teeth, and Raw Chaos ownership;
-- Milestone 8 Academy/permanent unlocks, unit acquisition, promotion, and shared player revision semantics;
-- unit identity/kin/type semantics already used by Warband and combat;
-- clean vNext database bootstrap/reset;
-- content revision/client projection validation.
+If reconstruction while an active run exists would violate an existing unit-ownership/run invariant, preserve that invariant explicitly and test the accepted behavior rather than bypassing the shared safety model.
 
-Do not:
-- revive prototype Angular Wrong Machine pages/services as the runtime architecture;
-- introduce SQL-authored recipes/Kin catalogs;
-- duplicate wallet or inventory ownership inside Wrong Machine state;
-- implement randomized reconstruction if the authored contract calls for deterministic repeat behavior;
-- add final reconstruction transaction/idempotency behavior yet;
-- begin Milestone 10 encounter-depth work.
+#### API/read reconciliation
+
+After a successful mutation, the receipt must provide enough authoritative state for Package 3 to reconcile without guessing. At minimum include:
+- recipe id;
+- resolved mode;
+- created unit identity including unit type and Kin;
+- Raw Chaos before/after spend;
+- consumed item quantities and authoritative owned-after amounts;
+- Kin unlock/restoration outcome;
+- resulting `player_revision`.
+
+The existing Wrong Machine read query must reflect the new state immediately after reconstruction:
+- first restoration becomes repeat mode;
+- owned balances/ingredients are reduced;
+- `kin_restored` becomes true after first restoration;
+- reconstructability is re-derived from current authoritative resources.
+
+Do not add a client-side or persisted `reconstructable` authority.
+
+#### Pig/Lizard genericity
+
+Both `reconstruction_recipe.reconstruct_pig_kin` and `reconstruction_recipe.reconstruct_lizard_kin` must execute through the same command/domain path.
+
+No Pig-specific or Lizard-specific controller/service branch is acceptable for spending, unit creation, restoration, or repeat behavior.
+
+Do not add Frog Kin or Milestone 10 work.
 
 #### Verification
 
-Run targeted checks while implementing, then the applicable package gates from `agent/QUALITY_GATES.md`.
+Run focused tests and the applicable gates from `agent/QUALITY_GATES.md`.
 
-At minimum verify:
-- production content validation for all added Kin/recipe references;
-- persistence and cross-player ownership isolation;
-- clean DB provision/reset;
-- authoritative read behavior for unowned/restored Kin and first/repeat modes;
-- inventory/wallet/prerequisite-derived availability;
-- Pig and Lizard families use the same generic model/read path;
-- backend auth/ownership/validation negative paths;
-- client content projection exposes no unnecessary server-only fields;
-- full supported backend suite and frontend/content/docs gates required by the package.
+At minimum prove:
+- successful Pig first restoration;
+- successful Lizard first restoration;
+- first restoration chooses only currently eligible unit types and creates exactly one unit of the requested recipe Kin;
+- Kin unlock ownership is granted once and changes the read model to repeat mode;
+- successful Pig and Lizard repeat reconstruction with explicit eligible unit type;
+- repeat output is deterministic from the request and does not replay first-restoration effects;
+- exact Raw Chaos and ingredient debit/owned-after values;
+- insufficient currency and each insufficient ingredient path are non-mutating;
+- missing Wrong Machine prerequisite is non-mutating;
+- stale expected mode is non-mutating;
+- invalid/locked repeat unit type is non-mutating;
+- cross-player isolation;
+- same-key replay returns the exact finalized result without duplicate spend/unit/unlock;
+- same key with different canonical request conflicts;
+- forced failures at meaningful points roll back wallet, inventory, unlock, unit creation, revision, and idempotency result;
+- `player_revision` advances exactly once on success and not on rejected/rolled-back requests;
+- Package 1 Wrong Machine reads and authored drop behavior remain green;
+- clean MySQL provision/reset and full supported backend/content/docs gates pass.
 
 #### Completion evidence
 
-At completion, report:
+Report:
 - implementation SHA;
-- schema/persistence choice for Kin ownership and why it is not duplicate state;
-- canonical content definitions added and production content revision;
+- mutation endpoint/request/response shape;
+- transaction and idempotency strategy;
+- how first-restoration random unit-type choice is made retry-safe;
+- proof that shared `NormalUnitCreationService`/unit ownership is reused;
 - focused and full verification counts;
-- exact read-contract shape/endpoint introduced;
-- confirmation that Pig and Lizard both resolve through the same generic foundation;
-- confirmation that no reconstruction mutation or Milestone 10 work was introduced.
+- confirmation Pig and Lizard use one generic mutation path;
+- confirmation no Phaser Wrong Machine surface or Milestone 10 work was introduced.
 
-Leave Package 1 **In Progress** for architectural review. Do not promote Package 2 yourself.
+Leave Package 2 **In Progress** for architectural review. Do not promote Package 3 yourself.
