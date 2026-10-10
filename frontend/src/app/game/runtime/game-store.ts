@@ -111,6 +111,12 @@ export interface AcademyState {
   readonly error: WarbandDomainErrorKind | null;
 }
 
+export interface WrongMachineState {
+  readonly status: WarbandDomainStatus;
+  readonly data: WrongMachineCatalog | null;
+  readonly error: WarbandDomainErrorKind | null;
+}
+
 export interface UnitPromotionOptionsState {
   readonly status: WarbandDomainStatus;
   readonly data: UnitPromotionOptionsResult | null;
@@ -334,6 +340,7 @@ export class GameStore {
   private readonly itemListeners = new Set<(state: WarbandDomainState<OwnedItemStack>) => void>();
   private readonly shopListeners = new Set<(state: ShopState) => void>();
   private readonly academyListeners = new Set<(state: AcademyState) => void>();
+  private readonly wrongMachineListeners = new Set<(state: WrongMachineState) => void>();
   private readonly promotionListeners = new Set<(unitId: string, state: UnitPromotionOptionsState) => void>();
   private currentRunState: CurrentRunState = Object.freeze({ status: 'not-loaded', data: null, error: null });
   private currentRunInFlight: Promise<void> | null = null;
@@ -343,6 +350,9 @@ export class GameStore {
   private shopInFlight: Promise<void> | null = null;
   private academyState: AcademyState = Object.freeze({ status: 'not-loaded', data: null, error: null });
   private academyInFlight: Promise<void> | null = null;
+  private wrongMachineState: WrongMachineState = Object.freeze({ status: 'not-loaded', data: null, error: null });
+  private wrongMachineInFlight: Promise<void> | null = null;
+  private wrongMachineEpoch = 0;
   private readonly promotionCache = new Map<string, UnitPromotionOptionsState>();
   private readonly promotionInFlight = new Map<string, Promise<void>>();
   private cacheGeneration = 0;
@@ -384,6 +394,7 @@ export class GameStore {
   }
 
   get academy(): AcademyState { return this.academyState; }
+  get wrongMachine(): WrongMachineState { return this.wrongMachineState; }
 
   promotionOptions(unitId: string): UnitPromotionOptionsState {
     return this.promotionCache.get(unitId) ?? Object.freeze({ status: 'not-loaded', data: null, error: null });
@@ -424,6 +435,11 @@ export class GameStore {
   subscribeAcademy(listener: (state: AcademyState) => void): () => void {
     this.academyListeners.add(listener);
     return () => this.academyListeners.delete(listener);
+  }
+
+  subscribeWrongMachine(listener: (state: WrongMachineState) => void): () => void {
+    this.wrongMachineListeners.add(listener);
+    return () => this.wrongMachineListeners.delete(listener);
   }
 
   subscribePromotionOptions(listener: (unitId: string, state: UnitPromotionOptionsState) => void): () => void {
@@ -667,6 +683,83 @@ export class GameStore {
 
   retryAcademy(api: RuntimeApiClient, content: ClientContentRegistry): Promise<void> {
     return this.loadAcademy(api, content, true);
+  }
+
+  loadWrongMachine(api: RuntimeApiClient, content: ClientContentRegistry, reload = false): Promise<void> {
+    const state = this.wrongMachineState;
+    if (!reload && state.status === 'fresh') return Promise.resolve();
+    if (this.wrongMachineInFlight) return this.wrongMachineInFlight;
+    const generation = this.cacheGeneration; const epoch = this.wrongMachineEpoch;
+    this.setWrongMachine({ status: 'loading', data: state.data, error: null });
+    const promise = api.getWrongMachine(content).then((catalog) => {
+      if (generation !== this.cacheGeneration || epoch !== this.wrongMachineEpoch) return;
+      const player = this.cachedBootstrap?.player;
+      if (!player || player.raw_chaos !== catalog.rawChaos || player.player_revision !== catalog.playerRevision)
+        throw new WrongMachineContractError('Wrong Machine read disagrees with shared player state.');
+      this.setWrongMachine({ status: 'fresh', data: catalog, error: null });
+    }).catch((error: unknown) => {
+      if (generation === this.cacheGeneration && epoch === this.wrongMachineEpoch) this.setWrongMachine({
+        status: 'error', data: state.data,
+        error: error instanceof WrongMachineContractError ? 'integrity' : domainErrorKind(error),
+      });
+    }).finally(() => { if (this.wrongMachineInFlight === promise) this.wrongMachineInFlight = null; });
+    this.wrongMachineInFlight = promise;
+    return promise;
+  }
+
+  retryWrongMachine(api: RuntimeApiClient, content: ClientContentRegistry): Promise<void> {
+    return this.loadWrongMachine(api, content, true);
+  }
+
+  reconcileReconstruction(result: ReconstructionResult, content: ClientContentRegistry): void {
+    const bootstrap = this.cachedBootstrap;
+    if (!bootstrap || result.playerRevision < bootstrap.player.player_revision)
+      throw new WrongMachineContractError('Authoritative player revision regressed.');
+    const ownedUnlock = bootstrap.progression.unlock_ids.includes(result.kinRestoration.unlockId);
+    const contradiction = bootstrap.player.raw_chaos !== result.spend.balanceBefore
+      || (result.kinRestoration.outcome === 'granted' ? ownedUnlock : !ownedUnlock);
+    this.cachedBootstrap = Object.freeze({ ...bootstrap,
+      player: Object.freeze({ ...bootstrap.player, raw_chaos: result.spend.balanceAfter,
+        player_revision: result.playerRevision }),
+      progression: Object.freeze({ ...bootstrap.progression,
+        unlock_ids: result.kinRestoration.outcome === 'granted' && !ownedUnlock
+          ? Object.freeze([...bootstrap.progression.unlock_ids, result.kinRestoration.unlockId])
+          : bootstrap.progression.unlock_ids }),
+    });
+    this.wrongMachineEpoch += 1; this.wrongMachineInFlight = null;
+    if (this.wrongMachineState.status !== 'not-loaded') this.setWrongMachine({
+      status: contradiction ? 'error' : 'stale', data: this.wrongMachineState.data,
+      error: contradiction ? 'integrity' : null,
+    });
+    if (contradiction) {
+      if (this.itemInventoryState.status === 'fresh') this.setItems({ status: 'stale', data: this.itemInventoryState.data, error: 'integrity' });
+      this.markWarbandDomainStale('units');
+      throw new WrongMachineContractError('Reconstruction contradicts cached progression.');
+    }
+    try {
+      if (this.itemInventoryState.status === 'fresh') {
+        for (const item of result.consumedItems) this.reconcileItemQuantity(item.itemId, item.ownedAfter,
+          undefined, true, -item.quantity);
+      } else if (this.itemInventoryState.status !== 'not-loaded') {
+        this.setItems({ status: 'stale', data: this.itemInventoryState.data, error: null });
+      }
+      const units = this.warbandCache.units;
+      if (units.status === 'fresh' && units.data) {
+        if (units.data.some((unit) => unit.id === result.unit.id))
+          throw new WrongMachineContractError('Reconstructed unit already exists in cached Warband.');
+        const type = content.getUnitType(result.unit.unitTypeId); const kin = content.getKin(result.unit.kinId);
+        if (!type || !kin) throw new WrongMachineContractError('Reconstructed unit content is unavailable.');
+        this.setDomain('units', { status: 'fresh', data: Object.freeze([...units.data,
+          Object.freeze({ id: result.unit.id, displayName: result.unit.displayName, unitType: type, kin,
+            level: 1, xp: 0, lifecycleStatus: 'active' as const })]), error: null });
+      } else if (units.status !== 'not-loaded') this.setDomain('units', { status: 'stale', data: units.data, error: null });
+    } catch (error) {
+      if (this.itemInventoryState.status !== 'not-loaded') this.setItems({ status: 'stale', data: this.itemInventoryState.data, error: 'integrity' });
+      if (this.warbandCache.units.status !== 'not-loaded') this.setDomain('units', {
+        status: 'stale', data: this.warbandCache.units.data, error: 'integrity',
+      });
+      throw error;
+    }
   }
 
   reconcileAcademyUpgrade(result: AcademyUpgradeResult): void {
@@ -1065,6 +1158,9 @@ export class GameStore {
     this.shopInFlight = null;
     this.academyState = Object.freeze({ status: 'not-loaded', data: null, error: null });
     this.academyInFlight = null;
+    this.wrongMachineState = Object.freeze({ status: 'not-loaded', data: null, error: null });
+    this.wrongMachineInFlight = null;
+    this.wrongMachineEpoch += 1;
     this.promotionCache.clear();
     this.promotionInFlight.clear();
     for (const key of Object.keys(this.inFlight) as WarbandDomainName[]) delete this.inFlight[key];
@@ -1073,6 +1169,7 @@ export class GameStore {
     for (const listener of this.itemListeners) listener(this.itemInventoryState);
     for (const listener of this.shopListeners) listener(this.shopState);
     for (const listener of this.academyListeners) listener(this.academyState);
+    for (const listener of this.wrongMachineListeners) listener(this.wrongMachineState);
     for (const unitId of promotionIds) {
       const empty = this.promotionOptions(unitId);
       for (const listener of this.promotionListeners) listener(unitId, empty);
@@ -1307,6 +1404,11 @@ export class GameStore {
     for (const listener of this.academyListeners) listener(this.academyState);
   }
 
+  private setWrongMachine(state: WrongMachineState): void {
+    this.wrongMachineState = Object.freeze(state);
+    for (const listener of this.wrongMachineListeners) listener(this.wrongMachineState);
+  }
+
   private setPromotionOptions(unitId: string, state: UnitPromotionOptionsState): void {
     const frozen = Object.freeze(state);
     this.promotionCache.set(unitId, frozen);
@@ -1385,6 +1487,7 @@ import { DiceSalvageResult, DiceSellResult } from './dice-lifecycle-contracts';
 import { AcademyCatalogResult, AcademyContractError, AcademyUpgradeResult } from './academy-contracts';
 import { UnitPromotionContractError, UnitPromotionOptionsResult } from './unit-promotion-contracts';
 import { UnitPromotionMutationContractError, UnitPromotionResult } from './unit-promotion-mutation-contracts';
+import { ReconstructionResult, WrongMachineCatalog, WrongMachineContractError } from './wrong-machine-contracts';
 
 function unitDetailErrorKind(error: unknown): WarbandDomainErrorKind {
   if (error instanceof RuntimeApiError) return error.kind;

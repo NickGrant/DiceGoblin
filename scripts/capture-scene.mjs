@@ -157,7 +157,7 @@ Options:
   --scene-data <json>       JSON object passed to scene init/create
   --initial-tab <tab>       Optional debugInitialTab query value for tabbed scenes
   --active-run              Preview Warband/squad/unit with a coherent active Farm run
-  --progression-state <s>   default | owned | terminal | locked | unaffordable | below-level
+  --progression-state <s>   default | owned | missing | terminal | locked | unaffordable | below-level
   --safe-insets <t,r,b,l>   Inject debug-only CSS safe insets in pixels
   --settle-ms <ms>          Extra wait after the scene signals ready (default: ${DEFAULT_SETTLE_MS})
   --timeout-ms <ms>         Overall timeout waiting for app and scene readiness
@@ -181,7 +181,7 @@ async function installGameFixtureRoutes(page, options) {
     'battle-result-victory', 'battle-result-defeat', 'battle-result-stalemate', 'battle-result-compact', 'battle-result-wide', 'battle-result-error', 'battle-result-portrait'];
   const runScenes = ['run', 'run-abandon', 'run-portrait', 'run-combat-available',
     'run-loot-available', 'run-loot-result', 'run-rest-result', 'run-supplies'];
-  if (!['camp', 'camp-portrait', 'warband', 'shop', 'inventory', 'academy', 'unit-promotion', 'squad-editor', 'unit-configuration', ...runScenes, ...battleScenes].includes(scene)) return;
+  if (!['camp', 'camp-portrait', 'warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'unit-promotion', 'squad-editor', 'unit-configuration', ...runScenes, ...battleScenes].includes(scene)) return;
 
   if (battleScenes.includes(scene)) {
     await page.addInitScript(({ accountId }) => sessionStorage.setItem('dice-goblins:battle-presentation:v1', JSON.stringify({
@@ -241,7 +241,9 @@ async function installGameFixtureRoutes(page, options) {
         server_time: '2026-09-11T00:00:00Z',
         content_revision: revision,
         progression: {
-          unlock_ids: ['unlock.region.mountains'],
+          unlock_ids: ['unlock.region.mountains', 'unlock.capability.wrong_machine_access',
+            ...(scene === 'wrong-machine' && options.progressionState === 'owned'
+              ? ['unlock.kin.pig', 'unlock.kin.lizard_kin'] : [])],
           available_region_ids: ['region.the_farm', 'region.mountains'],
         },
         active_squad: {
@@ -282,6 +284,27 @@ async function installGameFixtureRoutes(page, options) {
     await page.route('**/api/v1/academy', (route) => route.fulfill({ status: 200, contentType: 'application/json',
       body: JSON.stringify({ ok: true, data: { raw_chaos: fixtureChaos, player_revision: 3,
         upgrades: catalog.sort((a, b) => a.upgrade_id.localeCompare(b.upgrade_id)) } }) }));
+    return;
+  }
+  if (scene === 'wrong-machine') {
+    const definitions = JSON.parse(await readFile(path.resolve(process.cwd(), 'backend/content/reconstruction_recipes/pig-and-lizard.json'), 'utf8')).definitions;
+    const recipes = definitions.map((recipe) => {
+      const kinRestored = options.progressionState === 'owned';
+      const mode = kinRestored ? 'repeat_reconstruction' : 'first_restoration';
+      const requirements = recipe[mode];
+      const ingredients = requirements.ingredients.map((ingredient) => ({ ...ingredient,
+        owned: options.progressionState === 'missing' ? 0 : ingredient.quantity + 2 }));
+      return { recipe_id: recipe.id, display_name: recipe.display_name, description: recipe.description,
+        kin_id: recipe.kin_id, kin_restored: kinRestored, mode,
+        unit_type_selection: requirements.unit_type_selection,
+        eligible_unit_type_ids: ['unit_type.bruiser', 'unit_type.guardian'],
+        prerequisites: [{ unlock_id: 'unlock.capability.wrong_machine_access', owned: true }],
+        prerequisites_met: true, price: requirements.price, ingredients,
+        reconstructable: fixtureChaos >= requirements.price.amount
+          && ingredients.every((ingredient) => ingredient.owned >= ingredient.quantity) };
+    }).sort((a, b) => a.recipe_id.localeCompare(b.recipe_id));
+    await page.route('**/api/v1/wrong-machine', (route) => route.fulfill({ status: 200, contentType: 'application/json',
+      body: JSON.stringify({ ok: true, data: { raw_chaos: fixtureChaos, player_revision: 3, recipes } }) }));
     return;
   }
   if (battleScenes.includes(scene)) {
@@ -620,13 +643,13 @@ async function captureScene(options) {
             { timeout: options.timeoutMs },
           );
         }
-        if (['camp', 'camp-portrait', 'warband', 'shop', 'inventory', 'academy', 'unit-promotion', 'squad-editor', 'unit-configuration', 'run', 'run-abandon', 'run-portrait', 'run-combat-available',
+        if (['camp', 'camp-portrait', 'warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'unit-promotion', 'squad-editor', 'unit-configuration', 'run', 'run-abandon', 'run-portrait', 'run-combat-available',
           'run-loot-available', 'run-loot-result', 'run-rest-result', 'run-supplies',
           'battle-early', 'battle-mid', 'battle-complete', 'battle-compact', 'battle-wide', 'battle-portrait', 'battle-defeat',
           'battle-result-victory', 'battle-result-defeat', 'battle-result-stalemate', 'battle-result-compact', 'battle-result-wide', 'battle-result-error', 'battle-result-portrait'].includes(options.scene.trim().toLowerCase())) {
           await page.waitForSelector('.game-host__mount canvas', { timeout: options.timeoutMs });
           const requestedGameScreen = options.scene.trim().toLowerCase();
-          const gameScreen = ['warband', 'shop', 'inventory', 'academy', 'unit-promotion', 'squad-editor', 'unit-configuration'].includes(requestedGameScreen)
+          const gameScreen = ['warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'unit-promotion', 'squad-editor', 'unit-configuration'].includes(requestedGameScreen)
             ? requestedGameScreen : requestedGameScreen.startsWith('battle-') ? 'battle'
               : ['run', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-loot-available', 'run-loot-result', 'run-rest-result', 'run-supplies'].includes(requestedGameScreen) ? 'run' : 'camp';
           await page.waitForSelector(`[data-game-screen="${gameScreen}"]`, { timeout: options.timeoutMs });
@@ -641,6 +664,9 @@ async function captureScene(options) {
           }
           if (gameScreen === 'academy') {
             await page.waitForSelector('[data-academy-ready="true"]', { timeout: options.timeoutMs });
+          }
+          if (gameScreen === 'wrong-machine') {
+            await page.waitForSelector('[data-wrong-machine-ready="true"]', { timeout: options.timeoutMs });
           }
           if (gameScreen === 'unit-promotion') {
             await page.waitForSelector('[data-unit-promotion-ready="true"]', { timeout: options.timeoutMs });

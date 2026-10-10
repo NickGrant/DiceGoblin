@@ -30,6 +30,7 @@ export interface CampViewModel {
   readonly hasActiveSquad: boolean;
   readonly availableRegions: readonly { readonly id: string; readonly displayName: string; readonly artKey: string }[];
   readonly activeRunRegionName: string | null;
+  readonly wrongMachineAccess: boolean;
 }
 
 export interface CampLayout {
@@ -42,6 +43,7 @@ export interface CampLayout {
   readonly shopButton: Bounds;
   readonly suppliesButton: Bounds;
   readonly academyButton: Bounds;
+  readonly wrongMachineButton: Bounds;
   readonly regionSelector: Bounds;
   readonly runButton: Bounds;
   readonly headingY: number;
@@ -90,6 +92,7 @@ export function createCampViewModel(store: GameStore, content: ClientContentRegi
     hasActiveSquad: bootstrap.active_squad !== null,
     availableRegions,
     activeRunRegionName: activeRunRegion?.display_name ?? null,
+    wrongMachineAccess: bootstrap.progression.unlock_ids.includes('unlock.capability.wrong_machine_access'),
   };
 }
 
@@ -122,6 +125,14 @@ export function createCampLayout(snapshot: RuntimeViewportSnapshot): CampLayout 
   const resources = [0, 1, 2].map((index) =>
     box(resourceX + index * (resourceWidth + resourceGap), resourceY, resourceWidth, resourceHeight),
   ) as [Bounds, Bounds, Bounds];
+  const destinationGap = 12;
+  const destinationWidth = Math.min(mode === 'compact' ? 170 : 180,
+    (panel.width - 76 - destinationGap * 4) / 5);
+  const destinationX = panel.right - 38 - destinationWidth * 5 - destinationGap * 4;
+  const destinationY = panel.y + 40;
+  const destinationHeight = mode === 'compact' ? 92 : 58;
+  const destination = (index: number) => box(destinationX + index * (destinationWidth + destinationGap),
+    destinationY, destinationWidth, destinationHeight);
 
   return {
     mode,
@@ -134,14 +145,11 @@ export function createCampLayout(snapshot: RuntimeViewportSnapshot): CampLayout 
     ),
     panel,
     resourcePlaques: resources,
-    warbandButton: box(panel.right - (mode === 'compact' ? 724 : 756) - 38, panel.y + 40,
-      mode === 'compact' ? 170 : 180, mode === 'compact' ? 92 : 58),
-    shopButton: box(panel.right - (mode === 'compact' ? 542 : 564) - 38, panel.y + 40,
-      mode === 'compact' ? 170 : 180, mode === 'compact' ? 92 : 58),
-    suppliesButton: box(panel.right - (mode === 'compact' ? 360 : 372) - 38, panel.y + 40,
-      mode === 'compact' ? 170 : 180, mode === 'compact' ? 92 : 58),
-    academyButton: box(panel.right - (mode === 'compact' ? 178 : 180) - 38, panel.y + 40,
-      mode === 'compact' ? 170 : 180, mode === 'compact' ? 92 : 58),
+    warbandButton: destination(0),
+    shopButton: destination(1),
+    suppliesButton: destination(2),
+    academyButton: destination(3),
+    wrongMachineButton: destination(4),
     regionSelector: box(centerX - (mode === 'compact' ? 310 : 260), panel.y + 195,
       mode === 'compact' ? 620 : 520, mode === 'compact' ? 54 : 48),
     runButton: box(centerX - (mode === 'compact' ? 230 : 190), panel.y + (mode === 'compact' ? 270 : 260),
@@ -180,6 +188,7 @@ export class CampScreen implements GameSceneScreen {
     private readonly openShop: () => void = () => undefined,
     private readonly openInventory: () => void = () => undefined,
     private readonly openAcademy: () => void = () => undefined,
+    private readonly openWrongMachine: () => void = () => undefined,
   ) {}
 
   static preload(scene: Phaser.Scene): void {
@@ -280,6 +289,8 @@ export class CampScreen implements GameSceneScreen {
     this.addCampDestinationButton(root, layout.shopButton, 'SHOP', this.openShop, layout);
     this.addCampDestinationButton(root, layout.suppliesButton, 'SUPPLIES', this.openInventory, layout);
     this.addCampDestinationButton(root, layout.academyButton, 'ACADEMY', this.openAcademy, layout);
+    this.addCampDestinationButton(root, layout.wrongMachineButton, 'WRONG MACHINE', this.openWrongMachine, layout,
+      view.wrongMachineAccess);
     this.addRegionSelector(root, layout, view);
     this.addRunButton(root, layout, view);
     const divider = this.scene.add.graphics();
@@ -448,19 +459,23 @@ export class CampScreen implements GameSceneScreen {
   }
 
   private addCampDestinationButton(root: Phaser.GameObjects.Container, region: Bounds, text: string,
-    action: () => void, layout: CampLayout): void {
+    action: () => void, layout: CampLayout, enabled = true): void {
     const { x, y, width, height } = region;
     const button = this.scene.add.graphics();
-    button.fillStyle(0x244b3d, 1);
+    button.fillStyle(enabled ? 0x244b3d : 0x6c6658, 1);
     button.fillRoundedRect(x, y, width, height, 14);
     button.lineStyle(4, 0xc9972b, 1);
     button.strokeRoundedRect(x, y, width, height, 14);
-    button.setInteractive(new Phaser.Geom.Rectangle(x, y, width, height), Phaser.Geom.Rectangle.Contains);
-    actionCursor(button);
-    button.on('pointerup', action);
-    const label = this.scene.add.text(x + width / 2, y + height / 2, `${text}  ›`, {
+    if (enabled) {
+      button.setInteractive(new Phaser.Geom.Rectangle(x, y, width, height), Phaser.Geom.Rectangle.Contains);
+      actionCursor(button);
+      button.on('pointerup', action);
+    }
+    const label = this.scene.add.text(x + width / 2, y + height / 2,
+      text === 'WRONG MACHINE' && layout.mode === 'compact' ? text : `${text}  ›`, {
       color: '#fff4d3', fontFamily: 'system-ui, sans-serif',
-      fontSize: layout.mode === 'compact' ? '30px' : '17px', fontStyle: 'bold',
+      fontSize: layout.mode === 'compact' ? (text === 'WRONG MACHINE' ? '18px' : '26px')
+        : text === 'WRONG MACHINE' ? '14px' : '17px', fontStyle: 'bold',
     }).setOrigin(0.5);
     root.add([button, label]);
   }

@@ -31,6 +31,7 @@ const DEBUG_SCENE_ROUTE_ALIASES: Record<string, string> = {
   shop: '/game',
   inventory: '/game',
   academy: '/game',
+  'wrong-machine': '/game',
   'unit-promotion': '/game',
   run: '/game',
   'run-combat-available': '/game',

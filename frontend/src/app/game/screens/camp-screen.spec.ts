@@ -81,17 +81,19 @@ describe('CampScreen', () => {
     });
   }
 
-  function sceneHarness(): { scene: Phaser.Scene; textValues: string[] } {
+  function sceneHarness(): { scene: Phaser.Scene; textValues: string[]; interactiveCount: () => number } {
     const textValues: string[] = [];
+    let interactiveCount = 0;
     const chain = (): Record<string, unknown> => {
       const value: Record<string, unknown> = {};
       for (const method of ['setScale', 'destroy', 'fillGradientStyle', 'fillRect', 'fillStyle', 'fillCircle',
         'fillRoundedRect', 'fillTriangle', 'lineStyle', 'lineBetween', 'strokeCircle', 'strokeRoundedRect', 'setInteractive', 'on', 'setOrigin',
         'setDisplaySize', 'setAlpha']) value[method] = jasmine.createSpy(method).and.returnValue(value);
+      value['setInteractive'] = jasmine.createSpy('setInteractive').and.callFake(() => { interactiveCount += 1; return value; });
       value['add'] = jasmine.createSpy('add').and.returnValue(value);
       return value;
     };
-    return { textValues, scene: { add: {
+    return { textValues, interactiveCount: () => interactiveCount, scene: { add: {
       container: () => chain(), graphics: () => chain(), image: () => chain(),
       text: (_x: number, _y: number, value: string) => { textValues.push(value); return chain(); },
     } } as unknown as Phaser.Scene };
@@ -133,6 +135,27 @@ describe('CampScreen', () => {
         energyText: '68 / 60',
       }),
     );
+  });
+
+  it('derives Wrong Machine entry solely from the permanent bootstrap unlock', () => {
+    const locked = createCampViewModel(storeWith(bootstrap()), content());
+    const base = bootstrap();
+    const unlocked = createCampViewModel(storeWith({ ...base, progression: { ...base.progression,
+      unlock_ids: ['unlock.capability.wrong_machine_access'] } }), content());
+    expect(locked.wrongMachineAccess).toBeFalse();
+    expect(unlocked.wrongMachineAccess).toBeTrue();
+  });
+
+  it('renders a non-interactive locked entry and enables its pointer only after the unlock', () => {
+    const locked = sceneHarness(); const unlocked = sceneHarness();
+    new CampScreen(locked.scene, storeWith(bootstrap()), new RuntimeViewport(),
+      undefined, undefined, undefined, content()).create();
+    const base = bootstrap();
+    new CampScreen(unlocked.scene, storeWith({ ...base, progression: { ...base.progression,
+      unlock_ids: ['unlock.capability.wrong_machine_access'] } }), new RuntimeViewport(),
+      undefined, undefined, undefined, content()).create();
+    expect(locked.textValues).toContain('WRONG MACHINE  ›');
+    expect(unlocked.interactiveCount()).toBe(locked.interactiveCount() + 1);
   });
 
   it('fails visibly instead of fabricating Camp state when bootstrap is absent', () => {
@@ -205,6 +228,7 @@ describe('CampScreen', () => {
     for (const snapshot of snapshots) {
       const layout = createCampLayout(snapshot);
       for (const region of [layout.panel, layout.warbandButton, layout.shopButton, layout.suppliesButton,
+        layout.academyButton, layout.wrongMachineButton,
         layout.regionSelector, layout.runButton, ...layout.resourcePlaques]) {
         expect(region.x).toBeGreaterThanOrEqual(snapshot.safeBounds.x);
         expect(region.y).toBeGreaterThanOrEqual(snapshot.safeBounds.y);

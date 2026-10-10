@@ -7,7 +7,7 @@ Read this for sequencing/planning or when closing/promoting an execution package
 **Status:** Active
 
 ### Related Issues
-- Milestone 9 Package 2 - Idempotent reconstruction transaction + first-restoration/repeat semantics
+- Milestone 9 Package 3 - Phaser Wrong Machine surface + Camp/runtime integration
 
 Milestone 1 - Walking Skeleton is complete and passed manual user UAT.
 
@@ -55,8 +55,8 @@ Frog Kin and Swamp parity remain Milestone 13. Run encounter-depth work remains 
 ### Package Queue
 
 1. **Authored kin/reconstruction foundation + ownership/read contract.** Approved through `2126bb76f65b753bef227f68c048de1738808bf7` with production-drop correction `79e38a5a41d25fd36a97ea630ee2379d0e2f6049`.
-2. **Idempotent reconstruction transaction + first-restoration/repeat semantics.** Current.
-3. Phaser Wrong Machine surface + Camp/runtime integration.
+2. **Idempotent reconstruction transaction + first-restoration/repeat semantics.** Approved at `722aacbb6cab4f9907cfeeacf86326ceda024eeb`.
+3. **Phaser Wrong Machine surface + Camp/runtime integration.** Current.
 4. Kin/Wrong Machine integrated verification/technical closure.
 5. Focused manual UAT before Milestone 10.
 

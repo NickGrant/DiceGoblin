@@ -37,6 +37,8 @@ import { UnitPromotionContractError, UnitPromotionOptionsResult, canonicalUnitId
   parseUnitPromotionOptionsEnvelope } from './unit-promotion-contracts';
 import { UnitPromotionMutationContractError, UnitPromotionPayload, UnitPromotionResult,
   canonicalUnitPromotionPayload, parseUnitPromotionMutationEnvelope } from './unit-promotion-mutation-contracts';
+import { ReconstructionPayload, ReconstructionResult, WrongMachineCatalog, WrongMachineContractError,
+  canonicalReconstructionPayload, parseReconstructionEnvelope, parseWrongMachineCatalogEnvelope } from './wrong-machine-contracts';
 
 export type RuntimeFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
@@ -138,6 +140,28 @@ export class RuntimeApiClient {
     }
     return this.mutate('/api/v1/academy/upgrade', 'POST', csrfToken, canonical, idempotencyKey,
       (value) => parseAcademyUpgradeEnvelope(value, canonical));
+  }
+
+  async getWrongMachine(content: ClientContentRegistry): Promise<WrongMachineCatalog> {
+    const value = await this.get('/api/v1/wrong-machine');
+    try { return parseWrongMachineCatalogEnvelope(value, content); }
+    catch (error) {
+      if (error instanceof WrongMachineContractError) throw new RuntimeApiError('malformed-response', 200);
+      throw error;
+    }
+  }
+
+  async reconstructKin(request: ReconstructionPayload, csrfToken: string, idempotencyKey: string,
+    content: ClientContentRegistry): Promise<ReconstructionResult> {
+    if (idempotencyKey.trim() === '') throw new RuntimeApiError('malformed-response');
+    let canonical: ReconstructionPayload;
+    try { canonical = canonicalReconstructionPayload(request); }
+    catch (error) {
+      if (error instanceof WrongMachineContractError) throw new RuntimeApiError('malformed-response');
+      throw error;
+    }
+    return this.mutate('/api/v1/wrong-machine/reconstruct', 'POST', csrfToken, canonical, idempotencyKey,
+      (value) => parseReconstructionEnvelope(value, canonical, content));
   }
 
   async sellDie(diceId: string, csrfToken: string, idempotencyKey: string): Promise<DiceSellResult> {
@@ -344,7 +368,8 @@ export class RuntimeApiClient {
       if (error instanceof WarbandContractError || error instanceof UnitDetailContractError || error instanceof RunContractError
         || error instanceof RunNodeResolutionContractError || error instanceof ShopContractError
         || error instanceof ConsumableContractError || error instanceof DiceLifecycleContractError
-        || error instanceof AcademyContractError || error instanceof UnitPromotionMutationContractError) {
+        || error instanceof AcademyContractError || error instanceof UnitPromotionMutationContractError
+        || error instanceof WrongMachineContractError) {
         throw new RuntimeApiError('malformed-response', response.status);
       }
       throw error;

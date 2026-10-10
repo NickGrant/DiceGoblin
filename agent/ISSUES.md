@@ -7,6 +7,10 @@
 **Status:** In Progress
 **Priority:** High
 
+#### Problem
+
+The accepted Wrong Machine read and reconstruction transaction have no Phaser player-facing entry, interaction, or runtime reconciliation path. Package 3 connects those accepted contracts to Camp and the persistent GameScene.
+
 #### Accepted baseline
 
 Milestone 9 Package 1 is approved through implementation `2126bb76f65b753bef227f68c048de1738808bf7` plus focused production-drop correction `79e38a5a41d25fd36a97ea630ee2379d0e2f6049`.
