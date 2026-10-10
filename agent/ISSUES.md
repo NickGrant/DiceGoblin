@@ -1,86 +1,118 @@
 # Active Execution Issue
 
-## Milestone 9 - Kin and Wrong Machine
+## Milestone 10 - Run Encounter Depth
 
-### Milestone 9 Package 5 - Focused manual UAT
+### Milestone 10 Package 1 - Branch-capable run topology and route-choice foundation
 
-**Status:** In Progress - User UAT
+**Status:** In Progress
 **Priority:** High
 
-#### Accepted technical baseline
+#### Accepted baseline
 
-Milestone 9 technical closure is approved at `8e8701c7fb071b7513fbcac4ac3da62e266f6f8e`.
+Milestones 1-9 are complete. Milestone 9 technical closure is approved at `8e8701c7fb071b7513fbcac4ac3da62e266f6f8e` and focused manual UAT passed on 2026-10-10.
 
-The accepted implementation includes:
-- canonical Pig and Lizard Kin and reconstruction recipes;
-- Farm/Mountains reconstruction-material acquisition through authored rewards;
-- permanent Wrong Machine access and Kin ownership through the accepted unlock model;
-- authoritative Wrong Machine read state;
-- atomic/idempotent first restoration and deterministic repeat reconstruction;
-- shared normal unit creation and persisted MySQL ownership;
-- persistent Phaser Wrong Machine screen under `GameScene`;
-- unlock-gated Camp navigation;
-- authoritative wallet/inventory/Kin/revision/Warband reconciliation;
-- production-composed lifecycle verification and deterministic responsive captures.
-
-Package 4 full verification reported backend 375 tests / 1,921 assertions and frontend 539 tests, with content validation, docs lint, context/backlog validation, production frontend build, bundle budget, and diff-whitespace gates passing.
+The existing vNext run architecture already owns authored region/run definitions, persisted generated runs and nodes, authoritative node resolution, combat/reward/terminal lifecycle, current-run queries, reconnect/resume, and Phaser `RunScene` presentation. Farm and Mountains are accepted production-composed regions using that shared architecture.
 
 #### Purpose
 
-Perform focused player-facing acceptance of Milestone 9 before promoting to Milestone 10. This is manual UAT, not another implementation package. Do not begin Milestone 10 work while this issue is active.
+Establish the topology and authority boundary required for genuinely branch-capable runs before adding new Milestone 10 encounter families.
 
-#### UAT setup
+This package should make generated run graphs capable of exposing more than one legal next node and make route choice explicit, persisted, authoritative, idempotent/retry-safe, and reconnect-safe. It must preserve existing Farm/Mountains behavior and create a generic foundation for later Rest, hazard, shrine, Chaos, modifier, and multi-step encounter packages.
 
-Use the normal development/test environment and a player state where Wrong Machine access can be exercised. A fresh or reset player is preferred where practical so first-restoration behavior can be observed.
+Do not add hazards, shrines, Chaos encounters, run modifiers, new consumable mechanics, knowledge/objectives, onboarding, Swamp/Frog Kin, or final visual redesign in this package.
 
-Do not require exhaustive replay of automated edge cases such as transaction rollback, cross-player isolation, or idempotency conflict; those are covered by the approved technical closure. Manual UAT should concentrate on the actual player experience and integration seams.
+#### Canonical design constraints
 
-#### Focused UAT checklist
+- Extend the existing authored region/run/node model; do not create a parallel run engine or branching-only schema.
+- Canonical topology/generation rules belong in authored content and domain/application logic as appropriate, not client constants or SQL-authored catalogs.
+- MySQL is authoritative for each generated run graph, resolved/current position, and durable route state.
+- A node may be resolved only when it is currently reachable according to authoritative run state. Knowing another generated node ID must never authorize traversal.
+- Route choice must survive reload/reconnect without rerolling or silently changing available choices.
+- Idempotent replay of a route/node action must return the finalized result without advancing twice.
+- Phaser is a projection of server authority. It may render available branches and selected/current state but may not derive hidden reachability rules independently.
+- Preserve one generic path across Farm and Mountains. Region-specific topology data is acceptable in authored content; region-specific traversal branches in controllers/application/runtime are not.
+- Preserve active-run ownership/security and cross-player isolation.
 
-1. **Camp access**
-   - Confirm the Wrong Machine entry is absent/inaccessible before its permanent access unlock where practical to test.
-   - With access unlocked, confirm the Camp entry is visible and opens the Wrong Machine without leaving `/game` or recreating the game runtime.
-   - Confirm Back/Escape returns naturally to Camp.
+#### Backend/content scope
 
-2. **First-restoration presentation**
-   - Open both Pig and Lizard recipes before restoration.
-   - Confirm costs, owned ingredient counts, Raw Chaos balance, Kin identity, first-restoration mode, and reconstructability are understandable.
-   - Confirm first restoration does not ask the player to select a unit type and communicates that the server chooses from eligible unlocked types.
-   - Confirm unavailable reconstruction is visibly disabled when resources are insufficient.
+1. Define the smallest canonical authored representation needed for branch-capable topology while retaining compatibility with current linear authored runs.
+2. Extend generation so a run may persist a directed graph with one or more legal outgoing routes from the current/resolved position.
+3. Define authoritative current-position/reachability semantics for:
+   - initial run state;
+   - unresolved current/available nodes;
+   - resolving a chosen reachable node;
+   - exposing its newly reachable successors;
+   - completed/terminal runs;
+   - reload/resume.
+4. Ensure existing linear Farm/Mountains definitions continue to generate and resolve correctly without requiring duplicated content.
+5. Reject attempts to resolve:
+   - a node from another player/run;
+   - a generated node that exists but is not currently reachable;
+   - an already-resolved node except through valid idempotent replay;
+   - any node after terminal completion.
+6. Preserve existing node-specific resolution boundaries. This package changes traversal/topology authority, not the semantics of Combat/Loot/Rest/Boss/Exit themselves.
+7. If schema changes are required, update the vNext baseline directly according to current rebuild migration policy and keep persistence generic to runs/nodes/edges or equivalent shared topology state.
 
-3. **Material acquisition and refresh**
-   - Acquire the required reconstruction materials through the normal Farm/Mountains gameplay paths where practical.
-   - Return to/reopen Wrong Machine and confirm authoritative owned counts/reconstructability reflect the earned materials without stale or contradictory state.
+#### API/read contract scope
 
-4. **First restoration**
-   - Perform at least one first restoration, and preferably both Pig and Lizard if the test state permits.
-   - Confirm the action has a clear confirmation step and cannot visibly double-submit.
-   - Confirm Raw Chaos and ingredients decrease correctly after success.
-   - Confirm the restored Kin immediately changes to repeat-reconstruction mode.
-   - Open Warband without reloading the browser and confirm the newly created unit is visible with the expected Kin.
+Update authoritative current-run/run-state presentation so the client can render route choices without reconstructing graph rules. At minimum expose enough player-authorized information to identify:
+- current/resolved position as needed for presentation;
+- the currently legal next node or nodes;
+- stable node identity and player-visible node presentation already accepted by the run contract;
+- resolved/terminal state.
 
-5. **Persistence/reload**
-   - Reload the browser after a successful restoration.
-   - Confirm the Kin remains restored, the unit remains owned, spent resources remain spent, and Wrong Machine remains in repeat mode.
+Do not expose hidden authored encounter data merely to enable route rendering.
 
-6. **Repeat reconstruction**
-   - Confirm repeat reconstruction requires an explicit unlocked unit-type choice before spending resources.
-   - Select a type and reconstruct when resources permit.
-   - Confirm exactly one new unit appears in Warband with the selected type and Kin, resources update, and the Kin remains restored.
+Mutation requests must identify the intended reachable node through the accepted run/node resolution boundary. If the existing request shape already does this safely, extend semantics rather than adding redundant route-choice endpoints.
 
-7. **Navigation/regression smoke**
-   - Move among Camp, Wrong Machine, Warband, Inventory/Supplies, Shop, and Academy after reconstruction.
-   - Confirm wallet/inventory/unit state does not visibly disagree between screens and no full browser reload is required for normal navigation.
+#### Phaser/runtime scope
 
-8. **Responsive smoke**
-   - At minimum inspect normal desktop and one compact landscape/mobile-sized presentation if convenient.
-   - Confirm recipe details, costs, ingredients, unit-type choices, action controls, errors/status, and Back remain usable.
-   - On portrait touch/mobile, confirm the shared rotate-device gate still blocks gameplay rather than presenting a broken Wrong Machine layout.
+Only make the minimum RunScene/runtime changes necessary to consume and prove the authoritative branching contract in this package.
 
-#### Acceptance
+- Render multiple available next nodes when the backend supplies them.
+- Make only authoritative reachable choices interactive.
+- Preserve current linear presentation when exactly one route is available.
+- Prevent duplicate input while a choice/resolution mutation is pending.
+- Reconcile the finalized server response rather than optimistically advancing the route.
+- Reload/re-entry must reproduce the same available choices from backend state.
+- Remain within the existing `RunScene`; do not create a new Phaser Scene or Angular gameplay route.
 
-If the focused UAT passes without a blocking finding, report that Milestone 9 UAT passed. The orchestration owner will close Milestone 9 in the canonical repository status and activate Milestone 10 planning/execution.
+Detailed encounter interaction UX belongs to later Milestone 10 packages.
 
-If UAT exposes a correctness, persistence, navigation, or materially unusable presentation defect, record the exact reproduction and expected behavior. A narrow Milestone 9 UAT correction package should be created and reviewed before UAT is repeated.
+#### Verification requirements
 
-Do not self-promote Milestone 10 from the coding agent. Milestone 9 remains active until the user confirms UAT acceptance.
+Add focused automated coverage proving at minimum:
+- legacy linear Farm generation/resolution remains valid;
+- legacy linear Mountains generation/resolution remains valid;
+- an authored branching fixture/production-safe test definition generates at least one point with two legal successors;
+- both successors are exposed as legal choices before selection;
+- selecting either legal successor advances only that path according to the accepted graph semantics;
+- an unchosen/non-reachable generated node cannot be resolved by ID;
+- reload/re-query preserves the same choices before selection and the selected path afterward;
+- exact-key replay does not advance twice or alter the selected path;
+- stale/invalid choice attempts do not mutate run state;
+- cross-player/run node IDs cannot be used;
+- terminal runs expose no legal next choices;
+- Phaser contract/runtime tests cover multiple choices, pending-input blocking, authoritative reconciliation, and re-entry/reload state.
+
+Run the applicable gates from `agent/QUALITY_GATES.md`. Any regressions in accepted combat, rewards, terminal run flow, economy/material acquisition, active-run Warband restrictions, or region generalization are Package 1 defects and should be corrected here.
+
+#### Responsive verification
+
+Because branching changes RunScene interaction, verify deterministic presentation at the accepted Compact landscape, Standard 1600x900, Wide landscape, and portrait rotate-device gate. This is functional/responsive verification, not final visual polish.
+
+#### Completion evidence
+
+Report:
+- implementation SHA;
+- authored topology representation chosen and why it is the minimal generic extension;
+- any baseline/schema changes;
+- production-composed or equivalent persisted branching lifecycle evidence;
+- linear Farm/Mountains regression evidence;
+- reachability/invalid-node/idempotency/reload/cross-player evidence;
+- Phaser branching/reconciliation evidence;
+- focused and full gate results;
+- responsive capture evidence;
+- confirmation no later Milestone 10 encounter mechanics or Milestone 11+ work was introduced.
+
+Leave Package 1 **In Progress** for architectural review. Do not promote Package 2 yourself.
