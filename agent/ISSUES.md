@@ -2,14 +2,10 @@
 
 ## Milestone 9 - Kin and Wrong Machine
 
-### Milestone 9 Package 3 - Phaser Wrong Machine surface + Camp/runtime integration
+### Milestone 9 Package 4 - Kin/Wrong Machine integrated verification/technical closure
 
 **Status:** In Progress
 **Priority:** High
-
-#### Problem
-
-The accepted Wrong Machine read and reconstruction transaction have no Phaser player-facing entry, interaction, or runtime reconciliation path. Package 3 connects those accepted contracts to Camp and the persistent GameScene.
 
 #### Accepted baseline
 
@@ -17,183 +13,101 @@ Milestone 9 Package 1 is approved through implementation `2126bb76f65b753bef227f
 
 Milestone 9 Package 2 is approved at `722aacbb6cab4f9907cfeeacf86326ceda024eeb`.
 
-Packages 1-2 established:
-- canonical Pig and Lizard Kin definitions and reconstruction recipes;
-- permanent Kin ownership through the existing unlock model;
-- permanent Wrong Machine access as an authored prerequisite;
-- authoritative `GET /api/v1/wrong-machine` read semantics;
-- generic authored Mountains/Farm reconstruction-material victory drops;
-- one generic authenticated `POST /api/v1/wrong-machine/reconstruct` mutation for Pig and Lizard;
-- atomic Raw Chaos + ingredient consumption, Kin restoration, normal unit creation, and `player_revision` advancement;
-- first-restoration `random_unlocked` semantics frozen by the finalized idempotency receipt;
-- repeat reconstruction with explicit `chosen_unlocked` unit type and no gameplay randomness;
-- rollback, cross-player isolation, stale-intent rejection, and active-run-safe unit ownership behavior.
+Milestone 9 Package 3 is approved at `3ca7d2aa512d66b94fce37870de5bcc65f8fd189`.
 
-Preserve all accepted Milestone 7/8 economy, inventory, permanent progression, unit ownership, cache, navigation, responsive, idempotency, and reconciliation behavior.
+Packages 1-3 established the complete implementation slice: canonical Pig/Lizard Kin and recipes, generic material acquisition, durable Kin ownership, authoritative Wrong Machine reads, atomic/idempotent first and repeat reconstruction, shared normal unit creation, and the persistent Phaser Wrong Machine screen with unlock-gated Camp navigation and authoritative runtime reconciliation.
 
 #### Purpose
 
-Make the accepted Wrong Machine backend capability playable through Phaser as a `GameScene` screen and integrate it into Camp/runtime navigation and authoritative client state.
+Close Milestone 9 technically by proving the complete production-composed Kin/Wrong Machine lifecycle across authored content, PHP/domain/repository boundaries, MySQL persistence, Phaser runtime/cache reconciliation, reload/resume behavior, responsive presentation, and regression gates.
 
-This package is the presentation/integration slice for the Package 1 read contract and Package 2 reconstruction mutation. Do not redesign or duplicate their domain rules in the client.
+This package is verification and narrow closure work. Do not add new Kin mechanics, redesign the Wrong Machine, add Frog Kin, or begin Milestone 10 encounter-depth work.
 
-Do not begin Milestone 9 integrated closure/manual UAT work beyond the verification needed for this package, and do not begin Milestone 10 encounter-depth work.
+#### Integrated lifecycle proof
 
-#### Architectural boundary
+Using production composition and a clean MySQL database, prove at minimum the following player lifecycle without test-only bypasses:
 
-Wrong Machine is a screen/view inside the existing persistent `GameScene`, not a new Phaser Scene and not a new Angular gameplay route/page.
+1. a player with Wrong Machine access acquires the authored Pig and Lizard reconstruction materials through the accepted Farm/Mountains reward paths;
+2. the authoritative Wrong Machine read reflects current wallet, inventory, prerequisites, eligible unit types, Kin restoration state, and reconstructability;
+3. first restoration for Pig and Lizard spends exactly the authored resources, creates exactly one level-1 active unit of the recipe Kin through the shared unit-creation boundary, grants the Kin unlock once, and advances `player_revision` once;
+4. reloading/re-querying from persisted MySQL state shows the Kin restored, resources consumed, created unit owned, and recipe in repeat mode;
+5. repeat reconstruction requires an explicit eligible unit type, spends exactly once, creates exactly one selected-type unit of the recipe Kin, does not replay the Kin grant, and advances revision once;
+6. Phaser reconciles successful first and repeat reconstruction without browser reload, while fresh reload produces the same authoritative state;
+7. Pig and Lizard traverse the same generic backend and Phaser paths.
 
-Angular remains only the `/game` host. Phaser owns Wrong Machine navigation, API interaction, presentation, mutation lifecycle, and cache reconciliation.
+#### Persistence, transaction, and retry closure
 
-Use the existing GameRuntime/API/state/navigation patterns already established by Warband, Shop, Inventory, and Academy. Do not introduce a parallel state store, direct `fetch` path, screen-specific HTTP stack, or separate gameplay runtime.
+Re-run and preserve the Package 2 invariants under production composition:
+- same-key replay returns the exact finalized receipt with no duplicate spend, unit, unlock, or revision increment;
+- same idempotency key with a different canonical request conflicts without mutation;
+- stale expected mode/cost/ingredients reject without spending;
+- insufficient Raw Chaos or any required ingredient rejects without mutation;
+- missing Wrong Machine prerequisite and invalid/locked repeat unit type reject without mutation;
+- forced failures at meaningful transaction points roll back wallet, inventory, unlock, unit creation, revision, and idempotency result;
+- cross-player resources/unlocks/units cannot satisfy or observe another player's reconstruction;
+- active-run unit-ownership safety remains consistent with the accepted shared unit-creation model.
 
-The backend remains authoritative. Client state is a cache; the client must not locally invent reconstruction availability, Kin restoration, costs, ingredient balances, eligible unit types, or created-unit state.
+Do not introduce a Wrong-Machine-specific retry/history table or mirrored wallet/inventory authority as part of closure.
 
-#### Runtime/API integration
+#### Client/runtime closure
 
-Add typed client contracts and runtime/API support for:
-- `GET /api/v1/wrong-machine`;
-- `POST /api/v1/wrong-machine/reconstruct`;
-- the Package 2 authoritative reconstruction receipt and business-error envelope.
+Verify Package 3 against the real Package 1/2 contracts and production content:
+- Wrong Machine remains a `GameScene` screen inside the persistent Phaser runtime;
+- Camp entry remains gated by authoritative permanent Wrong Machine access;
+- first restoration exposes no client unit-type choice or random prediction;
+- repeat reconstruction requires explicit eligible selection;
+- unavailable actions are inert;
+- pending input cannot double-submit;
+- ambiguous retry retains the same mutation identity/key;
+- a new intention receives a new key;
+- `reconstruction_changed` refreshes and requires reconfirmation rather than silently changing semantics;
+- authoritative success reconciles Raw Chaos, inventory, Kin unlocks, `player_revision`, Wrong Machine mode, and Warband visibility;
+- loaded caches update only where the accepted cache contract can verify the receipt; otherwise the affected lazy domain becomes stale for authoritative reload;
+- no optimistic durable mutation occurs before server success;
+- re-entry and full browser reload agree with persisted backend state.
 
-Opening/refreshing Wrong Machine must load the authoritative read model through the shared runtime/API boundary.
+#### Authored-content and security audit
 
-Mutation requests must be constructed only from the authoritative read state currently being presented:
-- recipe id;
-- current expected mode;
-- current authoritative Raw Chaos price;
-- current authoritative ingredient requirements;
-- chosen unit type only for repeat reconstruction;
-- one idempotency key generated/retained according to the existing durable-mutation convention.
+Confirm closure did not weaken the accepted content boundary:
+- canonical reconstruction definitions remain server-owned authored JSON;
+- browser static projection does not expose server-only reconstruction selection rules or hidden authored mechanics merely to power the screen;
+- the Wrong Machine API returns only player-authorized state required for presentation/action;
+- no Pig/Lizard-specific spending or creation branches exist in controller/application/runtime code;
+- no cross-player state leakage exists through API or client cache reuse.
 
-Do not accept or derive hidden authored rules from client projection data when the Wrong Machine read already supplies the player-authorized state.
+#### Responsive deterministic capture
 
-A semantic retry of the same player intention must retain its idempotency identity. A genuinely new reconstruction intention must receive a new key.
-
-#### Wrong Machine screen
-
-Add a usable responsive Wrong Machine screen under `GameScene` that presents the authoritative recipes returned by the server.
-
-At minimum, the player must be able to understand for each available recipe:
-- Kin/display identity supplied by the read contract;
-- whether the Kin is already restored;
-- current mode: first restoration or repeat reconstruction;
-- Raw Chaos cost and current balance;
-- required ingredients, quantities required, and quantities owned;
-- whether the current authoritative state is reconstructable;
-- any server-provided availability/blocking state intended for presentation.
-
-Do not duplicate Pig/Lizard rules in the screen. Render the returned recipe collection generically so both accepted recipes travel through the same presentation path and later Kin families do not require a second screen architecture.
-
-For first restoration:
-- explain/present that the output unit type is selected from the player's eligible unlocked types by the server;
-- do not allow the client to choose or predict the random result;
-- provide one clear reconstruction action when authoritative state permits it.
-
-For repeat reconstruction:
-- present the authoritative eligible unit-type choices from the read model;
-- require an explicit selection before reconstruction;
-- do not silently default a choice in a way that could spend resources unintentionally;
-- send only the selected stable unit-type id, not client-authored stats or Kin data.
-
-Disabled/unavailable actions must remain visibly non-actionable and must not issue mutation requests.
-
-#### Mutation UX and authoritative reconciliation
-
-During reconstruction:
-- prevent accidental duplicate submissions while the intention is pending;
-- retain the same idempotency key for semantic retry after transport/unknown-outcome failure;
-- distinguish transport/retryable failure from authoritative business rejection;
-- surface concise actionable failure state without locally mutating durable values.
-
-On authoritative success, reconcile from the receipt/read contracts rather than simulating the transaction locally.
-
-At minimum:
-- advance runtime `player_revision` to the returned authoritative revision;
-- reconcile Raw Chaos from the authoritative spend result;
-- reconcile affected inventory quantities from authoritative `owned_after` values when that cache is loaded, otherwise mark the relevant inventory cache stale;
-- reconcile permanent Kin unlock/restoration state through the accepted runtime unlock/cache mechanism;
-- make the newly created unit observable to Warband without requiring a full browser reload: update the loaded Warband/unit cache when the existing cache contract safely supports it, otherwise mark the relevant lazy domain stale so the next Warband load obtains authoritative data;
-- refresh/reconcile the Wrong Machine read so first restoration immediately becomes repeat mode and reconstructability reflects the post-spend resources.
-
-Do not optimistically create a local unit, grant a Kin unlock, subtract resources, or switch modes before authoritative success.
-
-If an authoritative conflict such as `reconstruction_changed` indicates stale intent, refresh the Wrong Machine read and require the player to confirm the newly authoritative state rather than automatically resubmitting under changed semantics.
-
-#### Camp and navigation integration
-
-Expose Wrong Machine through the existing Phaser Camp/GameScene navigation model.
-
-The Camp entry must respect permanent Wrong Machine access from authoritative player state. Do not make the feature usable merely because a client screen exists.
-
-Use the established Camp destination/navigation conventions, Back/Escape behavior, pointer affordances, screen teardown, and persistent-runtime lifecycle. Returning from Wrong Machine must not recreate the Phaser runtime or lose unrelated cached state.
-
-Do not add an Angular Wrong Machine route or revive a superseded Angular gameplay surface.
-
-If the Camp currently needs a temporary presentation affordance because final Camp art/structure placement is deferred, keep it narrow and consistent with the existing temporary Camp interaction language. Do not turn this package into the game-wide visual/UI overhaul.
-
-#### Responsive and presentation requirements
-
-Follow the accepted `1600 x 900` logical reference composition and shared responsive layout rules.
-
-Verify the Wrong Machine and its Camp entry at:
+Run deterministic visual/capture verification for the Wrong Machine and its Camp entry at:
 - Compact landscape `844 x 390` with touch/mobile capabilities;
 - Standard `1600 x 900`;
 - Wide `2560 x 1080`;
-- portrait mobile `390 x 844`, where the existing rotate-device gate must continue to obscure/block gameplay without losing state.
+- portrait mobile `390 x 844` using the existing rotate-device gate.
 
-Critical costs, ingredient counts, unit-type selection, action controls, status/error text, and Back navigation must remain legible and reachable in all supported landscape classes.
+Verify costs, ingredient ownership, recipe status, first/repeat mode, repeat unit-type selection, reconstruction action, error/retry text, and Back navigation remain legible/reachable in supported landscape modes. Portrait must remain blocked by the shared orientation gate without losing runtime state.
 
-Use existing shared UI primitives/layout helpers where they fit. Avoid package-specific viewport-coordinate hacks and avoid final visual-polish work that belongs to the later cross-cutting UI pass.
+Only make narrow presentation corrections required to satisfy these accepted responsive rules. Final visual polish remains deferred.
 
-#### Cache/security/content rules
+#### Regression and quality gates
 
-Do not ship canonical reconstruction recipes or server-only selection rules wholesale to the browser to implement this screen.
+Run the applicable gates from `agent/QUALITY_GATES.md`, including clean provision/reset and the full supported backend/frontend/content/docs suites.
 
-Treat server-returned Wrong Machine state as player-authorized presentation data. Preserve the allowlisted client-content boundary and do not expand the static client projection merely to mirror server-private recipe mechanics.
+Regression coverage must include accepted Milestone 7/8 behavior affected by shared wallet, inventory, unit ownership, unlocks, revision, Camp navigation, and progression UI. In particular, Shop, Supplies/Inventory, Warband, Academy, run reward/material acquisition, bootstrap, and active-run behavior must remain green.
 
-Do not persist client-side reconstruction authority. `reconstructable`, mode, prices, ingredients, eligible types, ownership, and resulting unit data remain server authoritative.
-
-Do not expose another player's resources, unlocks, units, or reconstruction state through cache reuse or client requests.
-
-#### Verification
-
-Run focused frontend tests plus the applicable gates from `agent/QUALITY_GATES.md`.
-
-At minimum prove:
-- Wrong Machine is a `GameScene` screen, not a new Phaser Scene or Angular route;
-- Camp exposes/navigates to Wrong Machine only under the accepted access semantics;
-- Back/Escape returns naturally through Phaser navigation;
-- authoritative read loading, loading/error/retry states, and generic Pig/Lizard rendering;
-- first-restoration presentation has no client unit-type choice and does not predict the random result;
-- repeat presentation requires an explicit eligible unit-type selection;
-- disabled/unavailable recipes do not submit;
-- one user action produces one mutation intention and duplicate input while pending does not double-submit;
-- transport/unknown-outcome retry retains the original idempotency key;
-- a new intention receives a new key;
-- `reconstruction_changed` refreshes authoritative state instead of silently changing semantics;
-- successful first restoration reconciles Raw Chaos, ingredient ownership, Kin state, revision, Wrong Machine mode, and Warband visibility without browser reload;
-- successful repeat reconstruction reconciles the same affected domains without replaying first-restoration presentation;
-- loaded versus unloaded inventory/Warband caches follow the accepted update-or-stale behavior;
-- no optimistic durable mutation occurs before server success;
-- refresh/re-entry after success remains consistent with backend authority;
-- Compact, Standard, Wide, and portrait-orientation behavior remain correct;
-- existing Camp, Warband, Shop, Inventory, Academy, runtime/navigation, and backend Wrong Machine tests remain green;
-- full supported frontend/backend/content/docs gates pass as applicable.
+If closure exposes a defect, fix it narrowly within Milestone 9 and rerun the affected focused and full gates. Do not defer a correctness defect into manual UAT.
 
 #### Completion evidence
 
 Report:
-- implementation SHA;
-- files/surfaces added or changed;
-- Wrong Machine runtime/API/cache contracts;
-- Camp/navigation integration path;
-- idempotency-key lifecycle for submit/retry/new intention;
-- authoritative success/error reconciliation behavior;
-- how the created unit becomes visible to Warband without reload;
-- focused and full verification counts;
-- responsive/visual verification evidence for Compact, Standard, Wide, and portrait gate;
-- confirmation Pig and Lizard use one generic Phaser screen path;
-- confirmation no new Phaser Scene, Angular gameplay route, client-authored reconstruction authority, Frog Kin, or Milestone 10 work was introduced.
+- closure implementation SHA;
+- clean MySQL provision/reset result;
+- production-composed Pig first-restoration and repeat-reconstruction evidence;
+- production-composed Lizard first-restoration and repeat-reconstruction evidence;
+- persisted reload proof for wallet, ingredients, Kin unlocks, created units, mode, and `player_revision`;
+- idempotency/retry/rollback/cross-player verification evidence;
+- proof both Kin families use one generic backend and Phaser path;
+- focused and full backend/frontend/content/docs test counts;
+- deterministic capture evidence for Compact, Standard, Wide, and portrait gate;
+- any narrow closure corrections made;
+- confirmation no Frog Kin, Milestone 10 work, new Phaser Scene, Angular gameplay route, mirrored Wrong Machine persistence, or client-authored reconstruction authority was introduced.
 
-Leave Package 3 **In Progress** for architectural review. Do not promote the next package yourself.
+Leave Package 4 **In Progress** for architectural review. Do not promote Package 5 yourself.
