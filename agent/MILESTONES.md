@@ -4,10 +4,10 @@ Read this for sequencing/planning or when closing/promoting an execution package
 
 ## Milestone 9 - Kin and Wrong Machine
 
-**Status:** Active
+**Status:** Active - Manual UAT
 
 ### Related Issues
-- Milestone 9 Package 4 - Kin/Wrong Machine integrated verification/technical closure
+- Milestone 9 Package 5 - Focused manual UAT
 
 Milestone 1 - Walking Skeleton is complete and passed manual user UAT.
 
@@ -57,13 +57,13 @@ Frog Kin and Swamp parity remain Milestone 13. Run encounter-depth work remains 
 1. **Authored kin/reconstruction foundation + ownership/read contract.** Approved through `2126bb76f65b753bef227f68c048de1738808bf7` with production-drop correction `79e38a5a41d25fd36a97ea630ee2379d0e2f6049`.
 2. **Idempotent reconstruction transaction + first-restoration/repeat semantics.** Approved at `722aacbb6cab4f9907cfeeacf86326ceda024eeb`.
 3. **Phaser Wrong Machine surface + Camp/runtime integration.** Approved at `3ca7d2aa512d66b94fce37870de5bcc65f8fd189`.
-4. **Kin/Wrong Machine integrated verification/technical closure.** Current.
-5. Focused manual UAT before Milestone 10.
+4. **Kin/Wrong Machine integrated verification/technical closure.** Approved at `8e8701c7fb071b7513fbcac4ac3da62e266f6f8e`.
+5. **Focused manual UAT before Milestone 10.** Current.
 
 ### Sequencing Notes
 
 - Package 1 established the canonical Pig/Lizard Kin and reconstruction vocabulary, durable ownership boundary, authoritative read model, and generic authored reconstruction-material acquisition path.
 - Package 2 owns resource consumption, deterministic/retry-safe output creation, idempotency, first-restoration effects, repeat behavior, rollback, and persistence.
 - Package 3 made the accepted backend behavior player-usable in the persistent Phaser runtime through a generic Wrong Machine screen, authoritative runtime/cache reconciliation, and unlock-gated Camp navigation without reviving the prototype Angular architecture.
-- Package 4 now closes the complete Milestone 9 technical slice through production-content lifecycle, MySQL persistence/reload, cross-domain reconciliation, regression coverage, and deterministic responsive capture proof.
+- Package 4 closed the complete Milestone 9 technical slice through production-content lifecycle, MySQL persistence/reload, cross-domain reconciliation, regression coverage, and deterministic responsive capture proof at `8e8701c7fb071b7513fbcac4ac3da62e266f6f8e`.
 - Package 5 is manual UAT. Do not begin Milestone 10 encounter-depth work until it passes and the user explicitly confirms promotion.
