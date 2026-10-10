@@ -2,12 +2,12 @@
 
 Read this for sequencing/planning or when closing/promoting an execution package. Normal implementation should use `agent/ISSUES.md` instead.
 
-## Milestone 9 - Kin and Wrong Machine
+## Milestone 10 - Run Encounter Depth
 
-**Status:** Active - Manual UAT
+**Status:** Active
 
 ### Related Issues
-- Milestone 9 Package 5 - Focused manual UAT
+- Milestone 10 Package 1 - Branch-capable run topology and route-choice foundation
 
 Milestone 1 - Walking Skeleton is complete and passed manual user UAT.
 
@@ -25,45 +25,56 @@ Milestone 7 - Economy and Inventory is complete and passed focused manual user U
 
 Milestone 8 - Permanent Progression is complete and passed focused manual user UAT on 2026-10-05. Technical closure was approved at `6314877766187931124c4d8fa5013da02354adfc`; Package 7 UAT passed with no blocking findings requiring a correction package.
 
+Milestone 9 - Kin and Wrong Machine is complete and passed focused manual user UAT on 2026-10-10. Technical closure was approved at `8e8701c7fb071b7513fbcac4ac3da62e266f6f8e`; Package 5 basic focused UAT passed with no blocking findings requiring a correction package.
+
 The major game-wide visual/UI overhaul remains intentionally deferred.
 
 ### Outcome
 
-Implement Kin restoration and Wrong Machine reconstruction through the accepted vNext boundaries:
-- canonical authored Kin and reconstruction definitions;
-- durable player-scoped Kin restoration/ownership;
-- Pig and Lizard reconstruction through one generic architecture;
-- explicit first-restoration versus deterministic repeat behavior;
-- authoritative ingredient/currency availability and transactional reconstruction;
-- Phaser Wrong Machine interaction integrated into the persistent runtime;
-- integrated persistence/reload/reconciliation verification and focused manual UAT.
+Deepen authored runs beyond linear combat/reward sequences while preserving the accepted authoritative run architecture:
+- branch-capable run topology and player route choice;
+- Rest encounters through the generalized encounter model;
+- hazards and shrines;
+- Chaos encounters;
+- run-scoped modifiers;
+- contextual consumable interaction where encounters require it;
+- multi-step node interactions where needed;
+- persistent/reconnect-safe authoritative state and Phaser presentation.
 
-Frog Kin and Swamp parity remain Milestone 13. Run encounter-depth work remains Milestone 10.
+Knowledge/objectives remain Milestone 11. Mystic Cave/onboarding remains Milestone 12. Swamp/Frog Kin remains Milestone 13.
 
 ### Architectural Direction
 
-- Kin and reconstruction definitions live in canonical content JSON; do not author gameplay catalogs in SQL.
-- MySQL stores only durable player ownership/state and reconstruction results that truly need persistence.
-- Reuse the existing permanent-unlock model for Kin restoration where semantically valid; do not create duplicate ownership flags.
-- Inventory and wallet remain authoritative sources for ingredient/currency ownership; Wrong Machine state must not mirror them.
-- First-restoration and repeat reconstruction are explicit authored/domain semantics, not frontend guesses.
-- Repeat reconstruction is deterministic unless a later accepted decision explicitly changes it.
-- Reconstruction that creates a unit must use the shared unit-creation/ownership boundaries rather than a Wrong-Machine-only unit model.
-- Server/API state is authoritative. Phaser caches may reconcile/invalidate but may not fabricate availability or ownership.
-- Prototype Wrong Machine/Kin code is behavioral evidence only; no prototype API/schema/Angular compatibility requirement exists.
+- Extend the existing authored region/run/node architecture rather than creating a second run engine.
+- Server/MySQL state remains authoritative for generated topology, current position, choices, encounter progress, modifiers, rewards, and terminal state where persistence is required.
+- Authored encounter definitions belong in canonical content JSON; do not move gameplay catalogs into SQL or client constants.
+- Phaser `RunScene` presents authoritative available routes/actions and reconciles mutation receipts; it does not predict hidden outcomes or fabricate route availability.
+- Route choice must be explicit and reconnect-safe. A player may not resolve an arbitrary generated node merely because its identifier is known.
+- Reuse the existing idempotency/retry, reward, inventory, energy, unit-state, and run persistence boundaries where semantically valid.
+- Multi-step encounters should persist only the minimal durable state needed to resume safely; avoid encounter-specific persistence tables unless the shared run/node model cannot represent the accepted semantics.
+- Farm and Mountains must remain valid through the generalized architecture; avoid region-specific branches in application/runtime code.
+- Final visual polish remains deferred; responsive interaction and deterministic capture remain required.
 
 ### Package Queue
 
-1. **Authored kin/reconstruction foundation + ownership/read contract.** Approved through `2126bb76f65b753bef227f68c048de1738808bf7` with production-drop correction `79e38a5a41d25fd36a97ea630ee2379d0e2f6049`.
-2. **Idempotent reconstruction transaction + first-restoration/repeat semantics.** Approved at `722aacbb6cab4f9907cfeeacf86326ceda024eeb`.
-3. **Phaser Wrong Machine surface + Camp/runtime integration.** Approved at `3ca7d2aa512d66b94fce37870de5bcc65f8fd189`.
-4. **Kin/Wrong Machine integrated verification/technical closure.** Approved at `8e8701c7fb071b7513fbcac4ac3da62e266f6f8e`.
-5. **Focused manual UAT before Milestone 10.** Current.
+1. **Branch-capable run topology + route-choice foundation.** Current.
+2. **Generalized non-combat encounter contract + Rest migration.** Planned.
+3. **Hazard encounter foundation.** Planned.
+4. **Shrine encounter foundation.** Planned.
+5. **Chaos encounter foundation.** Planned.
+6. **Run-scoped modifier model + authoritative application.** Planned.
+7. **Contextual consumables + multi-step encounter interaction.** Planned.
+8. **Phaser RunScene branching/encounter interaction integration.** Planned.
+9. **Run-encounter-depth integrated verification/technical closure.** Planned.
+10. **Focused manual UAT before Milestone 11.** Planned.
 
 ### Sequencing Notes
 
-- Package 1 established the canonical Pig/Lizard Kin and reconstruction vocabulary, durable ownership boundary, authoritative read model, and generic authored reconstruction-material acquisition path.
-- Package 2 owns resource consumption, deterministic/retry-safe output creation, idempotency, first-restoration effects, repeat behavior, rollback, and persistence.
-- Package 3 made the accepted backend behavior player-usable in the persistent Phaser runtime through a generic Wrong Machine screen, authoritative runtime/cache reconciliation, and unlock-gated Camp navigation without reviving the prototype Angular architecture.
-- Package 4 closed the complete Milestone 9 technical slice through production-content lifecycle, MySQL persistence/reload, cross-domain reconciliation, regression coverage, and deterministic responsive capture proof at `8e8701c7fb071b7513fbcac4ac3da62e266f6f8e`.
-- Package 5 is manual UAT. Do not begin Milestone 10 encounter-depth work until it passes and the user explicitly confirms promotion.
+- Package 1 changes the run topology/position boundary first so later encounter types can rely on explicit reachable-node semantics instead of the current effectively linear traversal.
+- Package 2 establishes the generic non-combat encounter interaction contract and migrates existing Rest behavior onto it before adding new encounter families.
+- Packages 3-5 add hazards, shrines, and Chaos through that shared encounter boundary rather than bespoke controller/runtime paths.
+- Package 6 owns run-scoped modifiers and their persistence/application semantics.
+- Package 7 adds contextual consumable and multi-step interaction only after encounter and modifier boundaries are stable.
+- Package 8 completes player-facing Phaser integration across branching and the new encounter types.
+- Package 9 proves the complete production-composed slice, persistence/reload/retry behavior, regression safety, and responsive capture coverage.
+- Package 10 is manual UAT. Do not begin Milestone 11 until it passes and the user explicitly confirms promotion.
