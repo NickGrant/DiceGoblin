@@ -148,7 +148,11 @@ export class WrongMachineScreen implements GameSceneScreen {
 
   private publishReady(ready: boolean): void {
     const parent = (this.scene.sys as (Phaser.Scenes.Systems & { game?: Phaser.Game }) | undefined)?.game?.canvas.parentElement;
-    if (parent) parent.dataset['wrongMachineReady'] = ready ? 'true' : 'false';
+    if (parent) {
+      parent.dataset['wrongMachineReady'] = ready ? 'true' : 'false';
+      parent.dataset['wrongMachineStatus'] = this.store.wrongMachine.status;
+      parent.dataset['wrongMachineAttempt'] = this.attempt.state;
+    }
   }
 
   private get blocked(): boolean { return this.attempt.state === 'submitting' || this.attempt.state === 'retryable'; }

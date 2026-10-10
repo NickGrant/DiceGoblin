@@ -7,6 +7,10 @@
 **Status:** In Progress
 **Priority:** High
 
+#### Problem
+
+The accepted Kin and Wrong Machine implementation has not yet been proven as one production-composed lifecycle from authored run rewards through persisted first and repeat reconstruction, Phaser reconciliation, and responsive presentation.
+
 #### Accepted baseline
 
 Milestone 9 Package 1 is approved through implementation `2126bb76f65b753bef227f68c048de1738808bf7` plus focused production-drop correction `79e38a5a41d25fd36a97ea630ee2379d0e2f6049`.
@@ -111,3 +115,13 @@ Report:
 - confirmation no Frog Kin, Milestone 10 work, new Phaser Scene, Angular gameplay route, mirrored Wrong Machine persistence, or client-authored reconstruction authority was introduced.
 
 Leave Package 4 **In Progress** for architectural review. Do not promote Package 5 yourself.
+
+#### Closure evidence for architectural review
+
+- Clean MySQL: PDO-based `backend/scripts/provision-test-db.php` provisioned isolated `goblin_test`; `backend/scripts/reset-test-db.php` dropped only that database's tables and reapplied `migrations/vnext_baseline.sql`. Focused integration passed on the fresh baseline: `KinWrongMachineLifecycleClosureTest`, 1 test / 79 assertions. The reset command remains guarded to the exact `goblin_test` database.
+- Production-composed lifecycle: one account with persisted Wrong Machine and Bruiser access salvaged five dice through `DiceLifecycleCommand` for 20 Raw Chaos, completed two Farm runs and two Mountains runs through `StartRunCommand`/`ResolveRunNodeCommand`, and earned 6 Pig Ears + 2 Mudking Crown Fragments and 6 Kobold Scales + 2 Chief Engineer Lenses through authored victory grants. Combat victory is deterministic at the resolver seam; run, reward, wallet, read, and reconstruction operations use production composition.
+- Pig and Lizard each completed first restoration and explicit Bruiser repeat reconstruction from fresh `WrongMachineQuery` reads through the same `ReconstructKinCommand`. Each receipt created one level-1 active unit of the requested Kin, spent 5 Raw Chaos, consumed authored ingredients, and incremented `player_revision` once. First restoration granted the Kin unlock; repeat reported `already_owned`. Fresh MySQL queries after each command showed the wallet, item balances, Kin unlock, unit ownership/type, and repeat mode. Exact-key replay returned the identical receipt with unchanged persisted state. Final wallet and ingredient balances were zero and four new units were owned.
+- Existing `ReconstructKinCommandTest` and Wrong Machine controller/read suites cover changed-key conflict, stale intent, resource/prerequisite/eligible-type rejection, rollback checkpoints, cross-player isolation, authentication/CSRF, and active-run unit safety. Package 3 browser contracts/screens cover loaded and unloaded cache reconciliation, no optimistic spend, first/repeat choice rules, retained ambiguous retries, new keys, stale-intent refresh, and re-entry. Canonical recipes remain server-owned JSON; the validated client projection has no reconstruction recipes or selection rules. No family-specific branch was added to command/query/screen code.
+- Full gates: `npm run verify:package` PASS; backend 375 tests / 1,921 assertions; frontend 539 tests; content validation, docs lint, context/backlog validation, production frontend build, bundle budget, and diff whitespace all passed. Production content revision: `9b3b0a14d8018319d4f59e16f6b376d70c8430476a671b18c082eb60d5419bd2`.
+- Deterministic captures under ignored `artifacts/screenshots/`: Wrong Machine first mode at 844x390 touch, 1600x900, and 2560x1080; compact repeat selection; standard and compact read-error/retryable states; Camp entry at Compact/Standard/Wide; and 390x844 portrait with the shared rotate gate active. Reviewed costs, material counts, mode/status, selection/action, retry text, Back, and entry placement; no layout correction was required.
+- Narrow closure corrections: repaired documented test database provision/reset scripts to use the configured `pdo_mysql` extension; added deterministic capture states and browser status markers. No new Kin mechanics, Frog Kin, Milestone 10 work, Phaser Scene, Angular route, mirrored Wrong Machine persistence, or client-authored reconstruction authority was introduced.

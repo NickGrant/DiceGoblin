@@ -157,7 +157,7 @@ Options:
   --scene-data <json>       JSON object passed to scene init/create
   --initial-tab <tab>       Optional debugInitialTab query value for tabbed scenes
   --active-run              Preview Warband/squad/unit with a coherent active Farm run
-  --progression-state <s>   default | owned | missing | terminal | locked | unaffordable | below-level
+  --progression-state <s>   default | owned | missing | read-error | retryable | terminal | locked | unaffordable | below-level
   --safe-insets <t,r,b,l>   Inject debug-only CSS safe insets in pixels
   --settle-ms <ms>          Extra wait after the scene signals ready (default: ${DEFAULT_SETTLE_MS})
   --timeout-ms <ms>         Overall timeout waiting for app and scene readiness
@@ -287,6 +287,15 @@ async function installGameFixtureRoutes(page, options) {
     return;
   }
   if (scene === 'wrong-machine') {
+    if (options.progressionState === 'read-error') {
+      await page.route('**/api/v1/wrong-machine', (route) => route.fulfill({ status: 503,
+        contentType: 'application/json', body: JSON.stringify({ ok: false, error: { code: 'read_unavailable' } }) }));
+      return;
+    }
+    if (options.progressionState === 'retryable') {
+      await page.route('**/api/v1/wrong-machine/reconstruct', (route) => route.fulfill({ status: 503,
+        contentType: 'application/json', body: JSON.stringify({ ok: false, error: { code: 'temporarily_unavailable' } }) }));
+    }
     const definitions = JSON.parse(await readFile(path.resolve(process.cwd(), 'backend/content/reconstruction_recipes/pig-and-lizard.json'), 'utf8')).definitions;
     const recipes = definitions.map((recipe) => {
       const kinRestored = options.progressionState === 'owned';
@@ -666,7 +675,17 @@ async function captureScene(options) {
             await page.waitForSelector('[data-academy-ready="true"]', { timeout: options.timeoutMs });
           }
           if (gameScreen === 'wrong-machine') {
-            await page.waitForSelector('[data-wrong-machine-ready="true"]', { timeout: options.timeoutMs });
+            await page.waitForSelector(options.progressionState === 'read-error'
+              ? '[data-wrong-machine-status="error"]' : '[data-wrong-machine-ready="true"]',
+            { timeout: options.timeoutMs });
+            if (options.progressionState === 'retryable') {
+              const canvas = page.locator('.game-host__mount canvas'); const box = await canvas.boundingBox();
+              if (!box) throw new Error('Wrong Machine canvas was unavailable.');
+              const position = { x: box.width * .89, y: box.height * .89 };
+              await canvas.click({ position, force: true });
+              await canvas.click({ position, force: true });
+              await page.waitForSelector('[data-wrong-machine-attempt="retryable"]', { timeout: options.timeoutMs });
+            }
           }
           if (gameScreen === 'unit-promotion') {
             await page.waitForSelector('[data-unit-promotion-ready="true"]', { timeout: options.timeoutMs });
