@@ -13,10 +13,9 @@ If a documented command is stale because the package intentionally replaces that
 - Frontend suite: `npm run test:frontend`
 - Frontend production build: `npm run build:frontend`
 - Frontend bundle budget when bundle/runtime dependencies change: `npm run bundle:check`
-- Full cross-stack gate when warranted: `npm run verify:full` (alias of the compact package verifier)
 - Deterministic Phaser capture: `npm run capture:scene -- ...` using the relevant scene/fixture arguments
 
-Repository scripts in `package.json` are the executable source of truth when a specialized domain gate is needed.
+Repository scripts in `package.json` are the executable source of truth for the supported top-level workflow commands. Lower-level subsystem tools remain available through their direct Node/PHP entry points when specialized investigation is needed.
 
 ## Package Gates by Change Type
 - **Backend/API:** targeted tests while editing; before completion run relevant backend suite. Verify auth, CSRF, ownership, validation, transaction rollback, and idempotency when applicable.
@@ -25,7 +24,7 @@ Repository scripts in `package.json` are the executable source of truth when a s
 - **Visual/layout:** deterministic capture plus Compact landscape, 1600x900 reference, and Wide landscape review for affected screens. Verify portrait rotate-device behavior only when host/orientation/layout work can affect it.
 - **Authored content:** structural/reference/stable-ID validation plus client-projection allowlist/secrecy checks.
 - **Spending/random/durable gameplay commands:** prove retry idempotency: no double spend, duplicate durable assets, or reroll of finalized results.
-- **Combat/run generation:** retain deterministic regression/simulation coverage when migrating algorithms; use specialized `package.json` scripts only for the affected subsystem.
+- **Combat/run generation:** retain deterministic regression/simulation coverage when migrating algorithms; use the relevant lower-level subsystem tooling only for the affected subsystem.
 - **Documentation/agent-only:** `npm run llm:check` and `npm run docs:lint` as applicable; inspect references changed by the edit.
 
 ## Reuse Gate
