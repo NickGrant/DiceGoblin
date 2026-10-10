@@ -6,6 +6,7 @@ namespace DiceGoblins\Controllers;
 use DiceGoblins\Application\Commands\ProvisionWarbandFixtureCommand;
 use DiceGoblins\Application\Commands\PurchaseShopOfferCommand;
 use DiceGoblins\Application\Commands\UpgradeAcademyCommand;
+use DiceGoblins\Application\Commands\ReconstructKinCommand;
 use DiceGoblins\Application\Commands\RestoreEnergyCommand;
 use DiceGoblins\Application\Commands\HealRunUnitCommand;
 use DiceGoblins\Application\Commands\DiceLifecycleCommand;
@@ -215,6 +216,10 @@ final class ControllerServiceFactory
       'upgradeAcademyCommand' => new UpgradeAcademyCommand(
         $pdo, $core['playerStateRepo'], $idempotencyRepository, $unlockRepository, $rewardApplication,
         $content, new EnergyCapacityTransition(), new SystemClock(),
+      ),
+      'reconstructKinCommand' => new ReconstructKinCommand(
+        $pdo, $core['playerStateRepo'], $idempotencyRepository, $itemRepository, $unlockRepository,
+        $unitTypeAvailability, $normalUnitCreation, $content,
       ),
       'restoreEnergyCommand' => new RestoreEnergyCommand(
         $pdo, $core['playerStateRepo'], $itemRepository, $idempotencyRepository, $unlockRepository, $content,
