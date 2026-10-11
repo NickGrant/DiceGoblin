@@ -2,134 +2,119 @@
 
 ## Milestone 10 - Run Encounter Depth
 
-### Milestone 10 Package 1 - Branch-capable run topology and route-choice foundation
+### Milestone 10 Package 2 - Generalized non-combat encounter contract and Rest migration
 
 **Status:** In Progress
 **Priority:** High
 
 #### Accepted baseline
 
-Milestones 1-9 are complete. Milestone 9 technical closure is approved at `8e8701c7fb071b7513fbcac4ac3da62e266f6f8e` and focused manual UAT passed on 2026-10-10.
+Milestones 1-9 are complete. Milestone 10 Package 1 is approved at `86c88987aaf14391660cb3b868cd10e537dd19d8` after the exploration-frontier correction.
 
-The existing vNext run architecture already owns authored region/run definitions, persisted generated runs and nodes, authoritative node resolution, combat/reward/terminal lifecycle, current-run queries, reconnect/resume, and Phaser `RunScene` presentation. Farm and Mountains are accepted production-composed regions using that shared architecture.
+Package 1 established the authoritative persisted exploration graph/frontier: resolving one available node completes it, unlocks eligible direct successors, and preserves every other available node. Optional dead ends and convergence are valid. The existing Farm and Mountains production definitions remain linear and valid.
 
-#### Problem
-
-The current linear traversal cannot expose and persist an exploration frontier with multiple independently resolvable nodes.
+The existing vNext runtime already resolves Combat, Loot, Rest, Boss, and Exit nodes through the shared run-node command/handler boundary. Rest currently has accepted player-facing behavior, but Milestone 10 needs a reusable authored non-combat encounter contract before Hazard, Shrine, and Chaos families are added.
 
 #### Purpose
 
-Establish the topology and authority boundary required for genuinely branch-capable runs before adding new Milestone 10 encounter families.
+Establish the smallest generic authored/runtime contract needed for interactive non-combat encounters, then migrate the existing Rest node behavior through that contract without changing its accepted gameplay outcome.
 
-This package should make generated run graphs capable of exposing more than one legal next node and make the available frontier explicit, persisted, authoritative, idempotent/retry-safe, and reconnect-safe. Resolving one available node completes it and unlocks direct successors while all other available nodes remain available. Optional dead ends and converging routes are valid; one reachable terminal Exit remains required. It must preserve existing Farm/Mountains behavior and create a generic foundation for later Rest, hazard, shrine, Chaos, modifier, and multi-step encounter packages.
+This package is architectural generalization, not new encounter-family content. It should prove that a non-combat node can obtain its player-visible interaction from authored encounter data, resolve authoritatively through the existing run lifecycle, persist/reconcile safely, and coexist with the Package 1 exploration frontier.
 
-Do not add hazards, shrines, Chaos encounters, run modifiers, new consumable mechanics, knowledge/objectives, onboarding, Swamp/Frog Kin, or final visual redesign in this package.
+Do not add Hazard, Shrine, Chaos, run modifiers, new consumable mechanics, multi-step persistence, Swamp/Frog Kin, knowledge/objectives, onboarding, or final visual redesign in this package.
 
 #### Canonical design constraints
 
-- Extend the existing authored region/run/node model; do not create a parallel run engine or branching-only schema.
-- Canonical topology/generation rules belong in authored content and domain/application logic as appropriate, not client constants or SQL-authored catalogs.
-- MySQL is authoritative for each generated run graph, resolved/current position, and durable route state.
-- A node may be resolved only when it is currently reachable according to authoritative run state. Knowing another generated node ID must never authorize traversal.
-- Route choice must survive reload/reconnect without rerolling or silently changing available choices.
-- Completing one available node must not consume other available nodes. Any completed incoming route may unlock a convergent successor; an optional dead end adds no successors.
-- Idempotent replay of a route/node action must return the finalized result without advancing twice.
-- Phaser is a projection of server authority. It may render available branches and selected/current state but may not derive hidden reachability rules independently.
-- Preserve one generic path across Farm and Mountains. Region-specific topology data is acceptable in authored content; region-specific traversal branches in controllers/application/runtime are not.
-- Preserve active-run ownership/security and cross-player isolation.
+- Extend the existing run/node/encounter/content architecture; do not create a parallel event engine or Rest-specific second path.
+- Static encounter definitions and player-visible encounter copy/options belong in validated authored JSON. Do not move encounter catalogs into SQL or client constants.
+- The backend remains authoritative for eligibility, effects, rewards/state mutation, node completion, successor unlocking, the retained exploration frontier, and idempotent receipts.
+- The client may present only server-authorized encounter information/actions. It must not derive effect outcomes or hidden eligibility from authored data shipped wholesale to the browser.
+- Preserve the existing generic run-node resolution transaction/idempotency boundary where semantically valid.
+- Preserve Package 1 semantics: resolving Rest must not consume unrelated available nodes; direct successors unlock normally; dead-end/convergent topology remains generic.
+- Preserve Farm and Mountains as generic authored regions. Do not add region-specific Rest branches in controllers/application/runtime.
+- Keep this contract no more expressive than needed to support accepted Rest now and the immediate Hazard/Shrine/Chaos packages next. Avoid speculative scripting languages or arbitrary client-authored effect graphs.
 
 #### Backend/content scope
 
-1. Define the smallest canonical authored representation needed for branch-capable topology while retaining compatibility with current linear authored runs.
-2. Extend generation so a run may persist a directed graph with one or more legal outgoing routes from the current/resolved position.
-3. Define authoritative current-position/reachability semantics for:
-   - initial run state;
-   - unresolved current/available nodes;
-   - resolving a chosen reachable node;
-   - exposing its newly reachable successors while retaining the rest of the frontier;
-   - completed/terminal runs;
-   - reload/resume.
-4. Ensure existing linear Farm/Mountains definitions continue to generate and resolve correctly without requiring duplicated content.
-5. Reject attempts to resolve:
-   - a node from another player/run;
-   - a generated node that exists but is not currently reachable;
-   - an already-resolved node except through valid idempotent replay;
-   - any node after terminal completion.
-6. Preserve existing node-specific resolution boundaries. This package changes traversal/topology authority, not the semantics of Combat/Loot/Rest/Boss/Exit themselves.
-7. If schema changes are required, update the vNext baseline directly according to current rebuild migration policy and keep persistence generic to runs/nodes/edges or equivalent shared topology state.
+1. Inventory the current Rest implementation and existing authored `encounters` content before choosing the generalized shape. Reuse accepted content fields/boundaries where possible rather than creating duplicate concepts.
+2. Define and validate the minimal canonical non-combat encounter representation needed for:
+   - stable encounter identity;
+   - player-visible title/body/prompt as actually needed by the current UI;
+   - one or more stable player action/choice identifiers if interaction requires them;
+   - server-owned effect/resolution semantics;
+   - safe association from a generated run node/encounter reference.
+3. Migrate existing Farm/Mountains Rest definitions/behavior through the generalized contract without changing accepted Rest balance/effect semantics unless a current canonical document explicitly requires a correction.
+4. Resolve the selected non-combat action authoritatively. Validate that the run/node belongs to the player, the node is currently available, the encounter/action is valid for that node, and the request cannot choose hidden/unauthorized effects.
+5. Apply Rest effects, node completion, successor unlocking, frontier retention, `player_revision`, and finalized idempotency receipt atomically using existing shared boundaries.
+6. Exact-key replay must return the finalized result without reapplying healing/effects, completing twice, or changing the exploration frontier.
+7. Reload/re-query after resolution must reproduce authoritative unit HP/run state and frontier state.
+8. Do not introduce durable per-encounter progress/state in this package unless Rest genuinely requires it. Multi-step encounter persistence belongs to Package 7.
+9. Keep authored encounter data server-private by default. If new player-visible fields must reach Phaser, expose a narrow authorized runtime projection/read contract rather than publishing the canonical encounter catalog wholesale.
 
 #### API/read contract scope
 
-Update authoritative current-run/run-state presentation so the client can render route choices without reconstructing graph rules. At minimum expose enough player-authorized information to identify:
-- current/resolved position as needed for presentation;
-- the currently legal next node or nodes;
-- stable node identity and player-visible node presentation already accepted by the run contract;
-- resolved/terminal state.
+Use the existing run/current-run and run-node resolution boundaries where they remain semantically clean. Do not add a redundant endpoint solely because Rest has moved behind the generalized encounter contract.
 
-Do not expose hidden authored encounter data merely to enable route rendering.
+The client must receive enough authorized information to render the current non-combat interaction and submit a stable action identifier where needed. The response must contain enough finalized authoritative state for the existing GameRuntime/GameStore reconciliation pattern.
 
-Mutation requests must identify the intended reachable node through the accepted run/node resolution boundary. If the existing request shape already does this safely, extend semantics rather than adding redundant route-choice endpoints.
+Strictly validate request/response contracts. Reject unknown encounter/action identifiers and mismatched node/encounter combinations without mutation.
 
 #### Phaser/runtime scope
 
-Only make the minimum RunScene/runtime changes necessary to consume and prove the authoritative branching contract in this package.
+Make only the minimum RunScene/runtime changes necessary to consume the generalized non-combat encounter contract and prove migrated Rest.
 
-- Render multiple available next nodes when the backend supplies them.
-- Make only authoritative reachable choices interactive.
-- Preserve current linear presentation when exactly one route is available.
-- Prevent duplicate input while a choice/resolution mutation is pending.
-- Reconcile the finalized server response rather than optimistically advancing the route.
-- Reload/re-entry must reproduce the same available choices from backend state.
-- Remain within the existing `RunScene`; do not create a new Phaser Scene or Angular gameplay route.
-
-Detailed encounter interaction UX belongs to later Milestone 10 packages.
+- Rest remains in the existing `RunScene`; do not add a Phaser Scene or Angular gameplay route.
+- Render player-visible Rest interaction from the authorized server contract rather than Rest-specific hard-coded effect logic.
+- Prevent duplicate input while mutation is pending.
+- Reconcile the finalized server response; do not optimistically heal or complete the node.
+- Preserve Package 1 accumulated-frontier behavior when Rest is one of several available nodes.
+- Reload/re-entry must reproduce the authoritative unresolved/resolved state.
+- Preserve current responsive/rotate behavior. Final visual polish remains deferred.
 
 #### Verification requirements
 
 Add focused automated coverage proving at minimum:
-- legacy linear Farm generation/resolution remains valid;
-- legacy linear Mountains generation/resolution remains valid;
-- an authored branching fixture/production-safe test definition generates at least one point with two legal successors;
-- both successors are exposed as legal choices before selection;
-- selecting either legal successor completes it while leaving the other available;
-- an optional dead end and an accumulating frontier remain resolvable;
-- convergence unlocks a successor after any completed incoming route without duplicate unlock;
-- a non-reachable generated node cannot be resolved by ID;
-- reload/re-query preserves the same choices before selection and the selected path afterward;
-- exact-key replay does not advance twice or alter the selected path;
-- stale/invalid choice attempts do not mutate run state;
-- cross-player/run node IDs cannot be used;
-- terminal runs expose no legal next choices;
-- Phaser contract/runtime tests cover multiple choices, pending-input blocking, authoritative reconciliation, and re-entry/reload state.
+- authored encounter validation accepts the migrated Rest definitions and rejects malformed/unknown references/actions/effect semantics;
+- Farm Rest preserves its accepted healing/effect behavior through the generalized contract;
+- Mountains Rest preserves its accepted healing/effect behavior through the same generic path;
+- no region-specific application/controller/runtime branch is required for Farm versus Mountains;
+- resolving Rest completes only that node, unlocks eligible direct successors, and preserves unrelated available frontier nodes;
+- Rest on a legal dead-end fixture completes without terminalizing the run or consuming the remaining frontier;
+- invalid/locked/completed/foreign-run Rest attempts do not mutate state;
+- invalid or mismatched encounter/action identifiers do not mutate state;
+- exact-key replay does not heal/apply effects twice, increment revision twice, or alter frontier twice;
+- reload/re-query preserves finalized run HP/unit HP and frontier state;
+- terminal run behavior remains protected;
+- existing Combat/Loot/Boss/Exit resolution regressions remain green;
+- frontend contracts reject malformed/unauthorized encounter payloads;
+- RunScene tests cover Rest presentation, pending-input blocking, authoritative reconciliation, accumulated-frontier retention, and reload/re-entry.
 
-Run the applicable gates from `agent/QUALITY_GATES.md`. Any regressions in accepted combat, rewards, terminal run flow, economy/material acquisition, active-run Warband restrictions, or region generalization are Package 1 defects and should be corrected here.
+Run the applicable gates from `agent/QUALITY_GATES.md`. Any regression in Farm/Mountains completion, combat/rewards, Package 1 branching/frontier behavior, economy/material acquisition, active-run Warband restrictions, or content secrecy is a Package 2 defect.
 
 #### Responsive verification
 
-Because branching changes RunScene interaction, verify deterministic presentation at the accepted Compact landscape, Standard 1600x900, Wide landscape, and portrait rotate-device gate. This is functional/responsive verification, not final visual polish.
+Because the generalized encounter interaction is player-facing in RunScene, verify deterministic presentation at:
+- Compact landscape 844x390;
+- Standard 1600x900;
+- Wide 2560x1080;
+- portrait 390x844 rotate-device gate.
+
+This is functional/responsive verification, not final visual polish.
 
 #### Completion evidence
 
 Report:
 - implementation SHA;
-- authored topology representation chosen and why it is the minimal generic extension;
-- any baseline/schema changes;
-- production-composed or equivalent persisted branching lifecycle evidence;
-- linear Farm/Mountains regression evidence;
-- reachability/invalid-node/idempotency/reload/cross-player evidence;
-- Phaser branching/reconciliation evidence;
-- focused and full gate results;
+- generalized non-combat encounter representation and why it is the minimal reusable contract;
+- authored Rest migration details for Farm and Mountains;
+- any API/runtime projection changes and secrecy rationale;
+- persisted/idempotent Rest lifecycle evidence;
+- Package 1 frontier-retention/dead-end evidence through Rest;
+- invalid/mismatched/foreign/stale request evidence;
+- Farm/Mountains and Combat/Loot/Boss/Exit regression evidence;
+- Phaser Rest/reconciliation evidence;
+- focused and full quality-gate results;
 - responsive capture evidence;
-- confirmation no later Milestone 10 encounter mechanics or Milestone 11+ work was introduced.
+- confirmation no Hazard/Shrine/Chaos/modifier/multi-step/Milestone 11+ scope was introduced.
 
-Leave Package 1 **In Progress** for architectural review. Do not promote Package 2 yourself.
-
-#### Package 1 implementation evidence (2026-10-11)
-
-- The existing `fixed_graph_v1` node and directed-edge lists are the minimal authored topology representation. No new content fields or schema were needed. Validation requires a first-node start, an acyclic graph, every node reachable from start, and one reachable terminal Exit. Optional dead ends and convergence are legal. Node list order gives stable identity, not traversal direction. Farm and Mountains authored paths remain unchanged.
-- The shared run/node/edge repositories persist the exploration frontier. Completing one available node unlocks only its direct locked successors and preserves all other available nodes. The `skipped` traversal status and exclusive-choice mutation were removed. A completed incoming edge suffices to unlock a convergent child; another parent's later completion does not duplicate it.
-- Persisted lifecycle tests cover either branch order, accumulated `[other branch, successor]` frontier, optional dead-end completion while the run stays active, convergence, separate-connection reload, exact-key receipt replay and one revision increment, locked/early and stale/completed IDs, foreign ownership, and terminal rejection. Linear Farm/Mountains regression suites remain part of the full gate.
-- `RunScene` consumes `available_node_ids`, blocks duplicate input/navigation during submitting or ambiguous outcomes, reconciles the server frontier, and keeps the other branch selectable after reload. Strict frontend parsing rejects `skipped` and mismatched available lists. Completed battle replay remains available.
-- Focused backend: authored run validation 26 tests / 79 assertions; branching lifecycle 3 tests / 57 assertions; Mountains lifecycle 3 tests / 92 assertions. Focused browser run contracts, map model, and RunScene: 40 tests passed. Full `npm run verify:package`: PASS; backend 382 tests / 1,976 assertions; frontend 541 tests; context, docs, content/projection, production build, bundle, and whitespace gates passed. Production content revision: `9b3b0a14d8018319d4f59e16f6b376d70c8430476a671b18c082eb60d5419bd2`.
-- Deterministic `run-branching` captures now show the accumulated frontier after one Loot resolves: the other Loot and Rest are both ready. Compact 844x390, Standard 1600x900, Wide 2560x1080, and portrait 390x844 rotate gate passed and were visually reviewed. Files: `artifacts/screenshots/m10-p1-run-branching-{compact,standard,wide,portrait}.png`.
-- No later Milestone 10 encounter families or Milestone 11+ work was introduced. Status remains **In Progress** for architectural review.
+Leave Package 2 **In Progress** for architectural review. Do not promote Package 3 yourself.
