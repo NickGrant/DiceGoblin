@@ -177,7 +177,8 @@ final class RunStartControllerTest extends IntegrationTestCase
     $this->assertSame([0, 1, 2, 3, 4], array_map('intval', array_column($nodes, 'node_index')));
     $this->assertSame(['run_node_type.combat', 'run_node_type.loot', 'run_node_type.rest', 'run_node_type.boss', 'run_node_type.exit'], array_column($nodes, 'node_type_id'));
     $this->assertSame(['available', 'locked', 'locked', 'locked', 'locked'], array_column($nodes, 'status'));
-    $this->assertSame(['encounter.the_farm_mud_combat_1', null, null, 'encounter.the_farm_mud_boss_1', null], array_column($nodes, 'encounter_id'));
+    $this->assertSame(['encounter.the_farm_mud_combat_1', null, 'encounter.the_farm_rest',
+      'encounter.the_farm_mud_boss_1', null], array_column($nodes, 'encounter_id'));
     $this->assertSame([null, 'event.farm_loot_completed', null, 'event.farm_boss_completed', null], array_column($nodes, 'event_id'));
     foreach ($nodes as $index => $node) {
       $this->assertEquals(['position' => ['column' => $index, 'row' => 1]], json_decode((string)$node['generated_metadata'], true));
@@ -397,7 +398,7 @@ final class RunStartControllerTest extends IntegrationTestCase
     $this->assertSame(['run_node_type.combat', 'run_node_type.loot', 'run_node_type.combat', 'run_node_type.rest',
       'run_node_type.combat', 'run_node_type.boss', 'run_node_type.exit'], array_column($nodes, 'node_type_id'));
     $this->assertSame(['available', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked'], array_column($nodes, 'status'));
-    $this->assertSame(['encounter.mountains_kobold_combat_1', null, 'encounter.mountains_kobold_combat_2', null,
+    $this->assertSame(['encounter.mountains_kobold_combat_1', null, 'encounter.mountains_kobold_combat_2', 'encounter.mountains_rest',
       'encounter.mountains_kobold_combat_3', 'encounter.mountains_kobold_boss_1', null], array_column($nodes, 'encounter_id'));
     $this->assertSame([null, 'event.mountains_loot_completed', null, null, null, 'event.mountains_boss_completed', null],
       array_column($nodes, 'event_id'));

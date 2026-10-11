@@ -101,7 +101,8 @@ final class BranchingRunLifecycleTest extends IntegrationTestCase
     $this->assertSame([(string)$ids[3]], $query->execute($userId)['run']['available_node_ids']);
     $this->assertSame('available', $this->scalar('SELECT `status` FROM `run_nodes` WHERE `id` = ?', [$ids[3]]));
 
-    $command->execute($userId, $runId, $ids[3], 'branch-rest-' . $choice);
+    $command->execute($userId, $runId, $ids[3], 'branch-rest-' . $choice,
+      ['encounter_id' => 'encounter.the_farm_rest', 'action_id' => 'rest']);
     $command->execute($userId, $runId, $ids[4], 'branch-boss-' . $choice);
     $exit = $command->execute($userId, $runId, $ids[5], 'branch-exit-' . $choice);
     $this->assertSame(['completed', []], [$exit['run']['status'], $exit['newly_available_node_ids']]);

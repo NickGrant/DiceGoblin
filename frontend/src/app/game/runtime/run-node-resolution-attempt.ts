@@ -6,16 +6,21 @@ export type RunNodeResolutionAttemptOutcome = { readonly kind: 'success'; readon
   | { readonly kind: 'ambiguous' } | { readonly kind: 'rejected' } | { readonly kind: 'already-resolved' } | { readonly kind: 'ignored' };
 
 export class RunNodeResolutionAttempt {
-  private attempt: { runId: string; nodeId: string; key: string } | null = null;
+  private attempt: { runId: string; nodeId: string; key: string;
+    interaction?: { readonly encounterId: string; readonly actionId: string } } | null = null;
   private currentState: RunNodeResolutionAttemptState = 'idle';
   constructor(private readonly createKey: () => string = () => `run-node:${crypto.randomUUID()}`) {}
   get state(): RunNodeResolutionAttemptState { return this.currentState; }
-  get identity(): Readonly<{ runId: string; nodeId: string; key: string }> | null { return this.attempt; }
+  get identity(): Readonly<{ runId: string; nodeId: string; key: string;
+    interaction?: { readonly encounterId: string; readonly actionId: string } }> | null { return this.attempt; }
 
-  begin(runId: string, nodeId: string): void {
+  begin(runId: string, nodeId: string, interaction?: { readonly encounterId: string; readonly actionId: string }): void {
     if (this.currentState === 'submitting') return;
     if (!this.attempt || this.attempt.runId !== runId || this.attempt.nodeId !== nodeId
-      || this.currentState === 'rejected' || this.currentState === 'succeeded') this.attempt = { runId, nodeId, key: this.createKey() };
+      || this.currentState === 'rejected' || this.currentState === 'succeeded')
+      this.attempt = { runId, nodeId, key: this.createKey(), ...(interaction ? { interaction } : {}) };
+    else if (this.attempt.interaction?.encounterId !== interaction?.encounterId
+      || this.attempt.interaction?.actionId !== interaction?.actionId) return;
     this.currentState = 'idle';
   }
 
@@ -24,7 +29,10 @@ export class RunNodeResolutionAttempt {
     if (!this.attempt || this.currentState === 'submitting' || this.currentState === 'succeeded') return { kind: 'ignored' };
     this.currentState = 'submitting';
     try {
-      const result = await api.resolveRunNode(this.attempt.runId, this.attempt.nodeId, csrfToken, this.attempt.key);
+      const result = this.attempt.interaction
+        ? await api.resolveRunNode(this.attempt.runId, this.attempt.nodeId, csrfToken, this.attempt.key,
+          this.attempt.interaction)
+        : await api.resolveRunNode(this.attempt.runId, this.attempt.nodeId, csrfToken, this.attempt.key);
       if (!acceptsResult(result)) {
         this.currentState = 'retryable'; return { kind: 'ambiguous' };
       }

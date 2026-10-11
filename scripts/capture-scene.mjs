@@ -180,7 +180,7 @@ async function installGameFixtureRoutes(page, options) {
   const battleScenes = ['battle-early', 'battle-mid', 'battle-complete', 'battle-compact', 'battle-wide', 'battle-portrait', 'battle-defeat',
     'battle-result-victory', 'battle-result-defeat', 'battle-result-stalemate', 'battle-result-compact', 'battle-result-wide', 'battle-result-error', 'battle-result-portrait'];
   const runScenes = ['run', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-branching',
-    'run-loot-available', 'run-loot-result', 'run-rest-result', 'run-supplies'];
+    'run-loot-available', 'run-loot-result', 'run-rest-available', 'run-rest-result', 'run-supplies'];
   if (!['camp', 'camp-portrait', 'warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'unit-promotion', 'squad-editor', 'unit-configuration', ...runScenes, ...battleScenes].includes(scene)) return;
 
   if (battleScenes.includes(scene)) {
@@ -367,7 +367,7 @@ async function installGameFixtureRoutes(page, options) {
     return;
   }
   if (runScenes.includes(scene)) {
-    let resolvedStage = ['run-rest-result', 'run-branching'].includes(scene) ? 'loot' : 'combat';
+    let resolvedStage = ['run-rest-available', 'run-rest-result', 'run-branching'].includes(scene) ? 'loot' : 'combat';
     const runResponse = () => {
       const combatAvailable = scene === 'run-combat-available';
       const branching = scene === 'run-branching';
@@ -381,6 +381,10 @@ async function installGameFixtureRoutes(page, options) {
         { id: '505', node_index: branching ? 5 : 4, node_type_id: 'run_node_type.exit', status: 'locked', completed_at: null, battle_id: null, position: { column: 4, row: 1 } },
       ];
       if (branching) nodes.splice(2, 0, { id: '506', node_index: 2, node_type_id: 'run_node_type.loot', status: 'available', completed_at: null, battle_id: null, position: { column: 1, row: 2 } });
+      const readyRest = nodes.find((node) => node.node_type_id === 'run_node_type.rest' && node.status === 'available');
+      if (readyRest) readyRest.interaction = { encounter_id: 'encounter.the_farm_rest', title: 'Rest',
+        body: 'The warband takes a moment to recover.', prompt: 'Restore every participating unit to full HP?',
+        actions: [{ id: 'rest', label: 'REST' }] };
       const edges = [
         { from_node_id: '501', to_node_id: '502' }, { from_node_id: '502', to_node_id: '503' },
         { from_node_id: '503', to_node_id: '504' }, { from_node_id: '504', to_node_id: '505' },
@@ -405,7 +409,8 @@ async function installGameFixtureRoutes(page, options) {
         newly_available_node_ids: [loot ? '503' : '504'], run: { id: '401', status: 'active', ended_at: null }, player_revision: loot ? 4 : 5 };
       const data = loot ? { resolution_type: 'loot', wallet: { teeth: 1242 },
         granted_rewards: [{ reward_type: 'currency', currency_id: 'teeth', amount: 8 }], ...common }
-        : { resolution_type: 'rest', healing: activeFormation.filter(Boolean).map((unit_id, index) => ({
+        : { resolution_type: 'rest', encounter_id: 'encounter.the_farm_rest', action_id: 'rest',
+          healing: activeFormation.filter(Boolean).map((unit_id, index) => ({
           unit_id, hp_before: index === 0 ? 0 : 12, hp_after: 24 + index, max_hp: 24 + index,
         })), ...common };
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, data }) });
@@ -658,14 +663,14 @@ async function captureScene(options) {
           );
         }
         if (['camp', 'camp-portrait', 'warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'unit-promotion', 'squad-editor', 'unit-configuration', 'run', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-branching',
-          'run-loot-available', 'run-loot-result', 'run-rest-result', 'run-supplies',
+            'run-loot-available', 'run-loot-result', 'run-rest-available', 'run-rest-result', 'run-supplies',
           'battle-early', 'battle-mid', 'battle-complete', 'battle-compact', 'battle-wide', 'battle-portrait', 'battle-defeat',
           'battle-result-victory', 'battle-result-defeat', 'battle-result-stalemate', 'battle-result-compact', 'battle-result-wide', 'battle-result-error', 'battle-result-portrait'].includes(options.scene.trim().toLowerCase())) {
           await page.waitForSelector('.game-host__mount canvas', { timeout: options.timeoutMs });
           const requestedGameScreen = options.scene.trim().toLowerCase();
           const gameScreen = ['warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'unit-promotion', 'squad-editor', 'unit-configuration'].includes(requestedGameScreen)
             ? requestedGameScreen : requestedGameScreen.startsWith('battle-') ? 'battle'
-              : ['run', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-branching', 'run-loot-available', 'run-loot-result', 'run-rest-result', 'run-supplies'].includes(requestedGameScreen) ? 'run' : 'camp';
+              : ['run', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-branching', 'run-loot-available', 'run-loot-result', 'run-rest-available', 'run-rest-result', 'run-supplies'].includes(requestedGameScreen) ? 'run' : 'camp';
           await page.waitForSelector(`[data-game-screen="${gameScreen}"]`, { timeout: options.timeoutMs });
           if (gameScreen === 'warband') {
             await page.waitForSelector('[data-warband-ready="true"]', { timeout: options.timeoutMs });
@@ -720,10 +725,10 @@ async function captureScene(options) {
             if (!box) throw new Error('Run canvas was unavailable.');
             await canvas.click({ position: { x: box.width * 225 / 1600, y: box.height * 418 / 900 }, force: true });
           }
-          if (['run-loot-available', 'run-loot-result', 'run-rest-result'].includes(requestedGameScreen)) {
+           if (['run-loot-available', 'run-loot-result', 'run-rest-available', 'run-rest-result'].includes(requestedGameScreen)) {
             const canvas = page.locator('.game-host__mount canvas'); const box = await canvas.boundingBox();
             if (!box) throw new Error('Run canvas was unavailable.');
-            const nodeX = requestedGameScreen === 'run-rest-result' ? 800 : options.width <= 900 ? 562 : 512;
+             const nodeX = requestedGameScreen.startsWith('run-rest-') ? 800 : options.width <= 900 ? 562 : 512;
             await canvas.click({ position: { x: box.width * nodeX / 1600, y: box.height * 418 / 900 }, force: true });
             if (requestedGameScreen.endsWith('-result')) {
               await canvas.click({ position: { x: box.width / 2, y: box.height * 800 / 900 }, force: true });

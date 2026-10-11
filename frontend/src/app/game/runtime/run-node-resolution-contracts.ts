@@ -41,6 +41,8 @@ export interface LootRunNodeResolutionResult extends ResolutionBase {
 
 export interface RestRunNodeResolutionResult extends ResolutionBase {
   readonly resolutionType: 'rest';
+  readonly encounterId: string;
+  readonly actionId: string;
   readonly healing: readonly { readonly unitId: string; readonly hpBefore: number; readonly hpAfter: number; readonly maxHp: number }[];
   readonly run: ResolvedActiveRun;
 }
@@ -210,7 +212,10 @@ function parseLoot(data: Record<string, unknown>): LootRunNodeResolutionResult {
 }
 
 function parseRest(data: Record<string, unknown>): RestRunNodeResolutionResult {
-  exact(data, ['resolution_type', 'healing', 'node', 'newly_available_node_ids', 'run', 'player_revision'], 'Rest resolution data');
+  exact(data, ['resolution_type', 'encounter_id', 'action_id', 'healing', 'node', 'newly_available_node_ids', 'run', 'player_revision'], 'Rest resolution data');
+  if (typeof data['encounter_id'] !== 'string' || !/^encounter\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/.test(data['encounter_id'])
+    || typeof data['action_id'] !== 'string' || !/^[a-z][a-z0-9_]*$/.test(data['action_id']))
+    throw new RunNodeResolutionContractError('Rest encounter action is invalid.');
   const base = common(data); const raw = data['healing'];
   if (!Array.isArray(raw) || raw.length === 0) throw new RunNodeResolutionContractError('Rest healing is invalid.');
   let prior: string | null = null;
@@ -225,7 +230,8 @@ function parseRest(data: Record<string, unknown>): RestRunNodeResolutionResult {
     if (hpAfter !== maxHp || hpBefore > maxHp || maxHp < 1) throw new RunNodeResolutionContractError('Rest HP transition is incoherent.');
     return Object.freeze({ unitId, hpBefore, hpAfter, maxHp });
   });
-  return Object.freeze({ resolutionType: 'rest', node: base.node, newlyAvailableNodeIds: base.newlyAvailableNodeIds,
+  return Object.freeze({ resolutionType: 'rest', encounterId: data['encounter_id'], actionId: data['action_id'],
+    node: base.node, newlyAvailableNodeIds: base.newlyAvailableNodeIds,
     healing: Object.freeze(healing), run: activeRun(base.runValue), playerRevision: base.playerRevision });
 }
 

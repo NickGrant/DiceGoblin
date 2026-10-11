@@ -225,12 +225,16 @@ final class GameBootstrapControllerTest extends IntegrationTestCase
         ['id' => 'run_node_type.rest', 'type' => 'run_node_type', 'display_name' => 'Rest', 'description' => 'Rest.', 'icon_key' => 'rest'],
         ['id' => 'run_node_type.boss', 'type' => 'run_node_type', 'display_name' => 'Boss', 'description' => 'Boss.', 'icon_key' => 'boss'],
         ['id' => 'run_node_type.exit', 'type' => 'run_node_type', 'display_name' => 'Exit', 'description' => 'Exit.', 'icon_key' => 'exit'],
+        ['id' => 'encounter.test_rest', 'type' => 'encounter', 'kind' => 'non_combat', 'region_id' => 'region.test',
+          'display_name' => 'Rest', 'description' => 'Recover.', 'prompt' => 'Rest here?',
+          'actions' => [['id' => 'rest', 'label' => 'REST', 'effect' => ['type' => 'restore_participating_units_to_max']]]],
         [
           'id' => 'run_generation.test', 'type' => 'run_generation', 'algorithm' => 'fixed_graph_v1', 'start_node_key' => 'combat',
           'nodes' => [
             ['key' => 'combat', 'node_type_id' => 'run_node_type.combat', 'position' => ['column' => 0, 'row' => 1]],
             ['key' => 'loot', 'node_type_id' => 'run_node_type.loot', 'position' => ['column' => 1, 'row' => 1]],
-            ['key' => 'rest', 'node_type_id' => 'run_node_type.rest', 'position' => ['column' => 2, 'row' => 1]],
+            ['key' => 'rest', 'node_type_id' => 'run_node_type.rest', 'encounter_id' => 'encounter.test_rest',
+              'position' => ['column' => 2, 'row' => 1]],
             ['key' => 'boss', 'node_type_id' => 'run_node_type.boss', 'position' => ['column' => 3, 'row' => 1]],
             ['key' => 'exit', 'node_type_id' => 'run_node_type.exit', 'position' => ['column' => 4, 'row' => 1]],
           ],

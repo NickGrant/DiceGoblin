@@ -27,6 +27,24 @@ final class RunContentValidationTest extends TestCase
     $this->assertSame(['available', 'locked', 'locked', 'locked', 'locked', 'locked'],
       array_column($graph['nodes'], 'status'));
   }
+  public function testCanonicalRestEncountersAreServerPrivateAndBoundToBothRegions(): void
+  {
+    $registry = ContentRegistry::load($this->canonicalRoot());
+    foreach (['region.the_farm' => 'encounter.the_farm_rest',
+      'region.mountains' => 'encounter.mountains_rest'] as $regionId => $encounterId) {
+      $generation = $registry->runGenerationForRegion($regionId);
+      $rest = array_values(array_filter($generation['nodes'],
+        static fn(array $node): bool => $node['node_type_id'] === 'run_node_type.rest'));
+      $this->assertCount(1, $rest);
+      $this->assertSame($encounterId, $rest[0]['encounter_id']);
+      $encounter = $registry->encounter($encounterId);
+      $this->assertSame('non_combat', $encounter['kind']);
+      $this->assertSame('restore_participating_units_to_max', $encounter['actions'][0]['effect']['type']);
+    }
+    $projection = json_encode((new ClientContentProjector())->project($registry), JSON_THROW_ON_ERROR);
+    $this->assertStringNotContainsString('encounter.the_farm_rest', $projection);
+    $this->assertStringNotContainsString('restore_participating_units_to_max', $projection);
+  }
   public function testOptionalDeadEndAndNonIndexOrderedAcyclicRoutesAreValid(): void
   {
     $content = ContentRegistry::load($this->canonicalRoot());
@@ -175,6 +193,10 @@ final class RunContentValidationTest extends TestCase
       'missing node type reference' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['nodes'][0]['node_type_id'] = 'run_node_type.missing'), 'references missing run_node_type'],
       'malformed node event reference' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['nodes'][1]['event_id'] = 'reward_definition.farm_loot_completed'), 'event. namespace'],
       'missing node event reference' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['nodes'][1]['event_id'] = 'event.missing'), 'references missing event'],
+      'missing Rest encounter' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.mountains', function (array &$definition): void { unset($definition['nodes'][3]['encounter_id']); }), 'Rest node requires an encounter_id'],
+      'wrong Rest encounter kind' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.mountains', fn(array &$definition) => $definition['nodes'][3]['encounter_id'] = 'encounter.mountains_kobold_combat_1'), 'encounter kind does not match'],
+      'missing Rest action' => [fn(array &$definitions) => $this->mutate($definitions, 'encounter.the_farm_rest', fn(array &$definition) => $definition['actions'] = []), 'actions must be a non-empty list'],
+      'unknown Rest effect' => [fn(array &$definitions) => $this->mutate($definitions, 'encounter.the_farm_rest', fn(array &$definition) => $definition['actions'][0]['effect']['type'] = 'grant_teeth'), "field 'type' must be one of"],
       'cross-region Mountains encounter' => [fn(array &$definitions) => $this->mutate($definitions,
         'encounter.mountains_kobold_combat_2', fn(array &$definition) => $definition['region_id'] = 'region.the_farm'),
         'is not compatible with region'],
@@ -185,7 +207,7 @@ final class RunContentValidationTest extends TestCase
       'self edge' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['edges'][0] = ['from' => 'combat', 'to' => 'combat']), 'self edge'],
       'duplicate edge' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['edges'][1] = $definition['edges'][0]), 'duplicate edge'],
       'disconnected exit' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => array_pop($definition['edges'])), 'disconnected'],
-      'missing boss' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['nodes'][3]['node_type_id'] = 'run_node_type.combat'), 'ordered combat, loot, rest, boss, exit'],
+      'missing boss' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['nodes'][3]['node_type_id'] = 'run_node_type.combat'), 'encounter kind does not match'],
       'missing exit' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['nodes'][4]['node_type_id'] = 'run_node_type.loot'), 'exactly one run_node_type.exit'],
       'non-linear Farm path' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['edges'][2] = ['from' => 'rest', 'to' => 'exit']), 'disconnected'],
       'bad coordinate' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['nodes'][0]['position']['column'] = 1.5), 'position.column'],

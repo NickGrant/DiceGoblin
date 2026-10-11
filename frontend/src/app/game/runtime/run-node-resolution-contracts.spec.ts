@@ -26,11 +26,13 @@ describe('run node resolution contracts', () => {
     expect(loot.wallet.teeth).toBe(18); expect(loot.grantedRewards[0].amount).toBe(8);
 
     const rest = parseRunNodeResolutionEnvelope({ ok: true, data: { resolution_type: 'rest',
+      encounter_id: 'encounter.the_farm_rest', action_id: 'rest',
       healing: [{ unit_id: '21', hp_before: 0, hp_after: 26, max_hp: 26 }],
       node: { id: '12', status: 'completed', completed_at: '2026-09-17T12:01:00Z' }, newly_available_node_ids: ['13'],
       run: { id: '41', status: 'active', ended_at: null }, player_revision: 10 } });
     expect(rest.resolutionType).toBe('rest');
     if (rest.resolutionType !== 'rest') throw new Error('Expected Rest result.');
+    expect([rest.encounterId, rest.actionId]).toEqual(['encounter.the_farm_rest', 'rest']);
     expect(rest.healing).toEqual([{ unitId: '21', hpBefore: 0, hpAfter: 26, maxHp: 26 }]);
   });
 
@@ -91,6 +93,7 @@ describe('run node resolution contracts', () => {
       node: { id: '11', status: 'completed', completed_at: '2026-09-17T12:00:00Z' }, newly_available_node_ids: ['12'],
       run: { id: '41', status: 'active', ended_at: null }, player_revision: 9 } })).toThrowError(RunNodeResolutionContractError);
     expect(() => parseRunNodeResolutionEnvelope({ ok: true, data: { resolution_type: 'rest',
+      encounter_id: 'encounter.the_farm_rest', action_id: 'rest',
       healing: [{ unit_id: '21', hp_before: 20, hp_after: 19, max_hp: 26 }],
       node: { id: '12', status: 'completed', completed_at: '2026-09-17T12:01:00Z' }, newly_available_node_ids: ['13'],
       run: { id: '41', status: 'active', ended_at: null }, player_revision: 10 } })).toThrowError(RunNodeResolutionContractError);

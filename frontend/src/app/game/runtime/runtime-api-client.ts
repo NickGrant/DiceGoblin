@@ -232,10 +232,14 @@ export class RuntimeApiClient {
     }
   }
 
-  async resolveRunNode(runId: string, nodeId: string, csrfToken: string, idempotencyKey: string): Promise<RunNodeResolutionResult> {
+  async resolveRunNode(runId: string, nodeId: string, csrfToken: string, idempotencyKey: string,
+    interaction?: { readonly encounterId: string; readonly actionId: string }): Promise<RunNodeResolutionResult> {
     if (!/^[1-9][0-9]*$/.test(runId) || !/^[1-9][0-9]*$/.test(nodeId) || idempotencyKey.trim() === '')
       throw new RuntimeApiError('malformed-response');
-    return this.mutate(`/api/v1/runs/${runId}/nodes/${nodeId}/resolve`, 'POST', csrfToken, undefined, idempotencyKey,
+    if (interaction && (!/^encounter\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/.test(interaction.encounterId)
+      || !/^[a-z][a-z0-9_]*$/.test(interaction.actionId))) throw new RuntimeApiError('malformed-response');
+    const request = interaction ? { encounter_id: interaction.encounterId, action_id: interaction.actionId } : undefined;
+    return this.mutate(`/api/v1/runs/${runId}/nodes/${nodeId}/resolve`, 'POST', csrfToken, request, idempotencyKey,
       parseRunNodeResolutionEnvelope);
   }
 

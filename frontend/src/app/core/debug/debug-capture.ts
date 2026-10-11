@@ -38,6 +38,7 @@ const DEBUG_SCENE_ROUTE_ALIASES: Record<string, string> = {
   'run-branching': '/game',
   'run-loot-available': '/game',
   'run-loot-result': '/game',
+  'run-rest-available': '/game',
   'run-rest-result': '/game',
   'run-supplies': '/game',
   'run-abandon': '/game',

@@ -16,6 +16,14 @@ export interface RunStartResult {
 
 export type CurrentRunNodeStatus = 'locked' | 'available' | 'completed';
 
+export interface RunNodeInteraction {
+  readonly encounterId: string;
+  readonly title: string;
+  readonly body: string;
+  readonly prompt: string;
+  readonly actions: readonly { readonly id: string; readonly label: string }[];
+}
+
 export interface CurrentRunNode {
   readonly id: string;
   readonly nodeIndex: number;
@@ -24,6 +32,7 @@ export interface CurrentRunNode {
   readonly completedAt: string | null;
   readonly battleId: string | null;
   readonly position: { readonly column: number; readonly row: number };
+  readonly interaction?: RunNodeInteraction;
 }
 
 export interface CurrentRun {
@@ -58,6 +67,31 @@ export interface RunAbandonResult {
 const stableIdPattern = /^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$/;
 const positiveIdPattern = /^[1-9][0-9]*$/;
 const utcTimestampPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
+const actionIdPattern = /^[a-z][a-z0-9_]*$/;
+
+function nonEmptyText(value: unknown, context: string): string {
+  if (typeof value !== 'string' || !value.trim()) throw new RunContractError(`${context} is invalid.`);
+  return value;
+}
+
+function parseInteraction(value: unknown): RunNodeInteraction {
+  const raw = record(value, 'Run node interaction');
+  exact(raw, ['encounter_id', 'title', 'body', 'prompt', 'actions'], 'Run node interaction');
+  if (typeof raw['encounter_id'] !== 'string' || !/^encounter\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/.test(raw['encounter_id']))
+    throw new RunContractError('Run node encounter id is invalid.');
+  if (!Array.isArray(raw['actions']) || raw['actions'].length === 0) throw new RunContractError('Run node actions are invalid.');
+  const seen = new Set<string>();
+  const actions = raw['actions'].map((value) => {
+    const action = record(value, 'Run node action'); exact(action, ['id', 'label'], 'Run node action');
+    if (typeof action['id'] !== 'string' || !actionIdPattern.test(action['id']) || seen.has(action['id']))
+      throw new RunContractError('Run node action id is invalid.');
+    seen.add(action['id']);
+    return Object.freeze({ id: action['id'], label: nonEmptyText(action['label'], 'Run node action label') });
+  });
+  return Object.freeze({ encounterId: raw['encounter_id'], title: nonEmptyText(raw['title'], 'Run node title'),
+    body: nonEmptyText(raw['body'], 'Run node body'), prompt: nonEmptyText(raw['prompt'], 'Run node prompt'),
+    actions: Object.freeze(actions) });
+}
 
 function record(value: unknown, context: string): Record<string, unknown> {
   if (typeof value !== 'object' || value === null || Array.isArray(value))
@@ -168,7 +202,9 @@ export function parseCurrentRunEnvelope(value: unknown, content: ClientContentRe
   const nodeIds = new Set<string>();
   const nodes = raw['nodes'].map((candidate, expectedIndex): CurrentRunNode => {
     const node = record(candidate, 'Current run node');
-    exact(node, ['id', 'node_index', 'node_type_id', 'status', 'completed_at', 'battle_id', 'position'], 'Current run node');
+    const hasInteraction = Object.hasOwn(node, 'interaction');
+    exact(node, ['id', 'node_index', 'node_type_id', 'status', 'completed_at', 'battle_id', 'position',
+      ...(hasInteraction ? ['interaction'] : [])], 'Current run node');
     const id = positiveId(node['id'], 'Node id');
     if (nodeIds.has(id) || node['node_index'] !== expectedIndex) throw new RunContractError('Run node identity/order is invalid.');
     nodeIds.add(id);
@@ -176,6 +212,9 @@ export function parseCurrentRunEnvelope(value: unknown, content: ClientContentRe
     if (typeof nodeTypeId !== 'string' || !stableIdPattern.test(nodeTypeId) || !content.getRunNodeType(nodeTypeId))
       throw new RunContractError('Run node type is not projected authored content.');
     if (!['locked', 'available', 'completed'].includes(node['status'] as string)) throw new RunContractError('Run node status is invalid.');
+    const requiresInteraction = nodeTypeId === 'run_node_type.rest' && node['status'] === 'available';
+    if (hasInteraction !== requiresInteraction) throw new RunContractError('Run node interaction availability is invalid.');
+    const interaction = hasInteraction ? parseInteraction(node['interaction']) : undefined;
     const completedAt = nullableTimestamp(node['completed_at'], 'Node completed_at');
     if ((node['status'] === 'completed') !== (completedAt !== null)) throw new RunContractError('Run node completion state is incoherent.');
     const battleId = node['battle_id'] === null ? null : positiveId(node['battle_id'], 'Node battle_id');
@@ -187,7 +226,8 @@ export function parseCurrentRunEnvelope(value: unknown, content: ClientContentRe
     exact(position, ['column', 'row'], 'Run node position');
     if (!Number.isSafeInteger(position['column']) || !Number.isSafeInteger(position['row'])) throw new RunContractError('Run node position is invalid.');
     return Object.freeze({ id, nodeIndex: expectedIndex, nodeTypeId, status: node['status'] as CurrentRunNodeStatus,
-      completedAt, battleId, position: Object.freeze({ column: position['column'] as number, row: position['row'] as number }) });
+      completedAt, battleId, position: Object.freeze({ column: position['column'] as number, row: position['row'] as number }),
+      ...(interaction ? { interaction } : {}) });
   });
 
   const seenEdges = new Set<string>();

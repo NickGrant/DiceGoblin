@@ -47,7 +47,7 @@ final class RunPersistenceRepository
   /** @return list<array<string,mixed>> */
   public function listNodes(int $runId): array
   {
-    $stmt = $this->pdo->prepare('SELECT rn.`id`, rn.`run_id`, rn.`node_index`, rn.`node_type_id`, rn.`status`,
+    $stmt = $this->pdo->prepare('SELECT rn.`id`, rn.`run_id`, rn.`node_index`, rn.`node_type_id`, rn.`encounter_id`, rn.`status`,
         rn.`completed_at`, rn.`generated_metadata`, b.`id` AS `battle_id`
       FROM `run_nodes` rn LEFT JOIN `battles` b
         ON b.`run_id` = rn.`run_id` AND b.`run_node_id` = rn.`id`

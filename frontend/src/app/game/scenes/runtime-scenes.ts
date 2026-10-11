@@ -595,14 +595,20 @@ export class RunScene extends RuntimeScene {
     this.nodeResult = null;
     this.nodeSyncState = 'idle';
     this.nodeSyncIdentity = null;
-    this.nodeAttempt.begin(run.id, node.id);
-    this.nodeMessage = node.nodeTypeId === 'run_node_type.loot' ? 'Collecting loot authoritatively…' : 'Resting authoritatively…';
+    const restAction = node.nodeTypeId === 'run_node_type.rest' ? node.interaction?.actions[0] : undefined;
+    if (node.nodeTypeId === 'run_node_type.rest' && (!node.interaction || !restAction)) return;
+    this.nodeAttempt.begin(run.id, node.id, restAction ? {
+      encounterId: node.interaction!.encounterId, actionId: restAction.id,
+    } : undefined);
+    this.nodeMessage = node.nodeTypeId === 'run_node_type.loot' ? 'Collecting loot authoritatively…' : 'Resolving encounter…';
     if (node.nodeTypeId === 'run_node_type.exit') this.nodeMessage = 'Leaving the region safely...';
     this.render();
     const expectedType = node.nodeTypeId === 'run_node_type.loot' ? 'loot'
       : node.nodeTypeId === 'run_node_type.rest' ? 'rest' : 'exit';
     const outcome = await this.nodeAttempt.submit(this.runtimeStartup.apiClient, bootstrap.session.csrf_token,
-      (result) => result.resolutionType === expectedType && result.run.id === run.id && result.node.id === node.id);
+      (result) => result.resolutionType === expectedType && result.run.id === run.id && result.node.id === node.id
+        && (result.resolutionType !== 'rest' || (result.encounterId === node.interaction?.encounterId
+          && result.actionId === restAction?.id)));
     if (outcome.kind === 'success') {
       const result = outcome.result;
       if (result.resolutionType !== expectedType || result.run.id !== run.id || result.node.id !== node.id) {
@@ -880,7 +886,7 @@ export class RunScene extends RuntimeScene {
       if (available || retrySync) this.addButton(root, layout.combatButton,
         retrySync ? 'RETRY SYNC' : submitting ? 'RESOLVING…' : this.nodeAttempt.state === 'retryable' ? 'RETRY RESOLVE'
           : selected.nodeTypeId === 'run_node_type.loot' ? 'COLLECT LOOT'
-          : selected.nodeTypeId === 'run_node_type.rest' ? 'REST' : 'LEAVE REGION',
+          : selected.nodeTypeId === 'run_node_type.rest' ? selected.interaction?.actions[0]?.label ?? 'REST' : 'LEAVE REGION',
         () => void this.activateSelectedNonCombat(), selected.nodeTypeId === 'run_node_type.loot' ? 0x7a5a22 : 0x315d68, !submitting);
     }
     if (this.nodeMessage) {

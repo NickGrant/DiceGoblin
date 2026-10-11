@@ -337,7 +337,7 @@ final class ContentValidator
 
       if (($definition['type'] ?? null) === 'encounter') {
         $this->requireReferenceType($definitions, $id, 'region_id', $definition['region_id'], 'region');
-        foreach ($definition['combatants'] as $combatant) {
+        foreach ($definition['combatants'] ?? [] as $combatant) {
           $this->requireReferenceType($definitions, $id, 'combatants.enemy_unit_type_id', $combatant['enemy_unit_type_id'], 'enemy_unit_type');
         }
       }
@@ -355,11 +355,19 @@ final class ContentValidator
       if (($definition['type'] ?? null) === 'run_generation') {
         foreach ($definition['nodes'] as $node) {
           $this->requireReferenceType($definitions, $id, 'nodes.node_type_id', $node['node_type_id'], 'run_node_type');
-          if ($node['encounter_id'] ?? null) {
-            if (!in_array($node['node_type_id'], ['run_node_type.combat', 'run_node_type.boss'], true)) {
-              throw new ContentValidationException("{$id} only combat or boss nodes may reference encounters.");
+          $nodeType = $node['node_type_id'];
+          $encounterId = $node['encounter_id'] ?? null;
+          if ($encounterId !== null) {
+            if (!in_array($nodeType, ['run_node_type.combat', 'run_node_type.boss', 'run_node_type.rest'], true)) {
+              throw new ContentValidationException("{$id} node type cannot reference an encounter.");
             }
-            $this->requireReferenceType($definitions, $id, 'nodes.encounter_id', $node['encounter_id'], 'encounter');
+            $encounter = $this->requireReferenceType($definitions, $id, 'nodes.encounter_id', $encounterId, 'encounter');
+            $expectedKind = $nodeType === 'run_node_type.rest' ? 'non_combat' : substr($nodeType, strlen('run_node_type.'));
+            if ($encounter['kind'] !== $expectedKind) {
+              throw new ContentValidationException("{$id} node encounter kind does not match its node type.");
+            }
+          } elseif ($nodeType === 'run_node_type.rest') {
+            throw new ContentValidationException("{$id} Rest node requires an encounter_id.");
           }
           if ($node['event_id'] ?? null) {
             $this->requireReferenceType($definitions, $id, 'nodes.event_id', $node['event_id'], 'event');
@@ -794,6 +802,34 @@ final class ContentValidator
   /** @param array<string,mixed> $definition */
   private function validateEncounter(array $definition, string $location): void
   {
+    if (($definition['kind'] ?? null) === 'non_combat') {
+      $this->requireExactFieldSet($definition,
+        ['id', 'type', 'kind', 'region_id', 'display_name', 'description', 'prompt', 'actions'], [], $location);
+      $this->requireNamespace($definition, 'encounter.', $location);
+      $this->requireStableIdWithNamespace($definition, 'region_id', 'region.', $location);
+      $this->requireBoundedNonEmptyString($definition, 'display_name', 128, $location);
+      $this->requireBoundedNonEmptyString($definition, 'description', 512, $location);
+      $this->requireBoundedNonEmptyString($definition, 'prompt', 256, $location);
+      $actions = $definition['actions'];
+      if (!is_array($actions) || !array_is_list($actions) || $actions === []) {
+        throw new ContentValidationException("{$location} actions must be a non-empty list.");
+      }
+      $seen = [];
+      foreach ($actions as $index => $action) {
+        $where = "{$location} actions[{$index}]";
+        if (!is_array($action) || array_is_list($action)) throw new ContentValidationException("{$where} must be an object.");
+        $this->requireExactFieldSet($action, ['id', 'label', 'effect'], [], $where);
+        $actionId = $this->requireLocalNodeKey($action, 'id', $where);
+        if (isset($seen[$actionId])) throw new ContentValidationException("{$location} has duplicate action id.");
+        $seen[$actionId] = true;
+        $this->requireBoundedNonEmptyString($action, 'label', 128, $where);
+        $effect = $action['effect'];
+        if (!is_array($effect) || array_is_list($effect)) throw new ContentValidationException("{$where} effect must be an object.");
+        $this->requireExactFieldSet($effect, ['type'], [], "{$where} effect");
+        $this->requireAllowedString($effect, 'type', ['restore_participating_units_to_max'], "{$where} effect");
+      }
+      return;
+    }
     $this->requireExactFieldSet($definition,
       ['id', 'type', 'kind', 'region_id', 'display_name', 'description', 'difficulty', 'combatants'], [], $location);
     $this->requireNamespace($definition, 'encounter.', $location);

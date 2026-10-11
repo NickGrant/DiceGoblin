@@ -214,6 +214,17 @@ describe('RuntimeApiClient', () => {
       },
     });
     expect(fetchRequest.calls.mostRecent().args[1]?.body).toBeUndefined();
+    fetchRequest.and.resolveTo(new Response(JSON.stringify({ ok: true, data: {
+      resolution_type: 'rest', encounter_id: 'encounter.the_farm_rest', action_id: 'rest',
+      node: { id: '10', status: 'completed', completed_at: '2026-09-16T12:00:00Z' },
+      healing: [{ unit_id: '21', hp_before: 5, hp_after: 12, max_hp: 12 }], newly_available_node_ids: ['11'],
+      run: { id: '41', status: 'active', ended_at: null }, player_revision: 8,
+    } }), { status: 200 }));
+    await new RuntimeApiClient(fetchRequest, '/root').resolveRunNode('41', '10', 'csrf-token', 'rest:fixed-attempt',
+      { encounterId: 'encounter.the_farm_rest', actionId: 'rest' });
+    expect(fetchRequest.calls.mostRecent().args[1]?.body).toBe(JSON.stringify({
+      encounter_id: 'encounter.the_farm_rest', action_id: 'rest',
+    }));
     await expectAsync(new RuntimeApiClient(fetchRequest, '').resolveRunNode('041', '10', 'csrf', 'attempt'))
       .toBeRejectedWith(jasmine.objectContaining({ kind: 'malformed-response' }));
   });

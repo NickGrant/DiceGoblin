@@ -30,7 +30,7 @@ final class CurrentRunQuery
     if ($root === null) return ['run' => null, 'player_revision' => (int)$state['player_revision']];
     $this->validateRoot($root, $userId);
     $runId = (int)$root['id'];
-    $nodes = $this->mapNodes($this->runs->listNodes($runId), $runId);
+    $nodes = $this->mapNodes($this->runs->listNodes($runId), $runId, (string)$root['region_id']);
     $edges = $this->mapEdges($this->runs->listEdges($runId), $runId, $nodes);
     $units = $this->mapUnits($this->runs->listParticipatingUnits($runId), $runId, $userId);
 
@@ -67,7 +67,7 @@ final class CurrentRunQuery
   }
 
   /** @param list<array<string,mixed>> $rows @return list<array<string,mixed>> */
-  private function mapNodes(array $rows, int $runId): array
+  private function mapNodes(array $rows, int $runId, string $regionId): array
   {
     if ($rows === []) throw new CurrentRunIntegrityException('Active run has no nodes.');
     $mapped = [];
@@ -100,13 +100,30 @@ final class CurrentRunQuery
         throw new CurrentRunIntegrityException('Active run battle correspondence is invalid.');
       }
       $ids[$id] = true;
-      $mapped[] = [
+      $projected = [
         'id' => (string)$id, 'node_index' => $index, 'node_type_id' => (string)$row['node_type_id'],
         'status' => $status,
         'completed_at' => $row['completed_at'] !== null ? $this->utcTimestamp((string)$row['completed_at']) : null,
         'battle_id' => $battleId === null ? null : (string)$battleId,
         'position' => ['column' => $metadata['position']['column'], 'row' => $metadata['position']['row']],
       ];
+      if ($status === 'available' && $nodeType['id'] === 'run_node_type.rest') {
+        try {
+          $encounter = $this->content->encounter((string)($row['encounter_id'] ?? ''));
+        } catch (ContentValidationException) {
+          throw new CurrentRunIntegrityException('Available non-combat encounter is invalid.');
+        }
+        if ($encounter['kind'] !== 'non_combat' || $encounter['region_id'] !== $regionId) {
+          throw new CurrentRunIntegrityException('Available non-combat encounter does not match its run.');
+        }
+        $projected['interaction'] = [
+          'encounter_id' => $encounter['id'], 'title' => $encounter['display_name'],
+          'body' => $encounter['description'], 'prompt' => $encounter['prompt'],
+          'actions' => array_map(static fn(array $action): array =>
+            ['id' => $action['id'], 'label' => $action['label']], $encounter['actions']),
+        ];
+      }
+      $mapped[] = $projected;
     }
     return $mapped;
   }

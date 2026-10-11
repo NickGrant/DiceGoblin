@@ -1,5 +1,5 @@
 import { ClientContentRegistry } from './client-content-registry';
-import { CurrentRun, CurrentRunNodeStatus, RunContractError } from './run-contracts';
+import { CurrentRun, CurrentRunNodeStatus, RunContractError, RunNodeInteraction } from './run-contracts';
 import { Bounds, RuntimeViewportSnapshot } from './runtime-viewport';
 
 export interface RunMapNodePresentation {
@@ -7,11 +7,12 @@ export interface RunMapNodePresentation {
   readonly nodeIndex: number;
   readonly nodeTypeId: string;
   readonly battleId: string | null;
+  readonly interaction?: RunNodeInteraction;
   readonly name: string;
   readonly description: string;
   readonly iconKey: string;
   readonly status: CurrentRunNodeStatus;
-  readonly statusLabel: 'Locked' | 'Ready' | 'Completed' | 'Skipped';
+  readonly statusLabel: 'Locked' | 'Ready' | 'Completed';
   readonly isReachable: boolean;
   readonly position: { readonly column: number; readonly row: number };
 }
@@ -76,8 +77,9 @@ export function createRunMapPresentation(run: CurrentRun, content: ClientContent
       nodeIndex: node.nodeIndex,
       nodeTypeId: node.nodeTypeId,
       battleId: node.battleId,
-      name: authored.display_name,
-      description: authored.description,
+      ...(node.interaction ? { interaction: node.interaction } : {}),
+      name: node.interaction?.title ?? authored.display_name,
+      description: node.interaction ? `${node.interaction.body} ${node.interaction.prompt}` : authored.description,
       iconKey: authored.icon_key,
       status: node.status,
       isReachable: run.availableNodeIds.includes(node.id),
@@ -147,7 +149,7 @@ export function createRunMapLayout(
       panel.y + (panel.height - Math.min(390, panel.height - 80)) / 2,
       Math.min(760, panel.width - 100), Math.min(390, panel.height - 80)),
     titleY: panel.y + (compact ? 48 : 44), identityY: panel.y + (compact ? 100 : 91),
-    detailY: map.bottom + (compact ? 34 : 30) });
+    detailY: map.bottom + (compact ? -70 : 30) });
 }
 
 function normalized(value: number, minimum: number, maximum: number): number {

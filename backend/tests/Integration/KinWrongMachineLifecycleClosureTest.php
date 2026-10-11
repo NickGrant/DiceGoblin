@@ -122,8 +122,13 @@ final class KinWrongMachineLifecycleClosureTest extends IntegrationTestCase
     $this->assertSame($regionId, $current['region_id']);
     $results = [];
     foreach ($current['nodes'] as $index => $node) {
+      $availableNode = $services['currentRunQuery']->execute($userId)['run']['nodes'][$index];
+      $interaction = isset($availableNode['interaction']) ? [
+        'encounter_id' => $availableNode['interaction']['encounter_id'],
+        'action_id' => $availableNode['interaction']['actions'][0]['id'],
+      ] : null;
       $results[] = $services['resolveRunNodeCommand']->execute($userId, (int)$start['run']['id'],
-        (int)$node['id'], 'kin-closure-node-' . $key . '-' . $index);
+        (int)$node['id'], 'kin-closure-node-' . $key . '-' . $index, $interaction);
     }
     $this->assertSame('completed', $results[count($results) - 1]['run']['status']);
     return $results;

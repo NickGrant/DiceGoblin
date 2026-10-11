@@ -21,6 +21,7 @@
         {
           "key": "rest",
           "node_type_id": "run_node_type.rest",
+          "encounter_id": "encounter.the_farm_rest",
           "position": { "column": 2, "row": 1 }
         },
         {

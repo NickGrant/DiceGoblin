@@ -105,6 +105,30 @@ describe('run contracts', () => {
     expect(() => parseCurrentRunEnvelope(value, content())).toThrowError(RunContractError);
   });
 
+  it('accepts only a safe authorized Rest interaction on an available Rest node', () => {
+    const value = currentEnvelope();
+    const nodes = value.data.run.nodes;
+    nodes[2].status = 'available'; nodes[2].completed_at = null;
+    nodes[3].status = 'locked'; nodes[3].completed_at = null; nodes[3].battle_id = null;
+    nodes[4].status = 'locked'; nodes[4].completed_at = null;
+    value.data.run.available_node_ids = ['12'];
+    nodes[2].interaction = { encounter_id: 'encounter.the_farm_rest', title: 'Rest',
+      body: 'The warband recovers.', prompt: 'Restore every unit?',
+      actions: [{ id: 'rest', label: 'REST' }] };
+    const parsed = parseCurrentRunEnvelope(value, content());
+    expect(parsed.run?.nodes[2].interaction?.actions).toEqual([{ id: 'rest', label: 'REST' }]);
+    for (const mutate of [
+      (candidate: any) => { delete candidate.data.run.nodes[2].interaction; },
+      (candidate: any) => { candidate.data.run.nodes[2].interaction.actions[0].effect = { type: 'heal' }; },
+      (candidate: any) => { candidate.data.run.nodes[2].interaction.actions[0].id = 'bad action'; },
+      (candidate: any) => { candidate.data.run.nodes[2].interaction.actions.push({ id: 'rest', label: 'AGAIN' }); },
+      (candidate: any) => { candidate.data.run.nodes[2].status = 'locked'; },
+    ]) {
+      const invalid = structuredClone(value); mutate(invalid);
+      expect(() => parseCurrentRunEnvelope(invalid, content())).toThrowError(RunContractError);
+    }
+  });
+
   it('rejects every invalid battle-bearing and non-battle-bearing node correspondence', () => {
     const mutations = [
       (v: any) => v.data.run.nodes[0].battle_id = null,

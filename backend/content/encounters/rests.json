@@ -1,0 +1,28 @@
+{
+  "definitions": [
+    {
+      "id": "encounter.the_farm_rest",
+      "type": "encounter",
+      "kind": "non_combat",
+      "region_id": "region.the_farm",
+      "display_name": "Rest",
+      "description": "The warband takes a moment to recover.",
+      "prompt": "Restore every participating unit to full HP?",
+      "actions": [
+        { "id": "rest", "label": "REST", "effect": { "type": "restore_participating_units_to_max" } }
+      ]
+    },
+    {
+      "id": "encounter.mountains_rest",
+      "type": "encounter",
+      "kind": "non_combat",
+      "region_id": "region.mountains",
+      "display_name": "Rest",
+      "description": "The warband takes a moment to recover in the Mountains.",
+      "prompt": "Restore every participating unit to full HP?",
+      "actions": [
+        { "id": "rest", "label": "REST", "effect": { "type": "restore_participating_units_to_max" } }
+      ]
+    }
+  ]
+}

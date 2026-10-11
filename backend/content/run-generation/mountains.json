@@ -27,6 +27,7 @@
         {
           "key": "rest",
           "node_type_id": "run_node_type.rest",
+          "encounter_id": "encounter.mountains_rest",
           "position": { "column": 3, "row": 1 }
         },
         {

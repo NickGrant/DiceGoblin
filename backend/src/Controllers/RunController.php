@@ -100,9 +100,13 @@ final class RunController
     }
     $services = $this->mutationServices();
     if ($services === null) return;
+    $interaction = null;
     if (!JsonRequestBody::isStrictlyEmpty()) {
-      $this->error('invalid_node_request', 'Node resolution request must have no body.', 400);
-      return;
+      $interaction = JsonRequestBody::decode();
+      if (!is_array($interaction) || array_is_list($interaction)) {
+        $this->error('invalid_node_request', 'Node interaction request is invalid.', 400);
+        return;
+      }
     }
     try {
       $result = $services['resolveRunNodeCommand']->execute(
@@ -110,6 +114,7 @@ final class RunController
         $run,
         $node,
         is_string($_SERVER['HTTP_IDEMPOTENCY_KEY'] ?? null) ? $_SERVER['HTTP_IDEMPOTENCY_KEY'] : null,
+        $interaction,
       );
       Response::json(['ok' => true, 'data' => $result]);
     } catch (IdempotencyKeyException) {

@@ -4,13 +4,14 @@ declare(strict_types=1);
 namespace DiceGoblins\Application\RunNodes;
 
 use DiceGoblins\Application\Commands\RunNodeResolutionIntegrityException;
+use DiceGoblins\Application\Commands\RunNodeResolutionException;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Domain\CombatStats\BaseLevelStatResolver;
 use DiceGoblins\Repositories\RunNodeResolutionRepository;
 use DiceGoblins\Repositories\WarbandUnitRepository;
 use Throwable;
 
-final class RestNodeResolutionHandler implements RunNodeResolutionHandler
+final class RestNodeResolutionHandler implements ActionRunNodeResolutionHandler
 {
   public function __construct(
     private readonly RunNodeResolutionRepository $nodes,
@@ -23,6 +24,31 @@ final class RestNodeResolutionHandler implements RunNodeResolutionHandler
 
   public function resolve(int $userId, array $playerState, array $run, array $node): RunNodeResolutionOutcome
   {
+    throw new RunNodeResolutionException('invalid_node_request', 'Rest requires an authorized encounter action.', 400);
+  }
+
+  public function resolveAction(int $userId, array $playerState, array $run, array $node,
+    string $encounterId, string $actionId): RunNodeResolutionOutcome
+  {
+    if (($node['encounter_id'] ?? null) !== $encounterId) {
+      throw new RunNodeResolutionException('invalid_node_request', 'Encounter does not match this node.', 400);
+    }
+    try {
+      $encounter = $this->content->encounter($encounterId);
+    } catch (Throwable) {
+      throw new RunNodeResolutionIntegrityException('Persisted Rest encounter is unavailable.');
+    }
+    if (($encounter['kind'] ?? null) !== 'non_combat' || ($encounter['region_id'] ?? null) !== ($run['region_id'] ?? null)) {
+      throw new RunNodeResolutionIntegrityException('Persisted Rest encounter does not match this run.');
+    }
+    $action = null;
+    foreach ($encounter['actions'] as $candidate) {
+      if ($candidate['id'] === $actionId) { $action = $candidate; break; }
+    }
+    if ($action === null) throw new RunNodeResolutionException('invalid_node_request', 'Encounter action is unavailable.', 400);
+    if (($action['effect']['type'] ?? null) !== 'restore_participating_units_to_max') {
+      throw new RunNodeResolutionIntegrityException('Rest effect is unsupported.');
+    }
     try {
       $runId = (int)$run['id'];
       $participants = $this->nodes->listParticipatingUnitsForUpdate($runId);
@@ -49,7 +75,9 @@ final class RestNodeResolutionHandler implements RunNodeResolutionHandler
         $this->nodes->persistUnitHp($runId, $unitId, $maximum);
         $healing[] = ['unit_id' => (string)$unitId, 'hp_before' => $before, 'hp_after' => $maximum, 'max_hp' => $maximum];
       }
-      return new RunNodeResolutionOutcome('rest', ['healing' => $healing]);
+      return new RunNodeResolutionOutcome('rest', [
+        'encounter_id' => $encounterId, 'action_id' => $actionId, 'healing' => $healing,
+      ]);
     } catch (RunNodeResolutionIntegrityException $e) {
       throw $e;
     } catch (Throwable $e) {

@@ -7,6 +7,7 @@ use DateTimeImmutable;
 use DateTimeZone;
 use Closure;
 use DiceGoblins\Application\RunNodes\RunNodeResolutionHandler;
+use DiceGoblins\Application\RunNodes\ActionRunNodeResolutionHandler;
 use DiceGoblins\Infrastructure\Clock;
 use DiceGoblins\Repositories\IdempotencyRequestRepository;
 use DiceGoblins\Repositories\PlayerStateRepository;
@@ -42,14 +43,26 @@ final class ResolveRunNodeCommand
   }
 
   /** @return array<string,mixed> */
-  public function execute(int $userId, int $runId, int $nodeId, ?string $providedKey): array
+  public function execute(int $userId, int $runId, int $nodeId, ?string $providedKey,
+    ?array $interaction = null): array
   {
     if ($userId < 1 || $runId < 1 || $nodeId < 1) {
       throw new RunNodeResolutionException('run_node_not_found', 'Run node is unavailable.', 404);
     }
     $key = IdempotencyKey::validate($providedKey);
+    if ($interaction !== null && (count($interaction) !== 2
+      || !array_key_exists('encounter_id', $interaction) || !array_key_exists('action_id', $interaction)
+      || !is_string($interaction['encounter_id']) || !is_string($interaction['action_id'])
+      || !preg_match('/^encounter\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/', $interaction['encounter_id'])
+      || !preg_match('/^[a-z][a-z0-9_]*$/', $interaction['action_id']))) {
+      throw new RunNodeResolutionException('invalid_node_request', 'Encounter action request is invalid.', 400);
+    }
     try {
-      $hash = hash('sha256', json_encode(['run_id' => (string)$runId, 'node_id' => (string)$nodeId],
+      $request = ['run_id' => (string)$runId, 'node_id' => (string)$nodeId];
+      if ($interaction !== null) $request['interaction'] = [
+        'encounter_id' => $interaction['encounter_id'], 'action_id' => $interaction['action_id'],
+      ];
+      $hash = hash('sha256', json_encode($request,
         JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
     } catch (JsonException $e) {
       throw new RunNodeResolutionException('invalid_node_request', 'Node resolution request is invalid.', 400);
@@ -94,8 +107,14 @@ final class ResolveRunNodeCommand
       }
       $handler = $this->handlers[(string)($node['node_type_id'] ?? '')] ?? null;
       if ($handler === null) throw new RunNodeResolutionException('run_node_unsupported', 'Run node type is not resolvable.', 422);
+      if (($handler instanceof ActionRunNodeResolutionHandler) !== ($interaction !== null)) {
+        throw new RunNodeResolutionException('invalid_node_request', 'Node interaction request does not match this node.', 400);
+      }
 
-      $outcome = $handler->resolve($userId, $state, $run, $node);
+      $outcome = $handler instanceof ActionRunNodeResolutionHandler
+        ? $handler->resolveAction($userId, $state, $run, $node,
+          $interaction['encounter_id'], $interaction['action_id'])
+        : $handler->resolve($userId, $state, $run, $node);
       $completedAt = $this->clock->now()->setTimezone(new DateTimeZone('UTC'));
       $this->nodes->completeNode($runId, $nodeId, $completedAt);
       $available = [];

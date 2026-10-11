@@ -78,7 +78,8 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
     $this->assertBattleResolution($farmCombat, $farmRunId, $farmNodeIds[0], $farmNodeIds[1]);
     $this->assertSame([['item_id' => 'item.pig_ear', 'quantity' => 1, 'owned_after' => 1]], $farmCombat['item_grants']);
     $services['resolveRunNodeCommand']->execute($userId, $farmRunId, $farmNodeIds[1], 'integrated-farm-loot');
-    $services['resolveRunNodeCommand']->execute($userId, $farmRunId, $farmNodeIds[2], 'integrated-farm-rest');
+    $services['resolveRunNodeCommand']->execute($userId, $farmRunId, $farmNodeIds[2], 'integrated-farm-rest',
+      ['encounter_id' => 'encounter.the_farm_rest', 'action_id' => 'rest']);
     $farmBoss = $services['resolveRunNodeCommand']->execute(
       $userId, $farmRunId, $farmNodeIds[3], 'integrated-farm-boss');
     $this->assertBattleResolution($farmBoss, $farmRunId, $farmNodeIds[3], $farmNodeIds[4], 'boss');
@@ -116,7 +117,7 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
       'run_node_type.combat', 'run_node_type.boss', 'run_node_type.exit',
     ], array_column($current['nodes'], 'node_type_id'));
     $this->assertSame([
-      'encounter.mountains_kobold_combat_1', null, 'encounter.mountains_kobold_combat_2', null,
+      'encounter.mountains_kobold_combat_1', null, 'encounter.mountains_kobold_combat_2', 'encounter.mountains_rest',
       'encounter.mountains_kobold_combat_3', 'encounter.mountains_kobold_boss_1', null,
     ], array_column($this->rows(
       'SELECT `encounter_id` FROM `run_nodes` WHERE `run_id` = ? ORDER BY `node_index`', [$runId]), 'encounter_id'));
@@ -148,7 +149,8 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
     $this->assertBattleResolution($combatTwo, $runId, $nodeIds[2], $nodeIds[3]);
     $this->assertSame([['item_id' => 'item.kobold_scale', 'quantity' => 1, 'owned_after' => 2]], $combatTwo['item_grants']);
     $this->pdo?->prepare('UPDATE `run_unit_state` SET `current_hp` = 1 WHERE `run_id` = ?')->execute([$runId]);
-    $rest = $command->execute($userId, $runId, $nodeIds[3], 'mountains-rest');
+    $rest = $command->execute($userId, $runId, $nodeIds[3], 'mountains-rest',
+      ['encounter_id' => 'encounter.mountains_rest', 'action_id' => 'rest']);
     $this->assertSame([(string)$nodeIds[4]], $rest['newly_available_node_ids']);
     foreach ($rest['healing'] as $transition) {
       $this->assertSame(1, $transition['hp_before']);

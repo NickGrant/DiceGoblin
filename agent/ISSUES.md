@@ -15,6 +15,10 @@ Package 1 established the authoritative persisted exploration graph/frontier: re
 
 The existing vNext runtime already resolves Combat, Loot, Rest, Boss, and Exit nodes through the shared run-node command/handler boundary. Rest currently has accepted player-facing behavior, but Milestone 10 needs a reusable authored non-combat encounter contract before Hazard, Shrine, and Chaos families are added.
 
+#### Problem
+
+Rest currently heals through a node-specific path without an authored player action or narrow authorized encounter read. That path cannot serve as the shared non-combat encounter contract for later packages.
+
 #### Purpose
 
 Establish the smallest generic authored/runtime contract needed for interactive non-combat encounters, then migrate the existing Rest node behavior through that contract without changing its accepted gameplay outcome.
@@ -118,3 +122,13 @@ Report:
 - confirmation no Hazard/Shrine/Chaos/modifier/multi-step/Milestone 11+ scope was introduced.
 
 Leave Package 2 **In Progress** for architectural review. Do not promote Package 3 yourself.
+
+#### Implementation evidence (2026-10-11)
+
+- The implementation commit carrying this evidence is the Package 2 review candidate; its pushed SHA is reported with the handoff. Package 2 remains **In Progress**.
+- Authored `kind: non_combat` encounters carry identity, region, visible copy/prompt, stable action IDs/labels, and a server-owned effect. Farm and Mountains Rest each reference an authored encounter using the same `restore_participating_units_to_max` effect. This single-step shape adds no durable encounter progress or alternate transaction owner. Production client content revision: `1520fba14f523a2b51ccad8dcf9315c83f19458b5ddd362541c7ba0bf3832a43`.
+- Current-run projects only the available Rest node's encounter ID and visible interaction. Effects and the authored encounter catalog remain server-private. The existing resolve endpoint accepts encounter/action IDs, validates them against the persisted node, and returns both IDs with finalized healing, node, frontier, run, and revision facts.
+- Focused backend proof: content validation 31 tests / 97 assertions; Farm Rest and run-node lifecycle 20 / 177; Mountains lifecycle 3 / 92; branching/frontier 3 / 63; custom bootstrap content 7 / 55; Wrong Machine Farm/Mountains lifecycle 1 / 79; Farm/Mountains run start 30 / 263. These cover full HP restoration, exact receipt replay without another heal or revision, persisted HP/re-query, optional dead-end frontier retention, invalid/mismatched/locked/completed/foreign/terminal requests without mutation, and Combat/Loot/Boss/Exit regressions. Focused browser contracts and RunScene: 61 tests passed, including authorized presentation, pending-input blocking, receipt matching, reconciliation, frontier retention, and re-entry.
+- Final `npm run verify:package`: **PASS**. Backend 382 tests / 1,976 assertions (173 skipped); frontend 543 tests; context, docs, authored-content validation, production build, bundle budget, and whitespace checks all passed. Results: `artifacts/verification/package-summary.json`. The initial full pass exposed four older fixtures that assumed bodyless/null-encounter Rest; those fixtures were corrected before this successful rerun.
+- Deterministic captures passed and were reviewed: `artifacts/screenshots/m10-p2-rest-compact.png` (844x390), `m10-p2-rest-standard.png` (1600x900), `m10-p2-rest-wide.png` (2560x1080), `m10-p2-rest-portrait.png` (390x844 rotate gate), and `m10-p2-rest-result-standard.png` (finalized healing/current-run sync). Compact encounter copy was moved clear of the action buttons after capture review.
+- No Hazard, Shrine, Chaos, run modifier, multi-step persistence, Swamp, or Milestone 11 work was added.

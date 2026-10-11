@@ -5,6 +5,7 @@ import { RuntimeStartup } from '../runtime/runtime-startup';
 import { RuntimeViewport, calculateRuntimeViewport } from '../runtime/runtime-viewport';
 import { RunNodeResolutionAttempt } from '../runtime/run-node-resolution-attempt';
 import { CurrentRun } from '../runtime/run-contracts';
+import { createRunMapPresentation } from '../runtime/run-map-model';
 import { BATTLE_SCENE_KEY, GAME_SCENE_KEY, RUN_SCENE_KEY, RunScene, RuntimeLifecycleState, nextSceneForStartup, runShellLayout } from './runtime-scenes';
 
 describe('RunScene lifecycle shell', () => {
@@ -222,16 +223,33 @@ describe('RunScene lifecycle shell', () => {
   it('presents Rest facts and reconciles authoritative HP and Boss availability', async () => {
     const { scene, startup, api } = await readyHarness(restAvailableRun());
     spyOn<any>(scene, 'render').and.stub();
+    const selectedRest = createRunMapPresentation(restAvailableRun(), content()).nodes[2];
+    expect(selectedRest.description).toContain('Restore every unit?');
     api.resolveRunNode.and.resolveTo(restResolutionSuccess());
     api.getCurrentRun.and.resolveTo({ run: bossAvailableRun(), playerRevision: 8 });
     scene.selectNode('12');
 
     await scene.activateSelectedNonCombat();
 
-    expect(api.resolveRunNode).toHaveBeenCalledOnceWith('41', '12', 'csrf', 'run-node:fixed');
+    expect(api.resolveRunNode).toHaveBeenCalledOnceWith('41', '12', 'csrf', 'run-node:fixed',
+      { encounterId: 'encounter.the_farm_rest', actionId: 'rest' });
     expect(startup.store.currentRun.data?.units).toEqual([{ unitId: '11', currentHp: 26 }]);
     expect(startup.store.currentRun.data?.nodes.find((node) => node.id === '13')?.status).toBe('available');
     expect(startup.store.bootstrap?.player.teeth).toBe(0);
+  });
+
+  it('retains the Rest attempt and blocks reconciliation for a mismatched encounter receipt', async () => {
+    const { scene, startup, api } = await readyHarness(restAvailableRun());
+    spyOn<any>(scene, 'render').and.stub(); scene.selectNode('12');
+    api.resolveRunNode.and.returnValues(Promise.resolve({ ...restResolutionSuccess(), actionId: 'wrong' }),
+      Promise.resolve(restResolutionSuccess()));
+    api.getCurrentRun.and.resolveTo({ run: bossAvailableRun(), playerRevision: 8 });
+    await scene.activateSelectedNonCombat();
+    expect(scene.nodeActionState).toBe('retryable');
+    expect(startup.store.currentRun.data?.nodes[2].status).toBe('available');
+    await scene.activateSelectedNonCombat();
+    expect(api.resolveRunNode.calls.allArgs().map((args) => args[3])).toEqual(['run-node:fixed', 'run-node:fixed']);
+    expect(startup.store.currentRun.data?.nodes[2].status).toBe('completed');
   });
 
   it('retries only current-run synchronization after a committed Loot mutation', async () => {
@@ -528,7 +546,8 @@ function lootResolutionSuccess() {
 }
 
 function restResolutionSuccess() {
-  return { resolutionType: 'rest' as const, healing: [{ unitId: '11', hpBefore: 0, hpAfter: 26, maxHp: 26 }],
+  return { resolutionType: 'rest' as const, encounterId: 'encounter.the_farm_rest', actionId: 'rest',
+    healing: [{ unitId: '11', hpBefore: 0, hpAfter: 26, maxHp: 26 }],
     node: { id: '12', status: 'completed' as const, completedAt: '2026-09-16T12:02:00Z' },
     newlyAvailableNodeIds: ['13'], run: { id: '41', status: 'active' as const, endedAt: null }, playerRevision: 8 };
 }
@@ -593,7 +612,11 @@ function farmRun(statuses: readonly ['completed', 'completed' | 'available', 'lo
     createdAt: '2026-09-13T12:00:00Z', nodes: types.map((type, index) => ({ id: String(10 + index), nodeIndex: index,
       nodeTypeId: `run_node_type.${type}`, status: statuses[index], completedAt: statuses[index] === 'completed'
         ? `2026-09-16T12:0${index}:00Z` : null, battleId: type === 'combat' ? '81' : type === 'boss' && statuses[index] === 'completed' ? '82' : null,
-      position: { column: index, row: 1 } })),
+      position: { column: index, row: 1 },
+      ...(type === 'rest' && statuses[index] === 'available' ? { interaction: {
+        encounterId: 'encounter.the_farm_rest', title: 'Rest', body: 'The warband recovers.',
+        prompt: 'Restore every unit?', actions: [{ id: 'rest', label: 'REST' }],
+      } } : {}) })),
     edges: types.slice(0, -1).map((_, index) => ({ fromNodeId: String(10 + index), toNodeId: String(11 + index) })),
     units: [{ unitId: '11', currentHp: 0 }] };
 }
