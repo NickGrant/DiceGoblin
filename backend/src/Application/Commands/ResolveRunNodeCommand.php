@@ -95,7 +95,6 @@ final class ResolveRunNodeCommand
       $handler = $this->handlers[(string)($node['node_type_id'] ?? '')] ?? null;
       if ($handler === null) throw new RunNodeResolutionException('run_node_unsupported', 'Run node type is not resolvable.', 422);
 
-      $this->nodes->skipOtherAvailableNodes($runId, $nodeId);
       $outcome = $handler->resolve($userId, $state, $run, $node);
       $completedAt = $this->clock->now()->setTimezone(new DateTimeZone('UTC'));
       $this->nodes->completeNode($runId, $nodeId, $completedAt);

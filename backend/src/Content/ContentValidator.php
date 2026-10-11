@@ -1082,12 +1082,17 @@ final class ContentValidator
       throw new ContentValidationException("{$id} start_node_key must identify the first generated node.");
     }
 
-    $indexByKey = array_flip(array_keys($nodesByKey));
-    foreach ($definition['edges'] as $edge) {
-      if ($indexByKey[(string)$edge['from']] >= $indexByKey[(string)$edge['to']]) {
-        throw new ContentValidationException("{$id} routes must advance to a later node.");
-      }
-    }
+    $visiting = [];
+    $visited = [];
+    $visit = function (string $key) use (&$visit, &$visiting, &$visited, $adjacency, $id): void {
+      if (isset($visiting[$key])) throw new ContentValidationException("{$id} routes must not contain a cycle.");
+      if (isset($visited[$key])) return;
+      $visiting[$key] = true;
+      foreach ($adjacency[$key] as $next) $visit($next);
+      unset($visiting[$key]);
+      $visited[$key] = true;
+    };
+    foreach (array_keys($nodesByKey) as $key) $visit($key);
 
     $reachable = [];
     $pending = [$start];
@@ -1113,11 +1118,6 @@ final class ContentValidator
     }
     if ($adjacency[$exitKeys[0]] !== []) {
       throw new ContentValidationException("{$id} exit node must be terminal.");
-    }
-    foreach ($nodesByKey as $key => $node) {
-      if ($key !== $exitKeys[0] && $adjacency[$key] === []) {
-        throw new ContentValidationException("{$id} node '{$key}' ends before the exit.");
-      }
     }
   }
 

@@ -27,6 +27,38 @@ final class RunContentValidationTest extends TestCase
     $this->assertSame(['available', 'locked', 'locked', 'locked', 'locked', 'locked'],
       array_column($graph['nodes'], 'status'));
   }
+  public function testOptionalDeadEndAndNonIndexOrderedAcyclicRoutesAreValid(): void
+  {
+    $content = ContentRegistry::load($this->canonicalRoot());
+    $definition = BranchingRunDefinitionFixture::definition($content, true);
+    $definitions = $this->canonicalDefinitions();
+    $definitions[] = $definition;
+    (new ContentValidator())->validate([['path' => 'branching-test.json',
+      'document' => ['definitions' => $definitions]]]);
+    $graph = (new FixedGraphRunGenerator())->generate($definition);
+    $this->assertSame([0, 0, 1, 3, 4], array_column($graph['edges'], 'from_node_index'));
+
+    // List order supplies stable generated IDs; edge direction supplies reachability.
+    [$definition['nodes'][1], $definition['nodes'][3]] = [$definition['nodes'][3], $definition['nodes'][1]];
+    $definitions[count($definitions) - 1] = $definition;
+    (new ContentValidator())->validate([['path' => 'branching-test.json',
+      'document' => ['definitions' => $definitions]]]);
+    $graph = (new FixedGraphRunGenerator())->generate($definition);
+    $this->assertContains([3, 1], array_map(static fn(array $edge): array =>
+      [$edge['from_node_index'], $edge['to_node_index']], $graph['edges']));
+  }
+
+  public function testBranchingCycleIsRejected(): void
+  {
+    $definitions = $this->canonicalDefinitions();
+    $definition = BranchingRunDefinitionFixture::definition(ContentRegistry::load($this->canonicalRoot()));
+    $definition['edges'][] = ['from' => 'rest', 'to' => 'loot'];
+    $definitions[] = $definition;
+    $this->expectException(ContentValidationException::class);
+    $this->expectExceptionMessage('cycle');
+    (new ContentValidator())->validate([['path' => 'branching-test.json',
+      'document' => ['definitions' => $definitions]]]);
+  }
   public function testCanonicalFarmRunContentIsValidatedAndTyped(): void
   {
     $registry = ContentRegistry::load($this->canonicalRoot());

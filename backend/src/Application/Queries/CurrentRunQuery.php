@@ -13,7 +13,7 @@ use JsonException;
 
 final class CurrentRunQuery
 {
-  private const NODE_STATUSES = ['locked', 'available', 'completed', 'skipped'];
+  private const NODE_STATUSES = ['locked', 'available', 'completed'];
 
   public function __construct(
     private readonly RunPersistenceRepository $runs,

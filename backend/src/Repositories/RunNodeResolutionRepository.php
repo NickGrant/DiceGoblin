@@ -95,21 +95,6 @@ final class RunNodeResolutionRepository
   }
 
   /** @return list<int> */
-  public function skipOtherAvailableNodes(int $runId, int $selectedNodeId): array
-  {
-    $this->requireTransaction();
-    $select = $this->pdo->prepare("SELECT `id` FROM `run_nodes` WHERE `run_id` = ? AND `status` = 'available' AND `id` <> ? ORDER BY `id` ASC FOR UPDATE");
-    $select->execute([$runId, $selectedNodeId]);
-    $ids = array_map('intval', $select->fetchAll(PDO::FETCH_COLUMN));
-    $update = $this->pdo->prepare("UPDATE `run_nodes` SET `status` = 'skipped' WHERE `run_id` = ? AND `id` = ? AND `status` = 'available'");
-    foreach ($ids as $id) {
-      $update->execute([$runId, $id]);
-      if ($update->rowCount() !== 1) throw new RuntimeException('Available route changed unexpectedly.');
-    }
-    return $ids;
-  }
-
-  /** @return list<int> */
   public function unlockDirectOutgoingNodes(int $runId, int $nodeId): array
   {
     $select = $this->pdo->prepare("SELECT child.`id` FROM `run_edges` edge

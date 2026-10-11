@@ -14,7 +14,7 @@ export interface RunStartResult {
   readonly playerRevision: number;
 }
 
-export type CurrentRunNodeStatus = 'locked' | 'available' | 'completed' | 'skipped';
+export type CurrentRunNodeStatus = 'locked' | 'available' | 'completed';
 
 export interface CurrentRunNode {
   readonly id: string;
@@ -175,7 +175,7 @@ export function parseCurrentRunEnvelope(value: unknown, content: ClientContentRe
     const nodeTypeId = node['node_type_id'];
     if (typeof nodeTypeId !== 'string' || !stableIdPattern.test(nodeTypeId) || !content.getRunNodeType(nodeTypeId))
       throw new RunContractError('Run node type is not projected authored content.');
-    if (!['locked', 'available', 'completed', 'skipped'].includes(node['status'] as string)) throw new RunContractError('Run node status is invalid.');
+    if (!['locked', 'available', 'completed'].includes(node['status'] as string)) throw new RunContractError('Run node status is invalid.');
     const completedAt = nullableTimestamp(node['completed_at'], 'Node completed_at');
     if ((node['status'] === 'completed') !== (completedAt !== null)) throw new RunContractError('Run node completion state is incoherent.');
     const battleId = node['battle_id'] === null ? null : positiveId(node['battle_id'], 'Node battle_id');

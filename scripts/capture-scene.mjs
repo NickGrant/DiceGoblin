@@ -367,7 +367,7 @@ async function installGameFixtureRoutes(page, options) {
     return;
   }
   if (runScenes.includes(scene)) {
-    let resolvedStage = scene === 'run-rest-result' ? 'loot' : 'combat';
+    let resolvedStage = ['run-rest-result', 'run-branching'].includes(scene) ? 'loot' : 'combat';
     const runResponse = () => {
       const combatAvailable = scene === 'run-combat-available';
       const branching = scene === 'run-branching';

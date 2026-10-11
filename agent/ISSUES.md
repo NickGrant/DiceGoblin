@@ -15,13 +15,13 @@ The existing vNext run architecture already owns authored region/run definitions
 
 #### Problem
 
-The current linear traversal cannot commit one branch while permanently excluding an unchosen reachable route.
+The current linear traversal cannot expose and persist an exploration frontier with multiple independently resolvable nodes.
 
 #### Purpose
 
 Establish the topology and authority boundary required for genuinely branch-capable runs before adding new Milestone 10 encounter families.
 
-This package should make generated run graphs capable of exposing more than one legal next node and make route choice explicit, persisted, authoritative, idempotent/retry-safe, and reconnect-safe. It must preserve existing Farm/Mountains behavior and create a generic foundation for later Rest, hazard, shrine, Chaos, modifier, and multi-step encounter packages.
+This package should make generated run graphs capable of exposing more than one legal next node and make the available frontier explicit, persisted, authoritative, idempotent/retry-safe, and reconnect-safe. Resolving one available node completes it and unlocks direct successors while all other available nodes remain available. Optional dead ends and converging routes are valid; one reachable terminal Exit remains required. It must preserve existing Farm/Mountains behavior and create a generic foundation for later Rest, hazard, shrine, Chaos, modifier, and multi-step encounter packages.
 
 Do not add hazards, shrines, Chaos encounters, run modifiers, new consumable mechanics, knowledge/objectives, onboarding, Swamp/Frog Kin, or final visual redesign in this package.
 
@@ -32,6 +32,7 @@ Do not add hazards, shrines, Chaos encounters, run modifiers, new consumable mec
 - MySQL is authoritative for each generated run graph, resolved/current position, and durable route state.
 - A node may be resolved only when it is currently reachable according to authoritative run state. Knowing another generated node ID must never authorize traversal.
 - Route choice must survive reload/reconnect without rerolling or silently changing available choices.
+- Completing one available node must not consume other available nodes. Any completed incoming route may unlock a convergent successor; an optional dead end adds no successors.
 - Idempotent replay of a route/node action must return the finalized result without advancing twice.
 - Phaser is a projection of server authority. It may render available branches and selected/current state but may not derive hidden reachability rules independently.
 - Preserve one generic path across Farm and Mountains. Region-specific topology data is acceptable in authored content; region-specific traversal branches in controllers/application/runtime are not.
@@ -45,7 +46,7 @@ Do not add hazards, shrines, Chaos encounters, run modifiers, new consumable mec
    - initial run state;
    - unresolved current/available nodes;
    - resolving a chosen reachable node;
-   - exposing its newly reachable successors;
+   - exposing its newly reachable successors while retaining the rest of the frontier;
    - completed/terminal runs;
    - reload/resume.
 4. Ensure existing linear Farm/Mountains definitions continue to generate and resolve correctly without requiring duplicated content.
@@ -90,8 +91,10 @@ Add focused automated coverage proving at minimum:
 - legacy linear Mountains generation/resolution remains valid;
 - an authored branching fixture/production-safe test definition generates at least one point with two legal successors;
 - both successors are exposed as legal choices before selection;
-- selecting either legal successor advances only that path according to the accepted graph semantics;
-- an unchosen/non-reachable generated node cannot be resolved by ID;
+- selecting either legal successor completes it while leaving the other available;
+- an optional dead end and an accumulating frontier remain resolvable;
+- convergence unlocks a successor after any completed incoming route without duplicate unlock;
+- a non-reachable generated node cannot be resolved by ID;
 - reload/re-query preserves the same choices before selection and the selected path afterward;
 - exact-key replay does not advance twice or alter the selected path;
 - stale/invalid choice attempts do not mutate run state;
@@ -123,10 +126,10 @@ Leave Package 1 **In Progress** for architectural review. Do not promote Package
 
 #### Package 1 implementation evidence (2026-10-11)
 
-- The existing `fixed_graph_v1` node and directed-edge lists are the authored topology representation. No new content fields or schema were needed. Validation now requires the first authored node as start, forward-only edges, one terminal Exit, and no route ending before it. Farm and Mountains authored paths remain unchanged.
-- A validated two-route test definition persists through the shared run/node/edge repositories. Both successors appear in `available_node_ids`; resolving either completes that node, marks the competing option `skipped`, and unlocks only its successor. A separate PDO connection reads the same selected path. Locked/early, stale/skipped, foreign-player, and post-terminal attempts are rejected; exact-key replay returns the same receipt and increments revision only once. Both routes complete through Rest, Boss, and Exit.
-- `RunScene` consumes `available_node_ids`, blocks a second choice and navigation during submitting/ambiguous outcomes, and reloads the finalized current-run state. Strict frontend parsing checks the authoritative choice list against node status. Completed battle replay remains available.
-- Focused backend: authored run validation 24 tests / 75 assertions; branching lifecycle 2 tests / 34 assertions. Focused browser run contract and RunScene: 36 tests passed.
-- Full `npm run verify:package`: PASS; backend 382 tests / 1,976 assertions; frontend 541 tests; context, docs, content/projection, production build, bundle, and whitespace gates passed. Production content revision: `9b3b0a14d8018319d4f59e16f6b376d70c8430476a671b18c082eb60d5419bd2`.
-- Deterministic `run-branching` captures passed at Compact 844x390, Standard 1600x900, Wide 2560x1080, and portrait 390x844 rotate gate. Files: `artifacts/screenshots/m10-p1-run-branching-{compact,standard,wide,portrait}.png`.
+- The existing `fixed_graph_v1` node and directed-edge lists are the minimal authored topology representation. No new content fields or schema were needed. Validation requires a first-node start, an acyclic graph, every node reachable from start, and one reachable terminal Exit. Optional dead ends and convergence are legal. Node list order gives stable identity, not traversal direction. Farm and Mountains authored paths remain unchanged.
+- The shared run/node/edge repositories persist the exploration frontier. Completing one available node unlocks only its direct locked successors and preserves all other available nodes. The `skipped` traversal status and exclusive-choice mutation were removed. A completed incoming edge suffices to unlock a convergent child; another parent's later completion does not duplicate it.
+- Persisted lifecycle tests cover either branch order, accumulated `[other branch, successor]` frontier, optional dead-end completion while the run stays active, convergence, separate-connection reload, exact-key receipt replay and one revision increment, locked/early and stale/completed IDs, foreign ownership, and terminal rejection. Linear Farm/Mountains regression suites remain part of the full gate.
+- `RunScene` consumes `available_node_ids`, blocks duplicate input/navigation during submitting or ambiguous outcomes, reconciles the server frontier, and keeps the other branch selectable after reload. Strict frontend parsing rejects `skipped` and mismatched available lists. Completed battle replay remains available.
+- Focused backend: authored run validation 26 tests / 79 assertions; branching lifecycle 3 tests / 57 assertions; Mountains lifecycle 3 tests / 92 assertions. Focused browser run contracts, map model, and RunScene: 40 tests passed. Full `npm run verify:package`: PASS; backend 382 tests / 1,976 assertions; frontend 541 tests; context, docs, content/projection, production build, bundle, and whitespace gates passed. Production content revision: `9b3b0a14d8018319d4f59e16f6b376d70c8430476a671b18c082eb60d5419bd2`.
+- Deterministic `run-branching` captures now show the accumulated frontier after one Loot resolves: the other Loot and Rest are both ready. Compact 844x390, Standard 1600x900, Wide 2560x1080, and portrait 390x844 rotate gate passed and were visually reviewed. Files: `artifacts/screenshots/m10-p1-run-branching-{compact,standard,wide,portrait}.png`.
 - No later Milestone 10 encounter families or Milestone 11+ work was introduced. Status remains **In Progress** for architectural review.

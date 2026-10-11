@@ -155,7 +155,7 @@ describe('RunScene lifecycle shell', () => {
     expect(scene.resolvedNodeSyncState).toBe('succeeded');
   });
 
-  it('keeps branching choice fixed during submission and adopts the server-selected route on re-entry', async () => {
+  it('blocks choices during submission and adopts the accumulating server frontier on re-entry', async () => {
     const { scene, startup, api, sceneStart } = await readyHarness(branchRun());
     spyOn<any>(scene, 'render').and.stub();
     scene.selectNode('12');
@@ -174,21 +174,20 @@ describe('RunScene lifecycle shell', () => {
     expect(api.resolveRunNode).toHaveBeenCalledTimes(1);
     expect(startup.store.currentRun.data?.availableNodeIds).toEqual(['11', '12']);
 
-    const selected = { ...branchRun(), availableNodeIds: ['13'],
+    const selected = { ...branchRun(), availableNodeIds: ['12', '13'],
       nodes: branchRun().nodes.map((node) => node.id === '11'
         ? { ...node, status: 'completed' as const, completedAt: '2026-09-16T12:01:00Z' }
-        : node.id === '12' ? { ...node, status: 'skipped' as const }
         : node.id === '13' ? { ...node, status: 'available' as const } : node) };
     api.getCurrentRun.and.resolveTo({ run: selected, playerRevision: 8 });
     finish({ ...lootResolutionSuccess(), newlyAvailableNodeIds: ['13'] });
     await pending;
 
-    expect(startup.store.currentRun.data?.availableNodeIds).toEqual(['13']);
-    expect(startup.store.currentRun.data?.nodes[2].status).toBe('skipped');
+    expect(startup.store.currentRun.data?.availableNodeIds).toEqual(['12', '13']);
+    expect(startup.store.currentRun.data?.nodes[2].status).toBe('available');
     scene.selectNode('12');
-    expect(scene.selectedMapNodeId).toBe('11');
+    expect(scene.selectedMapNodeId).toBe('12');
     const reentered = await readyHarness(selected);
-    expect(reentered.startup.store.currentRun.data?.availableNodeIds).toEqual(['13']);
+    expect(reentered.startup.store.currentRun.data?.availableNodeIds).toEqual(['12', '13']);
   });
 
   it('retries Loot run, node, and discriminator mismatches with the exact original attempt identity', async () => {

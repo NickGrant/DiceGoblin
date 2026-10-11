@@ -27,7 +27,7 @@ describe('run map model', () => {
       ['Authored Cache', 'Authored cache description.', 'Ready'],
       ['Authored Gate', 'Authored gate description.', 'Locked'],
     ]);
-    expect(new Set(Object.values(runNodeColors).map((color) => `${color.fill}:${color.border}`)).size).toBe(4);
+    expect(new Set(Object.values(runNodeColors).map((color) => `${color.fill}:${color.border}`)).size).toBe(3);
   });
 
   it('fits every returned node and both controls in Compact, Standard, and Wide safe bounds', () => {

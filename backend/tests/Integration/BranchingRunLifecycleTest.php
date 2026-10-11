@@ -26,7 +26,7 @@ final class BranchingRunLifecycleTest extends IntegrationTestCase
   protected function supportsVnextBaseline(): bool { return true; }
 
   /** @dataProvider routeChoices */
-  public function testPersistedBranchChoiceIsExclusiveReplaySafeAndReconnectSafe(int $choice): void
+  public function testPersistedExplorationFrontierIsReplaySafeAndReconnectSafe(int $choice, bool $deadEnd): void
   {
     $content = ContentRegistry::load(dirname(__DIR__, 2) . '/content');
     $services = ControllerServiceFactory::buildContentAware($this->pdo, null, null, $this->victoryResolver());
@@ -36,7 +36,7 @@ final class BranchingRunLifecycleTest extends IntegrationTestCase
     $this->trackUserId($userId);
     $fixture = (new ProvisionWarbandFixtureCommand($this->pdo, new WarbandFixtureRepository($this->pdo), $content))
       ->execute($userId);
-    $graph = (new FixedGraphRunGenerator())->generate(BranchingRunDefinitionFixture::definition($content));
+    $graph = (new FixedGraphRunGenerator())->generate(BranchingRunDefinitionFixture::definition($content, $deadEnd));
     $repository = new RunPersistenceRepository($this->pdo);
     $runId = $repository->createRun($userId, 'region.the_farm', (int)$fixture['active_squad_id']);
     $ids = $repository->insertNodes($runId, $graph['nodes']);
@@ -75,32 +75,44 @@ final class BranchingRunLifecycleTest extends IntegrationTestCase
 
     $revision = (int)$this->scalar('SELECT `player_revision` FROM `user_state` WHERE `user_id` = ?', [$userId]);
     $chosen = $command->execute($userId, $runId, $ids[$choice], 'choose-branch-' . $choice);
-    $this->assertSame([(string)$ids[3]], $chosen['newly_available_node_ids']);
+    $this->assertSame($deadEnd && $choice === 2 ? [] : [(string)$ids[3]], $chosen['newly_available_node_ids']);
     $this->assertSame($revision + 1, $chosen['player_revision']);
     $this->assertSame($chosen, $command->execute($userId, $runId, $ids[$choice], 'choose-branch-' . $choice));
-    $this->assertUnavailable($command, $userId, $runId, $ids[$choice === 1 ? 2 : 1], 'stale-branch-' . $choice);
+    $other = $choice === 1 ? 2 : 1;
+    $this->assertUnavailable($command, $userId, $runId, $ids[$choice], 'stale-branch-' . $choice);
     $this->assertSame($revision + 1,
       (int)$this->scalar('SELECT `player_revision` FROM `user_state` WHERE `user_id` = ?', [$userId]));
-    $this->assertSame(['completed', $choice === 1 ? 'completed' : 'skipped',
-      $choice === 2 ? 'completed' : 'skipped', 'available', 'locked', 'locked'],
+    $this->assertSame(['completed', $choice === 1 ? 'completed' : 'available',
+      $choice === 2 ? 'completed' : 'available', $deadEnd && $choice === 2 ? 'locked' : 'available', 'locked', 'locked'],
       array_column($this->rows('SELECT `status` FROM `run_nodes` WHERE `run_id` = ? ORDER BY `node_index`', [$runId]), 'status'));
-    $this->assertSame([(string)$ids[3]], $query->execute($userId)['run']['available_node_ids']);
+    $expectedFrontier = $choice === 1 ? [(string)$ids[2], (string)$ids[3]]
+      : ($deadEnd ? [(string)$ids[1]] : [(string)$ids[1], (string)$ids[3]]);
+    $this->assertSame($expectedFrontier, $query->execute($userId)['run']['available_node_ids']);
+    $this->assertSame('active', $query->execute($userId)['run']['status']);
 
     $reloadedPdo = new PDO((string)getenv('TEST_DB_DSN'), (string)getenv('TEST_DB_USER'),
       (string)getenv('TEST_DB_PASS'), [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
     $reloaded = (new CurrentRunQuery(new RunPersistenceRepository($reloadedPdo),
       new PlayerStateRepository($reloadedPdo), $content))->execute($userId)['run'];
-    $this->assertSame([(string)$ids[3]], $reloaded['available_node_ids']);
+    $this->assertSame($expectedFrontier, $reloaded['available_node_ids']);
+
+    $otherResult = $command->execute($userId, $runId, $ids[$other], 'other-branch-' . $choice);
+    $this->assertSame($deadEnd && $choice === 2 ? [(string)$ids[3]] : [], $otherResult['newly_available_node_ids']);
+    $this->assertSame([(string)$ids[3]], $query->execute($userId)['run']['available_node_ids']);
+    $this->assertSame('available', $this->scalar('SELECT `status` FROM `run_nodes` WHERE `id` = ?', [$ids[3]]));
 
     $command->execute($userId, $runId, $ids[3], 'branch-rest-' . $choice);
     $command->execute($userId, $runId, $ids[4], 'branch-boss-' . $choice);
     $exit = $command->execute($userId, $runId, $ids[5], 'branch-exit-' . $choice);
     $this->assertSame(['completed', []], [$exit['run']['status'], $exit['newly_available_node_ids']]);
     $this->assertNull($query->execute($userId)['run']);
-    $this->assertUnavailable($command, $userId, $runId, $ids[$choice === 1 ? 2 : 1], 'terminal-branch-' . $choice);
+    $this->assertUnavailable($command, $userId, $runId, $ids[$other], 'terminal-branch-' . $choice);
   }
 
-  public function routeChoices(): array { return ['first route' => [1], 'second route' => [2]]; }
+  public function routeChoices(): array { return [
+    'first route with convergence' => [1, false], 'second route with convergence' => [2, false],
+    'dead end before continuing' => [2, true],
+  ]; }
 
   private function assertUnavailable(mixed $command, int $userId, int $runId, int $nodeId, string $key): void
   {

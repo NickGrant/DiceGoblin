@@ -57,14 +57,12 @@ const statusLabels: Record<CurrentRunNodeStatus, RunMapNodePresentation['statusL
   locked: 'Locked',
   available: 'Ready',
   completed: 'Completed',
-  skipped: 'Skipped',
 };
 
 export const runNodeColors: Record<CurrentRunNodeStatus, { fill: number; border: number; text: string }> = {
   locked: { fill: 0x494b48, border: 0x777b75, text: '#c5c8c1' },
   available: { fill: 0x365f3f, border: 0xe3b43b, text: '#fff2bd' },
   completed: { fill: 0x315d68, border: 0x79c9c0, text: '#dcfff8' },
-  skipped: { fill: 0x313735, border: 0x686e68, text: '#a5aaa5' },
 };
 
 export function createRunMapPresentation(run: CurrentRun, content: ClientContentRegistry): RunMapPresentation {

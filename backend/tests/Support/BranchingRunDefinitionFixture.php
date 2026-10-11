@@ -8,7 +8,7 @@ use DiceGoblins\Content\ContentRegistry;
 final class BranchingRunDefinitionFixture
 {
   /** @return array<string,mixed> */
-  public static function definition(ContentRegistry $content): array
+  public static function definition(ContentRegistry $content, bool $deadEnd = false): array
   {
     $farm = $content->runGenerationForRegion('region.the_farm');
     $alternateLoot = $farm['nodes'][1];
@@ -23,7 +23,7 @@ final class BranchingRunDefinitionFixture
         ['from' => 'combat', 'to' => 'loot'],
         ['from' => 'combat', 'to' => 'loot_alternate'],
         ['from' => 'loot', 'to' => 'rest'],
-        ['from' => 'loot_alternate', 'to' => 'rest'],
+        ...($deadEnd ? [] : [['from' => 'loot_alternate', 'to' => 'rest']]),
         ['from' => 'rest', 'to' => 'boss'],
         ['from' => 'boss', 'to' => 'exit'],
       ],

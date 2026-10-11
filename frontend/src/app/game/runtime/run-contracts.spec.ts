@@ -126,6 +126,7 @@ describe('run contracts', () => {
       (v: any) => v.data.run.nodes[1].node_index = 3,
       (v: any) => v.data.run.nodes[1].id = '10',
       (v: any) => v.data.run.nodes[1].node_type_id = 'run_node_type.missing',
+      (v: any) => v.data.run.nodes[1].status = 'skipped',
       (v: any) => v.data.run.nodes[0].completed_at = null,
       (v: any) => v.data.run.nodes[0].position.column = 1.5,
       (v: any) => v.data.run.nodes[0].battle_id = '031',
