@@ -7,7 +7,7 @@ Read this for sequencing/planning or when closing/promoting an execution package
 **Status:** Active
 
 ### Related Issues
-- Milestone 10 Package 1 - Branch-capable run topology and route-choice foundation
+- Milestone 10 Package 2 - Generalized non-combat encounter contract and Rest migration
 
 Milestone 1 - Walking Skeleton is complete and passed manual user UAT.
 
@@ -26,6 +26,8 @@ Milestone 7 - Economy and Inventory is complete and passed focused manual user U
 Milestone 8 - Permanent Progression is complete and passed focused manual user UAT on 2026-10-05. Technical closure was approved at `6314877766187931124c4d8fa5013da02354adfc`; Package 7 UAT passed with no blocking findings requiring a correction package.
 
 Milestone 9 - Kin and Wrong Machine is complete and passed focused manual user UAT on 2026-10-10. Technical closure was approved at `8e8701c7fb071b7513fbcac4ac3da62e266f6f8e`; Package 5 basic focused UAT passed with no blocking findings requiring a correction package.
+
+Milestone 10 Package 1 - Branch-capable run topology and route-choice foundation is approved at `86c88987aaf14391660cb3b868cd10e537dd19d8` after the exploration-frontier correction. The accepted model preserves other available nodes after a resolution, supports optional dead ends and convergence, and keeps the authoritative frontier persisted/reconnect-safe.
 
 The major game-wide visual/UI overhaul remains intentionally deferred.
 
@@ -49,7 +51,7 @@ Knowledge/objectives remain Milestone 11. Mystic Cave/onboarding remains Milesto
 - Server/MySQL state remains authoritative for generated topology, current position, choices, encounter progress, modifiers, rewards, and terminal state where persistence is required.
 - Authored encounter definitions belong in canonical content JSON; do not move gameplay catalogs into SQL or client constants.
 - Phaser `RunScene` presents authoritative available routes/actions and reconciles mutation receipts; it does not predict hidden outcomes or fabricate route availability.
-- Route choice must be explicit and reconnect-safe. A player may not resolve an arbitrary generated node merely because its identifier is known.
+- The authoritative exploration frontier is explicit and reconnect-safe. Resolving one available node does not consume other available nodes; a player may not resolve an arbitrary generated node merely because its identifier is known.
 - Reuse the existing idempotency/retry, reward, inventory, energy, unit-state, and run persistence boundaries where semantically valid.
 - Multi-step encounters should persist only the minimal durable state needed to resume safely; avoid encounter-specific persistence tables unless the shared run/node model cannot represent the accepted semantics.
 - Farm and Mountains must remain valid through the generalized architecture; avoid region-specific branches in application/runtime code.
@@ -57,8 +59,8 @@ Knowledge/objectives remain Milestone 11. Mystic Cave/onboarding remains Milesto
 
 ### Package Queue
 
-1. **Branch-capable run topology + route-choice foundation.** Current.
-2. **Generalized non-combat encounter contract + Rest migration.** Planned.
+1. **Branch-capable run topology + route-choice foundation.** Approved at `86c88987aaf14391660cb3b868cd10e537dd19d8` after exploration-frontier correction.
+2. **Generalized non-combat encounter contract + Rest migration.** Current.
 3. **Hazard encounter foundation.** Planned.
 4. **Shrine encounter foundation.** Planned.
 5. **Chaos encounter foundation.** Planned.
@@ -70,7 +72,7 @@ Knowledge/objectives remain Milestone 11. Mystic Cave/onboarding remains Milesto
 
 ### Sequencing Notes
 
-- Package 1 changes the run topology/position boundary first so later encounter types can rely on explicit reachable-node semantics instead of the current effectively linear traversal.
+- Package 1 established authoritative exploration-frontier topology so later encounter types can rely on explicit reachable-node semantics.
 - Package 2 establishes the generic non-combat encounter interaction contract and migrates existing Rest behavior onto it before adding new encounter families.
 - Packages 3-5 add hazards, shrines, and Chaos through that shared encounter boundary rather than bespoke controller/runtime paths.
 - Package 6 owns run-scoped modifiers and their persistence/application semantics.
