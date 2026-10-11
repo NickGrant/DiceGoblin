@@ -27,7 +27,7 @@ describe('run map model', () => {
       ['Authored Cache', 'Authored cache description.', 'Ready'],
       ['Authored Gate', 'Authored gate description.', 'Locked'],
     ]);
-    expect(new Set(Object.values(runNodeColors).map((color) => `${color.fill}:${color.border}`)).size).toBe(3);
+    expect(new Set(Object.values(runNodeColors).map((color) => `${color.fill}:${color.border}`)).size).toBe(4);
   });
 
   it('fits every returned node and both controls in Compact, Standard, and Wide safe bounds', () => {
@@ -82,6 +82,7 @@ function content(): ClientContentRegistry {
 function run(): CurrentRun {
   return Object.freeze({ id: '41', regionId: 'region.the_farm', squadId: '31', status: 'active',
     createdAt: '2026-09-13T12:00:00Z',
+    availableNodeIds: Object.freeze(['77']),
     nodes: Object.freeze([
       Object.freeze({ id: '91', nodeIndex: 0, nodeTypeId: 'run_node_type.combat', status: 'completed', completedAt: '2026-09-13T12:02:00Z', battleId: '501', position: Object.freeze({ column: -4, row: 3 }) }),
       Object.freeze({ id: '77', nodeIndex: 1, nodeTypeId: 'run_node_type.loot', status: 'available', completedAt: null, battleId: null, position: Object.freeze({ column: 8, row: -2 }) }),
@@ -96,6 +97,7 @@ function mountainsRun(): CurrentRun {
   const types = ['combat', 'loot', 'combat', 'rest', 'combat', 'boss', 'exit'];
   return Object.freeze({ id: '42', regionId: 'region.mountains', squadId: '31', status: 'active',
     createdAt: '2026-09-20T12:00:00Z',
+    availableNodeIds: Object.freeze(['101']),
     nodes: Object.freeze(types.map((type, index) => Object.freeze({ id: String(101 + index), nodeIndex: index,
       nodeTypeId: `run_node_type.${type}`, status: index === 0 ? 'available' as const : 'locked' as const,
       completedAt: null, battleId: null, position: Object.freeze({ column: index, row: 1 }) }))),

@@ -14,7 +14,7 @@ export interface RunStartResult {
   readonly playerRevision: number;
 }
 
-export type CurrentRunNodeStatus = 'locked' | 'available' | 'completed';
+export type CurrentRunNodeStatus = 'locked' | 'available' | 'completed' | 'skipped';
 
 export interface CurrentRunNode {
   readonly id: string;
@@ -33,6 +33,7 @@ export interface CurrentRun {
   readonly status: 'active';
   readonly createdAt: string;
   readonly nodes: readonly CurrentRunNode[];
+  readonly availableNodeIds: readonly string[];
   readonly edges: readonly { readonly fromNodeId: string; readonly toNodeId: string }[];
   readonly units: readonly { readonly unitId: string; readonly currentHp: number | null }[];
 }
@@ -157,8 +158,9 @@ export function parseCurrentRunEnvelope(value: unknown, content: ClientContentRe
   const playerRevision = nonNegativeInteger(data['player_revision'], 'Run player_revision');
   if (data['run'] === null) return Object.freeze({ run: null, playerRevision });
   const raw = record(data['run'], 'Current run');
-  exact(raw, ['id', 'region_id', 'squad_id', 'status', 'created_at', 'nodes', 'edges', 'units'], 'Current run');
-  if (raw['status'] !== 'active' || !Array.isArray(raw['nodes']) || !Array.isArray(raw['edges']) || !Array.isArray(raw['units']))
+  exact(raw, ['id', 'region_id', 'squad_id', 'status', 'created_at', 'nodes', 'edges', 'available_node_ids', 'units'], 'Current run');
+  if (raw['status'] !== 'active' || !Array.isArray(raw['nodes']) || !Array.isArray(raw['edges'])
+    || !Array.isArray(raw['available_node_ids']) || !Array.isArray(raw['units']))
     throw new RunContractError('Current run root is malformed.');
   if (raw['nodes'].length === 0 || raw['units'].length === 0)
     throw new RunContractError('Current run must contain nodes and participating units.');
@@ -173,7 +175,7 @@ export function parseCurrentRunEnvelope(value: unknown, content: ClientContentRe
     const nodeTypeId = node['node_type_id'];
     if (typeof nodeTypeId !== 'string' || !stableIdPattern.test(nodeTypeId) || !content.getRunNodeType(nodeTypeId))
       throw new RunContractError('Run node type is not projected authored content.');
-    if (!['locked', 'available', 'completed'].includes(node['status'] as string)) throw new RunContractError('Run node status is invalid.');
+    if (!['locked', 'available', 'completed', 'skipped'].includes(node['status'] as string)) throw new RunContractError('Run node status is invalid.');
     const completedAt = nullableTimestamp(node['completed_at'], 'Node completed_at');
     if ((node['status'] === 'completed') !== (completedAt !== null)) throw new RunContractError('Run node completion state is incoherent.');
     const battleId = node['battle_id'] === null ? null : positiveId(node['battle_id'], 'Node battle_id');
@@ -210,6 +212,12 @@ export function parseCurrentRunEnvelope(value: unknown, content: ClientContentRe
   }
   if (reachable.size !== nodes.length) throw new RunContractError('Run graph is disconnected.');
 
+  const availableNodeIds = raw['available_node_ids'].map((id) => positiveId(id, 'Available node id'));
+  const expectedAvailableIds = nodes.filter((node) => node.status === 'available').map((node) => node.id);
+  if (availableNodeIds.length !== expectedAvailableIds.length
+    || availableNodeIds.some((id, index) => id !== expectedAvailableIds[index]))
+    throw new RunContractError('Run available choices disagree with node state.');
+
   const unitIds = new Set<string>();
   const units = raw['units'].map((candidate) => {
     const unit = record(candidate, 'Current run unit');
@@ -224,7 +232,8 @@ export function parseCurrentRunEnvelope(value: unknown, content: ClientContentRe
   return Object.freeze({
     run: Object.freeze({ id: positiveId(raw['id'], 'Run id'), regionId: regionId(raw['region_id'], content),
       squadId: positiveId(raw['squad_id'], 'Run squad_id'), status: 'active', createdAt: timestamp(raw['created_at'], 'Run created_at'),
-      nodes: Object.freeze(nodes), edges: Object.freeze(edges), units: Object.freeze(units) }),
+      nodes: Object.freeze(nodes), availableNodeIds: Object.freeze(availableNodeIds),
+      edges: Object.freeze(edges), units: Object.freeze(units) }),
     playerRevision,
   });
 }

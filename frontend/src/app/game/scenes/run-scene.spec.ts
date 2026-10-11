@@ -155,6 +155,42 @@ describe('RunScene lifecycle shell', () => {
     expect(scene.resolvedNodeSyncState).toBe('succeeded');
   });
 
+  it('keeps branching choice fixed during submission and adopts the server-selected route on re-entry', async () => {
+    const { scene, startup, api, sceneStart } = await readyHarness(branchRun());
+    spyOn<any>(scene, 'render').and.stub();
+    scene.selectNode('12');
+    expect(scene.selectedMapNodeId).toBe('12');
+    scene.selectNode('11');
+    let finish!: (result: ReturnType<typeof lootResolutionSuccess>) => void;
+    api.resolveRunNode.and.returnValue(new Promise((resolve) => { finish = resolve; }));
+    const pending = scene.activateSelectedNonCombat();
+    scene.selectNode('12');
+    scene.returnToCamp(); scene.openSupplies(); scene.openAbandonConfirmation();
+    expect(scene.selectedMapNodeId).toBe('11');
+    expect(sceneStart).not.toHaveBeenCalled();
+    expect(scene.suppliesVisible).toBeFalse();
+    expect(scene.abandonActionState).toBe('idle');
+    await scene.activateSelectedNonCombat();
+    expect(api.resolveRunNode).toHaveBeenCalledTimes(1);
+    expect(startup.store.currentRun.data?.availableNodeIds).toEqual(['11', '12']);
+
+    const selected = { ...branchRun(), availableNodeIds: ['13'],
+      nodes: branchRun().nodes.map((node) => node.id === '11'
+        ? { ...node, status: 'completed' as const, completedAt: '2026-09-16T12:01:00Z' }
+        : node.id === '12' ? { ...node, status: 'skipped' as const }
+        : node.id === '13' ? { ...node, status: 'available' as const } : node) };
+    api.getCurrentRun.and.resolveTo({ run: selected, playerRevision: 8 });
+    finish({ ...lootResolutionSuccess(), newlyAvailableNodeIds: ['13'] });
+    await pending;
+
+    expect(startup.store.currentRun.data?.availableNodeIds).toEqual(['13']);
+    expect(startup.store.currentRun.data?.nodes[2].status).toBe('skipped');
+    scene.selectNode('12');
+    expect(scene.selectedMapNodeId).toBe('11');
+    const reentered = await readyHarness(selected);
+    expect(reentered.startup.store.currentRun.data?.availableNodeIds).toEqual(['13']);
+  });
+
   it('retries Loot run, node, and discriminator mismatches with the exact original attempt identity', async () => {
     const createKey = jasmine.createSpy('createKey').and.returnValues('run-node:first', 'run-node:second');
     const { scene, startup, api } = await readyHarness(lootAvailableRun(), createKey);
@@ -527,14 +563,34 @@ function content(): ClientContentRegistry {
 
 function currentRun(): CurrentRun {
   return { id: '41', regionId: 'region.the_farm', squadId: '31', status: 'active' as const,
+    availableNodeIds: ['10'],
     createdAt: '2026-09-13T12:00:00Z', nodes: [{ id: '10', nodeIndex: 0, nodeTypeId: 'run_node_type.combat',
       status: 'available' as const, completedAt: null, battleId: null, position: { column: 0, row: 1 } }], edges: [],
     units: [{ unitId: '11', currentHp: null }] };
 }
 
+function branchRun(): CurrentRun {
+  return { id: '41', regionId: 'region.the_farm', squadId: '31', status: 'active',
+    createdAt: '2026-09-13T12:00:00Z', availableNodeIds: ['11', '12'],
+    nodes: [
+      { id: '10', nodeIndex: 0, nodeTypeId: 'run_node_type.combat', status: 'completed',
+        completedAt: '2026-09-16T12:00:00Z', battleId: '81', position: { column: 0, row: 1 } },
+      { id: '11', nodeIndex: 1, nodeTypeId: 'run_node_type.loot', status: 'available',
+        completedAt: null, battleId: null, position: { column: 1, row: 0 } },
+      { id: '12', nodeIndex: 2, nodeTypeId: 'run_node_type.loot', status: 'available',
+        completedAt: null, battleId: null, position: { column: 1, row: 2 } },
+      { id: '13', nodeIndex: 3, nodeTypeId: 'run_node_type.rest', status: 'locked',
+        completedAt: null, battleId: null, position: { column: 2, row: 1 } },
+    ], edges: [
+      { fromNodeId: '10', toNodeId: '11' }, { fromNodeId: '10', toNodeId: '12' },
+      { fromNodeId: '11', toNodeId: '13' }, { fromNodeId: '12', toNodeId: '13' },
+    ], units: [{ unitId: '11', currentHp: 20 }] };
+}
+
 function farmRun(statuses: readonly ['completed', 'completed' | 'available', 'locked' | 'completed' | 'available', 'locked' | 'available' | 'completed', 'locked' | 'available']): CurrentRun {
   const types = ['combat', 'loot', 'rest', 'boss', 'exit'];
   return { id: '41', regionId: 'region.the_farm', squadId: '31', status: 'active' as const,
+    availableNodeIds: statuses.flatMap((status, index) => status === 'available' ? [String(10 + index)] : []),
     createdAt: '2026-09-13T12:00:00Z', nodes: types.map((type, index) => ({ id: String(10 + index), nodeIndex: index,
       nodeTypeId: `run_node_type.${type}`, status: statuses[index], completedAt: statuses[index] === 'completed'
         ? `2026-09-16T12:0${index}:00Z` : null, battleId: type === 'combat' ? '81' : type === 'boss' && statuses[index] === 'completed' ? '82' : null,
@@ -554,6 +610,7 @@ function bossCompletedRun() { return farmRun(['completed', 'completed', 'complet
 function mountainsExitAvailableRun(): CurrentRun {
   const types = ['combat', 'loot', 'combat', 'rest', 'combat', 'boss', 'exit'];
   return { id: '41', regionId: 'region.mountains', squadId: '31', status: 'active',
+    availableNodeIds: ['107'],
     createdAt: '2026-09-20T12:00:00Z', nodes: types.map((type, index) => ({ id: String(101 + index), nodeIndex: index,
       nodeTypeId: `run_node_type.${type}`, status: index === 6 ? 'available' as const : 'completed' as const,
       completedAt: index === 6 ? null : `2026-09-20T12:0${index}:00Z`,

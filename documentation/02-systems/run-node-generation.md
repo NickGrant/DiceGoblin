@@ -1,7 +1,7 @@
 ---
 Title: "Run Node Generation"
 Status: Canonical
-Last Updated: 2026-09-13
+Last Updated: 2026-10-10
 Owner: Systems Design + Engineering
 Depends On:
   - documentation/07-development-path/vnext-authored-content-model.md
@@ -46,6 +46,14 @@ Specific Farm/Mountains topology and tuning are implemented in their milestones.
 `POST /api/v1/runs` now supplies that definition to the generator after locking the player's `user_state` and validating the server-selected active squad. The same transaction persists the run root, maps generated indexes to relational node IDs, persists edges and participating units, spends Energy, increments `player_revision` once, and finalizes the idempotency receipt.
 
 Only `run_node_type.*` presentation fields are projected to the browser. The generation definition, fixed topology, and region-to-generation relationship remain server-private even though they participate in the global content revision.
+
+## Branching Traversal
+
+The same `fixed_graph_v1` node and edge lists support a route choice when one completed node has multiple outgoing edges. Generated edges must advance to a later node index, the first node is the start, and every route must lead to the sole terminal Exit. Farm and Mountains retain their authored linear paths.
+
+Persisted node status is the route record. A newly generated run has only its start node available. Resolving a node completes it, marks competing available nodes `skipped`, and makes only its direct successors available in the same transaction. A failed resolution rolls back the choice. A finalized idempotency receipt replays the same resolution without selecting another path. Locked and skipped nodes cannot be resolved by generated ID.
+
+`GET /api/v1/runs/current` returns the persisted graph with safe node-type presentation and `available_node_ids` in node-index order. The client uses this list for interaction and may display completed battle nodes for replay. Terminal runs have no current-run graph; the terminal resolution returns no newly available nodes.
 
 ## Combat Resolution Lifecycle
 An available ordinary Combat node is finalized once its authoritative battle is persisted, regardless of outcome. Victory marks the node completed and unlocks only directly outgoing persisted edges whose destination is still locked. The server does not reconstruct the Farm sequence or unlock later descendants. Defeat or stalemate also completes the node, unlocks nothing, and transitions the run to terminal `failed`; its battle, graph, and terminal run HP remain durable.

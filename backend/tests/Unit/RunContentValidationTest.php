@@ -7,10 +7,26 @@ use DiceGoblins\Content\ClientContentProjector;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Content\ContentValidationException;
 use DiceGoblins\Content\ContentValidator;
+use DiceGoblins\RunGeneration\FixedGraphRunGenerator;
+use DiceGoblins\Tests\Support\BranchingRunDefinitionFixture;
 use PHPUnit\Framework\TestCase;
 
 final class RunContentValidationTest extends TestCase
 {
+  public function testValidatedBranchingDefinitionGeneratesTwoOutgoingRoutesWithoutChangingCanonicalRegions(): void
+  {
+    $content = ContentRegistry::load($this->canonicalRoot());
+    $definition = BranchingRunDefinitionFixture::definition($content);
+    $definitions = $this->canonicalDefinitions();
+    $definitions[] = $definition;
+    (new ContentValidator())->validate([['path' => 'branching-test.json',
+      'document' => ['definitions' => $definitions]]]);
+    $graph = (new FixedGraphRunGenerator())->generate($definition);
+    $this->assertSame([0, 0, 1, 2, 3, 4], array_column($graph['edges'], 'from_node_index'));
+    $this->assertSame([1, 2, 3, 3, 4, 5], array_column($graph['edges'], 'to_node_index'));
+    $this->assertSame(['available', 'locked', 'locked', 'locked', 'locked', 'locked'],
+      array_column($graph['nodes'], 'status'));
+  }
   public function testCanonicalFarmRunContentIsValidatedAndTyped(): void
   {
     $registry = ContentRegistry::load($this->canonicalRoot());

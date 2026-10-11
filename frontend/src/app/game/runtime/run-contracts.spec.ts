@@ -39,7 +39,7 @@ describe('run contracts', () => {
     ], edges: [
       { from_node_id: '10', to_node_id: '11' }, { from_node_id: '11', to_node_id: '12' },
       { from_node_id: '12', to_node_id: '13' }, { from_node_id: '13', to_node_id: '14' },
-    ], units: [{ unit_id: '5', current_hp: 12 }] }, player_revision: 8 } }; }
+    ], available_node_ids: ['14'], units: [{ unit_id: '5', current_hp: 12 }] }, player_revision: 8 } }; }
 
   it('strictly parses authoritative start state without private topology', () => {
     const result = parseRunStartEnvelope(startEnvelope(), content());
@@ -75,12 +75,34 @@ describe('run contracts', () => {
     value.data.run.edges = types.slice(0, -1).map((_, index) => ({
       from_node_id: String(20 + index), to_node_id: String(21 + index),
     }));
+    value.data.run.available_node_ids = ['20'];
 
     const parsed = parseCurrentRunEnvelope(value, content());
 
     expect(parsed.run?.regionId).toBe('region.mountains');
     expect(parsed.run?.nodes.map((node) => node.nodeTypeId)).toEqual(types.map((type) => `run_node_type.${type}`));
     expect(parsed.run?.edges.length).toBe(6);
+  });
+
+  it('parses multiple authoritative choices and rejects a mismatched choice list', () => {
+    const value: any = currentEnvelope();
+    value.data.run.nodes.splice(2, 0, { id: '15', node_index: 2, node_type_id: 'run_node_type.loot',
+      status: 'available', completed_at: null, battle_id: null, position: { column: 1, row: 2 } });
+    value.data.run.nodes.forEach((node: any, index: number) => { node.node_index = index; });
+    value.data.run.nodes[1].status = 'available'; value.data.run.nodes[1].completed_at = null;
+    value.data.run.nodes[3].status = 'locked'; value.data.run.nodes[3].completed_at = null;
+    value.data.run.nodes[4].status = 'locked'; value.data.run.nodes[4].completed_at = null;
+    value.data.run.nodes[4].battle_id = null;
+    value.data.run.nodes[5].status = 'locked';
+    value.data.run.edges = [
+      { from_node_id: '10', to_node_id: '11' }, { from_node_id: '10', to_node_id: '15' },
+      { from_node_id: '11', to_node_id: '12' }, { from_node_id: '15', to_node_id: '12' },
+      { from_node_id: '12', to_node_id: '13' }, { from_node_id: '13', to_node_id: '14' },
+    ];
+    value.data.run.available_node_ids = ['11', '15'];
+    expect(parseCurrentRunEnvelope(value, content()).run?.availableNodeIds).toEqual(['11', '15']);
+    value.data.run.available_node_ids = ['15', '11'];
+    expect(() => parseCurrentRunEnvelope(value, content())).toThrowError(RunContractError);
   });
 
   it('rejects every invalid battle-bearing and non-battle-bearing node correspondence', () => {

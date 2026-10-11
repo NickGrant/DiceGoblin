@@ -11,7 +11,8 @@ export interface RunMapNodePresentation {
   readonly description: string;
   readonly iconKey: string;
   readonly status: CurrentRunNodeStatus;
-  readonly statusLabel: 'Locked' | 'Ready' | 'Completed';
+  readonly statusLabel: 'Locked' | 'Ready' | 'Completed' | 'Skipped';
+  readonly isReachable: boolean;
   readonly position: { readonly column: number; readonly row: number };
 }
 
@@ -56,12 +57,14 @@ const statusLabels: Record<CurrentRunNodeStatus, RunMapNodePresentation['statusL
   locked: 'Locked',
   available: 'Ready',
   completed: 'Completed',
+  skipped: 'Skipped',
 };
 
 export const runNodeColors: Record<CurrentRunNodeStatus, { fill: number; border: number; text: string }> = {
   locked: { fill: 0x494b48, border: 0x777b75, text: '#c5c8c1' },
   available: { fill: 0x365f3f, border: 0xe3b43b, text: '#fff2bd' },
   completed: { fill: 0x315d68, border: 0x79c9c0, text: '#dcfff8' },
+  skipped: { fill: 0x313735, border: 0x686e68, text: '#a5aaa5' },
 };
 
 export function createRunMapPresentation(run: CurrentRun, content: ClientContentRegistry): RunMapPresentation {
@@ -79,6 +82,7 @@ export function createRunMapPresentation(run: CurrentRun, content: ClientContent
       description: authored.description,
       iconKey: authored.icon_key,
       status: node.status,
+      isReachable: run.availableNodeIds.includes(node.id),
       statusLabel: statusLabels[node.status],
       position: node.position,
     });
@@ -114,7 +118,7 @@ export function createRunMapLayout(
   const minColumn = Math.min(...columns), maxColumn = Math.max(...columns);
   const minRow = Math.min(...rows), maxRow = Math.max(...rows);
   const usableWidth = Math.max(0, map.width - (radius + 45) * 2);
-  const usableHeight = Math.max(0, map.height - (radius + 38) * 2);
+  const usableHeight = Math.max(0, map.height - (radius + 38) * 2) * (compact ? 0.75 : 1);
   const nodes = presentation.nodes.map((node): RunMapLayoutNode => Object.freeze({
     ...node,
     centerX: map.x + radius + 45 + normalized(node.position.column, minColumn, maxColumn) * usableWidth,

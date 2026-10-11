@@ -1078,6 +1078,16 @@ final class ContentValidator
     if (!isset($nodesByKey[$start])) {
       throw new ContentValidationException("{$id} start_node_key references missing local node '{$start}'.");
     }
+    if ($start !== (string)$definition['nodes'][0]['key']) {
+      throw new ContentValidationException("{$id} start_node_key must identify the first generated node.");
+    }
+
+    $indexByKey = array_flip(array_keys($nodesByKey));
+    foreach ($definition['edges'] as $edge) {
+      if ($indexByKey[(string)$edge['from']] >= $indexByKey[(string)$edge['to']]) {
+        throw new ContentValidationException("{$id} routes must advance to a later node.");
+      }
+    }
 
     $reachable = [];
     $pending = [$start];
@@ -1100,6 +1110,14 @@ final class ContentValidator
     }
     if (!isset($reachable[$exitKeys[0]])) {
       throw new ContentValidationException("{$id} exit node '{$exitKeys[0]}' is unreachable from start '{$start}'.");
+    }
+    if ($adjacency[$exitKeys[0]] !== []) {
+      throw new ContentValidationException("{$id} exit node must be terminal.");
+    }
+    foreach ($nodesByKey as $key => $node) {
+      if ($key !== $exitKeys[0] && $adjacency[$key] === []) {
+        throw new ContentValidationException("{$id} node '{$key}' ends before the exit.");
+      }
     }
   }
 

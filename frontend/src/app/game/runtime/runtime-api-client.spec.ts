@@ -342,7 +342,7 @@ describe('RuntimeApiClient', () => {
       ], edges: [
         { from_node_id: '10', to_node_id: '11' }, { from_node_id: '11', to_node_id: '12' },
         { from_node_id: '12', to_node_id: '13' }, { from_node_id: '13', to_node_id: '14' },
-      ], units: [{ unit_id: '21', current_hp: 7 }] }, player_revision: 9 } };
+      ], available_node_ids: ['14'], units: [{ unit_id: '21', current_hp: 7 }] }, player_revision: 9 } };
     const fetchRequest = jasmine.createSpy<RuntimeFetch>('fetchRequest').and.resolveTo(
       new Response(JSON.stringify(raw), { status: 200 }),
     );

@@ -28,6 +28,15 @@ final class RunNodeResolutionRepository
     return $stmt->fetchColumn() !== false;
   }
 
+  public function hasCompletedIncomingRoute(int $runId, int $nodeId): bool
+  {
+    $stmt = $this->pdo->prepare("SELECT 1 FROM `run_edges` edge
+      JOIN `run_nodes` parent ON parent.`run_id` = edge.`run_id` AND parent.`id` = edge.`from_node_id`
+      WHERE edge.`run_id` = ? AND edge.`to_node_id` = ? AND parent.`status` = 'completed' LIMIT 1");
+    $stmt->execute([$runId, $nodeId]);
+    return $stmt->fetchColumn() !== false;
+  }
+
   /** @return list<array<string,mixed>> */
   public function listParticipatingUnitsForUpdate(int $runId): array
   {
@@ -83,6 +92,21 @@ final class RunNodeResolutionRepository
       WHERE `run_id` = ? AND `id` = ? AND `status` = 'available'");
     $stmt->execute([$completedAt->format('Y-m-d H:i:s'), $runId, $nodeId]);
     if ($stmt->rowCount() !== 1) throw new RuntimeException('Run node could not be completed.');
+  }
+
+  /** @return list<int> */
+  public function skipOtherAvailableNodes(int $runId, int $selectedNodeId): array
+  {
+    $this->requireTransaction();
+    $select = $this->pdo->prepare("SELECT `id` FROM `run_nodes` WHERE `run_id` = ? AND `status` = 'available' AND `id` <> ? ORDER BY `id` ASC FOR UPDATE");
+    $select->execute([$runId, $selectedNodeId]);
+    $ids = array_map('intval', $select->fetchAll(PDO::FETCH_COLUMN));
+    $update = $this->pdo->prepare("UPDATE `run_nodes` SET `status` = 'skipped' WHERE `run_id` = ? AND `id` = ? AND `status` = 'available'");
+    foreach ($ids as $id) {
+      $update->execute([$runId, $id]);
+      if ($update->rowCount() !== 1) throw new RuntimeException('Available route changed unexpectedly.');
+    }
+    return $ids;
   }
 
   /** @return list<int> */

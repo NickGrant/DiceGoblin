@@ -35,6 +35,7 @@ const DEBUG_SCENE_ROUTE_ALIASES: Record<string, string> = {
   'unit-promotion': '/game',
   run: '/game',
   'run-combat-available': '/game',
+  'run-branching': '/game',
   'run-loot-available': '/game',
   'run-loot-result': '/game',
   'run-rest-result': '/game',

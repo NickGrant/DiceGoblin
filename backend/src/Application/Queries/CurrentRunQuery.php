@@ -13,7 +13,7 @@ use JsonException;
 
 final class CurrentRunQuery
 {
-  private const NODE_STATUSES = ['locked', 'available', 'completed'];
+  private const NODE_STATUSES = ['locked', 'available', 'completed', 'skipped'];
 
   public function __construct(
     private readonly RunPersistenceRepository $runs,
@@ -43,6 +43,8 @@ final class CurrentRunQuery
         'created_at' => $this->utcTimestamp((string)$root['created_at']),
         'nodes' => $nodes,
         'edges' => $edges,
+        'available_node_ids' => array_values(array_map(static fn(array $node): string => $node['id'],
+          array_filter($nodes, static fn(array $node): bool => $node['status'] === 'available'))),
         'units' => $units,
       ],
       'player_revision' => (int)$state['player_revision'],

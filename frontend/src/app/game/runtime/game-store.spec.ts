@@ -408,6 +408,7 @@ describe('GameStore Warband cache', () => {
     const first = store.loadCurrentRun(client, content()); const second = store.loadCurrentRun(client, content());
     expect(first).toBe(second); expect(store.currentRun.status).toBe('loading');
     resolve({ run: { id: '41', regionId: 'region.the_farm', squadId: '31', status: 'active', createdAt: '2026-09-13T12:00:00Z',
+      availableNodeIds: ['10'],
       nodes: [{ id: '10', nodeIndex: 0, nodeTypeId: 'run_node_type.combat', status: 'available', completedAt: null, battleId: null, position: { column: 0, row: 1 } }],
       edges: [], units: [{ unitId: '11', currentHp: null }] }, playerRevision: 7 });
     await first; await store.loadCurrentRun(client, content());
@@ -419,6 +420,7 @@ describe('GameStore Warband cache', () => {
     const active = { ...bootstrap(), active_run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active' as const } };
     const store = new GameStore(); store.hydrateBootstrap(active); const client = api();
     const run = { id: '41', regionId: 'region.the_farm', squadId: '31', status: 'active' as const,
+      availableNodeIds: ['11'],
       createdAt: '2026-09-13T12:00:00Z', nodes: [{ id: '11', nodeIndex: 1, nodeTypeId: 'run_node_type.loot',
         status: 'available' as const, completedAt: null, battleId: null, position: { column: 1, row: 1 } }],
       edges: [], units: [{ unitId: '11', currentHp: 0 }] };
@@ -454,6 +456,7 @@ describe('GameStore Warband cache', () => {
     const store = new GameStore(); store.hydrateBootstrap(active);
     const client = api(); await store.loadWarbandDomains(client, content()); await store.loadUnitDetail('11', client, content());
     const run = { id: '41', regionId: 'region.the_farm', squadId: '31', status: 'active' as const,
+      availableNodeIds: [],
       createdAt: '2026-09-13T12:00:00Z', nodes: [{ id: '10', nodeIndex: 0, nodeTypeId: 'run_node_type.combat',
         status: 'completed' as const, completedAt: '2026-09-13T12:02:00Z', battleId: '81', position: { column: 0, row: 1 } }],
       edges: [], units: [{ unitId: '11', currentHp: 7 }] };
@@ -470,6 +473,7 @@ describe('GameStore Warband cache', () => {
     const active = { ...bootstrap(), active_run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active' as const } };
     const store = new GameStore(); store.hydrateBootstrap(active);
     const run = { id: '41', regionId: 'region.the_farm', squadId: '31', status: 'active' as const,
+      availableNodeIds: [],
       createdAt: '2026-09-13T12:00:00Z', nodes: [{ id: '13', nodeIndex: 3, nodeTypeId: 'run_node_type.boss',
         status: 'completed' as const, completedAt: '2026-09-13T12:03:00Z', battleId: '82', position: { column: 3, row: 1 } }],
       edges: [], units: [{ unitId: '11', currentHp: 4 }] };
@@ -497,6 +501,7 @@ describe('GameStore Warband cache', () => {
     const active = { ...bootstrap(), active_run: { id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active' as const } };
     const store = new GameStore(); store.hydrateBootstrap(active); const before = store.bootstrap;
     const run = { id: '41', regionId: 'region.the_farm', squadId: '31', status: 'active' as const,
+      availableNodeIds: [],
       createdAt: '2026-09-13T12:00:00Z', nodes: [{ id: '10', nodeIndex: 0, nodeTypeId: 'run_node_type.combat',
         status: 'completed' as const, completedAt: '2026-09-13T12:02:00Z', battleId: '82', position: { column: 0, row: 1 } }],
       edges: [], units: [{ unitId: '11', currentHp: 7 }] };
@@ -513,6 +518,7 @@ describe('GameStore Warband cache', () => {
     const store = new GameStore(); store.hydrateBootstrap(active); const client = api(); const registry = content();
     await store.loadWarbandDomains(client, registry); await store.loadUnitDetail('11', client, registry);
     client.getCurrentRun.and.resolveTo({ run: { id: '41', regionId: 'region.the_farm', squadId: '31', status: 'active',
+      availableNodeIds: ['10'],
       createdAt: '2026-09-13T12:00:00Z', nodes: [{ id: '10', nodeIndex: 0, nodeTypeId: 'run_node_type.combat',
         status: 'available', completedAt: null, battleId: null, position: { column: 0, row: 1 } }], edges: [],
       units: [{ unitId: '11', currentHp: null }] }, playerRevision: 7 });

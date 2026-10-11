@@ -13,6 +13,10 @@ Milestones 1-9 are complete. Milestone 9 technical closure is approved at `8e870
 
 The existing vNext run architecture already owns authored region/run definitions, persisted generated runs and nodes, authoritative node resolution, combat/reward/terminal lifecycle, current-run queries, reconnect/resume, and Phaser `RunScene` presentation. Farm and Mountains are accepted production-composed regions using that shared architecture.
 
+#### Problem
+
+The current linear traversal cannot commit one branch while permanently excluding an unchosen reachable route.
+
 #### Purpose
 
 Establish the topology and authority boundary required for genuinely branch-capable runs before adding new Milestone 10 encounter families.
@@ -116,3 +120,13 @@ Report:
 - confirmation no later Milestone 10 encounter mechanics or Milestone 11+ work was introduced.
 
 Leave Package 1 **In Progress** for architectural review. Do not promote Package 2 yourself.
+
+#### Package 1 implementation evidence (2026-10-11)
+
+- The existing `fixed_graph_v1` node and directed-edge lists are the authored topology representation. No new content fields or schema were needed. Validation now requires the first authored node as start, forward-only edges, one terminal Exit, and no route ending before it. Farm and Mountains authored paths remain unchanged.
+- A validated two-route test definition persists through the shared run/node/edge repositories. Both successors appear in `available_node_ids`; resolving either completes that node, marks the competing option `skipped`, and unlocks only its successor. A separate PDO connection reads the same selected path. Locked/early, stale/skipped, foreign-player, and post-terminal attempts are rejected; exact-key replay returns the same receipt and increments revision only once. Both routes complete through Rest, Boss, and Exit.
+- `RunScene` consumes `available_node_ids`, blocks a second choice and navigation during submitting/ambiguous outcomes, and reloads the finalized current-run state. Strict frontend parsing checks the authoritative choice list against node status. Completed battle replay remains available.
+- Focused backend: authored run validation 24 tests / 75 assertions; branching lifecycle 2 tests / 34 assertions. Focused browser run contract and RunScene: 36 tests passed.
+- Full `npm run verify:package`: PASS; backend 382 tests / 1,976 assertions; frontend 541 tests; context, docs, content/projection, production build, bundle, and whitespace gates passed. Production content revision: `9b3b0a14d8018319d4f59e16f6b376d70c8430476a671b18c082eb60d5419bd2`.
+- Deterministic `run-branching` captures passed at Compact 844x390, Standard 1600x900, Wide 2560x1080, and portrait 390x844 rotate gate. Files: `artifacts/screenshots/m10-p1-run-branching-{compact,standard,wide,portrait}.png`.
+- No later Milestone 10 encounter families or Milestone 11+ work was introduced. Status remains **In Progress** for architectural review.

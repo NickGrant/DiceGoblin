@@ -489,6 +489,9 @@ export class RunScene extends RuntimeScene {
   get abandonActionState(): string { return this.abandonState; }
   get combatActionState(): RunNodeResolutionAttemptState { return this.nodeAttempt.state; }
   get nodeActionState(): RunNodeResolutionAttemptState { return this.nodeAttempt.state; }
+  get routeChoicePending(): boolean {
+    return this.nodeAttempt.state === 'submitting' || this.nodeAttempt.state === 'retryable';
+  }
   get resolvedNodeSyncState(): string { return this.nodeSyncState; }
   get exitReconciliationLocked(): boolean { return this.nodeResult?.resolutionType === 'exit'; }
   get suppliesVisible(): boolean { return this.suppliesOpen; }
@@ -498,7 +501,7 @@ export class RunScene extends RuntimeScene {
   reflow(): void { this.render(); }
 
   openSupplies(): void {
-    if (this.abandonState !== 'idle' || this.exitReconciliationLocked) return;
+    if (this.abandonState !== 'idle' || this.exitReconciliationLocked || this.routeChoicePending) return;
     this.suppliesOpen = true; this.render();
     const content = this.runtimeStartup.contentRegistry;
     if (content) void this.runtimeStartup.store.loadItems(this.runtimeStartup.apiClient, content);
@@ -525,7 +528,10 @@ export class RunScene extends RuntimeScene {
 
   selectNode(nodeId: string): void {
     if (this.exitReconciliationLocked || this.suppliesOpen || this.abandonState !== 'idle'
-      || !this.runtimeStartup.store.currentRun.data?.nodes.some((node) => node.id === nodeId)) return;
+      || this.routeChoicePending
+      || !this.runtimeStartup.store.currentRun.data?.nodes.some((node) => node.id === nodeId
+        && (this.runtimeStartup.store.currentRun.data?.availableNodeIds.includes(nodeId)
+          || (node.status === 'completed' && node.battleId !== null)))) return;
     this.selectedNodeId = nodeId;
     this.render();
   }
@@ -540,7 +546,9 @@ export class RunScene extends RuntimeScene {
     if (node.status === 'completed' && node.battleId) {
       this.presentBattle(bootstrap.account.id, node.battleId, run.id, node.id); return;
     }
-    if (node.status !== 'available' || node.battleId !== null || this.nodeAttempt.state === 'submitting') return;
+    if (!run.availableNodeIds.includes(node.id) || node.battleId !== null
+      || this.nodeAttempt.state === 'submitting'
+      || (this.nodeAttempt.state === 'retryable' && this.nodeAttempt.identity?.nodeId !== node.id)) return;
     this.nodeAttempt.begin(run.id, node.id); this.nodeMessage = 'Resolving combat authoritatively…'; this.render();
     const expectedType = node.nodeTypeId === 'run_node_type.boss' ? 'boss' : 'combat';
     const outcome = await this.nodeAttempt.submit(this.runtimeStartup.apiClient, bootstrap.session.csrf_token,
@@ -581,7 +589,9 @@ export class RunScene extends RuntimeScene {
       && node.nodeTypeId !== 'run_node_type.rest' && node.nodeTypeId !== 'run_node_type.exit')) return;
     if (this.nodeSyncState === 'sync-error') { await this.retryNodeSync(); return; }
     if (this.nodeSyncState === 'syncing') return;
-    if (node.status !== 'available' || node.battleId !== null || this.nodeAttempt.state === 'submitting') return;
+    if (!run.availableNodeIds.includes(node.id) || node.battleId !== null
+      || this.nodeAttempt.state === 'submitting'
+      || (this.nodeAttempt.state === 'retryable' && this.nodeAttempt.identity?.nodeId !== node.id)) return;
     this.nodeResult = null;
     this.nodeSyncState = 'idle';
     this.nodeSyncIdentity = null;
@@ -670,12 +680,14 @@ export class RunScene extends RuntimeScene {
   }
 
   returnToCamp(): void {
-    if (!this.exitReconciliationLocked && !this.suppliesOpen && this.abandonState === 'idle') this.scene.start(GAME_SCENE_KEY);
+    if (!this.exitReconciliationLocked && !this.suppliesOpen && this.abandonState === 'idle'
+      && !this.routeChoicePending) this.scene.start(GAME_SCENE_KEY);
   }
 
   openAbandonConfirmation(): void {
     const run = this.runtimeStartup.store.currentRun.data;
-    if (this.exitReconciliationLocked || this.suppliesOpen || this.abandonState !== 'idle' || !run) return;
+    if (this.exitReconciliationLocked || this.suppliesOpen || this.abandonState !== 'idle'
+      || this.routeChoicePending || !run) return;
     this.abandonRunId = run.id;
     this.abandonState = 'confirming';
     this.abandonMessage = 'This run will end. The Energy spent to enter will not be refunded.';
@@ -820,7 +832,9 @@ export class RunScene extends RuntimeScene {
       graphic.lineStyle(this.selectedNodeId === node.id ? 7 : 5,
         this.selectedNodeId === node.id ? 0xffffff : colors.border, 1);
       graphic.strokeCircle(node.centerX, node.centerY, node.radius);
-      if (this.abandonState === 'idle' && !this.suppliesOpen && !this.exitReconciliationLocked) {
+      if (this.abandonState === 'idle' && !this.suppliesOpen && !this.exitReconciliationLocked
+        && !this.routeChoicePending
+        && (node.isReachable || (node.status === 'completed' && node.battleId !== null))) {
         graphic.setInteractive(new Phaser.Geom.Circle(node.centerX, node.centerY, node.radius), Phaser.Geom.Circle.Contains)
           .on('pointerup', () => this.selectNode(node.id));
         actionCursor(graphic);
@@ -848,7 +862,7 @@ export class RunScene extends RuntimeScene {
     root.add(detail);
     if (!this.exitReconciliationLocked && selected
       && (selected.nodeTypeId === 'run_node_type.combat' || selected.nodeTypeId === 'run_node_type.boss')) {
-      const canFight = selected.status === 'available' && selected.battleId === null;
+      const canFight = selected.isReachable && selected.battleId === null;
       const canWatch = selected.status === 'completed' && selected.battleId !== null;
       const submitting = this.nodeAttempt.state === 'submitting';
       if (canFight || canWatch) this.addButton(root, layout.combatButton,
@@ -860,7 +874,7 @@ export class RunScene extends RuntimeScene {
       && this.nodeSyncIdentity?.nodeId === selected.id))
       && (selected.nodeTypeId === 'run_node_type.loot' || selected.nodeTypeId === 'run_node_type.rest'
         || selected.nodeTypeId === 'run_node_type.exit')) {
-      const available = selected.status === 'available' && selected.battleId === null;
+      const available = selected.isReachable && selected.battleId === null;
       const submitting = this.nodeAttempt.state === 'submitting' || this.nodeSyncState === 'syncing';
       const retrySync = this.nodeSyncState === 'sync-error' && this.nodeSyncIdentity?.nodeId === selected.id;
       if (available || retrySync) this.addButton(root, layout.combatButton,
@@ -878,7 +892,8 @@ export class RunScene extends RuntimeScene {
     this.host()?.setAttribute('data-run-node-sync', this.nodeSyncState);
     this.host()?.setAttribute('data-run-node-result', this.nodeResult?.resolutionType ?? 'none');
     this.host()?.setAttribute('data-run-exit-reconciliation-lock', this.exitReconciliationLocked ? 'true' : 'false');
-    const ordinaryActionsEnabled = this.abandonState === 'idle' && !this.suppliesOpen && !this.exitReconciliationLocked;
+    const ordinaryActionsEnabled = this.abandonState === 'idle' && !this.suppliesOpen
+      && !this.exitReconciliationLocked && !this.routeChoicePending;
     this.addButton(root, layout.returnButton, 'RETURN TO CAMP', () => this.returnToCamp(), 0x244b3d, ordinaryActionsEnabled);
     this.addButton(root, layout.abandonButton, 'ABANDON RUN', () => this.openAbandonConfirmation(), 0x7a302b, ordinaryActionsEnabled);
     const supplyBounds = this.box(layout.returnButton.x, layout.returnButton.y - layout.returnButton.height - 12,

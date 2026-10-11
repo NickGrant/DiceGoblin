@@ -53,6 +53,9 @@ final class GeneratedRunGraphValidator
       if ($from === $to) {
         throw new InvalidArgumentException("Generated run edge {$offset} must not be a self edge.");
       }
+      if ($from > $to) {
+        throw new InvalidArgumentException("Generated run edge {$offset} must advance to a later node.");
+      }
       $edgeKey = $from . "\0" . $to;
       if (isset($seenEdges[$edgeKey])) {
         throw new InvalidArgumentException("Generated run graph contains duplicate edge {$from} -> {$to}.");
@@ -63,6 +66,9 @@ final class GeneratedRunGraphValidator
 
     if (count($exitIndexes) !== 1) {
       throw new InvalidArgumentException('Generated run graph must contain exactly one exit node.');
+    }
+    if ($adjacency[$exitIndexes[0]] !== []) {
+      throw new InvalidArgumentException('Generated run graph exit must be terminal.');
     }
     $reachable = [];
     $pending = [0];
@@ -77,6 +83,11 @@ final class GeneratedRunGraphValidator
     }
     if (count($reachable) !== count($nodes)) {
       throw new InvalidArgumentException('Generated run graph contains a node disconnected from the start node.');
+    }
+    foreach ($nodes as $index => $node) {
+      if ($index !== $exitIndexes[0] && $adjacency[$index] === []) {
+        throw new InvalidArgumentException('Generated run graph contains a route ending before the exit.');
+      }
     }
   }
 }

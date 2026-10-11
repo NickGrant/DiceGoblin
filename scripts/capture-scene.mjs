@@ -179,7 +179,7 @@ async function installGameFixtureRoutes(page, options) {
   }));
   const battleScenes = ['battle-early', 'battle-mid', 'battle-complete', 'battle-compact', 'battle-wide', 'battle-portrait', 'battle-defeat',
     'battle-result-victory', 'battle-result-defeat', 'battle-result-stalemate', 'battle-result-compact', 'battle-result-wide', 'battle-result-error', 'battle-result-portrait'];
-  const runScenes = ['run', 'run-abandon', 'run-portrait', 'run-combat-available',
+  const runScenes = ['run', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-branching',
     'run-loot-available', 'run-loot-result', 'run-rest-result', 'run-supplies'];
   if (!['camp', 'camp-portrait', 'warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'unit-promotion', 'squad-editor', 'unit-configuration', ...runScenes, ...battleScenes].includes(scene)) return;
 
@@ -370,21 +370,26 @@ async function installGameFixtureRoutes(page, options) {
     let resolvedStage = scene === 'run-rest-result' ? 'loot' : 'combat';
     const runResponse = () => {
       const combatAvailable = scene === 'run-combat-available';
+      const branching = scene === 'run-branching';
       const lootCompleted = resolvedStage === 'loot' || resolvedStage === 'rest';
       const restCompleted = resolvedStage === 'rest';
+      const nodes = [
+        { id: '501', node_index: 0, node_type_id: 'run_node_type.combat', status: combatAvailable ? 'available' : 'completed', completed_at: combatAvailable ? null : '2026-09-13T12:02:00Z', battle_id: combatAvailable ? null : '601', position: { column: 0, row: 1 } },
+        { id: '502', node_index: 1, node_type_id: 'run_node_type.loot', status: combatAvailable ? 'locked' : lootCompleted ? 'completed' : 'available', completed_at: lootCompleted ? '2026-09-13T12:03:00Z' : null, battle_id: null, position: { column: 1, row: branching ? 0 : 1 } },
+        { id: '503', node_index: branching ? 3 : 2, node_type_id: 'run_node_type.rest', status: lootCompleted ? restCompleted ? 'completed' : 'available' : 'locked', completed_at: restCompleted ? '2026-09-13T12:04:00Z' : null, battle_id: null, position: { column: 2, row: 1 } },
+        { id: '504', node_index: branching ? 4 : 3, node_type_id: 'run_node_type.boss', status: restCompleted ? 'available' : 'locked', completed_at: null, battle_id: null, position: { column: 3, row: 1 } },
+        { id: '505', node_index: branching ? 5 : 4, node_type_id: 'run_node_type.exit', status: 'locked', completed_at: null, battle_id: null, position: { column: 4, row: 1 } },
+      ];
+      if (branching) nodes.splice(2, 0, { id: '506', node_index: 2, node_type_id: 'run_node_type.loot', status: 'available', completed_at: null, battle_id: null, position: { column: 1, row: 2 } });
+      const edges = [
+        { from_node_id: '501', to_node_id: '502' }, { from_node_id: '502', to_node_id: '503' },
+        { from_node_id: '503', to_node_id: '504' }, { from_node_id: '504', to_node_id: '505' },
+      ];
+      if (branching) edges.push({ from_node_id: '501', to_node_id: '506' }, { from_node_id: '506', to_node_id: '503' });
       return { ok: true, data: {
         run: { id: '401', region_id: 'region.the_farm', squad_id: '301', status: 'active', created_at: '2026-09-13T12:00:00Z',
-          nodes: [
-            { id: '501', node_index: 0, node_type_id: 'run_node_type.combat', status: combatAvailable ? 'available' : 'completed', completed_at: combatAvailable ? null : '2026-09-13T12:02:00Z', battle_id: combatAvailable ? null : '601', position: { column: 0, row: 1 } },
-            { id: '502', node_index: 1, node_type_id: 'run_node_type.loot', status: combatAvailable ? 'locked' : lootCompleted ? 'completed' : 'available', completed_at: lootCompleted ? '2026-09-13T12:03:00Z' : null, battle_id: null, position: { column: 1, row: 1 } },
-            { id: '503', node_index: 2, node_type_id: 'run_node_type.rest', status: lootCompleted ? restCompleted ? 'completed' : 'available' : 'locked', completed_at: restCompleted ? '2026-09-13T12:04:00Z' : null, battle_id: null, position: { column: 2, row: 1 } },
-            { id: '504', node_index: 3, node_type_id: 'run_node_type.boss', status: restCompleted ? 'available' : 'locked', completed_at: null, battle_id: null, position: { column: 3, row: 1 } },
-            { id: '505', node_index: 4, node_type_id: 'run_node_type.exit', status: 'locked', completed_at: null, battle_id: null, position: { column: 4, row: 1 } },
-          ],
-          edges: [
-            { from_node_id: '501', to_node_id: '502' }, { from_node_id: '502', to_node_id: '503' },
-            { from_node_id: '503', to_node_id: '504' }, { from_node_id: '504', to_node_id: '505' },
-          ], units: activeFormation.filter(Boolean).map((unit_id, index) => ({ unit_id, current_hp: restCompleted ? 24 + index : index === 0 ? 0 : 12 })) },
+          nodes, edges, available_node_ids: nodes.filter((node) => node.status === 'available').map((node) => node.id),
+          units: activeFormation.filter(Boolean).map((unit_id, index) => ({ unit_id, current_hp: restCompleted ? 24 + index : index === 0 ? 0 : 12 })) },
         player_revision: resolvedStage === 'combat' ? 3 : resolvedStage === 'loot' ? 4 : 5,
       } };
     };
@@ -652,7 +657,7 @@ async function captureScene(options) {
             { timeout: options.timeoutMs },
           );
         }
-        if (['camp', 'camp-portrait', 'warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'unit-promotion', 'squad-editor', 'unit-configuration', 'run', 'run-abandon', 'run-portrait', 'run-combat-available',
+        if (['camp', 'camp-portrait', 'warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'unit-promotion', 'squad-editor', 'unit-configuration', 'run', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-branching',
           'run-loot-available', 'run-loot-result', 'run-rest-result', 'run-supplies',
           'battle-early', 'battle-mid', 'battle-complete', 'battle-compact', 'battle-wide', 'battle-portrait', 'battle-defeat',
           'battle-result-victory', 'battle-result-defeat', 'battle-result-stalemate', 'battle-result-compact', 'battle-result-wide', 'battle-result-error', 'battle-result-portrait'].includes(options.scene.trim().toLowerCase())) {
@@ -660,7 +665,7 @@ async function captureScene(options) {
           const requestedGameScreen = options.scene.trim().toLowerCase();
           const gameScreen = ['warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'unit-promotion', 'squad-editor', 'unit-configuration'].includes(requestedGameScreen)
             ? requestedGameScreen : requestedGameScreen.startsWith('battle-') ? 'battle'
-              : ['run', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-loot-available', 'run-loot-result', 'run-rest-result', 'run-supplies'].includes(requestedGameScreen) ? 'run' : 'camp';
+              : ['run', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-branching', 'run-loot-available', 'run-loot-result', 'run-rest-result', 'run-supplies'].includes(requestedGameScreen) ? 'run' : 'camp';
           await page.waitForSelector(`[data-game-screen="${gameScreen}"]`, { timeout: options.timeoutMs });
           if (gameScreen === 'warband') {
             await page.waitForSelector('[data-warband-ready="true"]', { timeout: options.timeoutMs });

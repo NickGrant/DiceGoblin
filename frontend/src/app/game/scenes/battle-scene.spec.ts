@@ -299,13 +299,14 @@ function bossResolutionForPresentation() {
 }
 
 function preCombatRun(): CurrentRun {
-  return { ...victoryRun(), nodes: victoryRun().nodes.map((node, index) => index === 0
+  return { ...victoryRun(), availableNodeIds: ['10'], nodes: victoryRun().nodes.map((node, index) => index === 0
     ? { ...node, status: 'available' as const, completedAt: null, battleId: null }
     : { ...node, status: 'locked' as const }) };
 }
 
 function victoryRun(): CurrentRun {
   return { id: '41', regionId: 'region.the_farm', squadId: '31', status: 'active', createdAt: '2026-09-13T12:00:00Z',
+    availableNodeIds: ['11'],
     nodes: [
       { id: '10', nodeIndex: 0, nodeTypeId: 'run_node_type.combat', status: 'completed', completedAt: '2026-09-16T12:00:00Z', battleId: '81', position: { column: 0, row: 1 } },
       { id: '11', nodeIndex: 1, nodeTypeId: 'run_node_type.loot', status: 'available', completedAt: null, battleId: null, position: { column: 1, row: 1 } },
@@ -320,7 +321,7 @@ function victoryRun(): CurrentRun {
 
 function bossVictoryRun(): CurrentRun {
   const run = victoryRun();
-  return { ...run, nodes: run.nodes.map((node, index) => {
+  return { ...run, availableNodeIds: ['14'], nodes: run.nodes.map((node, index) => {
     if (index === 0) return { ...node, battleId: '80' };
     if (index === 1 || index === 2) return { ...node, status: 'completed' as const,
       completedAt: '2026-09-16T12:00:00Z', battleId: null };
