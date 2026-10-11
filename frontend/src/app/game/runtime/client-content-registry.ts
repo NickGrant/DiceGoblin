@@ -19,6 +19,7 @@ export interface ClientRunNodeTypeDefinition {
   readonly display_name: string;
   readonly description: string;
   readonly icon_key: string;
+  readonly encounter_kind?: 'combat' | 'boss' | 'non_combat';
 }
 
 export interface ClientItemDefinition {
@@ -633,14 +634,19 @@ export class ClientContentRegistry {
       throw new ClientContentError('Client content contains an invalid run node type definition.');
     requireExactFields(
       value,
-      ['id', 'display_name', 'description', 'icon_key'],
+      ['id', 'display_name', 'description', 'icon_key',
+        ...('encounter_kind' in value ? ['encounter_kind'] : [])],
       `Run node type '${catalogId}'`,
     );
+    const encounterKind = value['encounter_kind'];
+    if (encounterKind !== undefined && encounterKind !== 'combat' && encounterKind !== 'boss'
+      && encounterKind !== 'non_combat') throw new ClientContentError(`Run node type '${catalogId}' has an invalid encounter kind.`);
     return Object.freeze({
       id: requireIdentity(value, catalogId, 'run_node_type.', 'run node type'),
       display_name: requireNonEmptyString(value, 'display_name'),
       description: requireNonEmptyString(value, 'description'),
       icon_key: requireNonEmptyString(value, 'icon_key'),
+      ...(encounterKind !== undefined ? { encounter_kind: encounterKind } : {}),
     });
   }
 

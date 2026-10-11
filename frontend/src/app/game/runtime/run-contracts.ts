@@ -212,7 +212,8 @@ export function parseCurrentRunEnvelope(value: unknown, content: ClientContentRe
     if (typeof nodeTypeId !== 'string' || !stableIdPattern.test(nodeTypeId) || !content.getRunNodeType(nodeTypeId))
       throw new RunContractError('Run node type is not projected authored content.');
     if (!['locked', 'available', 'completed'].includes(node['status'] as string)) throw new RunContractError('Run node status is invalid.');
-    const requiresInteraction = nodeTypeId === 'run_node_type.rest' && node['status'] === 'available';
+    const requiresInteraction = content.getRunNodeType(nodeTypeId)?.encounter_kind === 'non_combat'
+      && node['status'] === 'available';
     if (hasInteraction !== requiresInteraction) throw new RunContractError('Run node interaction availability is invalid.');
     const interaction = hasInteraction ? parseInteraction(node['interaction']) : undefined;
     const completedAt = nullableTimestamp(node['completed_at'], 'Node completed_at');

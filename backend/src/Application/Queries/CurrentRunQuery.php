@@ -107,21 +107,28 @@ final class CurrentRunQuery
         'battle_id' => $battleId === null ? null : (string)$battleId,
         'position' => ['column' => $metadata['position']['column'], 'row' => $metadata['position']['row']],
       ];
-      if ($status === 'available' && $nodeType['id'] === 'run_node_type.rest') {
+      $expectedEncounterKind = $nodeType['encounter_kind'] ?? null;
+      $encounterId = $row['encounter_id'] ?? null;
+      if (($expectedEncounterKind === null) !== ($encounterId === null)) {
+        throw new CurrentRunIntegrityException('Run node encounter association is invalid.');
+      }
+      if ($encounterId !== null) {
         try {
-          $encounter = $this->content->encounter((string)($row['encounter_id'] ?? ''));
+          $encounter = $this->content->encounter((string)$encounterId);
         } catch (ContentValidationException) {
-          throw new CurrentRunIntegrityException('Available non-combat encounter is invalid.');
+          throw new CurrentRunIntegrityException('Run node encounter is invalid.');
         }
-        if ($encounter['kind'] !== 'non_combat' || $encounter['region_id'] !== $regionId) {
-          throw new CurrentRunIntegrityException('Available non-combat encounter does not match its run.');
+        if ($encounter['kind'] !== $expectedEncounterKind || $encounter['region_id'] !== $regionId) {
+          throw new CurrentRunIntegrityException('Run node encounter does not match its run.');
         }
-        $projected['interaction'] = [
-          'encounter_id' => $encounter['id'], 'title' => $encounter['display_name'],
-          'body' => $encounter['description'], 'prompt' => $encounter['prompt'],
-          'actions' => array_map(static fn(array $action): array =>
-            ['id' => $action['id'], 'label' => $action['label']], $encounter['actions']),
-        ];
+        if ($status === 'available' && $encounter['kind'] === 'non_combat') {
+          $projected['interaction'] = [
+            'encounter_id' => $encounter['id'], 'title' => $encounter['display_name'],
+            'body' => $encounter['description'], 'prompt' => $encounter['prompt'],
+            'actions' => array_map(static fn(array $action): array =>
+              ['id' => $action['id'], 'label' => $action['label']], $encounter['actions']),
+          ];
+        }
       }
       $mapped[] = $projected;
     }

@@ -8,6 +8,7 @@ use DateTimeZone;
 use DiceGoblins\Application\Commands\AbandonRunCommand;
 use DiceGoblins\Application\Commands\ProvisionWarbandFixtureCommand;
 use DiceGoblins\Application\Queries\CurrentRunQuery;
+use DiceGoblins\Application\Queries\CurrentRunIntegrityException;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Controllers\ControllerServiceFactory;
 use DiceGoblins\Controllers\GameBootstrapController;
@@ -71,6 +72,7 @@ final class CurrentRunLifecycleControllerTest extends IntegrationTestCase
     $this->assertSame([0, 1, 2, 3, 4], array_column($run['nodes'], 'node_index'));
     $this->assertSame([0, 1, 2, 3, 4], array_column(array_column($run['nodes'], 'position'), 'column'));
     $this->assertSame([1, 1, 1, 1, 1], array_column(array_column($run['nodes'], 'position'), 'row'));
+    $this->assertArrayNotHasKey('interaction', $run['nodes'][2]);
     $encoded = json_encode($data);
     foreach (['generated_metadata', 'run_generation_id', 'algorithm', 'local_key', 'encounter_id'] as $private) {
       $this->assertStringNotContainsString($private, $encoded);
@@ -95,6 +97,54 @@ final class CurrentRunLifecycleControllerTest extends IntegrationTestCase
     $this->assertSame([null, null, null, null], array_column(array_slice($mutable['body']['data']['run']['nodes'], 1), 'battle_id'));
     $this->assertArrayNotHasKey('events', $mutable['body']['data']['run']['nodes'][0]);
     $this->assertSame($nodeIds, array_column($mutable['body']['data']['run']['nodes'], 'id'));
+  }
+
+  public function testAvailableAuthoredNonCombatEncounterProjectsThroughAnotherNodeTypeWithoutLeakingEffects(): void
+  {
+    [$userId] = $this->fixtureAccount('current-generic-interaction');
+    $runId = $this->start($userId);
+    $node = $this->row('SELECT `id` FROM `run_nodes` WHERE `run_id` = ? AND `node_index` = 2', [$runId]);
+    $nodeId = (int)$node['id'];
+    $this->pdo?->prepare("UPDATE `run_nodes` SET `node_type_id` = 'run_node_type.test_interaction', `status` = 'available' WHERE `id` = ?")
+      ->execute([$nodeId]);
+    $content = $this->contentWithTestInteractionType();
+    $this->assertSame('run_node_type.test_interaction',
+      $content->runGeneration('run_generation.mountains')['nodes'][3]['node_type_id']);
+    $query = new CurrentRunQuery(new RunPersistenceRepository($this->pdo),
+      new PlayerStateRepository($this->pdo), $content);
+    $read = $query->execute($userId)['run'];
+    $interaction = $read['nodes'][2]['interaction'];
+    $this->assertSame('run_node_type.test_interaction', $read['nodes'][2]['node_type_id']);
+    $this->assertSame(['encounter_id', 'title', 'body', 'prompt', 'actions'], array_keys($interaction));
+    $this->assertSame('encounter.the_farm_rest', $interaction['encounter_id']);
+    $this->assertSame([['id' => 'rest', 'label' => 'REST']], $interaction['actions']);
+    $this->assertStringNotContainsString('restore_participating_units_to_max', json_encode($read));
+    $this->assertArrayNotHasKey('interaction', $read['nodes'][0]);
+
+    $this->pdo?->prepare("UPDATE `run_nodes` SET `status` = 'locked' WHERE `id` = ?")->execute([$nodeId]);
+    $this->assertArrayNotHasKey('interaction', $query->execute($userId)['run']['nodes'][2]);
+    $this->pdo?->prepare("UPDATE `run_nodes` SET `status` = 'completed', `completed_at` = '2026-09-13 12:04:00' WHERE `id` = ?")
+      ->execute([$nodeId]);
+    $this->assertArrayNotHasKey('interaction', $query->execute($userId)['run']['nodes'][2]);
+  }
+
+  public function testRequiredPersistedNonCombatEncounterAssociationFailsIntegrityValidation(): void
+  {
+    [$userId] = $this->fixtureAccount('current-invalid-interaction');
+    $runId = $this->start($userId);
+    $node = $this->row('SELECT `id` FROM `run_nodes` WHERE `run_id` = ? AND `node_index` = 2', [$runId]);
+    $nodeId = (int)$node['id'];
+    $query = new CurrentRunQuery(new RunPersistenceRepository($this->pdo),
+      new PlayerStateRepository($this->pdo), $this->content());
+    foreach ([null, 'encounter.missing', 'encounter.mountains_rest', 'encounter.the_farm_mud_combat_1'] as $encounterId) {
+      $this->pdo?->prepare('UPDATE `run_nodes` SET `encounter_id` = ? WHERE `id` = ?')->execute([$encounterId, $nodeId]);
+      try {
+        $query->execute($userId);
+        $this->fail('Invalid persisted encounter association was accepted.');
+      } catch (CurrentRunIntegrityException) {
+        $this->assertTrue(true);
+      }
+    }
   }
 
   /** @dataProvider invalidBattleCorrespondenceProvider */
@@ -296,6 +346,36 @@ final class CurrentRunLifecycleControllerTest extends IntegrationTestCase
   }
 
   private function content(): ContentRegistry { return ContentRegistry::load(dirname(__DIR__, 2) . '/content'); }
+
+  private function contentWithTestInteractionType(): ContentRegistry
+  {
+    $definitions = [];
+    $source = dirname(__DIR__, 2) . '/content';
+    $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($source, \FilesystemIterator::SKIP_DOTS));
+    foreach ($files as $file) {
+      if (!$file->isFile() || strtolower($file->getExtension()) !== 'json') continue;
+      $document = json_decode((string)file_get_contents($file->getPathname()), true, 512, JSON_THROW_ON_ERROR);
+      array_push($definitions, ...$document['definitions']);
+    }
+    $definitions[] = ['id' => 'run_node_type.test_interaction', 'type' => 'run_node_type',
+      'display_name' => 'Test interaction', 'description' => 'Test only.', 'icon_key' => 'icon_encounter_rest',
+      'encounter_kind' => 'non_combat'];
+    foreach ($definitions as &$definition) {
+      if ($definition['id'] === 'run_generation.mountains') {
+        $definition['nodes'][3]['node_type_id'] = 'run_node_type.test_interaction';
+      }
+    }
+    unset($definition);
+    $root = sys_get_temp_dir() . '/dice-goblins-current-interaction-' . bin2hex(random_bytes(6));
+    mkdir($root, 0777, true);
+    try {
+      file_put_contents($root . '/content.json', json_encode(['definitions' => $definitions], JSON_THROW_ON_ERROR));
+      return ContentRegistry::load($root);
+    } finally {
+      unlink($root . '/content.json');
+      rmdir($root);
+    }
+  }
 
   private function revision(int $userId): int
   {

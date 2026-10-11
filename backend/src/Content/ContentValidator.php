@@ -354,20 +354,19 @@ final class ContentValidator
 
       if (($definition['type'] ?? null) === 'run_generation') {
         foreach ($definition['nodes'] as $node) {
-          $this->requireReferenceType($definitions, $id, 'nodes.node_type_id', $node['node_type_id'], 'run_node_type');
-          $nodeType = $node['node_type_id'];
+          $nodeType = $this->requireReferenceType($definitions, $id, 'nodes.node_type_id', $node['node_type_id'], 'run_node_type');
+          $expectedKind = $nodeType['encounter_kind'] ?? null;
           $encounterId = $node['encounter_id'] ?? null;
           if ($encounterId !== null) {
-            if (!in_array($nodeType, ['run_node_type.combat', 'run_node_type.boss', 'run_node_type.rest'], true)) {
+            if ($expectedKind === null) {
               throw new ContentValidationException("{$id} node type cannot reference an encounter.");
             }
             $encounter = $this->requireReferenceType($definitions, $id, 'nodes.encounter_id', $encounterId, 'encounter');
-            $expectedKind = $nodeType === 'run_node_type.rest' ? 'non_combat' : substr($nodeType, strlen('run_node_type.'));
             if ($encounter['kind'] !== $expectedKind) {
               throw new ContentValidationException("{$id} node encounter kind does not match its node type.");
             }
-          } elseif ($nodeType === 'run_node_type.rest') {
-            throw new ContentValidationException("{$id} Rest node requires an encounter_id.");
+          } elseif ($expectedKind !== null) {
+            throw new ContentValidationException("{$id} node requires an encounter_id.");
           }
           if ($node['event_id'] ?? null) {
             $this->requireReferenceType($definitions, $id, 'nodes.event_id', $node['event_id'], 'event');
@@ -686,8 +685,11 @@ final class ContentValidator
   /** @param array<string, mixed> $definition */
   private function validateRunNodeType(array $definition, string $location): void
   {
-    $this->requireExactFieldSet($definition, ['id', 'type', 'display_name', 'description', 'icon_key'], [], $location);
+    $this->requireExactFieldSet($definition, ['id', 'type', 'display_name', 'description', 'icon_key'], ['encounter_kind'], $location);
     $this->requireNamespace($definition, 'run_node_type.', $location);
+    if (array_key_exists('encounter_kind', $definition)) {
+      $this->requireAllowedString($definition, 'encounter_kind', ['combat', 'boss', 'non_combat'], $location);
+    }
     $this->requireBoundedNonEmptyString($definition, 'display_name', 128, $location);
     $this->requireBoundedNonEmptyString($definition, 'description', 512, $location);
     $this->requireBoundedNonEmptyString($definition, 'icon_key', 128, $location);

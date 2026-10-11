@@ -123,10 +123,13 @@ final class RunContentValidationTest extends TestCase
     $this->assertSame(['run_energy_cost' => 10], $projection['content']['gameplay']);
     $this->assertSame([
       'id' => 'run_node_type.combat',
+      'encounter_kind' => 'combat',
       'display_name' => 'Combat',
       'description' => 'Fight enemies guarding the path.',
       'icon_key' => 'icon_encounter_combat',
     ], $projection['content']['run_node_types']['run_node_type.combat']);
+    $this->assertSame('non_combat', $projection['content']['run_node_types']['run_node_type.rest']['encounter_kind']);
+    $this->assertStringNotContainsString('restore_participating_units_to_max', $encoded);
     $this->assertStringNotContainsString('run_generation.the_farm', $encoded);
     $this->assertStringNotContainsString('fixed_graph_v1', $encoded);
     $this->assertStringNotContainsString('start_node_key', $encoded);
@@ -187,13 +190,14 @@ final class RunContentValidationTest extends TestCase
   {
     return [
       'malformed node type' => [fn(array &$definitions) => $this->mutate($definitions, 'run_node_type.combat', fn(array &$definition) => $definition['description'] = ''), 'description'],
+      'unsupported node encounter kind' => [fn(array &$definitions) => $this->mutate($definitions, 'run_node_type.rest', fn(array &$definition) => $definition['encounter_kind'] = 'secret_effect'), "field 'encounter_kind' must be one of"],
       'missing generation reference' => [fn(array &$definitions) => $this->mutate($definitions, 'region.the_farm', fn(array &$definition) => $definition['run_generation_id'] = 'run_generation.missing'), 'references missing run_generation'],
       'wrong generation namespace' => [fn(array &$definitions) => $this->mutate($definitions, 'region.the_farm', fn(array &$definition) => $definition['run_generation_id'] = 'run_node_type.combat'), 'run_generation. namespace'],
       'unsupported algorithm' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['algorithm'] = 'prototype_pattern_v2'), 'algorithm'],
       'missing node type reference' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['nodes'][0]['node_type_id'] = 'run_node_type.missing'), 'references missing run_node_type'],
       'malformed node event reference' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['nodes'][1]['event_id'] = 'reward_definition.farm_loot_completed'), 'event. namespace'],
       'missing node event reference' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['nodes'][1]['event_id'] = 'event.missing'), 'references missing event'],
-      'missing Rest encounter' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.mountains', function (array &$definition): void { unset($definition['nodes'][3]['encounter_id']); }), 'Rest node requires an encounter_id'],
+      'missing Rest encounter' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.mountains', function (array &$definition): void { unset($definition['nodes'][3]['encounter_id']); }), 'node requires an encounter_id'],
       'wrong Rest encounter kind' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.mountains', fn(array &$definition) => $definition['nodes'][3]['encounter_id'] = 'encounter.mountains_kobold_combat_1'), 'encounter kind does not match'],
       'missing Rest action' => [fn(array &$definitions) => $this->mutate($definitions, 'encounter.the_farm_rest', fn(array &$definition) => $definition['actions'] = []), 'actions must be a non-empty list'],
       'unknown Rest effect' => [fn(array &$definitions) => $this->mutate($definitions, 'encounter.the_farm_rest', fn(array &$definition) => $definition['actions'][0]['effect']['type'] = 'grant_teeth'), "field 'type' must be one of"],

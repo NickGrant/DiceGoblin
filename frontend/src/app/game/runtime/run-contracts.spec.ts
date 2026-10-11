@@ -13,7 +13,8 @@ describe('run contracts', () => {
       run_node_types: {
         'run_node_type.combat': { id: 'run_node_type.combat', display_name: 'Combat', description: 'Fight.', icon_key: 'combat' },
         'run_node_type.loot': { id: 'run_node_type.loot', display_name: 'Loot', description: 'Collect.', icon_key: 'loot' },
-        'run_node_type.rest': { id: 'run_node_type.rest', display_name: 'Rest', description: 'Recover.', icon_key: 'rest' },
+        'run_node_type.rest': { id: 'run_node_type.rest', display_name: 'Rest', description: 'Recover.', icon_key: 'rest', encounter_kind: 'non_combat' },
+        'run_node_type.test_interaction': { id: 'run_node_type.test_interaction', display_name: 'Test interaction', description: 'Test only.', icon_key: 'rest', encounter_kind: 'non_combat' },
         'run_node_type.boss': { id: 'run_node_type.boss', display_name: 'Boss', description: 'Fight.', icon_key: 'boss' },
         'run_node_type.exit': { id: 'run_node_type.exit', display_name: 'Exit', description: 'Leave.', icon_key: 'exit' },
       },
@@ -127,6 +128,21 @@ describe('run contracts', () => {
       const invalid = structuredClone(value); mutate(invalid);
       expect(() => parseCurrentRunEnvelope(invalid, content())).toThrowError(RunContractError);
     }
+  });
+
+  it('accepts the same authorized interaction contract for another authored non-combat node type', () => {
+    const value = currentEnvelope();
+    const nodes = value.data.run.nodes;
+    nodes[2].node_type_id = 'run_node_type.test_interaction';
+    nodes[2].status = 'available'; nodes[2].completed_at = null;
+    nodes[2].interaction = { encounter_id: 'encounter.the_farm_rest', title: 'Test interaction',
+      body: 'Test only.', prompt: 'Choose?', actions: [{ id: 'rest', label: 'REST' }] };
+    nodes[3].status = 'locked'; nodes[3].completed_at = null; nodes[3].battle_id = null;
+    nodes[4].status = 'locked'; nodes[4].completed_at = null;
+    value.data.run.available_node_ids = ['12'];
+    expect(parseCurrentRunEnvelope(value, content()).run?.nodes[2].interaction?.encounterId).toBe('encounter.the_farm_rest');
+    delete nodes[2].interaction;
+    expect(() => parseCurrentRunEnvelope(value, content())).toThrowError(RunContractError);
   });
 
   it('rejects every invalid battle-bearing and non-battle-bearing node correspondence', () => {

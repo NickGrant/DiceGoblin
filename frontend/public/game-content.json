@@ -1,5 +1,5 @@
 {
-    "revision": "1520fba14f523a2b51ccad8dcf9315c83f19458b5ddd362541c7ba0bf3832a43",
+    "revision": "3dcbc716fa4541889f64faf978fa2288655d7574bdeff5a10558304cd72134ee",
     "content": {
         "gameplay": {
             "run_energy_cost": 10
@@ -1192,12 +1192,14 @@
         "run_node_types": {
             "run_node_type.boss": {
                 "id": "run_node_type.boss",
+                "encounter_kind": "boss",
                 "display_name": "Boss",
                 "description": "Face the Farm's strongest guardian.",
                 "icon_key": "icon_encounter_boss"
             },
             "run_node_type.combat": {
                 "id": "run_node_type.combat",
+                "encounter_kind": "combat",
                 "display_name": "Combat",
                 "description": "Fight enemies guarding the path.",
                 "icon_key": "icon_encounter_combat"
@@ -1216,6 +1218,7 @@
             },
             "run_node_type.rest": {
                 "id": "run_node_type.rest",
+                "encounter_kind": "non_combat",
                 "display_name": "Rest",
                 "description": "Pause to recover before pressing onward.",
                 "icon_key": "icon_encounter_rest"

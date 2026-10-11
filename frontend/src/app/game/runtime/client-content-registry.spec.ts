@@ -120,6 +120,10 @@ describe('ClientContentRegistry', () => {
     const wrongIdentity = validProjection();
     wrongIdentity.content.run_node_types['run_node_type.combat'].id = 'run_node_type.loot';
     expect(() => new ClientContentRegistry(wrongIdentity)).toThrowError(ClientContentError);
+
+    const invalidKind = validProjection();
+    (invalidKind.content.run_node_types['run_node_type.combat'] as Record<string, unknown>)['encounter_kind'] = 'secret_effect';
+    expect(() => new ClientContentRegistry(invalidKind)).toThrowError(ClientContentError);
   });
 
   it('strictly rejects unsupported or private item effect fields', () => {

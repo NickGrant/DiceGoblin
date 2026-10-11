@@ -12,7 +12,7 @@ final class ClientContentProjector
   private const DICE_MATERIAL_FIELDS = ['id', 'display_name', 'description', 'art_key', 'allowed_sizes'];
   private const DICE_ASPECT_FIELDS = ['id', 'display_name', 'description', 'allowed_sizes'];
   private const DICE_PROFILE_FIELDS = ['id', 'display_name', 'material_id', 'rarity', 'aspect_ids', 'allowed_sizes'];
-  private const RUN_NODE_TYPE_FIELDS = ['id', 'display_name', 'description', 'icon_key'];
+  private const RUN_NODE_TYPE_FIELDS = ['id', 'display_name', 'description', 'icon_key', 'encounter_kind'];
   private const ITEM_FIELDS = ['id', 'display_name', 'description', 'category', 'rarity', 'icon_key', 'stackable', 'effect'];
   private const SHOP_OFFER_FIELDS = ['id', 'grant'];
   private const ACADEMY_UPGRADE_FIELDS = ['id', 'display_name', 'description', 'category'];
