@@ -695,7 +695,7 @@ final class ContentValidator
       $this->requireAllowedString($definition, 'encounter_kind', ['combat', 'boss', 'non_combat'], $location);
     }
     if (array_key_exists('encounter_family', $definition)) {
-      $this->requireAllowedString($definition, 'encounter_family', ['rest', 'hazard'], $location);
+      $this->requireAllowedString($definition, 'encounter_family', ['rest', 'hazard', 'shrine'], $location);
       if (($definition['encounter_kind'] ?? null) !== 'non_combat') {
         throw new ContentValidationException("{$location} encounter_family requires non_combat encounter_kind.");
       }
@@ -819,7 +819,7 @@ final class ContentValidator
         ['id', 'type', 'kind', 'region_id', 'display_name', 'description', 'prompt', 'actions'], ['family'], $location);
       $this->requireNamespace($definition, 'encounter.', $location);
       if (array_key_exists('family', $definition)) {
-        $this->requireAllowedString($definition, 'family', ['rest', 'hazard'], $location);
+        $this->requireAllowedString($definition, 'family', ['rest', 'hazard', 'shrine'], $location);
       }
       $this->requireStableIdWithNamespace($definition, 'region_id', 'region.', $location);
       $this->requireBoundedNonEmptyString($definition, 'display_name', 128, $location);
@@ -841,16 +841,21 @@ final class ContentValidator
         $effect = $action['effect'];
         if (!is_array($effect) || array_is_list($effect)) throw new ContentValidationException("{$where} effect must be an object.");
         $effectType = $this->requireAllowedString($effect, 'type',
-          ['restore_participating_units_to_max', 'damage_random_participating_unit', 'damage_all_participating_units'],
+          ['restore_participating_units_to_max', 'damage_random_participating_unit', 'damage_all_participating_units', 'grant_currency'],
           "{$where} effect");
         if ($effectType === 'restore_participating_units_to_max') {
           $this->requireExactFieldSet($effect, ['type'], [], "{$where} effect");
+        } elseif ($effectType === 'grant_currency') {
+          $this->requireExactFieldSet($effect, ['type', 'currency_id', 'amount'], [], "{$where} effect");
+          $this->requireAllowedString($effect, 'currency_id', ['teeth', 'raw_chaos'], "{$where} effect");
+          $this->requireIntegerInRange($effect, 'amount', 1, 20, "{$where} effect");
         } else {
           $this->requireExactFieldSet($effect, ['type', 'amount'], [], "{$where} effect");
           $this->requireIntegerInRange($effect, 'amount', 1, 20, "{$where} effect");
         }
         if (($definition['family'] ?? null) === 'rest' && $effectType !== 'restore_participating_units_to_max'
-          || ($definition['family'] ?? null) === 'hazard' && $effectType === 'restore_participating_units_to_max') {
+          || ($definition['family'] ?? null) === 'hazard' && !in_array($effectType, ['damage_random_participating_unit', 'damage_all_participating_units'], true)
+          || ($definition['family'] ?? null) === 'shrine' && $effectType !== 'grant_currency') {
           throw new ContentValidationException("{$where} effect is incompatible with encounter family.");
         }
       }

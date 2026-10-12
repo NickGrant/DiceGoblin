@@ -52,6 +52,23 @@ describe('run node resolution contracts', () => {
     expect(() => parseRunNodeResolutionEnvelope(invalid)).toThrowError(RunNodeResolutionContractError);
   });
 
+  it('parses a strict authored non-combat currency outcome without private Shrine effects', () => {
+    const response = { ok: true, data: { resolution_type: 'non_combat',
+      encounter_id: 'encounter.test_shrine', action_id: 'take_chaos',
+      wallet: { raw_chaos: 2 }, granted_rewards: [{ reward_type: 'currency', currency_id: 'raw_chaos', amount: 2 }],
+      node: { id: '12', status: 'completed', completed_at: '2026-09-17T12:01:00Z' },
+      newly_available_node_ids: ['13'], run: { id: '41', status: 'active', ended_at: null }, player_revision: 8 } };
+    const parsed = parseRunNodeResolutionEnvelope(response);
+    expect(parsed.resolutionType).toBe('non_combat');
+    if (parsed.resolutionType !== 'non_combat') throw new Error('Expected non-combat result.');
+    expect(parsed.wallet.raw_chaos).toBe(2);
+    expect(parsed.grantedRewards).toEqual([{ rewardType: 'currency', currencyId: 'raw_chaos', amount: 2 }]);
+    const leaked = structuredClone(response); (leaked.data as any).effect = { type: 'grant_currency', amount: 2 };
+    expect(() => parseRunNodeResolutionEnvelope(leaked)).toThrowError(RunNodeResolutionContractError);
+    const inconsistent = structuredClone(response); inconsistent.data.wallet = { teeth: 2 } as any;
+    expect(() => parseRunNodeResolutionEnvelope(inconsistent)).toThrowError(RunNodeResolutionContractError);
+  });
+
   it('parses only the exact terminal Exit shape', () => {
     const exit = { ok: true, data: { resolution_type: 'exit',
       node: { id: '14', status: 'completed', completed_at: '2026-09-19T12:00:00Z' }, newly_available_node_ids: [],

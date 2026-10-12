@@ -21,7 +21,7 @@ import { RuntimeApiError } from '../runtime/runtime-api-client';
 import { createRunMapLayout, createRunMapPresentation, runNodeColors } from '../runtime/run-map-model';
 import { Bounds } from '../runtime/runtime-viewport';
 import { RunNodeResolutionAttempt, RunNodeResolutionAttemptState } from '../runtime/run-node-resolution-attempt';
-import { ExitRunNodeResolutionResult, HazardRunNodeResolutionResult, LootRunNodeResolutionResult, RestRunNodeResolutionResult } from '../runtime/run-node-resolution-contracts';
+import { ExitRunNodeResolutionResult, HazardRunNodeResolutionResult, LootRunNodeResolutionResult, NonCombatRunNodeResolutionResult, RestRunNodeResolutionResult } from '../runtime/run-node-resolution-contracts';
 import { BattlePlaybackController } from '../runtime/battle-playback-controller';
 import { BattlePlaybackResult } from '../runtime/battle-playback-contracts';
 import { battleArtTextureKey, battleColumnX, supportedBattleArtAssets } from '../runtime/battle-presentation-layout';
@@ -432,7 +432,7 @@ export class RunScene extends RuntimeScene {
   private abandonRunId: string | null = null;
   private abandonMessage = '';
   private nodeMessage = '';
-  private nodeResult: LootRunNodeResolutionResult | RestRunNodeResolutionResult | HazardRunNodeResolutionResult | ExitRunNodeResolutionResult | null = null;
+  private nodeResult: LootRunNodeResolutionResult | RestRunNodeResolutionResult | HazardRunNodeResolutionResult | NonCombatRunNodeResolutionResult | ExitRunNodeResolutionResult | null = null;
   private nodeSyncState: 'idle' | 'syncing' | 'sync-error' | 'recovery-required' | 'succeeded' = 'idle';
   private nodeSyncIdentity: { readonly runId: string; readonly nodeId: string } | null = null;
   private suppliesOpen = false;
@@ -604,18 +604,18 @@ export class RunScene extends RuntimeScene {
     this.nodeMessage = node.nodeTypeId === 'run_node_type.loot' ? 'Collecting loot authoritatively…' : 'Resolving encounter…';
     if (node.nodeTypeId === 'run_node_type.exit') this.nodeMessage = 'Leaving the region safely...';
     this.render();
-    const acceptsType = (result: LootRunNodeResolutionResult | RestRunNodeResolutionResult | HazardRunNodeResolutionResult | ExitRunNodeResolutionResult): boolean =>
-      node.interaction ? (result.resolutionType === 'rest' || result.resolutionType === 'hazard')
+    const acceptsType = (result: LootRunNodeResolutionResult | RestRunNodeResolutionResult | HazardRunNodeResolutionResult | NonCombatRunNodeResolutionResult | ExitRunNodeResolutionResult): boolean =>
+      node.interaction ? (result.resolutionType === 'rest' || result.resolutionType === 'hazard' || result.resolutionType === 'non_combat')
         && result.encounterId === node.interaction.encounterId && result.actionId === action?.id
         : result.resolutionType === (node.nodeTypeId === 'run_node_type.loot' ? 'loot' : 'exit');
     const outcome = await this.nodeAttempt.submit(this.runtimeStartup.apiClient, bootstrap.session.csrf_token,
       (result) => (result.resolutionType === 'loot' || result.resolutionType === 'rest'
-          || result.resolutionType === 'hazard' || result.resolutionType === 'exit')
+          || result.resolutionType === 'hazard' || result.resolutionType === 'non_combat' || result.resolutionType === 'exit')
         && acceptsType(result) && result.run.id === run.id && result.node.id === node.id);
     if (outcome.kind === 'success') {
       const result = outcome.result;
       if (result.resolutionType !== 'loot' && result.resolutionType !== 'rest'
-        && result.resolutionType !== 'hazard' && result.resolutionType !== 'exit') {
+        && result.resolutionType !== 'hazard' && result.resolutionType !== 'non_combat' && result.resolutionType !== 'exit') {
         this.nodeMessage = 'The response did not match this location. Reload to recover.'; this.render(); return;
       }
       if (!acceptsType(result)
@@ -638,7 +638,8 @@ export class RunScene extends RuntimeScene {
       this.nodeMessage = result.resolutionType === 'loot'
         ? `Collected ${result.grantedRewards[0].amount} Teeth. Balance: ${result.wallet.teeth}.`
         : result.resolutionType === 'rest' ? `${result.healing.length} ${result.healing.length === 1 ? 'unit' : 'units'} fully restored.`
-          : `Hazard crossed. ${result.damage.length} ${result.damage.length === 1 ? 'unit' : 'units'} affected.`;
+          : result.resolutionType === 'hazard' ? `Hazard crossed. ${result.damage.length} ${result.damage.length === 1 ? 'unit' : 'units'} affected.`
+            : `Received ${result.grantedRewards[0].amount} ${result.grantedRewards[0].currencyId === 'teeth' ? 'Teeth' : 'Raw Chaos'}.`;
       await this.syncResolvedNode(result.run.id, result.node.id);
       return;
     }
@@ -868,7 +869,8 @@ export class RunScene extends RuntimeScene {
       root.add([graphic, icon, name, status]);
     }
     const selected = layout.nodes.find((node) => node.id === this.selectedNodeId);
-    const detail = this.add.text(layout.panel.x + layout.panel.width / 2, layout.detailY,
+    const multipleActions = (selected?.interaction?.actions.length ?? 0) > 1;
+    const detail = this.add.text(layout.panel.x + layout.panel.width / 2, layout.detailY - (multipleActions ? 70 : 0),
       selected ? `${selected.name} · ${selected.statusLabel} — ${selected.description}`
         : 'Select a location for details. Ready locations are not entered yet.', {
         color: '#b9d3bb', fontFamily: 'system-ui, sans-serif', fontSize: compact ? '26px' : '16px',
@@ -892,14 +894,27 @@ export class RunScene extends RuntimeScene {
       const available = selected.isReachable && selected.battleId === null;
       const submitting = this.nodeAttempt.state === 'submitting' || this.nodeSyncState === 'syncing';
       const retrySync = this.nodeSyncState === 'sync-error' && this.nodeSyncIdentity?.nodeId === selected.id;
-      if (available || retrySync) this.addButton(root, layout.combatButton,
-        retrySync ? 'RETRY SYNC' : submitting ? 'RESOLVING…' : this.nodeAttempt.state === 'retryable' ? 'RETRY RESOLVE'
-          : selected.nodeTypeId === 'run_node_type.loot' ? 'COLLECT LOOT'
-          : selected.interaction?.actions[0]?.label ?? 'LEAVE REGION',
-        () => void this.activateSelectedNonCombat(), selected.nodeTypeId === 'run_node_type.loot' ? 0x7a5a22 : 0x315d68, !submitting);
+      if (available || retrySync) {
+        const actions = selected.interaction?.actions ?? [];
+        if (actions.length > 1 && !retrySync) {
+          actions.forEach((action, index) => {
+            const region = this.box(layout.combatButton.x,
+              layout.combatButton.y - (actions.length - index - 1) * (layout.combatButton.height + 12),
+              layout.combatButton.width, layout.combatButton.height);
+            const retryable = this.nodeAttempt.state === 'retryable';
+            const sameAttempt = this.nodeAttempt.identity?.interaction?.actionId === action.id;
+            this.addButton(root, region, submitting ? 'RESOLVING…' : retryable && sameAttempt ? 'RETRY RESOLVE' : action.label,
+              () => void this.activateSelectedNonCombat(action.id), 0x315d68, !submitting && (!retryable || sameAttempt));
+          });
+        } else this.addButton(root, layout.combatButton,
+          retrySync ? 'RETRY SYNC' : submitting ? 'RESOLVING…' : this.nodeAttempt.state === 'retryable' ? 'RETRY RESOLVE'
+            : selected.nodeTypeId === 'run_node_type.loot' ? 'COLLECT LOOT' : actions[0]?.label ?? 'LEAVE REGION',
+          () => void this.activateSelectedNonCombat(), selected.nodeTypeId === 'run_node_type.loot' ? 0x7a5a22 : 0x315d68, !submitting);
+      }
     }
     if (this.nodeMessage) {
-      const message = this.add.text(layout.panel.x + layout.panel.width / 2, layout.combatButton.y - 18, this.nodeMessage,
+      const message = this.add.text(layout.panel.x + layout.panel.width / 2,
+        layout.combatButton.y - (multipleActions ? layout.combatButton.height + 30 : 18), this.nodeMessage,
         { color: '#f0c982', fontFamily: 'system-ui, sans-serif', fontSize: compact ? '22px' : '14px' }).setOrigin(0.5, 1);
       root.add(message);
     }

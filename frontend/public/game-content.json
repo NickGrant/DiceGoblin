@@ -1,5 +1,5 @@
 {
-    "revision": "e5b75ed6b460b9cb08cfc7bd7b527b876191ff23f0dfc57ec2e981dd646b9cd4",
+    "revision": "6744e1aaef0fd913a2c5213daf52a4f8f2fc2211f1622b69ebd96e78fd639a38",
     "content": {
         "gameplay": {
             "run_energy_cost": 10
@@ -1228,6 +1228,13 @@
                 "encounter_kind": "non_combat",
                 "display_name": "Rest",
                 "description": "Pause to recover before pressing onward.",
+                "icon_key": "icon_encounter_rest"
+            },
+            "run_node_type.shrine": {
+                "id": "run_node_type.shrine",
+                "encounter_kind": "non_combat",
+                "display_name": "Shrine",
+                "description": "Choose an immediate blessing.",
                 "icon_key": "icon_encounter_rest"
             }
         },

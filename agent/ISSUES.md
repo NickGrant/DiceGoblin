@@ -7,6 +7,10 @@
 **Status:** In Progress
 **Priority:** High
 
+#### Problem
+
+The generalized non-combat encounter boundary supports Rest and Hazard, but Shrine has no validated family contract or authoritative choice resolution to prove that later regions can use it safely.
+
 #### Accepted baseline
 
 Milestones 1-9 are complete. Milestone 10 Package 1 is approved at `86c88987aaf14391660cb3b868cd10e537dd19d8`. Package 2 is approved through `f782b368e3bc1e4672bcec886bf3a29263e5baf8`. Package 3 is approved through correction `31b53b106d84edf2db846ec971877080e08aac9f`.
@@ -109,3 +113,11 @@ Report:
 - confirmation no production Shrine, Swamp, Chaos, modifier, consumable, multi-step, or Milestone 11+ scope was introduced.
 
 Leave Package 4 **In Progress** for architectural review. Do not promote Package 5 yourself.
+
+#### Implementation evidence (review candidate)
+
+- Added canonical `run_node_type.shrine` metadata and validated `shrine` encounter family with an immediate `grant_currency` effect limited to Teeth or Raw Chaos. The two-action `encounter.test_shrine` and branching `run_generation.test_shrine` exist only in test fixtures; Farm and Mountains production generation remain unchanged at five and nine nodes and contain no Shrine encounter.
+- `ShrineNodeResolutionHandler` validates the persisted encounter, region, family, action, and effect before applying one currency credit inside the shared run-node transaction. The shared command completes the node, unlocks only direct successors, retains another available route, increments revision once, and finalizes the selected action and wallet result in an exact-key receipt. Focused lifecycle coverage proves both choices, unselected currency unchanged, completed/locked/foreign/terminal/mismatched/corrupt attempts, replay without another credit, and reload/re-query.
+- `CurrentRunQuery` and the action endpoint remain encounter-driven and have no Shrine node-type branch. The available test Shrine projects both authorized action labels while hiding effect type and amount. RunScene renders both actions from the generic interaction projection, retains the selected attempt, reconciles the authoritative currency result, and re-queries the run. No Shrine-specific client interaction dispatch was added.
+- Focused verification: Shrine lifecycle 2 tests/44 assertions; run-content validation 36/136; browser contract/RunScene 40 passed. Full `npm run verify:package`: PASS, backend 386 tests/2086 assertions, frontend 549 tests, content validation, production build, bundle budget, context/docs, and diff checks. Production client content revision: `6744e1aaef0fd913a2c5213daf52a4f8f2fc2211f1622b69ebd96e78fd639a38`. Rest, Hazard random targeting, Farm/Mountains lifecycle, rewards, economy, and Warband restrictions remain green in the full suite.
+- No production Shrine encounter or topology, Swamp, Chaos, modifier, consumable, multi-step, or later-milestone functionality was introduced. Package 4 remains In Progress for review.

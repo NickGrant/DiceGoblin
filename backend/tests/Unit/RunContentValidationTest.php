@@ -9,6 +9,7 @@ use DiceGoblins\Content\ContentValidationException;
 use DiceGoblins\Content\ContentValidator;
 use DiceGoblins\RunGeneration\FixedGraphRunGenerator;
 use DiceGoblins\Tests\Support\BranchingRunDefinitionFixture;
+use DiceGoblins\Tests\Support\ShrineContentFixture;
 use PHPUnit\Framework\TestCase;
 
 final class RunContentValidationTest extends TestCase
@@ -78,7 +79,7 @@ final class RunContentValidationTest extends TestCase
           if ($case === 'missing_amount') unset($definition['actions'][0]['effect']['amount']);
           if ($case === 'invalid_amount') $definition['actions'][0]['effect']['amount'] = 0;
           if ($case === 'incompatible_effect') $definition['actions'][0]['effect'] = ['type' => 'restore_participating_units_to_max'];
-          if ($case === 'unknown_family') $definition['family'] = 'shrine';
+          if ($case === 'unknown_family') $definition['family'] = 'unknown';
         }
         if (($definition['id'] ?? null) === 'run_generation.mountains' && $case === 'foreign_encounter') {
           $definition['nodes'][7]['encounter_id'] = 'encounter.the_farm_rest';
@@ -95,6 +96,54 @@ final class RunContentValidationTest extends TestCase
       } catch (ContentValidationException) {
         $this->addToAssertionCount(1);
       }
+    }
+  }
+  public function testTestOnlyShrineChoiceValidatesWithoutChangingProductionRegionsOrBrowserCatalog(): void
+  {
+    $canonical = ContentRegistry::load($this->canonicalRoot());
+    foreach (['region.the_farm', 'region.mountains'] as $regionId) {
+      $generation = $canonical->runGenerationForRegion($regionId);
+      $this->assertNotContains('run_node_type.shrine', array_column($generation['nodes'], 'node_type_id'));
+      $this->assertNotContains(ShrineContentFixture::ENCOUNTER_ID, array_column($generation['nodes'], 'encounter_id'));
+    }
+    $this->assertCount(5, $canonical->runGenerationForRegion('region.the_farm')['nodes']);
+    $this->assertCount(9, $canonical->runGenerationForRegion('region.mountains')['nodes']);
+    $registry = ShrineContentFixture::registry();
+    $encounter = $registry->encounter(ShrineContentFixture::ENCOUNTER_ID);
+    $this->assertSame(['take_teeth', 'take_chaos'], array_column($encounter['actions'], 'id'));
+    $this->assertSame('run_node_type.shrine',
+      $registry->runGeneration(ShrineContentFixture::GENERATION_ID)['nodes'][3]['node_type_id']);
+    $projected = json_encode((new ClientContentProjector())->project($registry), JSON_THROW_ON_ERROR);
+    $this->assertStringNotContainsString(ShrineContentFixture::ENCOUNTER_ID, $projected);
+    $this->assertStringNotContainsString('grant_currency', $projected);
+  }
+
+  public function testMalformedShrineFamilyActionsEffectsAndReferencesFailValidation(): void
+  {
+    foreach (['family', 'duplicate_action', 'unknown_effect', 'missing_amount', 'invalid_amount',
+      'invalid_currency', 'incompatible_effect', 'wrong_family_reference', 'invalid_region_reference'] as $case) {
+      $definitions = ShrineContentFixture::definitions();
+      foreach ($definitions as &$definition) {
+        if ($definition['id'] === ShrineContentFixture::ENCOUNTER_ID) {
+          if ($case === 'family') $definition['family'] = 'unknown';
+          if ($case === 'duplicate_action') $definition['actions'][1]['id'] = 'take_teeth';
+          if ($case === 'unknown_effect') $definition['actions'][0]['effect']['type'] = 'grant_whim';
+          if ($case === 'missing_amount') unset($definition['actions'][0]['effect']['amount']);
+          if ($case === 'invalid_amount') $definition['actions'][0]['effect']['amount'] = 0;
+          if ($case === 'invalid_currency') $definition['actions'][0]['effect']['currency_id'] = 'energy';
+          if ($case === 'incompatible_effect') $definition['actions'][0]['effect'] = ['type' => 'restore_participating_units_to_max'];
+          if ($case === 'invalid_region_reference') $definition['region_id'] = 'region.missing';
+        }
+        if ($definition['id'] === ShrineContentFixture::GENERATION_ID && $case === 'wrong_family_reference') {
+          $definition['nodes'][3]['encounter_id'] = 'encounter.the_farm_rest';
+        }
+      }
+      unset($definition);
+      try {
+        (new ContentValidator())->validate([['path' => 'shrine-invalid.json',
+          'document' => ['definitions' => $definitions]]]);
+        $this->fail("Invalid Shrine case {$case} was accepted.");
+      } catch (ContentValidationException) { $this->addToAssertionCount(1); }
     }
   }
   public function testOptionalDeadEndAndNonIndexOrderedAcyclicRoutesAreValid(): void
@@ -140,7 +189,7 @@ final class RunContentValidationTest extends TestCase
       ['run_node_type.combat', 'run_node_type.loot', 'run_node_type.rest', 'run_node_type.boss', 'run_node_type.exit'],
       array_column($generation['nodes'], 'node_type_id'),
     );
-    $this->assertCount(6, $registry->definitionsOfType('run_node_type'));
+    $this->assertCount(7, $registry->definitionsOfType('run_node_type'));
     $this->assertSame('encounter.the_farm_mud_combat_1', $generation['nodes'][0]['encounter_id']);
     $this->assertSame('event.farm_loot_completed', $generation['nodes'][1]['event_id']);
     $this->assertSame('encounter.the_farm_mud_boss_1', $generation['nodes'][3]['encounter_id']);

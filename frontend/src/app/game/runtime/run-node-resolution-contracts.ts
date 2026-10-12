@@ -55,6 +55,15 @@ export interface HazardRunNodeResolutionResult extends ResolutionBase {
   readonly run: ResolvedActiveRun;
 }
 
+export interface NonCombatRunNodeResolutionResult extends ResolutionBase {
+  readonly resolutionType: 'non_combat';
+  readonly encounterId: string;
+  readonly actionId: string;
+  readonly wallet: Readonly<Partial<Record<'teeth' | 'raw_chaos', number>>>;
+  readonly grantedRewards: readonly [{ readonly rewardType: 'currency'; readonly currencyId: 'teeth' | 'raw_chaos'; readonly amount: number }];
+  readonly run: ResolvedActiveRun;
+}
+
 export interface ExitRunNodeResolutionResult extends ResolutionBase {
   readonly resolutionType: 'exit';
   readonly newlyAvailableNodeIds: readonly [];
@@ -63,7 +72,7 @@ export interface ExitRunNodeResolutionResult extends ResolutionBase {
 
 export type BattleRunNodeResolutionResult = CombatRunNodeResolutionResult | BossRunNodeResolutionResult;
 export type RunNodeResolutionResult = BattleRunNodeResolutionResult | LootRunNodeResolutionResult | RestRunNodeResolutionResult
-  | HazardRunNodeResolutionResult
+  | HazardRunNodeResolutionResult | NonCombatRunNodeResolutionResult
   | ExitRunNodeResolutionResult;
 
 const positiveIdPattern = /^[1-9][0-9]*$/;
@@ -135,6 +144,7 @@ export function parseRunNodeResolutionEnvelope(value: unknown): RunNodeResolutio
   if (data['resolution_type'] === 'loot') return parseLoot(data);
   if (data['resolution_type'] === 'rest') return parseRest(data);
   if (data['resolution_type'] === 'hazard') return parseHazard(data);
+  if (data['resolution_type'] === 'non_combat') return parseNonCombat(data);
   if (data['resolution_type'] === 'exit') return parseExit(data);
   throw new RunNodeResolutionContractError('Node resolution type is unsupported.');
 }
@@ -269,6 +279,31 @@ function parseHazard(data: Record<string, unknown>): HazardRunNodeResolutionResu
   return Object.freeze({ resolutionType: 'hazard', encounterId: data['encounter_id'], actionId: data['action_id'],
     node: base.node, newlyAvailableNodeIds: base.newlyAvailableNodeIds,
     damage: Object.freeze(damage), run: activeRun(base.runValue), playerRevision: base.playerRevision });
+}
+
+function parseNonCombat(data: Record<string, unknown>): NonCombatRunNodeResolutionResult {
+  exact(data, ['resolution_type', 'encounter_id', 'action_id', 'wallet', 'granted_rewards',
+    'node', 'newly_available_node_ids', 'run', 'player_revision'], 'Non-combat resolution data');
+  if (typeof data['encounter_id'] !== 'string' || !/^encounter\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/.test(data['encounter_id'])
+    || typeof data['action_id'] !== 'string' || !/^[a-z][a-z0-9_]*$/.test(data['action_id']))
+    throw new RunNodeResolutionContractError('Non-combat encounter action is invalid.');
+  const base = common(data); const wallet = object(data['wallet'], 'Non-combat wallet');
+  const rewards = data['granted_rewards'];
+  if (!Array.isArray(rewards) || rewards.length !== 1) throw new RunNodeResolutionContractError('Non-combat reward is invalid.');
+  const reward = object(rewards[0], 'Non-combat reward');
+  exact(reward, ['reward_type', 'currency_id', 'amount'], 'Non-combat reward');
+  const currencyId = reward['currency_id'];
+  if (reward['reward_type'] !== 'currency' || (currencyId !== 'teeth' && currencyId !== 'raw_chaos'))
+    throw new RunNodeResolutionContractError('Non-combat reward currency is invalid.');
+  exact(wallet, [currencyId], 'Non-combat wallet');
+  const balance = integer(wallet[currencyId], 'Non-combat wallet balance');
+  const amount = positiveInteger(reward['amount'], 'Non-combat reward amount');
+  if (balance < amount) throw new RunNodeResolutionContractError('Non-combat reward exceeds the wallet balance.');
+  return Object.freeze({ resolutionType: 'non_combat', encounterId: data['encounter_id'], actionId: data['action_id'],
+    wallet: Object.freeze({ [currencyId]: balance }),
+    grantedRewards: Object.freeze([Object.freeze({ rewardType: 'currency', currencyId, amount })] as const),
+    node: base.node, newlyAvailableNodeIds: base.newlyAvailableNodeIds,
+    run: activeRun(base.runValue), playerRevision: base.playerRevision });
 }
 
 function parseExit(data: Record<string, unknown>): ExitRunNodeResolutionResult {

@@ -34,6 +34,15 @@
       "icon_key": "icon_encounter_combat"
     },
     {
+      "id": "run_node_type.shrine",
+      "type": "run_node_type",
+      "encounter_kind": "non_combat",
+      "encounter_family": "shrine",
+      "display_name": "Shrine",
+      "description": "Choose an immediate blessing.",
+      "icon_key": "icon_encounter_rest"
+    },
+    {
       "id": "run_node_type.boss",
       "type": "run_node_type",
       "encounter_kind": "boss",
