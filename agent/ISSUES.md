@@ -2,134 +2,110 @@
 
 ## Milestone 10 - Run Encounter Depth
 
-### Milestone 10 Package 3 - Hazard encounter foundation
+### Milestone 10 Package 4 - Shrine encounter foundation
 
 **Status:** In Progress
 **Priority:** High
 
-#### Problem
-
-Mountains has an authored Hazard node vocabulary, but no production Hazard encounter association or authoritative action-resolution path in the vNext run lifecycle.
-
 #### Accepted baseline
 
-Milestones 1-9 are complete. Milestone 10 Package 1 is approved at `86c88987aaf14391660cb3b868cd10e537dd19d8` after the exploration-frontier correction. Package 2 is approved through correction `f782b368e3bc1e4672bcec886bf3a29263e5baf8`.
+Milestones 1-9 are complete. Milestone 10 Package 1 is approved at `86c88987aaf14391660cb3b868cd10e537dd19d8`. Package 2 is approved through `f782b368e3bc1e4672bcec886bf3a29263e5baf8`. Package 3 is approved through correction `31b53b106d84edf2db846ec971877080e08aac9f`.
 
-Package 1 established the persisted exploration frontier: resolving one available node completes it, unlocks eligible successors, and preserves unrelated available nodes. Optional dead ends and convergence are valid.
+The run model is an authoritative persisted exploration frontier. Package 2 established the generalized authored `non_combat` interaction projection and action-resolution boundary. Package 3 proved a second encounter family, Hazard, through that boundary without adding family-specific query/controller/client dispatch.
 
-Package 2 established the generalized authored non-combat interaction boundary. Available nodes with a valid persisted authored `non_combat` encounter can receive a narrow authorized interaction projection without `CurrentRunQuery` knowing the concrete node family. Effects remain server-private; action resolution stays inside the existing authoritative transaction/idempotency boundary.
-
-Regional progression is intentional:
-- Farm remains the fixed linear tutorial graph: Combat -> Loot -> Rest -> Boss -> Exit.
-- Mountains is the first moderate expansion: Combat, Loot, Rest, Hazard, Boss, Exit. It is the first production region for branching/dead ends and environmental Hazards.
-- Shrine and Chaos encounters are not Farm or Mountains content; Swamp is the first planned production region to add them.
+Regional vocabulary is intentional: Farm remains Combat/Loot/Rest/Boss/Exit; Mountains adds Hazard and exploration branching/dead ends; Shrine and Chaos are reserved for Swamp and later regions. Swamp production content itself remains Milestone 13.
 
 #### Purpose
 
-Add the first production Hazard encounter family through the Package 2 generalized non-combat contract, using Mountains as the proving ground while leaving Farm unchanged.
+Establish the smallest reusable Shrine encounter-family contract needed by later Swamp content without adding Shrine nodes to Farm or Mountains and without prematurely implementing Swamp.
 
-This package should establish the smallest authored/server/runtime Hazard semantics needed for immediate Mountains gameplay. Hazards are environmental risks or obstacles that offer one or more explicit player actions and resolve authoritatively. They may produce immediate run/unit/resource consequences and may complete as optional dead ends or as nodes on a continuing path, but this package must not introduce the later generic run-modifier or multi-step persistence systems prematurely.
+A Shrine is a beneficial or tradeoff-oriented non-combat encounter that presents one or more explicit authored choices and resolves an immediate authoritative effect. Package 4 should prove that the existing generic encounter architecture can represent this family without another parallel engine or family-specific read/client path.
 
-Do not add Shrines, Chaos encounters, Swamp, run-scoped modifier infrastructure, new contextual consumable infrastructure, generic multi-step encounter persistence, knowledge/objectives, onboarding, or final visual redesign.
+Because no current production region should contain Shrines, this package should use validated test-only authored fixtures to prove the family. Do not add speculative production Shrine content merely to manufacture production coverage.
 
 #### Canonical design constraints
 
-- Reuse the Package 2 authored `non_combat` interaction projection and action-resolution boundary. Do not add Hazard-specific branching to `CurrentRunQuery`, controllers, or Phaser runtime dispatch merely to identify/render an authored interaction.
-- Hazard authored definitions belong in canonical content JSON. Player-visible title/body/prompt/action labels may be projected only when authorized; effect semantics and hidden tuning remain server-private.
-- The backend remains authoritative for action validity, random outcomes where applicable, damage/resource mutation, node completion, frontier changes, rewards, revision, and receipts.
-- Hazard resolution must preserve Package 1 exploration-frontier semantics. Resolving a Hazard does not consume unrelated available nodes.
-- Farm remains exactly its accepted fixed graph and encounter vocabulary. Do not add Hazards to Farm.
-- Mountains is the production proving ground for Hazards. Region-specific authored Hazard content is expected; region-specific application/controller/runtime branches are not.
-- Keep Package 3 effects no more expressive than needed for accepted Mountains Hazards. Do not build an arbitrary scripting language.
-- If a Hazard needs an effect that conceptually belongs to Package 6 run-scoped modifiers or Package 7 contextual consumables/multi-step state, either choose a simpler Package 3 Hazard or explicitly defer that Hazard rather than smuggling later architecture into this package.
+- Reuse the Package 2 generalized authored non-combat projection and action-resolution boundary.
+- Do not add Shrine-specific branching to `CurrentRunQuery`, controllers, API endpoints, or Phaser runtime interaction dispatch.
+- Add only the authored node-family metadata and server resolution semantics genuinely needed for Shrine choices.
+- Player-visible title/body/prompt/action labels may be projected when authorized. Effects, tuning, and hidden eligibility remain server-private.
+- Backend authority owns action validity, effects/rewards, node completion, frontier changes, revision, and finalized receipt.
+- Exact-key replay must return the finalized result without reapplying effects or changing the frontier twice.
+- Preserve Farm and Mountains production content exactly; neither region receives Shrine nodes or Shrine encounters.
+- Do not implement Swamp production topology/content, Frog Kin, Chaos, run-scoped modifiers, contextual consumables, or multi-step encounter persistence.
+- Prefer immediate one-transaction Shrine effects that reuse accepted state mutation primitives. If a desired Shrine requires Package 6 modifiers or Package 7 multi-step/consumable infrastructure, defer that shape.
 
 #### Backend/content scope
 
-1. Add the canonical Hazard run-node/content association needed to flow through the generalized non-combat contract without changing the read boundary to know `run_node_type.hazard` explicitly.
-2. Author a small production Mountains Hazard pool sufficient to prove the family. Prefer simple immediate effects that exercise useful shared primitives without requiring later-package systems. Examples of acceptable shapes include immediate participating-unit damage, a risk/reward choice resolved in one transaction, or a safe/no-reward versus risky/reward choice. Exact content/tuning should follow current canonical design docs and remain modest for Mountains.
-3. Ensure Mountains generation/topology can place Hazard nodes while preserving a valid completion path and the accepted exploration-frontier model. Farm generation/content must remain unchanged.
-4. Resolve Hazard actions through the shared action-aware run-node command boundary. Validate ownership, availability, persisted encounter association, encounter/action identity, region, and server-owned effect semantics.
-5. Apply immediate Hazard consequences, rewards if any, node completion, successor unlocking, frontier retention, `player_revision`, and idempotent receipt atomically.
-6. Exact-key replay must return the finalized result without rerolling, reapplying damage/rewards, completing twice, or changing the frontier twice.
-7. Reload/re-query must reproduce authoritative post-Hazard run/unit/resource/frontier state.
-8. Random Hazard outcomes, if used, must be server-owned and finalized once inside the authoritative/idempotent transaction. Replay must never reroll.
-9. Do not add durable multi-step encounter progress in this package.
+1. Add the minimal canonical Shrine run-node/encounter-family association needed to flow through the existing generic non-combat contract.
+2. Define the smallest immediate Shrine effect vocabulary needed to prove meaningful player choice. Prefer reuse of existing primitives where semantically correct rather than duplicating Rest or Hazard implementations.
+3. Use validated test-only authored fixtures to exercise Shrine interactions. Do not place Shrine definitions in Farm or Mountains production region content.
+4. Resolve Shrine actions through the existing action-aware run-node command boundary. Validate ownership, node availability, persisted encounter association, encounter/action identity, region compatibility, family compatibility, and server-owned effect semantics.
+5. Apply the immediate Shrine consequence, node completion, direct-successor unlocking, retained frontier, `player_revision`, and receipt atomically.
+6. Preserve reload/re-query and exact-key replay semantics.
+7. Keep browser projection narrow; do not expose effect types/amounts or canonical encounter catalogs.
+8. Do not introduce durable per-encounter progress in this package.
 
-#### API/read contract scope
+#### Gameplay proof
 
-Use the Package 2 current-run interaction projection and existing run-node resolution endpoint. Do not add a Hazard-specific endpoint unless an existing canonical contract makes the shared boundary impossible; if that occurs, stop and document the architectural conflict rather than inventing a parallel path.
+The test-only Shrine fixture must demonstrate a genuine authored choice rather than a renamed Rest node. At minimum, provide two stable actions with distinguishable immediate outcomes that can be resolved through the same encounter definition. The choices should be simple enough to complete in one transaction and must not require run-scoped modifiers, consumables, or later-package state.
 
-The client receives only authorized visible interaction/action data before resolution and finalized authoritative outcome/state after resolution. Hidden effect configuration, odds, reward tables, and server-only authored data remain private unless a specific player-visible value is intentionally part of the encounter copy.
+The implementation should not hard-code those action IDs into shared command/query/client infrastructure. The persisted authored encounter and selected authorized action remain the authority.
 
 #### Phaser/runtime scope
 
-Make the minimum RunScene changes required to present and resolve Mountains Hazards through the generalized non-combat interaction UI.
+Use the existing generic non-combat interaction UI and action submission path. No new Scene or Angular route is allowed.
 
-- Reuse the existing interaction presentation/action submission path where possible.
-- Do not create a new Phaser Scene or Angular route.
-- Do not hard-code Hazard effects/outcomes client-side.
-- Block duplicate input while a mutation is pending.
-- Reconcile finalized server state; do not optimistically apply damage/rewards or complete the node.
-- Preserve accumulated-frontier behavior when Hazard is one of several available nodes.
-- Reload/re-entry must reproduce unresolved interaction or finalized state from backend authority.
-- Final visual polish remains deferred; clear functional differentiation from Rest is sufficient.
+Only make frontend changes if the existing generic contract cannot correctly render multiple authorized actions or reconcile the finalized Shrine result. Any such change must remain encounter-family agnostic.
+
+Do not add production Shrine navigation or production-region captures. Test-only runtime/component coverage is sufficient where no production region can legitimately expose Shrine yet.
 
 #### Verification requirements
 
-Add focused automated coverage proving at minimum:
-- authored Hazard definitions validate and malformed/unknown action/effect/reference combinations fail validation;
-- Farm authored graph/content remains exactly free of Hazard nodes;
-- Mountains production generation can produce/contain the accepted Hazard content while retaining a valid path to Boss/Exit;
-- Hazard interaction reaches the client through the generic Package 2 projection without adding a `run_node_type.hazard` branch to `CurrentRunQuery`;
-- at least one production-composed Mountains Hazard resolves successfully through the shared action boundary;
-- immediate Hazard consequences persist correctly;
-- a Hazard on an optional dead-end fixture completes without terminalizing the run or consuming unrelated frontier nodes;
-- a Hazard on a continuing path unlocks eligible successors normally;
-- invalid/locked/completed/foreign-run Hazard attempts do not mutate state;
-- mismatched encounter/action IDs do not mutate state;
-- exact-key replay does not reroll/reapply effects, increment revision twice, or alter frontier twice;
-- reload/re-query preserves finalized Hazard consequences and frontier state;
-- terminal-run protections remain intact;
-- Farm/Mountains Rest and Combat/Loot/Boss/Exit regressions remain green;
-- frontend contracts and RunScene tests cover Hazard presentation, action submission, pending blocking, authoritative reconciliation, frontier retention, and re-entry;
-- server-private Hazard effect/tuning data is absent from browser-facing projections.
+Prove at minimum:
+- Shrine authored definitions/family metadata validate and malformed family/action/effect/reference combinations fail validation;
+- Farm contains no Shrine node/encounter and remains its fixed five-node graph;
+- Mountains contains no Shrine node/encounter and retains its accepted Hazard topology;
+- an available test-only Shrine reaches the authorized client projection through the generic Package 2 path with multiple actions;
+- `CurrentRunQuery` has no `run_node_type.shrine` branch;
+- both Shrine choices resolve successfully through the shared action-aware command boundary and produce their distinct authoritative outcomes;
+- only the selected action's effect is applied;
+- node completion/direct-successor unlocking/frontier retention are correct;
+- invalid/mismatched/locked/completed/foreign/terminal requests do not mutate state;
+- exact-key replay does not reapply the selected effect, increment revision twice, or alter frontier twice;
+- reload/re-query reproduces finalized state;
+- server-private effect/tuning data is absent from browser-facing projections;
+- Rest and Hazard regressions remain green, including Hazard random-target receipt stability;
+- Combat/Loot/Boss/Exit, Farm completion, Mountains completion, economy/material acquisition, and active-run Warband restrictions remain green;
+- frontend generic interaction tests prove multiple Shrine actions can render/submit without family-specific client logic.
 
-Run the applicable gates from `agent/QUALITY_GATES.md`. Any regression in Farm completion, Mountains completion, Rest, combat/rewards, exploration-frontier behavior, economy/material acquisition, active-run Warband restrictions, or content secrecy is a Package 3 defect.
+Run applicable gates from `agent/QUALITY_GATES.md`.
 
-#### Responsive verification
+#### Scope exclusions
 
-Because Hazard interaction is player-facing in RunScene, verify deterministic presentation at:
-- Compact landscape 844x390;
-- Standard 1600x900;
-- Wide 2560x1080;
-- portrait 390x844 rotate-device gate.
-
-This is functional/responsive verification, not final visual polish.
+Do not add:
+- production Shrine content to Farm or Mountains;
+- Swamp production content/topology or Frog Kin;
+- Chaos encounters;
+- run-scoped modifiers;
+- contextual consumable mechanics;
+- multi-step encounter persistence;
+- Milestone 11+ functionality;
+- final visual redesign.
 
 #### Completion evidence
 
 Report:
 - implementation SHA;
-- authored Mountains Hazard definitions and effect semantics;
-- how Mountains topology/generation now includes Hazards while Farm remains unchanged;
-- confirmation `CurrentRunQuery` and shared client interaction projection remain node-family agnostic;
-- persisted/idempotent Hazard lifecycle evidence;
-- optional-dead-end and continuing-path frontier evidence;
-- invalid/mismatched/foreign/stale request evidence;
+- Shrine authored family/fixture representation;
+- immediate Shrine effect semantics and why they do not require later-package architecture;
+- proof the generic read/client interaction path remains family agnostic;
+- both-choice authoritative lifecycle evidence;
+- invalid/idempotent/reload/frontier evidence;
 - secrecy evidence;
-- Farm/Mountains and Rest/Combat/Loot/Boss/Exit regression evidence;
-- Phaser Hazard/reconciliation evidence;
-- focused and full quality-gate results;
-- responsive capture evidence;
-- confirmation no Shrine/Chaos/modifier/multi-step/Swamp/Milestone 11+ scope was introduced.
+- Farm/Mountains no-Shrine regression evidence;
+- Rest/Hazard and broader run regressions;
+- focused/full quality-gate results;
+- confirmation no production Shrine, Swamp, Chaos, modifier, consumable, multi-step, or Milestone 11+ scope was introduced.
 
-Leave Package 3 **In Progress** for architectural review. Do not promote Package 4 yourself.
-
-#### Implementation evidence (review candidate)
-
-- Authored Mountains `Loose Scree` and `Rockfall` as `non_combat` Hazard encounters. Loose Scree randomly selects one participant (including zero-HP participants) and damages them by up to 3 HP on the continuing route; Rockfall damages each participant by up to 2 HP on an optional side trail. Farm's five-node linear graph is unchanged. Mountains now has nine authored nodes, with Boss and Exit reachable through the main path.
-- Authored encounter family, effect, action, and region references are validated. The persisted encounter drives the existing generic current-run interaction projection, with an authored family compatibility check; `CurrentRunQuery` and the shared command have no Hazard node-ID branch. Browser content and current-run reads omit effect types, amounts, and the private encounter catalog.
-- `HazardNodeResolutionHandler` applies HP transitions in the shared run-node transaction. Loose Scree uses a server-side uniform random index across all locked participating units, including zero-HP units; the selected unit and clamped HP transition are finalized in the shared receipt. It preserves unrelated available nodes, unlocks only direct successors, increments `player_revision` once, and exact-key replay neither reselects nor reapplies damage. Integration tests inject first and last eligible selections, including a zero-HP target, and cover production-composed Rockfall all-unit damage, side-trail/main-path resolution, re-query, missing/foreign/mismatched association, invalid/locked/completed/foreign-user/terminal attempts, and no duplicate frontier transition.
-- RunScene submits the authorized interaction action through its retained attempt, blocks pending/ambiguous duplicate input, reconciles player revision and re-queries authoritative HP/frontier. Focused browser contract/RunScene tests: 38 passed. Deterministic captures succeeded for `run-hazard-available` at 844x390 (compact), 1600x900 (standard), 2560x1080 (wide), and 390x844 (portrait rotate gate); `run-hazard-result` succeeded at 1600x900. Captures are under ignored `artifacts/captures/`.
-- Focused correction verification: Mountains lifecycle 5 tests/158 assertions; content validation 34/117; Farm/Mountains Rest 20/177; browser contract/RunScene 38 passed. Full `npm run verify:package`: PASS, backend 384 tests/2042 assertions, frontend 547 tests, production build, content validation, bundle budget, context/docs, and diff checks. Production client content revision: `e5b75ed6b460b9cb08cfc7bd7b527b876191ff23f0dfc57ec2e981dd646b9cd4`.
-- No Shrine, Chaos, Swamp, modifier, contextual consumable, multi-step encounter, or later-milestone functionality was introduced. Package 3 remains In Progress for review.
+Leave Package 4 **In Progress** for architectural review. Do not promote Package 5 yourself.
