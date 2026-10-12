@@ -118,7 +118,8 @@ final class CurrentRunQuery
         } catch (ContentValidationException) {
           throw new CurrentRunIntegrityException('Run node encounter is invalid.');
         }
-        if ($encounter['kind'] !== $expectedEncounterKind || $encounter['region_id'] !== $regionId) {
+        if ($encounter['kind'] !== $expectedEncounterKind || $encounter['region_id'] !== $regionId
+          || (isset($nodeType['encounter_family']) && ($encounter['family'] ?? null) !== $nodeType['encounter_family'])) {
           throw new CurrentRunIntegrityException('Run node encounter does not match its run.');
         }
         if ($status === 'available' && $encounter['kind'] === 'non_combat') {

@@ -394,13 +394,14 @@ final class RunStartControllerTest extends IntegrationTestCase
     $this->assertSame(3, $first['player_revision']);
     $runId = (int)$first['run']['id'];
     $nodes = $this->rows('SELECT `node_index`, `node_type_id`, `encounter_id`, `event_id`, `status` FROM `run_nodes` WHERE `run_id` = ? ORDER BY `node_index`', [$runId]);
-    $this->assertSame([0, 1, 2, 3, 4, 5, 6], array_map('intval', array_column($nodes, 'node_index')));
+    $this->assertSame(range(0, 8), array_map('intval', array_column($nodes, 'node_index')));
     $this->assertSame(['run_node_type.combat', 'run_node_type.loot', 'run_node_type.combat', 'run_node_type.rest',
-      'run_node_type.combat', 'run_node_type.boss', 'run_node_type.exit'], array_column($nodes, 'node_type_id'));
-    $this->assertSame(['available', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked'], array_column($nodes, 'status'));
+      'run_node_type.combat', 'run_node_type.boss', 'run_node_type.exit', 'run_node_type.hazard', 'run_node_type.hazard'], array_column($nodes, 'node_type_id'));
+    $this->assertSame(['available', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked'], array_column($nodes, 'status'));
     $this->assertSame(['encounter.mountains_kobold_combat_1', null, 'encounter.mountains_kobold_combat_2', 'encounter.mountains_rest',
-      'encounter.mountains_kobold_combat_3', 'encounter.mountains_kobold_boss_1', null], array_column($nodes, 'encounter_id'));
-    $this->assertSame([null, 'event.mountains_loot_completed', null, null, null, 'event.mountains_boss_completed', null],
+      'encounter.mountains_kobold_combat_3', 'encounter.mountains_kobold_boss_1', null,
+      'encounter.mountains_loose_scree', 'encounter.mountains_rockfall'], array_column($nodes, 'encounter_id'));
+    $this->assertSame([null, 'event.mountains_loot_completed', null, null, null, 'event.mountains_boss_completed', null, null, null],
       array_column($nodes, 'event_id'));
     $this->assertSame(5, (int)$this->scalar('SELECT COUNT(*) FROM `run_unit_state` WHERE `run_id` = ?', [$runId]));
     $this->assertSame(1, $this->runCount($userId));

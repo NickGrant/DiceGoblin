@@ -1,5 +1,5 @@
 {
-    "revision": "3dcbc716fa4541889f64faf978fa2288655d7574bdeff5a10558304cd72134ee",
+    "revision": "551b04579cf496a73acb758cefd83788b53fc9e7bc40fd31fc58668e9529d393",
     "content": {
         "gameplay": {
             "run_energy_cost": 10
@@ -1209,6 +1209,13 @@
                 "display_name": "Exit",
                 "description": "Leave the Farm and end the run.",
                 "icon_key": "icon_home"
+            },
+            "run_node_type.hazard": {
+                "id": "run_node_type.hazard",
+                "encounter_kind": "non_combat",
+                "display_name": "Hazard",
+                "description": "Navigate a dangerous stretch of the route.",
+                "icon_key": "icon_encounter_combat"
             },
             "run_node_type.loot": {
                 "id": "run_node_type.loot",

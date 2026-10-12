@@ -19,9 +19,19 @@
       "id": "run_node_type.rest",
       "type": "run_node_type",
       "encounter_kind": "non_combat",
+      "encounter_family": "rest",
       "display_name": "Rest",
       "description": "Pause to recover before pressing onward.",
       "icon_key": "icon_encounter_rest"
+    },
+    {
+      "id": "run_node_type.hazard",
+      "type": "run_node_type",
+      "encounter_kind": "non_combat",
+      "encounter_family": "hazard",
+      "display_name": "Hazard",
+      "description": "Navigate a dangerous stretch of the route.",
+      "icon_key": "icon_encounter_combat"
     },
     {
       "id": "run_node_type.boss",

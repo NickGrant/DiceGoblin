@@ -47,6 +47,14 @@ export interface RestRunNodeResolutionResult extends ResolutionBase {
   readonly run: ResolvedActiveRun;
 }
 
+export interface HazardRunNodeResolutionResult extends ResolutionBase {
+  readonly resolutionType: 'hazard';
+  readonly encounterId: string;
+  readonly actionId: string;
+  readonly damage: readonly { readonly unitId: string; readonly hpBefore: number; readonly hpAfter: number; readonly maxHp: number }[];
+  readonly run: ResolvedActiveRun;
+}
+
 export interface ExitRunNodeResolutionResult extends ResolutionBase {
   readonly resolutionType: 'exit';
   readonly newlyAvailableNodeIds: readonly [];
@@ -55,6 +63,7 @@ export interface ExitRunNodeResolutionResult extends ResolutionBase {
 
 export type BattleRunNodeResolutionResult = CombatRunNodeResolutionResult | BossRunNodeResolutionResult;
 export type RunNodeResolutionResult = BattleRunNodeResolutionResult | LootRunNodeResolutionResult | RestRunNodeResolutionResult
+  | HazardRunNodeResolutionResult
   | ExitRunNodeResolutionResult;
 
 const positiveIdPattern = /^[1-9][0-9]*$/;
@@ -125,6 +134,7 @@ export function parseRunNodeResolutionEnvelope(value: unknown): RunNodeResolutio
   if (data['resolution_type'] === 'boss') return parseBoss(data);
   if (data['resolution_type'] === 'loot') return parseLoot(data);
   if (data['resolution_type'] === 'rest') return parseRest(data);
+  if (data['resolution_type'] === 'hazard') return parseHazard(data);
   if (data['resolution_type'] === 'exit') return parseExit(data);
   throw new RunNodeResolutionContractError('Node resolution type is unsupported.');
 }
@@ -233,6 +243,32 @@ function parseRest(data: Record<string, unknown>): RestRunNodeResolutionResult {
   return Object.freeze({ resolutionType: 'rest', encounterId: data['encounter_id'], actionId: data['action_id'],
     node: base.node, newlyAvailableNodeIds: base.newlyAvailableNodeIds,
     healing: Object.freeze(healing), run: activeRun(base.runValue), playerRevision: base.playerRevision });
+}
+
+function parseHazard(data: Record<string, unknown>): HazardRunNodeResolutionResult {
+  exact(data, ['resolution_type', 'encounter_id', 'action_id', 'damage', 'node', 'newly_available_node_ids', 'run', 'player_revision'], 'Hazard resolution data');
+  if (typeof data['encounter_id'] !== 'string' || !/^encounter\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/.test(data['encounter_id'])
+    || typeof data['action_id'] !== 'string' || !/^[a-z][a-z0-9_]*$/.test(data['action_id']))
+    throw new RunNodeResolutionContractError('Hazard encounter action is invalid.');
+  const base = common(data); const raw = data['damage'];
+  if (!Array.isArray(raw) || raw.length === 0) throw new RunNodeResolutionContractError('Hazard damage is invalid.');
+  let prior: string | null = null;
+  const damage = raw.map((value) => {
+    const row = object(value, 'Hazard damage transition');
+    exact(row, ['unit_id', 'hp_before', 'hp_after', 'max_hp'], 'Hazard damage transition');
+    const unitId = id(row['unit_id'], 'Hazard unit id');
+    if (prior !== null && (unitId.length < prior.length || (unitId.length === prior.length && unitId <= prior)))
+      throw new RunNodeResolutionContractError('Hazard unit IDs must be uniquely ordered.');
+    prior = unitId;
+    const hpBefore = integer(row['hp_before'], 'Hazard HP before');
+    const hpAfter = integer(row['hp_after'], 'Hazard HP after');
+    const maxHp = positiveInteger(row['max_hp'], 'Hazard max HP');
+    if (hpAfter > hpBefore || hpBefore > maxHp) throw new RunNodeResolutionContractError('Hazard HP transition is incoherent.');
+    return Object.freeze({ unitId, hpBefore, hpAfter, maxHp });
+  });
+  return Object.freeze({ resolutionType: 'hazard', encounterId: data['encounter_id'], actionId: data['action_id'],
+    node: base.node, newlyAvailableNodeIds: base.newlyAvailableNodeIds,
+    damage: Object.freeze(damage), run: activeRun(base.runValue), playerRevision: base.playerRevision });
 }
 
 function parseExit(data: Record<string, unknown>): ExitRunNodeResolutionResult {

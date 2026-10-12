@@ -45,6 +45,58 @@ final class RunContentValidationTest extends TestCase
     $this->assertStringNotContainsString('encounter.the_farm_rest', $projection);
     $this->assertStringNotContainsString('restore_participating_units_to_max', $projection);
   }
+
+  public function testMountainsHazardsAreAuthoredAndTheirEffectsStayServerPrivate(): void
+  {
+    $registry = ContentRegistry::load($this->canonicalRoot());
+    $generation = $registry->runGenerationForRegion('region.mountains');
+    $hazards = array_values(array_filter($generation['nodes'],
+      static fn(array $node): bool => $node['node_type_id'] === 'run_node_type.hazard'));
+    $this->assertSame(['encounter.mountains_loose_scree', 'encounter.mountains_rockfall'],
+      array_column($hazards, 'encounter_id'));
+    foreach ($hazards as $node) {
+      $encounter = $registry->encounter($node['encounter_id']);
+      $this->assertSame(['non_combat', 'region.mountains'], [$encounter['kind'], $encounter['region_id']]);
+      $this->assertNotEmpty($encounter['actions']);
+    }
+    $farm = $registry->runGenerationForRegion('region.the_farm');
+    $this->assertNotContains('run_node_type.hazard', array_column($farm['nodes'], 'node_type_id'));
+    $projected = json_encode((new ClientContentProjector())->project($registry), JSON_THROW_ON_ERROR);
+    $this->assertStringNotContainsString('encounter.mountains_loose_scree', $projected);
+    $this->assertStringNotContainsString('damage_first_participating_unit', $projected);
+    $this->assertStringNotContainsString('damage_all_participating_units', $projected);
+  }
+
+  public function testMalformedHazardEffectsAndReferencesFailValidation(): void
+  {
+    foreach (['unknown_effect', 'missing_amount', 'invalid_amount', 'incompatible_effect',
+      'unknown_family', 'wrong_family_reference', 'foreign_encounter'] as $case) {
+      $definitions = $this->canonicalDefinitions();
+      foreach ($definitions as &$definition) {
+        if (($definition['id'] ?? null) === 'encounter.mountains_loose_scree') {
+          if ($case === 'unknown_effect') $definition['actions'][0]['effect']['type'] = 'grant_whim';
+          if ($case === 'missing_amount') unset($definition['actions'][0]['effect']['amount']);
+          if ($case === 'invalid_amount') $definition['actions'][0]['effect']['amount'] = 0;
+          if ($case === 'incompatible_effect') $definition['actions'][0]['effect'] = ['type' => 'restore_participating_units_to_max'];
+          if ($case === 'unknown_family') $definition['family'] = 'shrine';
+        }
+        if (($definition['id'] ?? null) === 'run_generation.mountains' && $case === 'foreign_encounter') {
+          $definition['nodes'][7]['encounter_id'] = 'encounter.the_farm_rest';
+        }
+        if (($definition['id'] ?? null) === 'run_generation.mountains' && $case === 'wrong_family_reference') {
+          $definition['nodes'][7]['encounter_id'] = 'encounter.mountains_rest';
+        }
+      }
+      unset($definition);
+      try {
+        (new ContentValidator())->validate([['path' => 'hazard-invalid.json',
+          'document' => ['definitions' => $definitions]]]);
+        $this->fail("Invalid Hazard case {$case} was accepted.");
+      } catch (ContentValidationException) {
+        $this->addToAssertionCount(1);
+      }
+    }
+  }
   public function testOptionalDeadEndAndNonIndexOrderedAcyclicRoutesAreValid(): void
   {
     $content = ContentRegistry::load($this->canonicalRoot());
@@ -88,7 +140,7 @@ final class RunContentValidationTest extends TestCase
       ['run_node_type.combat', 'run_node_type.loot', 'run_node_type.rest', 'run_node_type.boss', 'run_node_type.exit'],
       array_column($generation['nodes'], 'node_type_id'),
     );
-    $this->assertCount(5, $registry->definitionsOfType('run_node_type'));
+    $this->assertCount(6, $registry->definitionsOfType('run_node_type'));
     $this->assertSame('encounter.the_farm_mud_combat_1', $generation['nodes'][0]['encounter_id']);
     $this->assertSame('event.farm_loot_completed', $generation['nodes'][1]['event_id']);
     $this->assertSame('encounter.the_farm_mud_boss_1', $generation['nodes'][3]['encounter_id']);
@@ -96,22 +148,22 @@ final class RunContentValidationTest extends TestCase
     $this->assertSame('Combat', $registry->runNodeType('run_node_type.combat')['display_name']);
   }
 
-  public function testCanonicalMountainsRunContentUsesTheExactSevenNodeLinearGraph(): void
+  public function testCanonicalMountainsRunContentIncludesPathAndDeadEndHazards(): void
   {
     $registry = ContentRegistry::load($this->canonicalRoot());
     $generation = $registry->runGenerationForRegion('region.mountains');
 
     $this->assertSame('run_generation.mountains', $generation['id']);
     $this->assertSame('combat_1', $generation['start_node_key']);
-    $this->assertSame(['combat_1', 'loot', 'combat_2', 'rest', 'combat_3', 'boss', 'exit'],
+    $this->assertSame(['combat_1', 'loot', 'combat_2', 'rest', 'combat_3', 'boss', 'exit', 'loose_scree', 'rockfall'],
       array_column($generation['nodes'], 'key'));
     $this->assertSame([
       'run_node_type.combat', 'run_node_type.loot', 'run_node_type.combat', 'run_node_type.rest',
-      'run_node_type.combat', 'run_node_type.boss', 'run_node_type.exit',
+      'run_node_type.combat', 'run_node_type.boss', 'run_node_type.exit', 'run_node_type.hazard', 'run_node_type.hazard',
     ], array_column($generation['nodes'], 'node_type_id'));
-    $this->assertSame([0, 1, 2, 3, 4, 5, 6], array_column(array_column($generation['nodes'], 'position'), 'column'));
-    $this->assertSame([1, 1, 1, 1, 1, 1, 1], array_column(array_column($generation['nodes'], 'position'), 'row'));
-    $this->assertCount(6, $generation['edges']);
+    $this->assertSame([0, 1, 2, 3, 5, 6, 7, 4, 3], array_column(array_column($generation['nodes'], 'position'), 'column'));
+    $this->assertSame([1, 1, 1, 1, 1, 1, 1, 1, 2], array_column(array_column($generation['nodes'], 'position'), 'row'));
+    $this->assertCount(8, $generation['edges']);
   }
 
   public function testProjectionExposesOnlySafeNodeTypePresentation(): void

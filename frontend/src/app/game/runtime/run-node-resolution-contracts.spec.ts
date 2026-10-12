@@ -36,6 +36,22 @@ describe('run node resolution contracts', () => {
     expect(rest.healing).toEqual([{ unitId: '21', hpBefore: 0, hpAfter: 26, maxHp: 26 }]);
   });
 
+  it('parses finalized Hazard damage and rejects private effect tuning', () => {
+    const response = { ok: true, data: { resolution_type: 'hazard',
+      encounter_id: 'encounter.mountains_loose_scree', action_id: 'cross',
+      damage: [{ unit_id: '21', hp_before: 12, hp_after: 9, max_hp: 26 }],
+      node: { id: '17', status: 'completed', completed_at: '2026-09-17T12:01:00Z' },
+      newly_available_node_ids: ['14'], run: { id: '41', status: 'active', ended_at: null }, player_revision: 10 } };
+    const parsed = parseRunNodeResolutionEnvelope(response);
+    expect(parsed.resolutionType).toBe('hazard');
+    if (parsed.resolutionType !== 'hazard') throw new Error('Expected Hazard result.');
+    expect(parsed.damage).toEqual([{ unitId: '21', hpBefore: 12, hpAfter: 9, maxHp: 26 }]);
+    const leaked = structuredClone(response); (leaked.data as any).effect = { type: 'damage_first_participating_unit', amount: 3 };
+    expect(() => parseRunNodeResolutionEnvelope(leaked)).toThrowError(RunNodeResolutionContractError);
+    const invalid = structuredClone(response); invalid.data.damage[0].hp_after = 13;
+    expect(() => parseRunNodeResolutionEnvelope(invalid)).toThrowError(RunNodeResolutionContractError);
+  });
+
   it('parses only the exact terminal Exit shape', () => {
     const exit = { ok: true, data: { resolution_type: 'exit',
       node: { id: '14', status: 'completed', completed_at: '2026-09-19T12:00:00Z' }, newly_available_node_ids: [],

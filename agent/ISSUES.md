@@ -7,6 +7,10 @@
 **Status:** In Progress
 **Priority:** High
 
+#### Problem
+
+Mountains has an authored Hazard node vocabulary, but no production Hazard encounter association or authoritative action-resolution path in the vNext run lifecycle.
+
 #### Accepted baseline
 
 Milestones 1-9 are complete. Milestone 10 Package 1 is approved at `86c88987aaf14391660cb3b868cd10e537dd19d8` after the exploration-frontier correction. Package 2 is approved through correction `f782b368e3bc1e4672bcec886bf3a29263e5baf8`.
@@ -120,3 +124,12 @@ Report:
 - confirmation no Shrine/Chaos/modifier/multi-step/Swamp/Milestone 11+ scope was introduced.
 
 Leave Package 3 **In Progress** for architectural review. Do not promote Package 4 yourself.
+
+#### Implementation evidence (review candidate)
+
+- Authored Mountains `Loose Scree` and `Rockfall` as `non_combat` Hazard encounters. Loose Scree damages the lowest-ID participant by up to 3 HP on the continuing route; Rockfall damages each participant by up to 2 HP on an optional side trail. Farm's five-node linear graph is unchanged. Mountains now has nine authored nodes, with Boss and Exit reachable through the main path.
+- Authored encounter family, effect, action, and region references are validated. The persisted encounter drives the existing generic current-run interaction projection, with an authored family compatibility check; `CurrentRunQuery` and the shared command have no Hazard node-ID branch. Browser content and current-run reads omit effect types, amounts, and the private encounter catalog.
+- `HazardNodeResolutionHandler` applies HP transitions in the shared run-node transaction. It preserves unrelated available nodes, unlocks only direct successors, increments `player_revision` once, and uses the shared finalized receipt for exact-key replay. Integration tests cover production-composed side-trail/main-path resolution, re-query, missing/foreign/mismatched association, invalid/locked/completed/foreign-user/terminal attempts, and no duplicate damage or frontier transition.
+- RunScene submits the authorized interaction action through its retained attempt, blocks pending/ambiguous duplicate input, reconciles player revision and re-queries authoritative HP/frontier. Focused browser contract/RunScene tests: 38 passed. Deterministic captures succeeded for `run-hazard-available` at 844x390 (compact), 1600x900 (standard), 2560x1080 (wide), and 390x844 (portrait rotate gate); `run-hazard-result` succeeded at 1600x900. Captures are under ignored `artifacts/captures/`.
+- Focused backend: content validation 34 tests/117 assertions; Mountains lifecycle 4/118; Farm/Mountains Rest 20/177; run-start 30/263; Farm/Mountains Kin material lifecycle 1/79. Full `npm run verify:package`: PASS, backend 383 tests/2002 assertions (173 skipped), frontend 547 tests, production build, content validation, bundle budget, context/docs, and diff checks. Production client content revision: `551b04579cf496a73acb758cefd83788b53fc9e7bc40fd31fc58668e9529d393`.
+- No Shrine, Chaos, Swamp, modifier, contextual consumable, multi-step encounter, or later-milestone functionality was introduced. Package 3 remains In Progress for review.

@@ -456,7 +456,7 @@ export class GameStore {
     this.setCurrentRun({ status: 'stale', data: this.currentRunState.data, error: null });
   }
 
-  reconcileResolvedRunNodePlayerState(result: LootRunNodeResolutionResult | RestRunNodeResolutionResult): void {
+  reconcileResolvedRunNodePlayerState(result: LootRunNodeResolutionResult | RestRunNodeResolutionResult | HazardRunNodeResolutionResult): void {
     const bootstrap = this.cachedBootstrap;
     if (!bootstrap || result.playerRevision < bootstrap.player.player_revision)
       throw new RunContractError('Authoritative player revision regressed.');
@@ -1479,7 +1479,7 @@ import {
 } from './unit-detail-contracts';
 import { CurrentRun, CurrentRunResult, RunAbandonResult, RunContractError, RunStartResult } from './run-contracts';
 import { activeRunLock, ActiveRunLock } from './active-run-lock';
-import { ExitRunNodeResolutionResult, LootRunNodeResolutionResult, RestRunNodeResolutionResult } from './run-node-resolution-contracts';
+import { ExitRunNodeResolutionResult, HazardRunNodeResolutionResult, LootRunNodeResolutionResult, RestRunNodeResolutionResult } from './run-node-resolution-contracts';
 import { InventoryContractError, OwnedItemStack, parseItemCollectionEnvelope } from './inventory-contracts';
 import { ShopCatalogResult, ShopContractError, ShopPurchaseResult, parseShopCatalogEnvelope } from './shop-contracts';
 import { EnergyRestoreResult, RunUnitHealResult } from './consumable-contracts';

@@ -38,7 +38,8 @@ final class RestNodeResolutionHandler implements ActionRunNodeResolutionHandler
     } catch (Throwable) {
       throw new RunNodeResolutionIntegrityException('Persisted Rest encounter is unavailable.');
     }
-    if (($encounter['kind'] ?? null) !== 'non_combat' || ($encounter['region_id'] ?? null) !== ($run['region_id'] ?? null)) {
+    if (($encounter['kind'] ?? null) !== 'non_combat' || ($encounter['family'] ?? null) !== 'rest'
+      || ($encounter['region_id'] ?? null) !== ($run['region_id'] ?? null)) {
       throw new RunNodeResolutionIntegrityException('Persisted Rest encounter does not match this run.');
     }
     $action = null;

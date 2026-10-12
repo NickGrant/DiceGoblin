@@ -252,6 +252,34 @@ describe('RunScene lifecycle shell', () => {
     expect(startup.store.currentRun.data?.nodes[2].status).toBe('completed');
   });
 
+  it('submits authored Mountains Hazard action and re-queries HP without consuming another frontier node', async () => {
+    const { scene, startup, api } = await readyHarness(hazardAvailableRun());
+    spyOn<any>(scene, 'render').and.stub(); scene.selectNode('12');
+    api.resolveRunNode.and.resolveTo(hazardResolutionSuccess());
+    api.getCurrentRun.and.resolveTo({ run: hazardCompletedRun(), playerRevision: 8 });
+    await scene.activateSelectedNonCombat();
+    expect(api.resolveRunNode).toHaveBeenCalledOnceWith('41', '12', 'csrf', 'run-node:fixed',
+      { encounterId: 'encounter.mountains_loose_scree', actionId: 'cross' });
+    expect(startup.store.currentRun.data?.units[0].currentHp).toBe(9);
+    expect(startup.store.currentRun.data?.availableNodeIds).toEqual(['13', '14']);
+    expect(scene.resolvedNodeSyncState).toBe('succeeded');
+  });
+
+  it('holds a Hazard retry while the outcome is ambiguous and preserves its action identity', async () => {
+    const { scene, startup, api } = await readyHarness(hazardAvailableRun());
+    spyOn<any>(scene, 'render').and.stub(); scene.selectNode('12');
+    api.resolveRunNode.and.returnValues(Promise.reject(new RuntimeApiError('network')),
+      Promise.resolve(hazardResolutionSuccess()));
+    api.getCurrentRun.and.resolveTo({ run: hazardCompletedRun(), playerRevision: 8 });
+    await scene.activateSelectedNonCombat();
+    expect(scene.nodeActionState).toBe('retryable');
+    expect(scene.routeChoicePending).toBeTrue();
+    expect(startup.store.currentRun.data?.units[0].currentHp).toBe(12);
+    await scene.activateSelectedNonCombat();
+    expect(api.resolveRunNode.calls.allArgs().map((args) => args[3])).toEqual(['run-node:fixed', 'run-node:fixed']);
+    expect(startup.store.currentRun.data?.units[0].currentHp).toBe(9);
+  });
+
   it('retries only current-run synchronization after a committed Loot mutation', async () => {
     const { scene, api } = await readyHarness(lootAvailableRun());
     spyOn<any>(scene, 'render').and.stub();
@@ -552,6 +580,13 @@ function restResolutionSuccess() {
     newlyAvailableNodeIds: ['13'], run: { id: '41', status: 'active' as const, endedAt: null }, playerRevision: 8 };
 }
 
+function hazardResolutionSuccess() {
+  return { resolutionType: 'hazard' as const, encounterId: 'encounter.mountains_loose_scree', actionId: 'cross',
+    damage: [{ unitId: '11', hpBefore: 12, hpAfter: 9, maxHp: 26 }],
+    node: { id: '12', status: 'completed' as const, completedAt: '2026-09-16T12:02:00Z' },
+    newlyAvailableNodeIds: ['14'], run: { id: '41', status: 'active' as const, endedAt: null }, playerRevision: 8 };
+}
+
 function exitResolutionSuccess() {
   return { resolutionType: 'exit' as const,
     node: { id: '14', status: 'completed' as const, completedAt: '2026-09-19T12:00:00Z' },
@@ -570,6 +605,7 @@ function content(): ClientContentRegistry {
       'run_node_type.combat': { id: 'run_node_type.combat', display_name: 'Combat', description: 'Fight.', icon_key: 'combat' },
       'run_node_type.loot': { id: 'run_node_type.loot', display_name: 'Loot', description: 'Collect.', icon_key: 'loot' },
       'run_node_type.rest': { id: 'run_node_type.rest', display_name: 'Rest', description: 'Recover.', icon_key: 'rest' },
+      'run_node_type.hazard': { id: 'run_node_type.hazard', encounter_kind: 'non_combat', display_name: 'Hazard', description: 'Risk.', icon_key: 'hazard' },
       'run_node_type.boss': { id: 'run_node_type.boss', display_name: 'Boss', description: 'Boss.', icon_key: 'boss' },
       'run_node_type.exit': { id: 'run_node_type.exit', display_name: 'Exit', description: 'Exit.', icon_key: 'exit' },
     },
@@ -623,6 +659,24 @@ function farmRun(statuses: readonly ['completed', 'completed' | 'available', 'lo
 
 function lootAvailableRun() { return farmRun(['completed', 'available', 'locked', 'locked', 'locked']); }
 function restAvailableRun() { return farmRun(['completed', 'completed', 'available', 'locked', 'locked']); }
+function hazardAvailableRun(): CurrentRun {
+  const rest = restAvailableRun();
+  return { ...rest, regionId: 'region.mountains', availableNodeIds: ['12', '13'],
+    nodes: rest.nodes.map((node) => node.id === '12' ? { ...node, nodeTypeId: 'run_node_type.hazard',
+      interaction: { encounterId: 'encounter.mountains_loose_scree', title: 'Loose Scree',
+        body: 'The trail gives way.', prompt: 'Cross?', actions: [{ id: 'cross', label: 'CROSS SLOPE' }] } }
+      : node.id === '13' ? { ...node, nodeTypeId: 'run_node_type.loot', status: 'available' as const } : node),
+    units: [{ unitId: '11', currentHp: 12 }] };
+}
+function hazardCompletedRun(): CurrentRun {
+  const run = hazardAvailableRun();
+  return { ...run, availableNodeIds: ['13', '14'],
+    nodes: run.nodes.map((node) => node.id === '12' ? { ...node, status: 'completed' as const,
+      completedAt: '2026-09-16T12:02:00Z', interaction: undefined }
+      : node.id === '14' ? { ...node, status: 'available' as const } : node),
+    units: [{ unitId: '11', currentHp: 9 }] };
+}
+
 function bossAvailableRun() {
   const run = farmRun(['completed', 'completed', 'completed', 'available', 'locked']);
   return { ...run, units: [{ unitId: '11', currentHp: 26 }] };

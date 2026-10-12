@@ -121,16 +121,19 @@ final class KinWrongMachineLifecycleClosureTest extends IntegrationTestCase
     $current = $services['currentRunQuery']->execute($userId)['run'];
     $this->assertSame($regionId, $current['region_id']);
     $results = [];
-    foreach ($current['nodes'] as $index => $node) {
+    $route = $regionId === 'region.mountains' ? [0, 1, 2, 8, 3, 7, 4, 5, 6] : array_keys($current['nodes']);
+    foreach ($route as $index) {
+      $node = $current['nodes'][$index];
       $availableNode = $services['currentRunQuery']->execute($userId)['run']['nodes'][$index];
       $interaction = isset($availableNode['interaction']) ? [
         'encounter_id' => $availableNode['interaction']['encounter_id'],
         'action_id' => $availableNode['interaction']['actions'][0]['id'],
       ] : null;
-      $results[] = $services['resolveRunNodeCommand']->execute($userId, (int)$start['run']['id'],
+      $results[$index] = $services['resolveRunNodeCommand']->execute($userId, (int)$start['run']['id'],
         (int)$node['id'], 'kin-closure-node-' . $key . '-' . $index, $interaction);
     }
-    $this->assertSame('completed', $results[count($results) - 1]['run']['status']);
+    $this->assertSame('completed', $results[$regionId === 'region.mountains' ? 6 : 4]['run']['status']);
+    ksort($results);
     return $results;
   }
 

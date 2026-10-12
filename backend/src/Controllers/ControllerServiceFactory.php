@@ -28,6 +28,7 @@ use DiceGoblins\Application\RunNodes\CombatNodeResolutionHandler;
 use DiceGoblins\Application\RunNodes\BossNodeResolutionHandler;
 use DiceGoblins\Application\RunNodes\LootNodeResolutionHandler;
 use DiceGoblins\Application\RunNodes\RestNodeResolutionHandler;
+use DiceGoblins\Application\RunNodes\HazardNodeResolutionHandler;
 use DiceGoblins\Application\RunNodes\ExitNodeResolutionHandler;
 use DiceGoblins\Application\Combat\CombatSnapshotAssembler;
 use DiceGoblins\Application\Commands\UnitConfigurationSupport;
@@ -267,6 +268,7 @@ final class ControllerServiceFactory
           new BossNodeResolutionHandler($combatNodeHandler, $nodeResolutionRepository, $unitRepository, $unlockRepository, $rewardApplication),
           new LootNodeResolutionHandler($nodeResolutionRepository, $unitRepository, $unlockRepository, $rewardApplication),
           new RestNodeResolutionHandler($nodeResolutionRepository, $unitRepository, $content, new BaseLevelStatResolver()),
+          new HazardNodeResolutionHandler($nodeResolutionRepository, $unitRepository, $content, new BaseLevelStatResolver()),
           new ExitNodeResolutionHandler($nodeResolutionRepository),
         ],
         new SystemClock(),

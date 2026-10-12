@@ -356,6 +356,7 @@ final class ContentValidator
         foreach ($definition['nodes'] as $node) {
           $nodeType = $this->requireReferenceType($definitions, $id, 'nodes.node_type_id', $node['node_type_id'], 'run_node_type');
           $expectedKind = $nodeType['encounter_kind'] ?? null;
+          $expectedFamily = $nodeType['encounter_family'] ?? null;
           $encounterId = $node['encounter_id'] ?? null;
           if ($encounterId !== null) {
             if ($expectedKind === null) {
@@ -364,6 +365,9 @@ final class ContentValidator
             $encounter = $this->requireReferenceType($definitions, $id, 'nodes.encounter_id', $encounterId, 'encounter');
             if ($encounter['kind'] !== $expectedKind) {
               throw new ContentValidationException("{$id} node encounter kind does not match its node type.");
+            }
+            if ($expectedFamily !== null && ($encounter['family'] ?? null) !== $expectedFamily) {
+              throw new ContentValidationException("{$id} node encounter family does not match its node type.");
             }
           } elseif ($expectedKind !== null) {
             throw new ContentValidationException("{$id} node requires an encounter_id.");
@@ -685,10 +689,16 @@ final class ContentValidator
   /** @param array<string, mixed> $definition */
   private function validateRunNodeType(array $definition, string $location): void
   {
-    $this->requireExactFieldSet($definition, ['id', 'type', 'display_name', 'description', 'icon_key'], ['encounter_kind'], $location);
+    $this->requireExactFieldSet($definition, ['id', 'type', 'display_name', 'description', 'icon_key'], ['encounter_kind', 'encounter_family'], $location);
     $this->requireNamespace($definition, 'run_node_type.', $location);
     if (array_key_exists('encounter_kind', $definition)) {
       $this->requireAllowedString($definition, 'encounter_kind', ['combat', 'boss', 'non_combat'], $location);
+    }
+    if (array_key_exists('encounter_family', $definition)) {
+      $this->requireAllowedString($definition, 'encounter_family', ['rest', 'hazard'], $location);
+      if (($definition['encounter_kind'] ?? null) !== 'non_combat') {
+        throw new ContentValidationException("{$location} encounter_family requires non_combat encounter_kind.");
+      }
     }
     $this->requireBoundedNonEmptyString($definition, 'display_name', 128, $location);
     $this->requireBoundedNonEmptyString($definition, 'description', 512, $location);
@@ -806,8 +816,11 @@ final class ContentValidator
   {
     if (($definition['kind'] ?? null) === 'non_combat') {
       $this->requireExactFieldSet($definition,
-        ['id', 'type', 'kind', 'region_id', 'display_name', 'description', 'prompt', 'actions'], [], $location);
+        ['id', 'type', 'kind', 'region_id', 'display_name', 'description', 'prompt', 'actions'], ['family'], $location);
       $this->requireNamespace($definition, 'encounter.', $location);
+      if (array_key_exists('family', $definition)) {
+        $this->requireAllowedString($definition, 'family', ['rest', 'hazard'], $location);
+      }
       $this->requireStableIdWithNamespace($definition, 'region_id', 'region.', $location);
       $this->requireBoundedNonEmptyString($definition, 'display_name', 128, $location);
       $this->requireBoundedNonEmptyString($definition, 'description', 512, $location);
@@ -827,8 +840,19 @@ final class ContentValidator
         $this->requireBoundedNonEmptyString($action, 'label', 128, $where);
         $effect = $action['effect'];
         if (!is_array($effect) || array_is_list($effect)) throw new ContentValidationException("{$where} effect must be an object.");
-        $this->requireExactFieldSet($effect, ['type'], [], "{$where} effect");
-        $this->requireAllowedString($effect, 'type', ['restore_participating_units_to_max'], "{$where} effect");
+        $effectType = $this->requireAllowedString($effect, 'type',
+          ['restore_participating_units_to_max', 'damage_first_participating_unit', 'damage_all_participating_units'],
+          "{$where} effect");
+        if ($effectType === 'restore_participating_units_to_max') {
+          $this->requireExactFieldSet($effect, ['type'], [], "{$where} effect");
+        } else {
+          $this->requireExactFieldSet($effect, ['type', 'amount'], [], "{$where} effect");
+          $this->requireIntegerInRange($effect, 'amount', 1, 20, "{$where} effect");
+        }
+        if (($definition['family'] ?? null) === 'rest' && $effectType !== 'restore_participating_units_to_max'
+          || ($definition['family'] ?? null) === 'hazard' && $effectType === 'restore_participating_units_to_max') {
+          throw new ContentValidationException("{$where} effect is incompatible with encounter family.");
+        }
       }
       return;
     }
