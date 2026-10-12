@@ -55,12 +55,11 @@ export interface HazardRunNodeResolutionResult extends ResolutionBase {
   readonly run: ResolvedActiveRun;
 }
 
-export interface NonCombatRunNodeResolutionResult extends ResolutionBase {
-  readonly resolutionType: 'non_combat';
+export interface ShrineRunNodeResolutionResult extends ResolutionBase {
+  readonly resolutionType: 'shrine';
   readonly encounterId: string;
   readonly actionId: string;
-  readonly wallet: Readonly<Partial<Record<'teeth' | 'raw_chaos', number>>>;
-  readonly grantedRewards: readonly [{ readonly rewardType: 'currency'; readonly currencyId: 'teeth' | 'raw_chaos'; readonly amount: number }];
+  readonly hpChanges: readonly { readonly unitId: string; readonly hpBefore: number; readonly hpAfter: number; readonly maxHp: number }[];
   readonly run: ResolvedActiveRun;
 }
 
@@ -72,7 +71,7 @@ export interface ExitRunNodeResolutionResult extends ResolutionBase {
 
 export type BattleRunNodeResolutionResult = CombatRunNodeResolutionResult | BossRunNodeResolutionResult;
 export type RunNodeResolutionResult = BattleRunNodeResolutionResult | LootRunNodeResolutionResult | RestRunNodeResolutionResult
-  | HazardRunNodeResolutionResult | NonCombatRunNodeResolutionResult
+  | HazardRunNodeResolutionResult | ShrineRunNodeResolutionResult
   | ExitRunNodeResolutionResult;
 
 const positiveIdPattern = /^[1-9][0-9]*$/;
@@ -144,7 +143,7 @@ export function parseRunNodeResolutionEnvelope(value: unknown): RunNodeResolutio
   if (data['resolution_type'] === 'loot') return parseLoot(data);
   if (data['resolution_type'] === 'rest') return parseRest(data);
   if (data['resolution_type'] === 'hazard') return parseHazard(data);
-  if (data['resolution_type'] === 'non_combat') return parseNonCombat(data);
+  if (data['resolution_type'] === 'shrine') return parseShrine(data);
   if (data['resolution_type'] === 'exit') return parseExit(data);
   throw new RunNodeResolutionContractError('Node resolution type is unsupported.');
 }
@@ -281,27 +280,30 @@ function parseHazard(data: Record<string, unknown>): HazardRunNodeResolutionResu
     damage: Object.freeze(damage), run: activeRun(base.runValue), playerRevision: base.playerRevision });
 }
 
-function parseNonCombat(data: Record<string, unknown>): NonCombatRunNodeResolutionResult {
-  exact(data, ['resolution_type', 'encounter_id', 'action_id', 'wallet', 'granted_rewards',
-    'node', 'newly_available_node_ids', 'run', 'player_revision'], 'Non-combat resolution data');
+function parseShrine(data: Record<string, unknown>): ShrineRunNodeResolutionResult {
+  exact(data, ['resolution_type', 'encounter_id', 'action_id', 'hp_changes',
+    'node', 'newly_available_node_ids', 'run', 'player_revision'], 'Shrine resolution data');
   if (typeof data['encounter_id'] !== 'string' || !/^encounter\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/.test(data['encounter_id'])
     || typeof data['action_id'] !== 'string' || !/^[a-z][a-z0-9_]*$/.test(data['action_id']))
-    throw new RunNodeResolutionContractError('Non-combat encounter action is invalid.');
-  const base = common(data); const wallet = object(data['wallet'], 'Non-combat wallet');
-  const rewards = data['granted_rewards'];
-  if (!Array.isArray(rewards) || rewards.length !== 1) throw new RunNodeResolutionContractError('Non-combat reward is invalid.');
-  const reward = object(rewards[0], 'Non-combat reward');
-  exact(reward, ['reward_type', 'currency_id', 'amount'], 'Non-combat reward');
-  const currencyId = reward['currency_id'];
-  if (reward['reward_type'] !== 'currency' || (currencyId !== 'teeth' && currencyId !== 'raw_chaos'))
-    throw new RunNodeResolutionContractError('Non-combat reward currency is invalid.');
-  exact(wallet, [currencyId], 'Non-combat wallet');
-  const balance = integer(wallet[currencyId], 'Non-combat wallet balance');
-  const amount = positiveInteger(reward['amount'], 'Non-combat reward amount');
-  if (balance < amount) throw new RunNodeResolutionContractError('Non-combat reward exceeds the wallet balance.');
-  return Object.freeze({ resolutionType: 'non_combat', encounterId: data['encounter_id'], actionId: data['action_id'],
-    wallet: Object.freeze({ [currencyId]: balance }),
-    grantedRewards: Object.freeze([Object.freeze({ rewardType: 'currency', currencyId, amount })] as const),
+    throw new RunNodeResolutionContractError('Shrine encounter action is invalid.');
+  const base = common(data); const raw = data['hp_changes'];
+  if (!Array.isArray(raw) || raw.length === 0) throw new RunNodeResolutionContractError('Shrine HP transitions are invalid.');
+  let prior: string | null = null;
+  const hpChanges = raw.map((value) => {
+    const row = object(value, 'Shrine HP transition');
+    exact(row, ['unit_id', 'hp_before', 'hp_after', 'max_hp'], 'Shrine HP transition');
+    const unitId = id(row['unit_id'], 'Shrine unit id');
+    if (prior !== null && (unitId.length < prior.length || (unitId.length === prior.length && unitId <= prior)))
+      throw new RunNodeResolutionContractError('Shrine unit IDs must be uniquely ordered.');
+    prior = unitId;
+    const hpBefore = integer(row['hp_before'], 'Shrine HP before');
+    const hpAfter = integer(row['hp_after'], 'Shrine HP after');
+    const maxHp = positiveInteger(row['max_hp'], 'Shrine max HP');
+    if (hpBefore > maxHp || hpAfter > maxHp) throw new RunNodeResolutionContractError('Shrine HP transition is incoherent.');
+    return Object.freeze({ unitId, hpBefore, hpAfter, maxHp });
+  });
+  return Object.freeze({ resolutionType: 'shrine', encounterId: data['encounter_id'], actionId: data['action_id'],
+    hpChanges: Object.freeze(hpChanges),
     node: base.node, newlyAvailableNodeIds: base.newlyAvailableNodeIds,
     run: activeRun(base.runValue), playerRevision: base.playerRevision });
 }

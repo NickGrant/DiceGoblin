@@ -25,12 +25,12 @@ final class ShrineContentFixture
     $definitions[] = [
       'id' => self::ENCOUNTER_ID, 'type' => 'encounter', 'kind' => 'non_combat', 'family' => 'shrine',
       'region_id' => 'region.the_farm', 'display_name' => 'Test Shrine',
-      'description' => 'A test-only choice of immediate blessings.', 'prompt' => 'Choose one blessing.',
+      'description' => 'A test-only choice of immediate run HP changes.', 'prompt' => 'Choose one rite.',
       'actions' => [
-        ['id' => 'take_teeth', 'label' => 'TAKE TEETH',
-          'effect' => ['type' => 'grant_currency', 'currency_id' => 'teeth', 'amount' => 7]],
-        ['id' => 'take_chaos', 'label' => 'TAKE RAW CHAOS',
-          'effect' => ['type' => 'grant_currency', 'currency_id' => 'raw_chaos', 'amount' => 2]],
+        ['id' => 'restore', 'label' => 'RESTORE WARBAND',
+          'effect' => ['type' => 'restore_participating_units_to_max']],
+        ['id' => 'endure', 'label' => 'ENDURE TRIAL',
+          'effect' => ['type' => 'damage_all_participating_units', 'amount' => 2]],
       ],
     ];
     $generation = BranchingRunDefinitionFixture::definition($canonical, true);

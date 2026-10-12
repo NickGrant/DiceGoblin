@@ -110,28 +110,31 @@ final class RunContentValidationTest extends TestCase
     $this->assertCount(9, $canonical->runGenerationForRegion('region.mountains')['nodes']);
     $registry = ShrineContentFixture::registry();
     $encounter = $registry->encounter(ShrineContentFixture::ENCOUNTER_ID);
-    $this->assertSame(['take_teeth', 'take_chaos'], array_column($encounter['actions'], 'id'));
+    $this->assertSame(['restore', 'endure'], array_column($encounter['actions'], 'id'));
     $this->assertSame('run_node_type.shrine',
       $registry->runGeneration(ShrineContentFixture::GENERATION_ID)['nodes'][3]['node_type_id']);
     $projected = json_encode((new ClientContentProjector())->project($registry), JSON_THROW_ON_ERROR);
     $this->assertStringNotContainsString(ShrineContentFixture::ENCOUNTER_ID, $projected);
-    $this->assertStringNotContainsString('grant_currency', $projected);
+    $this->assertStringNotContainsString('restore_participating_units_to_max', $projected);
+    $this->assertStringNotContainsString('damage_all_participating_units', $projected);
   }
 
   public function testMalformedShrineFamilyActionsEffectsAndReferencesFailValidation(): void
   {
     foreach (['family', 'duplicate_action', 'unknown_effect', 'missing_amount', 'invalid_amount',
-      'invalid_currency', 'incompatible_effect', 'wrong_family_reference', 'invalid_region_reference'] as $case) {
+      'reward_effect', 'incompatible_effect', 'wrong_family_reference', 'invalid_region_reference'] as $case) {
       $definitions = ShrineContentFixture::definitions();
       foreach ($definitions as &$definition) {
         if ($definition['id'] === ShrineContentFixture::ENCOUNTER_ID) {
           if ($case === 'family') $definition['family'] = 'unknown';
-          if ($case === 'duplicate_action') $definition['actions'][1]['id'] = 'take_teeth';
+          if ($case === 'duplicate_action') $definition['actions'][1]['id'] = 'restore';
           if ($case === 'unknown_effect') $definition['actions'][0]['effect']['type'] = 'grant_whim';
-          if ($case === 'missing_amount') unset($definition['actions'][0]['effect']['amount']);
-          if ($case === 'invalid_amount') $definition['actions'][0]['effect']['amount'] = 0;
-          if ($case === 'invalid_currency') $definition['actions'][0]['effect']['currency_id'] = 'energy';
-          if ($case === 'incompatible_effect') $definition['actions'][0]['effect'] = ['type' => 'restore_participating_units_to_max'];
+          if ($case === 'missing_amount') unset($definition['actions'][1]['effect']['amount']);
+          if ($case === 'invalid_amount') $definition['actions'][1]['effect']['amount'] = 0;
+          if ($case === 'reward_effect') $definition['actions'][0]['effect'] =
+            ['type' => 'award_teeth', 'amount' => 7];
+          if ($case === 'incompatible_effect') $definition['actions'][0]['effect'] =
+            ['type' => 'damage_random_participating_unit', 'amount' => 2];
           if ($case === 'invalid_region_reference') $definition['region_id'] = 'region.missing';
         }
         if ($definition['id'] === ShrineContentFixture::GENERATION_ID && $case === 'wrong_family_reference') {

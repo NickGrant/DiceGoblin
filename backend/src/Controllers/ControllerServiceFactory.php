@@ -270,7 +270,7 @@ final class ControllerServiceFactory
           new LootNodeResolutionHandler($nodeResolutionRepository, $unitRepository, $unlockRepository, $rewardApplication),
           new RestNodeResolutionHandler($nodeResolutionRepository, $unitRepository, $content, new BaseLevelStatResolver()),
           new HazardNodeResolutionHandler($nodeResolutionRepository, $unitRepository, $content, new BaseLevelStatResolver()),
-          new ShrineNodeResolutionHandler($core['playerStateRepo'], $content),
+          new ShrineNodeResolutionHandler($nodeResolutionRepository, $unitRepository, $content),
           new ExitNodeResolutionHandler($nodeResolutionRepository),
         ],
         new SystemClock(),

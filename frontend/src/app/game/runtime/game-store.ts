@@ -456,7 +456,7 @@ export class GameStore {
     this.setCurrentRun({ status: 'stale', data: this.currentRunState.data, error: null });
   }
 
-  reconcileResolvedRunNodePlayerState(result: LootRunNodeResolutionResult | RestRunNodeResolutionResult | HazardRunNodeResolutionResult | NonCombatRunNodeResolutionResult): void {
+  reconcileResolvedRunNodePlayerState(result: LootRunNodeResolutionResult | RestRunNodeResolutionResult | HazardRunNodeResolutionResult | ShrineRunNodeResolutionResult): void {
     const bootstrap = this.cachedBootstrap;
     if (!bootstrap || result.playerRevision < bootstrap.player.player_revision)
       throw new RunContractError('Authoritative player revision regressed.');
@@ -470,10 +470,7 @@ export class GameStore {
       ...bootstrap,
       player: Object.freeze({
         ...bootstrap.player,
-        teeth: result.resolutionType === 'loot' ? result.wallet.teeth
-          : result.resolutionType === 'non_combat' ? result.wallet.teeth ?? bootstrap.player.teeth : bootstrap.player.teeth,
-        raw_chaos: result.resolutionType === 'non_combat' ? result.wallet.raw_chaos ?? bootstrap.player.raw_chaos
-          : bootstrap.player.raw_chaos,
+        teeth: result.resolutionType === 'loot' ? result.wallet.teeth : bootstrap.player.teeth,
         player_revision: result.playerRevision,
       }),
     });
@@ -1482,7 +1479,7 @@ import {
 } from './unit-detail-contracts';
 import { CurrentRun, CurrentRunResult, RunAbandonResult, RunContractError, RunStartResult } from './run-contracts';
 import { activeRunLock, ActiveRunLock } from './active-run-lock';
-import { ExitRunNodeResolutionResult, HazardRunNodeResolutionResult, LootRunNodeResolutionResult, NonCombatRunNodeResolutionResult, RestRunNodeResolutionResult } from './run-node-resolution-contracts';
+import { ExitRunNodeResolutionResult, HazardRunNodeResolutionResult, LootRunNodeResolutionResult, RestRunNodeResolutionResult, ShrineRunNodeResolutionResult } from './run-node-resolution-contracts';
 import { InventoryContractError, OwnedItemStack, parseItemCollectionEnvelope } from './inventory-contracts';
 import { ShopCatalogResult, ShopContractError, ShopPurchaseResult, parseShopCatalogEnvelope } from './shop-contracts';
 import { EnergyRestoreResult, RunUnitHealResult } from './consumable-contracts';

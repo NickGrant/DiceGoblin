@@ -23,9 +23,9 @@ final class ShrineRunLifecycleTest extends IntegrationTestCase
 {
   protected function supportsVnextBaseline(): bool { return true; }
 
-  public function testBothAuthoredChoicesFinalizeOnlySelectedCurrencyAndRetainFrontier(): void
+  public function testBothAuthoredChoicesFinalizeOnlySelectedHpEffectAndRetainFrontier(): void
   {
-    foreach (['take_teeth' => ['teeth', 7], 'take_chaos' => ['raw_chaos', 2]] as $actionId => [$currency, $amount]) {
+    foreach (['restore', 'endure'] as $actionId) {
       [$userId, $runId, $ids, $content] = $this->readyShrine($actionId);
       $services = ControllerServiceFactory::buildContentAware($this->pdo, null, $content);
       $query = $services['currentRunQuery'];
@@ -35,31 +35,46 @@ final class ShrineRunLifecycleTest extends IntegrationTestCase
       $this->assertSame(['encounter_id', 'title', 'body', 'prompt', 'actions'], array_keys($interaction));
       $this->assertSame(ShrineContentFixture::ENCOUNTER_ID, $interaction['encounter_id']);
       $this->assertSame([
-        ['id' => 'take_teeth', 'label' => 'TAKE TEETH'],
-        ['id' => 'take_chaos', 'label' => 'TAKE RAW CHAOS'],
+        ['id' => 'restore', 'label' => 'RESTORE WARBAND'],
+        ['id' => 'endure', 'label' => 'ENDURE TRIAL'],
       ], $interaction['actions']);
-      $this->assertStringNotContainsString('grant_currency', json_encode($read, JSON_THROW_ON_ERROR));
+      $this->assertStringNotContainsString('restore_participating_units_to_max', json_encode($read, JSON_THROW_ON_ERROR));
+      $this->assertStringNotContainsString('damage_all_participating_units', json_encode($read, JSON_THROW_ON_ERROR));
       $this->assertSame([(string)$ids[2], (string)$ids[3]], $read['available_node_ids']);
       $before = (new PlayerStateRepository($this->pdo))->getPlayerState($userId);
+      $hpBefore = $this->rows('SELECT `unit_id`, `current_hp` FROM `run_unit_state` WHERE `run_id` = ? ORDER BY `unit_id`', [$runId]);
+      $this->assertCount(5, $hpBefore);
       $request = ['encounter_id' => ShrineContentFixture::ENCOUNTER_ID, 'action_id' => $actionId];
       $result = $command->execute($userId, $runId, $ids[3], 'shrine-' . $actionId, $request);
-      $this->assertEquals(['non_combat', $actionId, [$currency => $before[$currency] + $amount],
-        [['reward_type' => 'currency', 'currency_id' => $currency, 'amount' => $amount]],
-        [(string)$ids[4]], 'active', $before['player_revision'] + 1], [
-        $result['resolution_type'], $result['action_id'], $result['wallet'], $result['granted_rewards'],
-        $result['newly_available_node_ids'], $result['run']['status'], $result['player_revision'],
+      $this->assertSame(['shrine', $actionId, [(string)$ids[4]], 'active', $before['player_revision'] + 1], [
+        $result['resolution_type'], $result['action_id'], $result['newly_available_node_ids'],
+        $result['run']['status'], $result['player_revision'],
       ]);
+      $this->assertArrayNotHasKey('wallet', $result);
+      $this->assertArrayNotHasKey('granted_rewards', $result);
+      $this->assertCount(5, $result['hp_changes']);
+      $hpAfter = $this->rows('SELECT `unit_id`, `current_hp` FROM `run_unit_state` WHERE `run_id` = ? ORDER BY `unit_id`', [$runId]);
+      foreach ($result['hp_changes'] as $index => $change) {
+        $expectedHp = $actionId === 'restore' ? $change['max_hp'] : 3;
+        $this->assertSame((string)$hpBefore[$index]['unit_id'], $change['unit_id']);
+        $this->assertSame(5, $change['hp_before']);
+        $this->assertSame($expectedHp, $change['hp_after']);
+        $this->assertSame($expectedHp, (int)$hpAfter[$index]['current_hp']);
+      }
       $after = (new PlayerStateRepository($this->pdo))->getPlayerState($userId);
-      $this->assertSame($before['teeth'] + ($currency === 'teeth' ? $amount : 0), $after['teeth']);
-      $this->assertSame($before['raw_chaos'] + ($currency === 'raw_chaos' ? $amount : 0), $after['raw_chaos']);
+      $this->assertSame($before['teeth'], $after['teeth']);
+      $this->assertSame($before['raw_chaos'], $after['raw_chaos']);
       $this->assertSame($before['player_revision'] + 1, $after['player_revision']);
       $this->assertSame($result, $command->execute($userId, $runId, $ids[3], 'shrine-' . $actionId, $request));
       $this->assertErrorCode('run_node_already_resolved',
         fn() => $command->execute($userId, $runId, $ids[3], 'completed-' . $actionId, $request));
       $this->assertSame($after, (new PlayerStateRepository($this->pdo))->getPlayerState($userId));
+      $this->assertSame($hpAfter, $this->rows('SELECT `unit_id`, `current_hp` FROM `run_unit_state` WHERE `run_id` = ? ORDER BY `unit_id`', [$runId]));
       $final = $query->execute($userId)['run'];
       $this->assertSame([(string)$ids[2], (string)$ids[4]], $final['available_node_ids']);
       $this->assertArrayNotHasKey('interaction', $final['nodes'][3]);
+      $this->assertSame(array_map(static fn(array $row): int => (int)$row['current_hp'], $hpAfter),
+        array_column($final['units'], 'current_hp'));
       $reloaded = new PDO((string)getenv('TEST_DB_DSN'), (string)getenv('TEST_DB_USER'),
         (string)getenv('TEST_DB_PASS'), [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
       $this->assertSame($final, (new CurrentRunQuery(new RunPersistenceRepository($reloaded),
@@ -72,8 +87,9 @@ final class ShrineRunLifecycleTest extends IntegrationTestCase
     [$userId, $runId, $ids, $content] = $this->readyShrine('guards');
     $services = ControllerServiceFactory::buildContentAware($this->pdo, null, $content);
     $command = $services['resolveRunNodeCommand'];
-    $request = ['encounter_id' => ShrineContentFixture::ENCOUNTER_ID, 'action_id' => 'take_teeth'];
+    $request = ['encounter_id' => ShrineContentFixture::ENCOUNTER_ID, 'action_id' => 'restore'];
     $before = (new PlayerStateRepository($this->pdo))->getPlayerState($userId);
+    $hpBefore = $this->rows('SELECT `unit_id`, `current_hp` FROM `run_unit_state` WHERE `run_id` = ? ORDER BY `unit_id`', [$runId]);
     $this->pdo?->prepare("UPDATE `run_nodes` SET `status` = 'locked' WHERE `id` = ?")->execute([$ids[3]]);
     $this->assertErrorCode('run_node_unavailable', fn() => $command->execute($userId, $runId, $ids[3], 'shrine-locked', $request));
     $this->pdo?->prepare("UPDATE `run_nodes` SET `status` = 'available' WHERE `id` = ?")->execute([$ids[3]]);
@@ -101,7 +117,7 @@ final class ShrineRunLifecycleTest extends IntegrationTestCase
       } catch (CurrentRunIntegrityException) { $this->addToAssertionCount(1); }
       try {
         $command->execute($userId, $runId, $ids[3], 'corrupt-' . $index,
-          ['encounter_id' => $encounterId ?? ShrineContentFixture::ENCOUNTER_ID, 'action_id' => 'take_teeth']);
+          ['encounter_id' => $encounterId ?? ShrineContentFixture::ENCOUNTER_ID, 'action_id' => 'restore']);
         $this->fail('Invalid persisted Shrine association was resolved.');
       } catch (RunNodeResolutionIntegrityException) { $this->addToAssertionCount(1); }
     }
@@ -118,6 +134,7 @@ final class ShrineRunLifecycleTest extends IntegrationTestCase
       $this->fail('Foreign-region Shrine was resolved.');
     } catch (RunNodeResolutionIntegrityException) { $this->addToAssertionCount(1); }
     $this->assertSame($before, (new PlayerStateRepository($this->pdo))->getPlayerState($userId));
+    $this->assertSame($hpBefore, $this->rows('SELECT `unit_id`, `current_hp` FROM `run_unit_state` WHERE `run_id` = ? ORDER BY `unit_id`', [$runId]));
   }
 
   /** @return array{0:int,1:int,2:array<int,int>,3:ContentRegistry} */
@@ -145,6 +162,7 @@ final class ShrineRunLifecycleTest extends IntegrationTestCase
       $participants[] = ['unit_id' => (int)$unit['id'], 'current_hp' => $maximum];
     }
     $repository->insertParticipatingUnits($runId, $participants);
+    $this->pdo?->prepare('UPDATE `run_unit_state` SET `current_hp` = 5 WHERE `run_id` = ?')->execute([$runId]);
     $this->pdo?->prepare("UPDATE `run_nodes` SET `status` = 'completed', `completed_at` = '2026-09-20 11:00:00'
       WHERE `run_id` = ? AND `node_index` IN (0, 1)")->execute([$runId]);
     $this->pdo?->prepare("UPDATE `run_nodes` SET `status` = 'available' WHERE `run_id` = ? AND `node_index` IN (2, 3)")

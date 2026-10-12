@@ -841,21 +841,18 @@ final class ContentValidator
         $effect = $action['effect'];
         if (!is_array($effect) || array_is_list($effect)) throw new ContentValidationException("{$where} effect must be an object.");
         $effectType = $this->requireAllowedString($effect, 'type',
-          ['restore_participating_units_to_max', 'damage_random_participating_unit', 'damage_all_participating_units', 'grant_currency'],
+          ['restore_participating_units_to_max', 'damage_random_participating_unit', 'damage_all_participating_units'],
           "{$where} effect");
         if ($effectType === 'restore_participating_units_to_max') {
           $this->requireExactFieldSet($effect, ['type'], [], "{$where} effect");
-        } elseif ($effectType === 'grant_currency') {
-          $this->requireExactFieldSet($effect, ['type', 'currency_id', 'amount'], [], "{$where} effect");
-          $this->requireAllowedString($effect, 'currency_id', ['teeth', 'raw_chaos'], "{$where} effect");
-          $this->requireIntegerInRange($effect, 'amount', 1, 20, "{$where} effect");
         } else {
           $this->requireExactFieldSet($effect, ['type', 'amount'], [], "{$where} effect");
           $this->requireIntegerInRange($effect, 'amount', 1, 20, "{$where} effect");
         }
         if (($definition['family'] ?? null) === 'rest' && $effectType !== 'restore_participating_units_to_max'
           || ($definition['family'] ?? null) === 'hazard' && !in_array($effectType, ['damage_random_participating_unit', 'damage_all_participating_units'], true)
-          || ($definition['family'] ?? null) === 'shrine' && $effectType !== 'grant_currency') {
+          || ($definition['family'] ?? null) === 'shrine'
+            && !in_array($effectType, ['restore_participating_units_to_max', 'damage_all_participating_units'], true)) {
           throw new ContentValidationException("{$where} effect is incompatible with encounter family.");
         }
       }

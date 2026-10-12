@@ -269,14 +269,15 @@ describe('RunScene lifecycle shell', () => {
     const { scene, startup, api } = await readyHarness(shrineAvailableRun());
     const textValues = attachRenderHarness(scene);
     scene.selectNode('12');
-    expect(textValues).toContain('TAKE TEETH');
-    expect(textValues).toContain('TAKE RAW CHAOS');
+    expect(textValues).toContain('RESTORE WARBAND');
+    expect(textValues).toContain('ENDURE TRIAL');
     api.resolveRunNode.and.resolveTo(shrineResolutionSuccess());
     api.getCurrentRun.and.resolveTo({ run: shrineCompletedRun(), playerRevision: 8 });
-    await scene.activateSelectedNonCombat('take_chaos');
+    await scene.activateSelectedNonCombat('endure');
     expect(api.resolveRunNode).toHaveBeenCalledOnceWith('41', '12', 'csrf', 'run-node:fixed',
-      { encounterId: 'encounter.test_shrine', actionId: 'take_chaos' });
-    expect(startup.store.bootstrap?.player.raw_chaos).toBe(2);
+      { encounterId: 'encounter.test_shrine', actionId: 'endure' });
+    expect(startup.store.bootstrap?.player.raw_chaos).toBe(0);
+    expect(startup.store.currentRun.data?.units[0].currentHp).toBe(3);
     expect(startup.store.currentRun.data?.availableNodeIds).toEqual(['13', '14']);
     expect(scene.resolvedNodeSyncState).toBe('succeeded');
   });
@@ -604,9 +605,8 @@ function hazardResolutionSuccess() {
 }
 
 function shrineResolutionSuccess() {
-  return { resolutionType: 'non_combat' as const, encounterId: 'encounter.test_shrine', actionId: 'take_chaos',
-    wallet: { raw_chaos: 2 },
-    grantedRewards: [{ rewardType: 'currency' as const, currencyId: 'raw_chaos' as const, amount: 2 }] as const,
+  return { resolutionType: 'shrine' as const, encounterId: 'encounter.test_shrine', actionId: 'endure',
+    hpChanges: [{ unitId: '11', hpBefore: 5, hpAfter: 3, maxHp: 26 }],
     node: { id: '12', status: 'completed' as const, completedAt: '2026-09-16T12:02:00Z' },
     newlyAvailableNodeIds: ['14'], run: { id: '41', status: 'active' as const, endedAt: null }, playerRevision: 8 };
 }
@@ -706,16 +706,18 @@ function shrineAvailableRun(): CurrentRun {
   return { ...run, availableNodeIds: ['12', '13'],
     nodes: run.nodes.map((node) => node.id === '12' ? { ...node, nodeTypeId: 'run_node_type.shrine',
       interaction: { encounterId: 'encounter.test_shrine', title: 'Test Shrine',
-        body: 'Choose a blessing.', prompt: 'Take one reward.', actions: [
-          { id: 'take_teeth', label: 'TAKE TEETH' }, { id: 'take_chaos', label: 'TAKE RAW CHAOS' },
-        ] } } : node.id === '13' ? { ...node, nodeTypeId: 'run_node_type.loot', status: 'available' as const } : node) };
+        body: 'Choose a rite.', prompt: 'Choose one effect.', actions: [
+          { id: 'restore', label: 'RESTORE WARBAND' }, { id: 'endure', label: 'ENDURE TRIAL' },
+        ] } } : node.id === '13' ? { ...node, nodeTypeId: 'run_node_type.loot', status: 'available' as const } : node),
+    units: [{ unitId: '11', currentHp: 5 }] };
 }
 function shrineCompletedRun(): CurrentRun {
   const run = shrineAvailableRun();
   return { ...run, availableNodeIds: ['13', '14'],
     nodes: run.nodes.map((node) => node.id === '12' ? { ...node, status: 'completed' as const,
       completedAt: '2026-09-16T12:02:00Z', interaction: undefined }
-      : node.id === '14' ? { ...node, status: 'available' as const } : node) };
+      : node.id === '14' ? { ...node, status: 'available' as const } : node),
+    units: [{ unitId: '11', currentHp: 3 }] };
 }
 
 function bossAvailableRun() {

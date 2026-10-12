@@ -52,20 +52,19 @@ describe('run node resolution contracts', () => {
     expect(() => parseRunNodeResolutionEnvelope(invalid)).toThrowError(RunNodeResolutionContractError);
   });
 
-  it('parses a strict authored non-combat currency outcome without private Shrine effects', () => {
-    const response = { ok: true, data: { resolution_type: 'non_combat',
-      encounter_id: 'encounter.test_shrine', action_id: 'take_chaos',
-      wallet: { raw_chaos: 2 }, granted_rewards: [{ reward_type: 'currency', currency_id: 'raw_chaos', amount: 2 }],
+  it('parses strict Shrine HP transitions without private effects or reward fields', () => {
+    const response = { ok: true, data: { resolution_type: 'shrine',
+      encounter_id: 'encounter.test_shrine', action_id: 'endure',
+      hp_changes: [{ unit_id: '21', hp_before: 5, hp_after: 3, max_hp: 26 }],
       node: { id: '12', status: 'completed', completed_at: '2026-09-17T12:01:00Z' },
       newly_available_node_ids: ['13'], run: { id: '41', status: 'active', ended_at: null }, player_revision: 8 } };
     const parsed = parseRunNodeResolutionEnvelope(response);
-    expect(parsed.resolutionType).toBe('non_combat');
-    if (parsed.resolutionType !== 'non_combat') throw new Error('Expected non-combat result.');
-    expect(parsed.wallet.raw_chaos).toBe(2);
-    expect(parsed.grantedRewards).toEqual([{ rewardType: 'currency', currencyId: 'raw_chaos', amount: 2 }]);
-    const leaked = structuredClone(response); (leaked.data as any).effect = { type: 'grant_currency', amount: 2 };
+    expect(parsed.resolutionType).toBe('shrine');
+    if (parsed.resolutionType !== 'shrine') throw new Error('Expected Shrine result.');
+    expect(parsed.hpChanges).toEqual([{ unitId: '21', hpBefore: 5, hpAfter: 3, maxHp: 26 }]);
+    const leaked = structuredClone(response); (leaked.data as any).effect = { type: 'damage_all_participating_units', amount: 2 };
     expect(() => parseRunNodeResolutionEnvelope(leaked)).toThrowError(RunNodeResolutionContractError);
-    const inconsistent = structuredClone(response); inconsistent.data.wallet = { teeth: 2 } as any;
+    const inconsistent = structuredClone(response); (inconsistent.data as any).granted_rewards = [];
     expect(() => parseRunNodeResolutionEnvelope(inconsistent)).toThrowError(RunNodeResolutionContractError);
   });
 
