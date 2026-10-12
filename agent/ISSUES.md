@@ -2,108 +2,134 @@
 
 ## Milestone 10 - Run Encounter Depth
 
-### Milestone 10 Package 5 - Chaos encounter foundation
+### Milestone 10 Package 6 - Run-scoped modifier model + authoritative application
 
 **Status:** In Progress
 **Priority:** High
 
 #### Problem
 
-Rest, Hazard, and test-only Shrine encounters now prove the generalized non-combat interaction boundary, but Chaos has no validated family contract or authoritative resolution proof for later Swamp content.
+Packages 1-5 established the authoritative exploration frontier and generalized Rest, Hazard, Shrine, and Chaos encounter foundations, but vNext does not yet have an accepted persisted model for temporary effects that survive beyond the resolving encounter and influence later gameplay in the same run.
 
 #### Accepted baseline
 
-Milestones 1-9 are complete. Milestone 10 Package 1 is approved at `86c88987aaf14391660cb3b868cd10e537dd19d8`. Package 2 is approved through `f782b368e3bc1e4672bcec886bf3a29263e5baf8`. Package 3 is approved through `31b53b106d84edf2db846ec971877080e08aac9f`. Package 4 is approved through correction `c121a67a4903637424c68fb9347f9f9192f4c2e5`.
+Milestones 1-9 are complete. Milestone 10 Packages 1-5 are approved through Chaos foundation `32caee03565d2c86c0f54e50f076975f13ea806b`.
 
-The run model is an authoritative persisted exploration frontier. Package 2 established generalized authored `non_combat` interaction projection/action resolution. Package 3 proved production Hazards in Mountains. Package 4 proved a second multi-choice family, Shrine, using test-only fixtures without adding a family-specific read/client path or bypassing the canonical reward model.
+The run is authoritative server/MySQL state. Node resolution, encounter effects, frontier changes, player revision, and finalized receipts share the existing transactional/idempotency boundary. Rest/Hazard use immediate HP effects; test-only Shrine proves authored choice; test-only Chaos proves finalized server-owned randomness. Farm remains fixed and Mountains remains the only current production expansion, with Hazards but no Shrine/Chaos.
 
-Regional vocabulary remains intentional: Farm is Combat/Loot/Rest/Boss/Exit; Mountains adds Hazard and exploration branching/dead ends; Shrine and Chaos are reserved for Swamp and later regions. Swamp production content remains Milestone 13.
+Canonical reward boundaries remain in force: temporary run effects are effects/domain state, not rewards. Rewards add assets/progression/entitlements and continue through the accepted event/reward/finalization architecture.
+
+Prototype code contains prior run-combat-modifier concepts. Treat it only as migration evidence: inventory it before designing the vNext model, reuse semantics where they still fit canonical vNext architecture, and do not preserve prototype shape merely for compatibility.
 
 #### Purpose
 
-Establish the smallest reusable Chaos encounter-family contract needed by later Swamp content without adding Chaos nodes to Farm or Mountains and without prematurely implementing Swamp.
+Establish the smallest reusable persisted run-scoped modifier model needed for encounters to create temporary consequences that affect later gameplay and expire deterministically.
 
-Chaos encounters should represent volatile non-combat interactions whose authoritative outcome may vary, but Package 5 is an architectural foundation rather than a production content package. It should prove server-owned finalized randomness and/or authored Chaos choices through the existing encounter boundary without introducing Package 6 run modifiers or Package 7 multi-step/consumable state.
-
-Because no current production region should contain Chaos, use validated test-only authored fixtures. Do not add speculative production Chaos content merely to manufacture production coverage.
+Package 6 should prove one narrow modifier lifecycle end-to-end: authoritative creation, projection where player-visible, later gameplay application, deterministic consumption/expiry, reload/reconnect, and idempotent receipts. It must not turn modifiers into a generic scripting engine or prematurely implement Package 7 multi-step/consumable mechanics.
 
 #### Canonical design constraints
 
-- Reuse the Package 2 generalized authored non-combat projection and action-resolution boundary.
-- Do not add Chaos-specific branching to `CurrentRunQuery`, controllers, API endpoints, or Phaser runtime interaction dispatch.
-- Add only the authored node-family metadata and server resolution semantics genuinely needed for Chaos.
-- Player-visible title/body/prompt/action labels may be projected when authorized. Effect configuration, odds, random tables, tuning, and hidden eligibility remain server-private.
-- Backend authority owns action validity, random outcome selection, effects/rewards, node completion, frontier changes, revision, and finalized receipt.
-- Any random outcome must be finalized once. Exact-key replay must return the same result without rerolling, reapplying, or changing the frontier twice.
-- Preserve Farm and Mountains production content exactly; neither region receives Chaos nodes or Chaos encounters.
-- Do not implement Swamp production topology/content, Frog Kin, run-scoped modifiers, contextual consumables, or multi-step encounter persistence.
-- Respect the canonical reward/effect boundary. Currency, items, units, dice, XP, Codex entries, and unlocks are rewards and must not be introduced as direct Chaos effects. Immediate HP/state mutations may remain effects where semantically appropriate.
-- Keep the Chaos effect/outcome vocabulary no more expressive than required for this proof. Do not build a general scripting language or arbitrary effect graph.
+- Modifiers are owned by an active run and cannot leak to another run or permanent player/unit state.
+- Persist only durable state needed to reproduce the modifier after reconnect and apply/expire it authoritatively.
+- Authored modifier semantics/tuning belong in validated canonical content where appropriate; runtime instances reference stable authored identity plus minimal lifecycle state rather than copying arbitrary effect graphs into SQL.
+- Backend owns modifier eligibility, creation, application, remaining duration/uses, consumption, expiry, and resulting gameplay state.
+- Client may receive a narrow player-visible projection sufficient to explain active modifiers, but never hidden tuning, arbitrary effect configuration, or server-only predicates.
+- Exact-key replay of the encounter/node that creates a modifier must not create a duplicate modifier or reset its duration.
+- Exact-key replay of later gameplay that consumes/applies a modifier must not apply or consume it twice.
+- Reload/reconnect must reproduce the same active modifier state and remaining lifecycle.
+- Terminal run completion/failure must leave no modifier capable of affecting later runs. Follow existing run retention/cleanup policy rather than inventing a second cleanup architecture.
+- Preserve the exploration frontier semantics from Package 1.
+- Respect the reward/effect boundary; modifiers do not directly grant currency/items/units/dice/XP/Codex/unlocks.
+- Do not introduce production Shrine or Chaos content to Farm/Mountains. If a source encounter is needed for proof, use validated test-only authored fixtures.
+- Do not introduce Package 7 consumables or multi-step encounter persistence.
+
+#### Required inventory before implementation
+
+Inspect current canonical combat/run architecture and the retained prototype run-modifier implementation, including any `RunCombatModifierService`, combat participant metadata, resolver handling, persistence, and tests that still exist.
+
+Document in implementation evidence which prototype concepts were reused, replaced, or intentionally dropped. Current vNext canonical architecture wins on conflict.
+
+#### Minimum modifier proof
+
+Use one intentionally narrow, player-comprehensible modifier family rather than a generalized expression language.
+
+Preferred proof: a **next-combat participating-warband stat modifier** created by a test-only encounter and consumed by the next eligible Combat/Boss resolution in that run.
+
+Choose the smallest stat/effect already cleanly supported by the deterministic combat engine. Do not add several modifier families merely because the prototype had them.
+
+The authored definition should provide a stable modifier ID and bounded tuning. The persisted runtime instance should contain only the identity/source/lifecycle information necessary to reproduce authoritative behavior.
+
+If the existing combat architecture makes a different equally narrow modifier materially safer, use it and explain why in implementation evidence.
 
 #### Backend/content scope
 
-1. Add the minimal canonical Chaos run-node/encounter-family association needed to flow through the existing generic non-combat contract.
-2. Define a small test-only Chaos encounter that demonstrates the family's distinguishing property. Prefer a single authorized action with a server-owned finalized random choice between two already-supported immediate HP outcomes, or an equally small design that does not require later-package architecture.
-3. Keep random outcome tables/weights server-private and validated. Use stable authored outcome IDs if the finalized result needs to identify the selected outcome.
-4. Use validated test-only authored fixtures only. Do not place Chaos definitions in Farm or Mountains production region content.
-5. Resolve Chaos actions through the existing action-aware run-node command boundary. Validate ownership, node availability, persisted encounter association, encounter/action identity, region compatibility, family compatibility, effect/outcome validity, and server-owned semantics.
-6. Apply the selected immediate consequence, node completion, direct-successor unlocking, retained frontier, `player_revision`, and finalized receipt atomically.
-7. Exact-key replay must not reroll or reapply the selected outcome.
-8. Reload/re-query must reproduce the authoritative finalized run/unit/frontier state.
-9. Keep browser projection narrow; do not expose outcome weights, effect types/amounts, or canonical encounter catalogs.
-10. Do not introduce durable per-encounter progress in this package.
+1. Define and validate the minimal authored run-modifier definition required by the proof. Keep the schema bounded and family-specific.
+2. Add the minimal persistence required for active run modifier instances. Prefer integration with existing run persistence/migrations rather than an encounter-family table.
+3. Add an authoritative creation/application boundary reusable by later Shrine/Chaos production content without hard-coding those encounter families into combat/runtime infrastructure.
+4. Create the modifier through a validated test-only encounter/action fixture or equivalent test-only source using the existing action-aware node-resolution transaction.
+5. Prove creation is atomic with node completion/frontier/revision/receipt finalization.
+6. Apply the active modifier to the next eligible combat through the canonical combat assembly/resolution path. Do not make the client calculate modified stats/damage.
+7. Consume/decrement/expire the modifier atomically with the eligible combat resolution.
+8. Finalized combat/node receipts must contain enough authoritative facts to prove what modifier was applied/consumed without exposing private authored tuning unnecessarily.
+9. Reload/re-query before consumption reproduces the active modifier; reload/re-query after consumption shows it expired/updated.
+10. A failed or rejected encounter/combat resolution must not create, consume, or partially apply a modifier.
+11. Run ownership must be enforced. A modifier from run A cannot affect run B, another user, or later permanent unit state.
+12. Define deterministic behavior for Combat versus Boss eligibility and document it. Prefer both as combat-like eligible nodes if that matches the canonical combat path, but do not include Chaos merely because prototype code treated it as combat-like; vNext Chaos is currently a non-combat encounter family.
 
-#### Randomness requirements
+#### API/read projection
 
-If the test Chaos fixture uses randomness:
-- production selection is server-owned and uses the project's accepted secure randomness approach;
-- tests use an injectable/deterministic selection boundary rather than statistical/flaky assertions;
-- repository order, database IDs, insertion order, or client input must not determine the random result;
-- the selected authored outcome and exact resulting state transition are recorded in the finalized receipt;
-- exact-key replay returns that persisted selection and never consumes another random choice.
+Expose active player-visible run modifiers only if needed for understandable gameplay/reconnect state. If projected:
+- use stable modifier identity plus player-facing label/description and lifecycle such as remaining eligible combats;
+- source presentation may be included only when useful and safe;
+- do not expose raw internal effect graphs, hidden predicates, server RNG state, or canonical catalogs;
+- keep parsing strict and fail closed on malformed authoritative payloads.
 
-Do not expose server RNG state or hidden outcome weights to the browser.
+Do not add a standalone modifier endpoint unless the existing current-run/combat contracts cannot cleanly carry the required state.
 
 #### Phaser/runtime scope
 
-Use the existing generic non-combat interaction UI and action submission path. No new Scene or Angular route is allowed.
+Keep frontend work minimal and family-agnostic. RunScene may display active modifier state if required to make the persisted consequence understandable, but it must not calculate its effect or consumption.
 
-Only make frontend changes if the existing generic contract cannot correctly render/submit the test Chaos interaction or reconcile its finalized result. Any such change must remain encounter-family agnostic.
+BattleScene/combat presentation may consume authoritative applied-modifier metadata/result facts, but must not independently decide whether a modifier applies.
 
-Do not add production Chaos navigation or production-region captures. Test-only runtime/component coverage is sufficient where no production region can legitimately expose Chaos yet.
+Do not perform Package 8's broader encounter/branching visual integration in this package.
 
 #### Verification requirements
 
 Prove at minimum:
-- Chaos authored definitions/family metadata validate and malformed family/action/effect/outcome/reference combinations fail validation;
-- Farm contains no Chaos node/encounter and remains its fixed five-node graph;
-- Mountains contains no Chaos node/encounter and retains its accepted Hazard topology;
-- an available test-only Chaos reaches the authorized client projection through the generic Package 2 path;
-- `CurrentRunQuery` has no `run_node_type.chaos` branch;
-- the Chaos interaction resolves successfully through the shared action-aware command boundary;
-- if random outcomes are used, deterministic tests force each supported outcome and prove selection is server-owned;
-- only the finalized selected outcome is applied;
-- node completion/direct-successor unlocking/frontier retention are correct;
-- invalid/mismatched/locked/completed/foreign/terminal requests do not mutate state;
-- exact-key replay does not reroll/reapply, increment revision twice, or alter frontier twice;
-- reload/re-query reproduces finalized state;
-- server-private outcome/effect/tuning data is absent from browser-facing projections;
-- Rest, Hazard, and Shrine regressions remain green, including Hazard random-target receipt stability and Shrine choice/idempotency behavior;
-- Combat/Loot/Boss/Exit, Farm completion, Mountains completion, economy/material acquisition, reward boundaries, and active-run Warband restrictions remain green;
-- frontend generic interaction tests prove the Chaos interaction can render/submit without family-specific client logic.
+- authored modifier definitions validate and malformed IDs/types/tuning/lifecycle values fail validation;
+- runtime modifier instances are run-owned and reconnect-safe;
+- the test-only source creates exactly one modifier atomically with its node resolution;
+- exact-key replay of source resolution creates no duplicate and does not reset lifecycle;
+- an unrelated non-combat node does not consume a next-combat modifier;
+- the next eligible Combat/Boss applies the modifier authoritatively and exactly once;
+- modifier application changes the intended authoritative combat calculation/result in a deterministic fixture;
+- consumption/expiry is persisted atomically with combat resolution;
+- exact-key replay of the combat does not apply or consume the modifier twice;
+- failed/rejected combat does not consume the modifier;
+- reload before and after consumption reproduces correct modifier state;
+- modifier from one run/user cannot affect another;
+- terminal run behavior cannot leak active modifiers into a later run;
+- browser-facing projection, if any, excludes hidden tuning/configuration;
+- existing Combat/Boss behavior without modifiers is unchanged;
+- Farm and Mountains production content remain free of production Shrine/Chaos modifier sources unless canonical content already requires otherwise;
+- Rest/Hazard/Shrine/Chaos/frontier/idempotency regressions remain green;
+- reward architecture remains untouched by temporary modifier application;
+- active-run Warband restrictions and broader run completion remain green.
 
 Run applicable gates from `agent/QUALITY_GATES.md`.
 
 #### Scope exclusions
 
 Do not add:
-- production Chaos content to Farm or Mountains;
-- production Shrine content;
-- Swamp production content/topology or Frog Kin;
-- run-scoped modifiers;
-- contextual consumable mechanics;
+- a generic arbitrary effect/expression language;
+- multiple speculative modifier families;
+- production Shrine or Chaos content to Farm/Mountains;
+- Swamp production content/Frog Kin;
+- contextual consumables;
 - multi-step encounter persistence;
-- direct currency/item/unit/die/XP/unlock grants outside the canonical reward system;
+- permanent unit progression/equipment changes through modifiers;
+- direct reward grants through modifier effects;
 - Milestone 11+ functionality;
 - final visual redesign.
 
@@ -111,24 +137,17 @@ Do not add:
 
 Report:
 - implementation SHA;
-- Chaos authored family/fixture representation;
-- immediate Chaos outcome semantics and why they do not require Package 6/7 architecture;
-- server-side random selection/finalization mechanism if used;
-- proof the generic read/client interaction path remains family agnostic;
-- authoritative lifecycle evidence for every supported test outcome;
-- invalid/idempotent/reload/frontier evidence;
-- secrecy evidence;
-- Farm/Mountains no-Chaos regression evidence;
-- Rest/Hazard/Shrine and broader run regressions;
+- prototype modifier inventory and explicit reuse/replace/drop decisions;
+- authored modifier schema and persisted runtime shape;
+- source-creation transaction/idempotency evidence;
+- exact authoritative combat application semantics;
+- Combat/Boss eligibility decision;
+- consumption/expiry transaction and replay evidence;
+- reload/run-ownership/terminal isolation evidence;
+- browser secrecy/projection evidence;
+- no-modifier combat regression evidence;
+- Rest/Hazard/Shrine/Chaos/frontier regression evidence;
 - focused/full quality-gate results;
-- confirmation no production Chaos/Shrine, Swamp, modifier, consumable, multi-step, reward bypass, or Milestone 11+ scope was introduced.
+- confirmation no Package 7+, production Swamp, or reward-bypass scope was introduced.
 
-Leave Package 5 **In Progress** for architectural review. Do not promote Package 6 yourself.
-
-#### Implementation evidence (review candidate)
-
-- Added canonical `run_node_type.chaos` family metadata and a validated test-only `encounter.test_chaos` with one `accept` action. Its server-private `random_participating_hp` table has two weighted, stable-ID immediate outcomes: restore all participating units to maximum HP (`mend`) or damage each by up to 2 HP (`wound`). The branching test generation proves interaction projection and frontier behavior. Farm and Mountains production generation remain five and nine nodes with no Chaos encounter; no production Shrine encounter was added.
-- `ChaosNodeResolutionHandler` validates the persisted encounter, region, family, action, outcome table, participation, ownership, and HP before resolving. Production selection uses `random_int(1, total_weight)`; integration tests inject a deterministic roll. The shared command atomically persists only the selected HP transition, completes the node, unlocks direct successors while retaining another available route, increments revision once, and records `outcome_id` plus exact HP transitions in the `chaos` receipt. Exact-key replay returns that receipt without invoking the selector again. No wallet or reward grant is applied.
-- `CurrentRunQuery` has no Chaos node-type branch. The available test encounter projects only title/body/prompt and action ID/label; outcome IDs, weights, effects, and the encounter catalog remain private. RunScene now accepts authored action responses through their encounter/action identity rather than a family list, then re-queries authoritative run HP. The strict Chaos response parser accepts only the finalized outcome ID and HP transitions.
-- Focused verification: Chaos content 2 tests/21 assertions; Chaos lifecycle 2/85; Shrine 2/99; Mountains/Hazard 5/158; Farm Rest 20/177; frontend contract/RunScene 42 passed. Full `npm run verify:package`: PASS, backend 424 tests/2364 assertions, frontend 551 tests, content validation, production build, bundle budget, context/docs, and diff checks. Production client content revision: `9139c5f2865d1b1cded64e98fbf41a7549580f623aa2b8662f60bb034fcabcf7`. Broader Combat/Loot/Boss/Exit, run completion, economy/material, reward, and active-run Warband regressions remain green in the full suite.
-- No production Chaos/Shrine encounter, Swamp, modifier, consumable, multi-step, reward bypass, or Milestone 11+ functionality was introduced. Package 5 remains In Progress for review.
+Leave Package 6 **In Progress** for architectural review. Do not promote Package 7 yourself.
