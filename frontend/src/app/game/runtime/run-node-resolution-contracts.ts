@@ -63,6 +63,15 @@ export interface ShrineRunNodeResolutionResult extends ResolutionBase {
   readonly run: ResolvedActiveRun;
 }
 
+export interface ChaosRunNodeResolutionResult extends ResolutionBase {
+  readonly resolutionType: 'chaos';
+  readonly encounterId: string;
+  readonly actionId: string;
+  readonly outcomeId: string;
+  readonly hpChanges: ShrineRunNodeResolutionResult['hpChanges'];
+  readonly run: ResolvedActiveRun;
+}
+
 export interface ExitRunNodeResolutionResult extends ResolutionBase {
   readonly resolutionType: 'exit';
   readonly newlyAvailableNodeIds: readonly [];
@@ -71,7 +80,7 @@ export interface ExitRunNodeResolutionResult extends ResolutionBase {
 
 export type BattleRunNodeResolutionResult = CombatRunNodeResolutionResult | BossRunNodeResolutionResult;
 export type RunNodeResolutionResult = BattleRunNodeResolutionResult | LootRunNodeResolutionResult | RestRunNodeResolutionResult
-  | HazardRunNodeResolutionResult | ShrineRunNodeResolutionResult
+  | HazardRunNodeResolutionResult | ShrineRunNodeResolutionResult | ChaosRunNodeResolutionResult
   | ExitRunNodeResolutionResult;
 
 const positiveIdPattern = /^[1-9][0-9]*$/;
@@ -144,6 +153,7 @@ export function parseRunNodeResolutionEnvelope(value: unknown): RunNodeResolutio
   if (data['resolution_type'] === 'rest') return parseRest(data);
   if (data['resolution_type'] === 'hazard') return parseHazard(data);
   if (data['resolution_type'] === 'shrine') return parseShrine(data);
+  if (data['resolution_type'] === 'chaos') return parseChaos(data);
   if (data['resolution_type'] === 'exit') return parseExit(data);
   throw new RunNodeResolutionContractError('Node resolution type is unsupported.');
 }
@@ -283,29 +293,42 @@ function parseHazard(data: Record<string, unknown>): HazardRunNodeResolutionResu
 function parseShrine(data: Record<string, unknown>): ShrineRunNodeResolutionResult {
   exact(data, ['resolution_type', 'encounter_id', 'action_id', 'hp_changes',
     'node', 'newly_available_node_ids', 'run', 'player_revision'], 'Shrine resolution data');
+  return Object.freeze({ resolutionType: 'shrine', ...parseHpAction(data, 'Shrine') });
+}
+
+function parseHpAction(data: Record<string, unknown>, family: string): Omit<ShrineRunNodeResolutionResult, 'resolutionType'> {
   if (typeof data['encounter_id'] !== 'string' || !/^encounter\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/.test(data['encounter_id'])
     || typeof data['action_id'] !== 'string' || !/^[a-z][a-z0-9_]*$/.test(data['action_id']))
-    throw new RunNodeResolutionContractError('Shrine encounter action is invalid.');
+    throw new RunNodeResolutionContractError(`${family} encounter action is invalid.`);
   const base = common(data); const raw = data['hp_changes'];
-  if (!Array.isArray(raw) || raw.length === 0) throw new RunNodeResolutionContractError('Shrine HP transitions are invalid.');
+  if (!Array.isArray(raw) || raw.length === 0) throw new RunNodeResolutionContractError(`${family} HP transitions are invalid.`);
   let prior: string | null = null;
   const hpChanges = raw.map((value) => {
-    const row = object(value, 'Shrine HP transition');
-    exact(row, ['unit_id', 'hp_before', 'hp_after', 'max_hp'], 'Shrine HP transition');
-    const unitId = id(row['unit_id'], 'Shrine unit id');
+    const row = object(value, `${family} HP transition`);
+    exact(row, ['unit_id', 'hp_before', 'hp_after', 'max_hp'], `${family} HP transition`);
+    const unitId = id(row['unit_id'], `${family} unit id`);
     if (prior !== null && (unitId.length < prior.length || (unitId.length === prior.length && unitId <= prior)))
-      throw new RunNodeResolutionContractError('Shrine unit IDs must be uniquely ordered.');
+      throw new RunNodeResolutionContractError(`${family} unit IDs must be uniquely ordered.`);
     prior = unitId;
-    const hpBefore = integer(row['hp_before'], 'Shrine HP before');
-    const hpAfter = integer(row['hp_after'], 'Shrine HP after');
-    const maxHp = positiveInteger(row['max_hp'], 'Shrine max HP');
-    if (hpBefore > maxHp || hpAfter > maxHp) throw new RunNodeResolutionContractError('Shrine HP transition is incoherent.');
+    const hpBefore = integer(row['hp_before'], `${family} HP before`);
+    const hpAfter = integer(row['hp_after'], `${family} HP after`);
+    const maxHp = positiveInteger(row['max_hp'], `${family} max HP`);
+    if (hpBefore > maxHp || hpAfter > maxHp) throw new RunNodeResolutionContractError(`${family} HP transition is incoherent.`);
     return Object.freeze({ unitId, hpBefore, hpAfter, maxHp });
   });
-  return Object.freeze({ resolutionType: 'shrine', encounterId: data['encounter_id'], actionId: data['action_id'],
+  return Object.freeze({ encounterId: data['encounter_id'], actionId: data['action_id'],
     hpChanges: Object.freeze(hpChanges),
     node: base.node, newlyAvailableNodeIds: base.newlyAvailableNodeIds,
     run: activeRun(base.runValue), playerRevision: base.playerRevision });
+}
+
+function parseChaos(data: Record<string, unknown>): ChaosRunNodeResolutionResult {
+  exact(data, ['resolution_type', 'encounter_id', 'action_id', 'outcome_id', 'hp_changes',
+    'node', 'newly_available_node_ids', 'run', 'player_revision'], 'Chaos resolution data');
+  const outcomeId = data['outcome_id'];
+  if (typeof outcomeId !== 'string' || !/^[a-z][a-z0-9_]*$/.test(outcomeId))
+    throw new RunNodeResolutionContractError('Chaos outcome ID is invalid.');
+  return Object.freeze({ resolutionType: 'chaos', outcomeId, ...parseHpAction(data, 'Chaos') });
 }
 
 function parseExit(data: Record<string, unknown>): ExitRunNodeResolutionResult {

@@ -282,6 +282,23 @@ describe('RunScene lifecycle shell', () => {
     expect(scene.resolvedNodeSyncState).toBe('succeeded');
   });
 
+  it('submits a Chaos interaction through the generic action path and reloads finalized HP', async () => {
+    const { scene, startup, api } = await readyHarness(chaosAvailableRun());
+    const textValues = attachRenderHarness(scene);
+    scene.selectNode('12');
+    expect(textValues).toContain('ACCEPT SURGE');
+    api.resolveRunNode.and.resolveTo({ resolutionType: 'chaos', encounterId: 'encounter.test_chaos',
+      actionId: 'accept', outcomeId: 'wound', hpChanges: [{ unitId: '11', hpBefore: 5, hpAfter: 3, maxHp: 26 }],
+      node: { id: '12', status: 'completed', completedAt: '2026-09-16T12:02:00Z' },
+      newlyAvailableNodeIds: ['14'], run: { id: '41', status: 'active', endedAt: null }, playerRevision: 8 });
+    api.getCurrentRun.and.resolveTo({ run: chaosCompletedRun(), playerRevision: 8 });
+    await scene.activateSelectedNonCombat('accept');
+    expect(api.resolveRunNode).toHaveBeenCalledOnceWith('41', '12', 'csrf', 'run-node:fixed',
+      { encounterId: 'encounter.test_chaos', actionId: 'accept' });
+    expect(startup.store.currentRun.data?.units[0].currentHp).toBe(3);
+    expect(scene.resolvedNodeSyncState).toBe('succeeded');
+  });
+
   it('holds a Hazard retry while the outcome is ambiguous and preserves its action identity', async () => {
     const { scene, startup, api } = await readyHarness(hazardAvailableRun());
     spyOn<any>(scene, 'render').and.stub(); scene.selectNode('12');
@@ -631,6 +648,7 @@ function content(): ClientContentRegistry {
       'run_node_type.rest': { id: 'run_node_type.rest', display_name: 'Rest', description: 'Recover.', icon_key: 'rest' },
       'run_node_type.hazard': { id: 'run_node_type.hazard', encounter_kind: 'non_combat', display_name: 'Hazard', description: 'Risk.', icon_key: 'hazard' },
       'run_node_type.shrine': { id: 'run_node_type.shrine', encounter_kind: 'non_combat', display_name: 'Shrine', description: 'Choose.', icon_key: 'rest' },
+      'run_node_type.chaos': { id: 'run_node_type.chaos', encounter_kind: 'non_combat', display_name: 'Chaos', description: 'Risk.', icon_key: 'rest' },
       'run_node_type.boss': { id: 'run_node_type.boss', display_name: 'Boss', description: 'Boss.', icon_key: 'boss' },
       'run_node_type.exit': { id: 'run_node_type.exit', display_name: 'Exit', description: 'Exit.', icon_key: 'exit' },
     },
@@ -713,6 +731,22 @@ function shrineAvailableRun(): CurrentRun {
 }
 function shrineCompletedRun(): CurrentRun {
   const run = shrineAvailableRun();
+  return { ...run, availableNodeIds: ['13', '14'],
+    nodes: run.nodes.map((node) => node.id === '12' ? { ...node, status: 'completed' as const,
+      completedAt: '2026-09-16T12:02:00Z', interaction: undefined }
+      : node.id === '14' ? { ...node, status: 'available' as const } : node),
+    units: [{ unitId: '11', currentHp: 3 }] };
+}
+function chaosAvailableRun(): CurrentRun {
+  const run = shrineAvailableRun();
+  return { ...run, nodes: run.nodes.map((node) => node.id === '12' ? {
+    ...node, nodeTypeId: 'run_node_type.chaos',
+    interaction: { encounterId: 'encounter.test_chaos', title: 'Test Chaos',
+      body: 'A volatile surge.', prompt: 'Accept it?', actions: [{ id: 'accept', label: 'ACCEPT SURGE' }] },
+  } : node) };
+}
+function chaosCompletedRun(): CurrentRun {
+  const run = chaosAvailableRun();
   return { ...run, availableNodeIds: ['13', '14'],
     nodes: run.nodes.map((node) => node.id === '12' ? { ...node, status: 'completed' as const,
       completedAt: '2026-09-16T12:02:00Z', interaction: undefined }

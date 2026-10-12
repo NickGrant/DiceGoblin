@@ -1,5 +1,5 @@
 {
-    "revision": "6744e1aaef0fd913a2c5213daf52a4f8f2fc2211f1622b69ebd96e78fd639a38",
+    "revision": "9139c5f2865d1b1cded64e98fbf41a7549580f623aa2b8662f60bb034fcabcf7",
     "content": {
         "gameplay": {
             "run_energy_cost": 10
@@ -1196,6 +1196,13 @@
                 "display_name": "Boss",
                 "description": "Face the Farm's strongest guardian.",
                 "icon_key": "icon_encounter_boss"
+            },
+            "run_node_type.chaos": {
+                "id": "run_node_type.chaos",
+                "encounter_kind": "non_combat",
+                "display_name": "Chaos",
+                "description": "Face an unpredictable encounter.",
+                "icon_key": "icon_encounter_combat"
             },
             "run_node_type.combat": {
                 "id": "run_node_type.combat",

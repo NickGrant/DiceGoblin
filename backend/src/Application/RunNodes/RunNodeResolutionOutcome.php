@@ -14,7 +14,7 @@ final class RunNodeResolutionOutcome
     public readonly bool $runFailed = false,
     public readonly bool $runCompleted = false,
   ) {
-    if (!in_array($resolutionType, ['combat', 'boss', 'loot', 'rest', 'hazard', 'shrine', 'exit'], true)) {
+    if (!in_array($resolutionType, ['combat', 'boss', 'loot', 'rest', 'hazard', 'shrine', 'chaos', 'exit'], true)) {
       throw new InvalidArgumentException('Run node resolution type is unsupported.');
     }
     if ($runFailed && $runCompleted) throw new InvalidArgumentException('Run cannot fail and complete together.');

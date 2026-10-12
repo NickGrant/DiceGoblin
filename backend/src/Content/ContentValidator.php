@@ -695,7 +695,7 @@ final class ContentValidator
       $this->requireAllowedString($definition, 'encounter_kind', ['combat', 'boss', 'non_combat'], $location);
     }
     if (array_key_exists('encounter_family', $definition)) {
-      $this->requireAllowedString($definition, 'encounter_family', ['rest', 'hazard', 'shrine'], $location);
+      $this->requireAllowedString($definition, 'encounter_family', ['rest', 'hazard', 'shrine', 'chaos'], $location);
       if (($definition['encounter_kind'] ?? null) !== 'non_combat') {
         throw new ContentValidationException("{$location} encounter_family requires non_combat encounter_kind.");
       }
@@ -819,7 +819,7 @@ final class ContentValidator
         ['id', 'type', 'kind', 'region_id', 'display_name', 'description', 'prompt', 'actions'], ['family'], $location);
       $this->requireNamespace($definition, 'encounter.', $location);
       if (array_key_exists('family', $definition)) {
-        $this->requireAllowedString($definition, 'family', ['rest', 'hazard', 'shrine'], $location);
+        $this->requireAllowedString($definition, 'family', ['rest', 'hazard', 'shrine', 'chaos'], $location);
       }
       $this->requireStableIdWithNamespace($definition, 'region_id', 'region.', $location);
       $this->requireBoundedNonEmptyString($definition, 'display_name', 128, $location);
@@ -841,10 +841,32 @@ final class ContentValidator
         $effect = $action['effect'];
         if (!is_array($effect) || array_is_list($effect)) throw new ContentValidationException("{$where} effect must be an object.");
         $effectType = $this->requireAllowedString($effect, 'type',
-          ['restore_participating_units_to_max', 'damage_random_participating_unit', 'damage_all_participating_units'],
+          ['restore_participating_units_to_max', 'damage_random_participating_unit', 'damage_all_participating_units', 'random_participating_hp'],
           "{$where} effect");
         if ($effectType === 'restore_participating_units_to_max') {
           $this->requireExactFieldSet($effect, ['type'], [], "{$where} effect");
+        } elseif ($effectType === 'random_participating_hp') {
+          $this->requireExactFieldSet($effect, ['type', 'outcomes'], [], "{$where} effect");
+          $outcomes = $effect['outcomes'];
+          if (!is_array($outcomes) || !array_is_list($outcomes) || count($outcomes) !== 2) {
+            throw new ContentValidationException("{$where} effect outcomes must contain exactly two entries.");
+          }
+          $outcomeIds = [];
+          foreach ($outcomes as $outcomeIndex => $outcome) {
+            $outcomeWhere = "{$where} effect outcomes[{$outcomeIndex}]";
+            if (!is_array($outcome) || array_is_list($outcome)) throw new ContentValidationException("{$outcomeWhere} must be an object.");
+            $this->requireExactFieldSet($outcome, ['id', 'weight', 'effect'], [], $outcomeWhere);
+            $outcomeId = $this->requireLocalNodeKey($outcome, 'id', $outcomeWhere);
+            if (isset($outcomeIds[$outcomeId])) throw new ContentValidationException("{$where} effect has duplicate outcome id.");
+            $outcomeIds[$outcomeId] = true;
+            $this->requireIntegerInRange($outcome, 'weight', 1, 10000, $outcomeWhere);
+            $inner = $outcome['effect'];
+            if (!is_array($inner) || array_is_list($inner)) throw new ContentValidationException("{$outcomeWhere} effect must be an object.");
+            $innerType = $this->requireAllowedString($inner, 'type',
+              ['restore_participating_units_to_max', 'damage_all_participating_units'], "{$outcomeWhere} effect");
+            $this->requireExactFieldSet($inner, $innerType === 'restore_participating_units_to_max' ? ['type'] : ['type', 'amount'], [], "{$outcomeWhere} effect");
+            if ($innerType === 'damage_all_participating_units') $this->requireIntegerInRange($inner, 'amount', 1, 20, "{$outcomeWhere} effect");
+          }
         } else {
           $this->requireExactFieldSet($effect, ['type', 'amount'], [], "{$where} effect");
           $this->requireIntegerInRange($effect, 'amount', 1, 20, "{$where} effect");
@@ -852,7 +874,9 @@ final class ContentValidator
         if (($definition['family'] ?? null) === 'rest' && $effectType !== 'restore_participating_units_to_max'
           || ($definition['family'] ?? null) === 'hazard' && !in_array($effectType, ['damage_random_participating_unit', 'damage_all_participating_units'], true)
           || ($definition['family'] ?? null) === 'shrine'
-            && !in_array($effectType, ['restore_participating_units_to_max', 'damage_all_participating_units'], true)) {
+            && !in_array($effectType, ['restore_participating_units_to_max', 'damage_all_participating_units'], true)
+          || ($definition['family'] ?? null) === 'chaos' && $effectType !== 'random_participating_hp'
+          || ($definition['family'] ?? null) !== 'chaos' && $effectType === 'random_participating_hp') {
           throw new ContentValidationException("{$where} effect is incompatible with encounter family.");
         }
       }

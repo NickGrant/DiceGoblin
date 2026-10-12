@@ -68,6 +68,25 @@ describe('run node resolution contracts', () => {
     expect(() => parseRunNodeResolutionEnvelope(inconsistent)).toThrowError(RunNodeResolutionContractError);
   });
 
+  it('parses a finalized Chaos outcome without exposing its table, weights, or effects', () => {
+    const response = { ok: true, data: { resolution_type: 'chaos',
+      encounter_id: 'encounter.test_chaos', action_id: 'accept', outcome_id: 'wound',
+      hp_changes: [{ unit_id: '21', hp_before: 5, hp_after: 3, max_hp: 26 }],
+      node: { id: '12', status: 'completed', completed_at: '2026-09-17T12:01:00Z' },
+      newly_available_node_ids: ['13'], run: { id: '41', status: 'active', ended_at: null }, player_revision: 8 } };
+    const parsed = parseRunNodeResolutionEnvelope(response);
+    expect(parsed.resolutionType).toBe('chaos');
+    if (parsed.resolutionType !== 'chaos') throw new Error('Expected Chaos result.');
+    expect(parsed.outcomeId).toBe('wound');
+    expect(parsed.hpChanges).toEqual([{ unitId: '21', hpBefore: 5, hpAfter: 3, maxHp: 26 }]);
+    for (const field of ['outcomes', 'weight', 'effect', 'granted_rewards']) {
+      const leaked = structuredClone(response) as any; leaked.data[field] = true;
+      expect(() => parseRunNodeResolutionEnvelope(leaked)).toThrowError(RunNodeResolutionContractError);
+    }
+    const invalid = structuredClone(response); invalid.data.outcome_id = 'bad-id';
+    expect(() => parseRunNodeResolutionEnvelope(invalid)).toThrowError(RunNodeResolutionContractError);
+  });
+
   it('parses only the exact terminal Exit shape', () => {
     const exit = { ok: true, data: { resolution_type: 'exit',
       node: { id: '14', status: 'completed', completed_at: '2026-09-19T12:00:00Z' }, newly_available_node_ids: [],

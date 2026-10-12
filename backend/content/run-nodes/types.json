@@ -43,6 +43,15 @@
       "icon_key": "icon_encounter_rest"
     },
     {
+      "id": "run_node_type.chaos",
+      "type": "run_node_type",
+      "encounter_kind": "non_combat",
+      "encounter_family": "chaos",
+      "display_name": "Chaos",
+      "description": "Face an unpredictable encounter.",
+      "icon_key": "icon_encounter_combat"
+    },
+    {
       "id": "run_node_type.boss",
       "type": "run_node_type",
       "encounter_kind": "boss",
