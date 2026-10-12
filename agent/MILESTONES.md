@@ -7,7 +7,7 @@ Read this for sequencing/planning or when closing/promoting an execution package
 **Status:** Active
 
 ### Related Issues
-- Milestone 10 Package 4 - Shrine encounter foundation
+- Milestone 10 Package 5 - Chaos encounter foundation
 
 Milestone 1 - Walking Skeleton is complete and passed manual user UAT.
 
@@ -32,6 +32,8 @@ Milestone 10 Package 1 - Branch-capable run topology and route-choice foundation
 Milestone 10 Package 2 - Generalized non-combat encounter contract and Rest migration is approved through correction `f782b368e3bc1e4672bcec886bf3a29263e5baf8`. The accepted model projects authorized non-combat interactions from persisted authored encounter associations rather than Rest-specific query logic, keeps effects server-private, and preserves the shared authoritative resolution/idempotency boundary.
 
 Milestone 10 Package 3 - Hazard encounter foundation is approved through correction `31b53b106d84edf2db846ec971877080e08aac9f`. Mountains now proves continuing-path and optional-dead-end Hazards through the shared non-combat boundary; random participant targeting is server-owned, receipt-stable, and independent of persistence ordering. Farm remains unchanged.
+
+Milestone 10 Package 4 - Shrine encounter foundation is approved through correction `c121a67a4903637424c68fb9347f9f9192f4c2e5`. Test-only Shrine fixtures prove multi-choice authoritative resolution through the shared non-combat boundary using immediate HP effects, without bypassing the canonical reward model or adding production Shrine content to Farm or Mountains.
 
 The major game-wide visual/UI overhaul remains intentionally deferred.
 
@@ -69,8 +71,8 @@ Knowledge/objectives remain Milestone 11. Mystic Cave/onboarding remains Milesto
 1. **Branch-capable run topology + route-choice foundation.** Approved at `86c88987aaf14391660cb3b868cd10e537dd19d8` after exploration-frontier correction.
 2. **Generalized non-combat encounter contract + Rest migration.** Approved through `f782b368e3bc1e4672bcec886bf3a29263e5baf8`.
 3. **Hazard encounter foundation.** Approved through `31b53b106d84edf2db846ec971877080e08aac9f`.
-4. **Shrine encounter foundation.** Current. Generic foundation only; Shrines do not enter Farm or Mountains production content.
-5. **Chaos encounter foundation.** Planned. Generic foundation only unless sequencing is revised; Chaos does not enter Farm or Mountains production content.
+4. **Shrine encounter foundation.** Approved through `c121a67a4903637424c68fb9347f9f9192f4c2e5`.
+5. **Chaos encounter foundation.** Current. Generic foundation only; Chaos does not enter Farm or Mountains production content.
 6. **Run-scoped modifier model + authoritative application.** Planned.
 7. **Contextual consumables + multi-step encounter interaction.** Planned.
 8. **Phaser RunScene branching/encounter interaction integration.** Planned.
@@ -82,7 +84,8 @@ Knowledge/objectives remain Milestone 11. Mystic Cave/onboarding remains Milesto
 - Package 1 established authoritative exploration-frontier topology so later encounter types can rely on explicit reachable-node semantics.
 - Package 2 established the generic authored non-combat interaction/read/resolution boundary and migrated Rest through it.
 - Package 3 added Hazards through that shared boundary and uses Mountains as the first production encounter/topology expansion; Farm remains the fixed tutorial.
-- Packages 4-5 must not add Shrine or Chaos encounters to Farm or Mountains. Swamp is the first planned production region for those encounter families; if useful production proof cannot be achieved without speculative content, keep the packages narrowly foundational or revise sequencing before implementation rather than contaminating earlier-region vocabulary.
+- Package 4 proved multi-choice Shrine resolution with test-only fixtures; it did not add production Shrines or create a parallel reward path.
+- Package 5 must similarly establish only the reusable Chaos family foundation. Farm and Mountains remain Chaos-free; Swamp is the first planned production region for Chaos.
 - Package 6 owns run-scoped modifiers and their persistence/application semantics.
 - Package 7 adds contextual consumable and multi-step interaction only after encounter and modifier boundaries are stable.
 - Package 8 completes player-facing Phaser integration across branching and the new encounter types.
