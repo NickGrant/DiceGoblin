@@ -63,7 +63,7 @@ final class RunContentValidationTest extends TestCase
     $this->assertNotContains('run_node_type.hazard', array_column($farm['nodes'], 'node_type_id'));
     $projected = json_encode((new ClientContentProjector())->project($registry), JSON_THROW_ON_ERROR);
     $this->assertStringNotContainsString('encounter.mountains_loose_scree', $projected);
-    $this->assertStringNotContainsString('damage_first_participating_unit', $projected);
+    $this->assertStringNotContainsString('damage_random_participating_unit', $projected);
     $this->assertStringNotContainsString('damage_all_participating_units', $projected);
   }
 

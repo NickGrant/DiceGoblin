@@ -46,7 +46,7 @@ describe('run node resolution contracts', () => {
     expect(parsed.resolutionType).toBe('hazard');
     if (parsed.resolutionType !== 'hazard') throw new Error('Expected Hazard result.');
     expect(parsed.damage).toEqual([{ unitId: '21', hpBefore: 12, hpAfter: 9, maxHp: 26 }]);
-    const leaked = structuredClone(response); (leaked.data as any).effect = { type: 'damage_first_participating_unit', amount: 3 };
+    const leaked = structuredClone(response); (leaked.data as any).effect = { type: 'damage_random_participating_unit', amount: 3 };
     expect(() => parseRunNodeResolutionEnvelope(leaked)).toThrowError(RunNodeResolutionContractError);
     const invalid = structuredClone(response); invalid.data.damage[0].hp_after = 13;
     expect(() => parseRunNodeResolutionEnvelope(invalid)).toThrowError(RunNodeResolutionContractError);

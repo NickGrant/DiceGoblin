@@ -841,7 +841,7 @@ final class ContentValidator
         $effect = $action['effect'];
         if (!is_array($effect) || array_is_list($effect)) throw new ContentValidationException("{$where} effect must be an object.");
         $effectType = $this->requireAllowedString($effect, 'type',
-          ['restore_participating_units_to_max', 'damage_first_participating_unit', 'damage_all_participating_units'],
+          ['restore_participating_units_to_max', 'damage_random_participating_unit', 'damage_all_participating_units'],
           "{$where} effect");
         if ($effectType === 'restore_participating_units_to_max') {
           $this->requireExactFieldSet($effect, ['type'], [], "{$where} effect");

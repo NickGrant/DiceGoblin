@@ -18,6 +18,7 @@ final class HazardNodeResolutionHandler implements ActionRunNodeResolutionHandle
     private readonly WarbandUnitRepository $units,
     private readonly ContentRegistry $content,
     private readonly BaseLevelStatResolver $stats = new BaseLevelStatResolver(),
+    private readonly ?\Closure $chooseIndex = null,
   ) {}
 
   public function nodeTypeId(): string { return 'run_node_type.hazard'; }
@@ -51,7 +52,7 @@ final class HazardNodeResolutionHandler implements ActionRunNodeResolutionHandle
     }
     if ($action === null) throw new RunNodeResolutionException('invalid_node_request', 'Encounter action is unavailable.', 400);
     $effect = $action['effect'];
-    if (!in_array($effect['type'] ?? null, ['damage_first_participating_unit', 'damage_all_participating_units'], true)
+    if (!in_array($effect['type'] ?? null, ['damage_random_participating_unit', 'damage_all_participating_units'], true)
       || !is_int($effect['amount'] ?? null) || $effect['amount'] < 1 || $effect['amount'] > 20) {
       throw new RunNodeResolutionIntegrityException('Hazard effect is unsupported.');
     }
@@ -70,15 +71,23 @@ final class HazardNodeResolutionHandler implements ActionRunNodeResolutionHandle
       }
       $owned = $this->units->listActiveByIdsForUser($userId, array_keys($hpById), true);
       if (count($owned) !== count($hpById)) throw new RunNodeResolutionIntegrityException('Run participation ownership is invalid.');
+      $targetId = null;
+      if ($effect['type'] === 'damage_random_participating_unit') {
+        $index = $this->chooseIndex !== null ? ($this->chooseIndex)(count($owned)) : random_int(0, count($owned) - 1);
+        if (!is_int($index) || $index < 0 || $index >= count($owned)) {
+          throw new RunNodeResolutionIntegrityException('Hazard target selection is invalid.');
+        }
+        $targetId = (int)$owned[$index]['id'];
+      }
       $damage = [];
-      foreach ($owned as $index => $unit) {
+      foreach ($owned as $unit) {
         $unitId = (int)$unit['id'];
         if (!array_key_exists($unitId, $hpById)) throw new RunNodeResolutionIntegrityException('Run participation ownership is invalid.');
         $type = $this->content->unitType((string)$unit['unit_type_id']);
         $maximum = $this->stats->resolve($type['base_stats'], $type['growth_per_level'], (int)$unit['level'])->hp;
         $before = $hpById[$unitId];
         if ($before > $maximum) throw new RunNodeResolutionIntegrityException('Persisted run HP exceeds current maximum HP.');
-        if ($effect['type'] === 'damage_first_participating_unit' && $index !== 0) continue;
+        if ($targetId !== null && $unitId !== $targetId) continue;
         $after = max(0, $before - $effect['amount']);
         $this->nodes->persistUnitHp($runId, $unitId, $after);
         $damage[] = ['unit_id' => (string)$unitId, 'hp_before' => $before, 'hp_after' => $after, 'max_hp' => $maximum];

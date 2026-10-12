@@ -10,7 +10,7 @@
       "description": "The narrow trail gives way beneath the warband.",
       "prompt": "Cross the unstable slope? One participating unit loses up to 3 HP.",
       "actions": [
-        { "id": "cross", "label": "CROSS SLOPE", "effect": { "type": "damage_first_participating_unit", "amount": 3 } }
+        { "id": "cross", "label": "CROSS SLOPE", "effect": { "type": "damage_random_participating_unit", "amount": 3 } }
       ]
     },
     {

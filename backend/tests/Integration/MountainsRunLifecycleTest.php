@@ -166,6 +166,10 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
       ['encounter_id' => 'encounter.mountains_rockfall', 'action_id' => 'push_through']);
     $this->assertSame(['hazard', [], 'active'],
       [$rockfall['resolution_type'], $rockfall['newly_available_node_ids'], $rockfall['run']['status']]);
+    $this->assertCount(5, $rockfall['damage']);
+    foreach ($rockfall['damage'] as $transition) {
+      $this->assertSame(max(0, $transition['hp_before'] - 2), $transition['hp_after']);
+    }
     $this->assertSame($rockfall, $command->execute($userId, $runId, $nodeIds[8], 'mountains-rockfall',
       ['encounter_id' => 'encounter.mountains_rockfall', 'action_id' => 'push_through']));
     $this->assertSame([(string)$nodeIds[3]], $services['currentRunQuery']->execute($userId)['run']['available_node_ids']);
@@ -187,9 +191,12 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
     $this->assertSame(3, $scree['damage'][0]['hp_before'] - $scree['damage'][0]['hp_after']);
     $afterScree = $services['currentRunQuery']->execute($userId)['run'];
     $this->assertSame([(string)$nodeIds[4]], $afterScree['available_node_ids']);
-    $this->assertSame($scree['damage'][0]['hp_after'], $afterScree['units'][0]['current_hp']);
+    $damagedUnit = array_values(array_filter($afterScree['units'],
+      static fn(array $unit): bool => $unit['unit_id'] === $scree['damage'][0]['unit_id']));
+    $this->assertCount(1, $damagedUnit);
+    $this->assertSame($scree['damage'][0]['hp_after'], $damagedUnit[0]['current_hp']);
     $this->assertArrayNotHasKey('interaction', $afterScree['nodes'][7]);
-    $this->assertStringNotContainsString('damage_first_participating_unit', json_encode($afterScree, JSON_THROW_ON_ERROR));
+    $this->assertStringNotContainsString('damage_random_participating_unit', json_encode($afterScree, JSON_THROW_ON_ERROR));
     $combatThree = $command->execute($userId, $runId, $nodeIds[4], 'mountains-combat-3');
     $this->assertBattleResolution($combatThree, $runId, $nodeIds[4], $nodeIds[5]);
     $this->assertSame([['item_id' => 'item.kobold_scale', 'quantity' => 1, 'owned_after' => 3]], $combatThree['item_grants']);
@@ -249,7 +256,9 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
   {
     [$userId, $fixture] = $this->fixtureAccount('mountains-hazard-guards');
     [$runId, $nodeIds] = $this->persistMountainsRun($userId, $fixture);
-    $command = $this->command($this->fixedResolver('victory'));
+    $selectionCount = 0;
+    $command = $this->command($this->fixedResolver('victory'),
+      static function (int $count) use (&$selectionCount): int { $selectionCount++; return $count - 1; });
     $request = ['encounter_id' => 'encounter.mountains_loose_scree', 'action_id' => 'cross'];
     try {
       $command->execute($userId, $runId, $nodeIds[7], 'hazard-locked', $request);
@@ -280,11 +289,14 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
     $this->assertSame([(string)$nodeIds[4]], $result['newly_available_node_ids']);
     $this->assertSame($revisionBefore + 1, $result['player_revision']);
     $this->assertSame($result, $command->execute($userId, $runId, $nodeIds[7], 'hazard-success', $request));
+    $this->assertSame(1, $selectionCount);
     $this->assertSame($revisionBefore + 1,
       (int)$this->scalar('SELECT `player_revision` FROM `user_state` WHERE `user_id` = ?', [$userId]));
     $after = $this->rows('SELECT `unit_id`, `current_hp` FROM `run_unit_state` WHERE `run_id` = ? ORDER BY `unit_id`', [$runId]);
-    $this->assertSame((int)$before[0]['current_hp'] - 3, (int)$after[0]['current_hp']);
-    $this->assertSame($before[1], $after[1]);
+    foreach (array_slice($before, 0, -1) as $index => $unit) $this->assertSame($unit, $after[$index]);
+    $last = count($before) - 1;
+    $this->assertSame((int)$before[$last]['current_hp'] - 3, (int)$after[$last]['current_hp']);
+    $this->assertSame((string)$before[$last]['unit_id'], $result['damage'][0]['unit_id']);
     $this->assertSame(['completed', 'available'], array_column($this->rows(
       'SELECT `status` FROM `run_nodes` WHERE `id` IN (?, ?) ORDER BY `node_index`', [$nodeIds[7], $nodeIds[8]]), 'status'));
     try {
@@ -313,6 +325,49 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
         ['encounter_id' => 'encounter.the_farm_rest', 'action_id' => 'rest']);
       $this->fail('Foreign-region encounter was resolved.');
     } catch (RunNodeResolutionIntegrityException) { $this->addToAssertionCount(1); }
+  }
+
+  public function testLooseScreeCanSelectFirstOrLastParticipantIncludingOneAtZeroHp(): void
+  {
+    foreach ([0, 4] as $selectedIndex) {
+      [$userId, $fixture] = $this->fixtureAccount('mountains-scree-choice-' . $selectedIndex);
+      [$runId, $nodeIds] = $this->persistMountainsRun($userId, $fixture);
+      $this->pdo?->prepare("UPDATE `run_nodes` SET `status` = 'completed', `completed_at` = '2026-09-20 11:00:00'
+        WHERE `run_id` = ? AND `node_index` IN (0, 1, 2, 3)")->execute([$runId]);
+      $this->pdo?->prepare("UPDATE `run_nodes` SET `status` = 'available' WHERE `id` = ?")
+        ->execute([$nodeIds[7]]);
+      $before = $this->rows('SELECT `unit_id`, `current_hp` FROM `run_unit_state` WHERE `run_id` = ? ORDER BY `unit_id`', [$runId]);
+      $this->assertCount(5, $before);
+      if ($selectedIndex === 4) {
+        $this->pdo?->prepare('UPDATE `run_unit_state` SET `current_hp` = 0 WHERE `run_id` = ? AND `unit_id` = ?')
+          ->execute([$runId, $before[4]['unit_id']]);
+        $before[4]['current_hp'] = 0;
+      }
+      $rolls = 0;
+      $command = $this->command($this->fixedResolver('victory'),
+        static function (int $count) use ($selectedIndex, &$rolls): int {
+          if ($count !== 5) throw new \LogicException('Unexpected participant count.');
+          $rolls++;
+          return $selectedIndex;
+        });
+      $request = ['encounter_id' => 'encounter.mountains_loose_scree', 'action_id' => 'cross'];
+      $revisionBefore = (int)$this->scalar('SELECT `player_revision` FROM `user_state` WHERE `user_id` = ?', [$userId]);
+      $result = $command->execute($userId, $runId, $nodeIds[7], 'scree-choice-' . $selectedIndex, $request);
+      $this->assertCount(1, $result['damage']);
+      $this->assertSame((string)$before[$selectedIndex]['unit_id'], $result['damage'][0]['unit_id']);
+      $this->assertSame((int)$before[$selectedIndex]['current_hp'], $result['damage'][0]['hp_before']);
+      $this->assertSame(max(0, (int)$before[$selectedIndex]['current_hp'] - 3), $result['damage'][0]['hp_after']);
+      $after = $this->rows('SELECT `unit_id`, `current_hp` FROM `run_unit_state` WHERE `run_id` = ? ORDER BY `unit_id`', [$runId]);
+      foreach ($before as $index => $unit) {
+        if ($index !== $selectedIndex) $this->assertSame($unit, $after[$index]);
+      }
+      $this->assertSame($result['damage'][0]['hp_after'], (int)$after[$selectedIndex]['current_hp']);
+      $this->assertSame($revisionBefore + 1, $result['player_revision']);
+      $this->assertSame($result, $command->execute($userId, $runId, $nodeIds[7], 'scree-choice-' . $selectedIndex, $request));
+      $this->assertSame(1, $rolls);
+      $this->assertSame($revisionBefore + 1,
+        (int)$this->scalar('SELECT `player_revision` FROM `user_state` WHERE `user_id` = ?', [$userId]));
+    }
   }
 
   public function testMountainsBossFailureAppliesNoRewardEventOrXp(): void
@@ -370,7 +425,7 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
     return [$runId, $nodeIds];
   }
 
-  private function command(CombatResolver $resolver): ResolveRunNodeCommand
+  private function command(CombatResolver $resolver, ?\Closure $chooseHazardIndex = null): ResolveRunNodeCommand
   {
     $content = $this->content();
     $state = new PlayerStateRepository($this->pdo);
@@ -390,7 +445,8 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
         $combat, new BossNodeResolutionHandler($combat, $nodes, $units, $unlocks, $rewards),
         new LootNodeResolutionHandler($nodes, $units, $unlocks, $rewards),
         new RestNodeResolutionHandler($nodes, $units, $content),
-        new HazardNodeResolutionHandler($nodes, $units, $content), new ExitNodeResolutionHandler($nodes),
+        new HazardNodeResolutionHandler($nodes, $units, $content, new BaseLevelStatResolver(), $chooseHazardIndex),
+        new ExitNodeResolutionHandler($nodes),
       ], new class implements Clock {
         public function now(): DateTimeImmutable { return new DateTimeImmutable('2026-09-20 12:00:00', new DateTimeZone('UTC')); }
       });
