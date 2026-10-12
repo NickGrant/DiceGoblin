@@ -7,7 +7,7 @@ Read this for sequencing/planning or when closing/promoting an execution package
 **Status:** Active
 
 ### Related Issues
-- Milestone 10 Package 3 - Hazard encounter foundation
+- Milestone 10 Package 4 - Shrine encounter foundation
 
 Milestone 1 - Walking Skeleton is complete and passed manual user UAT.
 
@@ -30,6 +30,8 @@ Milestone 9 - Kin and Wrong Machine is complete and passed focused manual user U
 Milestone 10 Package 1 - Branch-capable run topology and route-choice foundation is approved at `86c88987aaf14391660cb3b868cd10e537dd19d8` after the exploration-frontier correction. The accepted model preserves other available nodes after a resolution, supports optional dead ends and convergence, and keeps the authoritative frontier persisted/reconnect-safe.
 
 Milestone 10 Package 2 - Generalized non-combat encounter contract and Rest migration is approved through correction `f782b368e3bc1e4672bcec886bf3a29263e5baf8`. The accepted model projects authorized non-combat interactions from persisted authored encounter associations rather than Rest-specific query logic, keeps effects server-private, and preserves the shared authoritative resolution/idempotency boundary.
+
+Milestone 10 Package 3 - Hazard encounter foundation is approved through correction `31b53b106d84edf2db846ec971877080e08aac9f`. Mountains now proves continuing-path and optional-dead-end Hazards through the shared non-combat boundary; random participant targeting is server-owned, receipt-stable, and independent of persistence ordering. Farm remains unchanged.
 
 The major game-wide visual/UI overhaul remains intentionally deferred.
 
@@ -66,8 +68,8 @@ Knowledge/objectives remain Milestone 11. Mystic Cave/onboarding remains Milesto
 
 1. **Branch-capable run topology + route-choice foundation.** Approved at `86c88987aaf14391660cb3b868cd10e537dd19d8` after exploration-frontier correction.
 2. **Generalized non-combat encounter contract + Rest migration.** Approved through `f782b368e3bc1e4672bcec886bf3a29263e5baf8`.
-3. **Hazard encounter foundation.** Current. Mountains is the production proving ground; Farm remains unchanged.
-4. **Shrine encounter foundation.** Planned. Generic foundation only unless sequencing is revised; Shrines do not enter Farm or Mountains production content.
+3. **Hazard encounter foundation.** Approved through `31b53b106d84edf2db846ec971877080e08aac9f`.
+4. **Shrine encounter foundation.** Current. Generic foundation only; Shrines do not enter Farm or Mountains production content.
 5. **Chaos encounter foundation.** Planned. Generic foundation only unless sequencing is revised; Chaos does not enter Farm or Mountains production content.
 6. **Run-scoped modifier model + authoritative application.** Planned.
 7. **Contextual consumables + multi-step encounter interaction.** Planned.
@@ -79,7 +81,7 @@ Knowledge/objectives remain Milestone 11. Mystic Cave/onboarding remains Milesto
 
 - Package 1 established authoritative exploration-frontier topology so later encounter types can rely on explicit reachable-node semantics.
 - Package 2 established the generic authored non-combat interaction/read/resolution boundary and migrated Rest through it.
-- Package 3 adds Hazards through that shared boundary and uses Mountains as the first production encounter/topology expansion; Farm remains the fixed tutorial.
+- Package 3 added Hazards through that shared boundary and uses Mountains as the first production encounter/topology expansion; Farm remains the fixed tutorial.
 - Packages 4-5 must not add Shrine or Chaos encounters to Farm or Mountains. Swamp is the first planned production region for those encounter families; if useful production proof cannot be achieved without speculative content, keep the packages narrowly foundational or revise sequencing before implementation rather than contaminating earlier-region vocabulary.
 - Package 6 owns run-scoped modifiers and their persistence/application semantics.
 - Package 7 adds contextual consumable and multi-step interaction only after encounter and modifier boundaries are stable.
