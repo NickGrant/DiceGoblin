@@ -83,6 +83,23 @@ describe('run node resolution contracts', () => {
     expect(consumed.resolutionType).toBe('combat');
     if (consumed.resolutionType !== 'combat') throw new Error('Expected Combat result.');
     expect(consumed.appliedModifiers).toEqual([{ id: '71', modifierId: 'modifier.test_battle_focus', remainingCombats: 0 }]);
+    for (const outcome of ['defeat', 'stalemate'] as const) {
+      const failed: any = structuredClone(combat);
+      failed.data.battle.outcome = outcome;
+      failed.data.run = { id: '41', status: 'failed', ended_at: '2026-09-17T12:01:00Z' };
+      failed.data.newly_available_node_ids = [];
+      failed.data.applied_modifiers[0].remaining_combats = 1;
+      const parsed = parseRunNodeResolutionEnvelope(failed);
+      expect(parsed.resolutionType).toBe('combat');
+      if (parsed.resolutionType !== 'combat') throw new Error('Expected Combat result.');
+      expect(parsed.appliedModifiers).toEqual([{ id: '71', modifierId: 'modifier.test_battle_focus', remainingCombats: 1 }]);
+      const falseConsumption = structuredClone(failed);
+      falseConsumption.data.applied_modifiers[0].remaining_combats = 0;
+      expect(() => parseRunNodeResolutionEnvelope(falseConsumption)).toThrowError(RunNodeResolutionContractError);
+      const boss = structuredClone(failed);
+      boss.data.resolution_type = 'boss'; boss.data.rewards = null;
+      expect(parseRunNodeResolutionEnvelope(boss).resolutionType).toBe('boss');
+    }
     for (const [source, mutate] of [
       [shrine, (copy: any) => copy.data.created_modifier.attack_bonus = 2],
       [combat, (copy: any) => copy.data.applied_modifiers[0].attack_bonus = 2],

@@ -40,7 +40,6 @@ final class CombatNodeResolutionHandler implements RunNodeResolutionHandler
     $seed = $this->seeds->derive($runId, $nodeId, $encounterId);
     $activeModifiers = $this->modifiers->listActive($runId, true);
     $attackBonus = 0;
-    $appliedModifiers = [];
     foreach ($activeModifiers as $instance) {
       if ((int)$instance['run_id'] !== $runId || (int)$instance['id'] < 1
         || (int)$instance['source_node_id'] < 1 || (int)$instance['remaining_combats'] !== 1) {
@@ -58,8 +57,6 @@ final class CombatNodeResolutionHandler implements RunNodeResolutionHandler
       }
       $attackBonus += $definition['attack_bonus'];
       if ($attackBonus > 1000) throw new CombatResolutionIntegrityException('Run modifier stack exceeds the supported boundary.');
-      $appliedModifiers[] = ['id' => (string)$instance['id'], 'modifier_id' => (string)$instance['modifier_id'],
-        'remaining_combats' => 0];
     }
     $assembled = $this->assembler->assemble($userId, (int)$run['squad_id'],
       $this->nodes->listParticipatingUnitsForUpdate($runId), $encounterId, $seed, $attackBonus);
@@ -82,8 +79,15 @@ final class CombatNodeResolutionHandler implements RunNodeResolutionHandler
       $terminalHp[(string)$unitId] = $hp;
     }
     ksort($terminalHp, SORT_NUMERIC);
-    $grantedItems = $result['outcome'] === 'victory' ? $this->itemGrants->grant($userId, $encounterId) : [];
-    if ($activeModifiers !== []) $this->modifiers->consume($runId, array_map(static fn(array $row): int => (int)$row['id'], $activeModifiers));
+    $victory = $result['outcome'] === 'victory';
+    $grantedItems = $victory ? $this->itemGrants->grant($userId, $encounterId) : [];
+    if ($victory && $activeModifiers !== []) {
+      $this->modifiers->consume($runId, array_map(static fn(array $row): int => (int)$row['id'], $activeModifiers));
+    }
+    $appliedModifiers = array_map(static fn(array $row): array => [
+      'id' => (string)$row['id'], 'modifier_id' => (string)$row['modifier_id'],
+      'remaining_combats' => $victory ? 0 : 1,
+    ], $activeModifiers);
 
     return new RunNodeResolutionOutcome('combat', [
       'battle' => ['id' => (string)$battleId, 'outcome' => $result['outcome'],
@@ -92,6 +96,6 @@ final class CombatNodeResolutionHandler implements RunNodeResolutionHandler
       'terminal_player_hp' => $terminalHp,
       ...($appliedModifiers !== [] ? ['applied_modifiers' => $appliedModifiers] : []),
       ...($grantedItems !== [] ? ['item_grants' => $grantedItems] : []),
-    ], $result['outcome'] !== 'victory');
+    ], !$victory);
   }
 }

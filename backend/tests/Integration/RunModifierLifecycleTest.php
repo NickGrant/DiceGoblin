@@ -7,6 +7,10 @@ use DiceGoblins\Application\Commands\ProvisionWarbandFixtureCommand;
 use DiceGoblins\Application\Commands\RunNodeResolutionException;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Combat\Vnext\DamageCalculator;
+use DiceGoblins\Combat\Vnext\CombatInput;
+use DiceGoblins\Combat\Vnext\CombatResolver;
+use DiceGoblins\Combat\Vnext\CombatResult;
+use DiceGoblins\Combat\Vnext\PlaybackRecorder;
 use DiceGoblins\Controllers\ControllerServiceFactory;
 use DiceGoblins\Domain\CombatStats\BaseLevelStatResolver;
 use DiceGoblins\Repositories\BattlePersistenceRepository;
@@ -24,7 +28,8 @@ final class RunModifierLifecycleTest extends IntegrationTestCase
   public function testSourceReloadUnrelatedLootCombatConsumptionAndExactReplays(): void
   {
     [$userId, $runId, $ids, $content] = $this->readyRun(true);
-    $services = ControllerServiceFactory::buildContentAware($this->pdo, null, $content);
+    $resolver = $this->fixedResolver('victory');
+    $services = ControllerServiceFactory::buildContentAware($this->pdo, null, $content, $resolver);
     $command = $services['resolveRunNodeCommand'];
     $request = ['encounter_id' => RunModifierContentFixture::ENCOUNTER_ID, 'action_id' => 'focus'];
     $source = $command->execute($userId, $runId, $ids[3], 'focus-source', $request);
@@ -71,6 +76,7 @@ final class RunModifierLifecycleTest extends IntegrationTestCase
     $this->assertGreaterThan($baselineDamage['amount'], $modifiedDamage['amount']);
     $this->assertSame(0, $this->countModifiers($runId));
     $this->assertSame($combat, $command->execute($userId, $runId, $ids[4], 'focus-combat'));
+    $this->assertSame(1, $resolver->calls);
     $this->assertSame(1, (int)$this->scalar('SELECT COUNT(*) FROM `battles` WHERE `run_id` = ? AND `run_node_id` = ?', [$runId, $ids[4]]));
     $this->assertArrayNotHasKey('modifiers', $reloadedQuery->execute($userId)['run']);
   }
@@ -113,7 +119,8 @@ final class RunModifierLifecycleTest extends IntegrationTestCase
   public function testBossIsEligibleForTheSameNextCombatModifier(): void
   {
     [$userId, $runId, $ids, $content] = $this->readyRun(false);
-    $command = ControllerServiceFactory::buildContentAware($this->pdo, null, $content)['resolveRunNodeCommand'];
+    $resolver = $this->fixedResolver('victory');
+    $command = ControllerServiceFactory::buildContentAware($this->pdo, null, $content, $resolver)['resolveRunNodeCommand'];
     $source = $command->execute($userId, $runId, $ids[3], 'focus-before-boss',
       ['encounter_id' => RunModifierContentFixture::ENCOUNTER_ID, 'action_id' => 'focus']);
     $boss = $command->execute($userId, $runId, $ids[4], 'focused-boss');
@@ -123,12 +130,153 @@ final class RunModifierLifecycleTest extends IntegrationTestCase
       $boss['applied_modifiers']);
     $this->assertSame(0, $this->countModifiers($runId));
     $this->assertSame($boss, $command->execute($userId, $runId, $ids[4], 'focused-boss'));
+    $this->assertSame(1, $resolver->calls);
+  }
+
+  /** @dataProvider failedCombatProvider */
+  public function testResolvedFailedCombatAppliesButPreservesModifierForItsFailedRun(
+    bool $boss, string $outcome,
+  ): void {
+    [$userId, $runId, $ids, $content] = $this->readyRun(!$boss);
+    $resolver = $this->fixedResolver($outcome);
+    $services = ControllerServiceFactory::buildContentAware($this->pdo, null, $content, $resolver);
+    $command = $services['resolveRunNodeCommand'];
+    $source = $command->execute($userId, $runId, $ids[3], 'focus-before-failed-' . $outcome,
+      ['encounter_id' => RunModifierContentFixture::ENCOUNTER_ID, 'action_id' => 'focus']);
+    $failed = $command->execute($userId, $runId, $ids[4], 'focused-failed-' . $outcome);
+    $this->assertSame($boss ? 'boss' : 'combat', $failed['resolution_type']);
+    $this->assertSame($outcome, $failed['battle']['outcome']);
+    $this->assertSame('failed', $failed['run']['status']);
+    $this->assertSame([['id' => $source['created_modifier']['id'],
+      'modifier_id' => RunModifierContentFixture::MODIFIER_ID, 'remaining_combats' => 1]],
+      $failed['applied_modifiers']);
+    $this->assertSame('1', (string)$this->scalar('SELECT `remaining_combats` FROM `run_modifiers` WHERE `run_id` = ?', [$runId]));
+    $battle = (new BattlePersistenceRepository($this->pdo))->findForRunNode($runId, $ids[4]);
+    $this->assertNotNull($battle);
+    $player = current(array_filter($battle->battle->combatInput->combatants,
+      static fn(array $row): bool => $row['side'] === 'player'));
+    $this->assertIsArray($player);
+    $this->assertSame(2, $player['stats']['attack'] - $this->baseAttackForParticipant($userId, $content));
+    $this->assertSame($failed, $command->execute($userId, $runId, $ids[4], 'focused-failed-' . $outcome));
+    $this->assertSame(1, $resolver->calls);
+    $this->assertSame(1, $this->countModifiers($runId));
+    $this->assertNull($services['currentRunQuery']->execute($userId)['run']);
+  }
+
+  /** @return iterable<string,array{bool,string}> */
+  public function failedCombatProvider(): iterable
+  {
+    yield 'Combat defeat' => [false, 'defeat'];
+    yield 'Combat stalemate' => [false, 'stalemate'];
+    yield 'Boss defeat' => [true, 'defeat'];
+    yield 'Boss stalemate' => [true, 'stalemate'];
+  }
+
+  public function testFailedRunModifierCannotAffectLaterOrOtherUsersCombat(): void
+  {
+    [$userId, $failedRunId, $ids, $content] = $this->readyRun(true);
+    $failureResolver = $this->fixedResolver('defeat');
+    $services = ControllerServiceFactory::buildContentAware($this->pdo, null, $content, $failureResolver);
+    $command = $services['resolveRunNodeCommand'];
+    $command->execute($userId, $failedRunId, $ids[3], 'isolation-source',
+      ['encounter_id' => RunModifierContentFixture::ENCOUNTER_ID, 'action_id' => 'focus']);
+    $command->execute($userId, $failedRunId, $ids[4], 'isolation-defeat');
+    $this->assertSame(1, $this->countModifiers($failedRunId));
+
+    $victoryResolver = $this->fixedResolver('victory');
+    $laterServices = ControllerServiceFactory::buildContentAware($this->pdo, null, $content, $victoryResolver);
+    $later = $laterServices['startRunCommand']->execute($userId,
+      ['region_id' => 'region.the_farm'], 'later-run-after-defeat');
+    $laterRunId = (int)$later['run']['id'];
+    $this->assertArrayNotHasKey('modifiers', $laterServices['currentRunQuery']->execute($userId)['run']);
+    $laterNodeId = (int)$this->scalar('SELECT `id` FROM `run_nodes` WHERE `run_id` = ? AND `node_index` = 0', [$laterRunId]);
+    $laterCombat = $laterServices['resolveRunNodeCommand']->execute($userId, $laterRunId, $laterNodeId, 'later-combat');
+    $this->assertArrayNotHasKey('applied_modifiers', $laterCombat);
+
+    $other = $laterServices['accountCreationService']->createLocal('modifier-foreign-' . bin2hex(random_bytes(5)) . '@example.test',
+      password_hash('test-password', PASSWORD_DEFAULT), 'Foreign Tester');
+    $this->trackUserId($other);
+    (new ProvisionWarbandFixtureCommand($this->pdo, new WarbandFixtureRepository($this->pdo), $content))->execute($other);
+    $foreign = $laterServices['startRunCommand']->execute($other,
+      ['region_id' => 'region.the_farm'], 'foreign-run');
+    $foreignRunId = (int)$foreign['run']['id'];
+    $this->assertArrayNotHasKey('modifiers', $laterServices['currentRunQuery']->execute($other)['run']);
+    $foreignNodeId = (int)$this->scalar('SELECT `id` FROM `run_nodes` WHERE `run_id` = ? AND `node_index` = 0', [$foreignRunId]);
+    $foreignCombat = $laterServices['resolveRunNodeCommand']->execute($other, $foreignRunId, $foreignNodeId, 'foreign-combat');
+    $this->assertArrayNotHasKey('applied_modifiers', $foreignCombat);
+    $this->assertSame(1, $this->countModifiers($failedRunId));
+    $this->assertSame(0, $this->countModifiers($laterRunId));
+    $this->assertSame(0, $this->countModifiers($foreignRunId));
+  }
+
+  /** @dataProvider nonCombatFamilyProvider */
+  public function testOtherNonCombatFamiliesDoNotConsumeModifier(
+    string $family, string $encounterId, string $actionId,
+  ): void {
+    [$userId, $runId, $ids, $content] = $this->readyRun(true, $family);
+    $command = ControllerServiceFactory::buildContentAware($this->pdo, null, $content)['resolveRunNodeCommand'];
+    $command->execute($userId, $runId, $ids[3], 'side-source-' . $family,
+      ['encounter_id' => RunModifierContentFixture::ENCOUNTER_ID, 'action_id' => 'focus']);
+    $this->assertSame(1, $this->countModifiers($runId));
+    $result = $command->execute($userId, $runId, $ids[2], 'side-' . $family,
+      ['encounter_id' => $encounterId, 'action_id' => $actionId]);
+    $this->assertSame($family, $result['resolution_type']);
+    $this->assertSame('1', (string)$this->scalar('SELECT `remaining_combats` FROM `run_modifiers` WHERE `run_id` = ?', [$runId]));
+    $this->assertSame($result, $command->execute($userId, $runId, $ids[2], 'side-' . $family,
+      ['encounter_id' => $encounterId, 'action_id' => $actionId]));
+    $this->assertCount(1, ControllerServiceFactory::buildContentAware($this->pdo, null, $content)
+      ['currentRunQuery']->execute($userId)['run']['modifiers']);
+  }
+
+  /** @return iterable<string,array{string,string,string}> */
+  public function nonCombatFamilyProvider(): iterable
+  {
+    yield 'Rest' => ['rest', 'encounter.the_farm_rest', 'rest'];
+    yield 'Hazard' => ['hazard', RunModifierContentFixture::SIDE_HAZARD_ID, 'cross'];
+    yield 'Shrine' => ['shrine', RunModifierContentFixture::SIDE_SHRINE_ID, 'restore'];
+    yield 'Chaos' => ['chaos', \DiceGoblins\Tests\Support\ChaosContentFixture::ENCOUNTER_ID, 'accept'];
+  }
+
+  private function baseAttackForParticipant(int $userId, ContentRegistry $content): int
+  {
+    $unit = $this->row('SELECT ui.`unit_type_id`, ui.`level` FROM `squad_units` su
+      JOIN `squads` s ON s.`id` = su.`squad_id`
+      JOIN `unit_instances` ui ON ui.`id` = su.`unit_id`
+      WHERE s.`user_id` = ? ORDER BY su.`position` LIMIT 1', [$userId]);
+    $type = $content->unitType((string)$unit['unit_type_id']);
+    return (new BaseLevelStatResolver())->resolve($type['base_stats'], $type['growth_per_level'], (int)$unit['level'])->attack;
+  }
+
+  private function fixedResolver(string $outcome): CombatResolver
+  {
+    return new class($outcome) implements CombatResolver {
+      public int $calls = 0;
+      public function __construct(private readonly string $outcome) {}
+      public function resolve(CombatInput $input): CombatResult
+      {
+        $this->calls++;
+        $terminal = [];
+        foreach ($input->combatants as $key => $unit) {
+          $hp = match ($this->outcome) {
+            'victory' => $unit['side'] === 'enemy' ? 0 : $unit['current_hp'],
+            'defeat' => $unit['side'] === 'player' ? 0 : $unit['current_hp'],
+            default => $unit['current_hp'],
+          };
+          $terminal[] = ['key' => $key, 'side' => $unit['side'], 'current_hp' => $hp,
+            'max_hp' => $unit['max_hp'], 'is_defeated' => $hp === 0, 'statuses' => $unit['statuses']];
+        }
+        $events = new PlaybackRecorder();
+        $events->add('battle_started', 0, 0, ['combatant_keys' => array_keys($input->combatants)]);
+        $events->add('battle_ended', 1, 1, ['outcome' => $this->outcome]);
+        return new CombatResult($this->outcome, 1, 1, $terminal, $events->events());
+      }
+    };
   }
 
   /** @return array{0:int,1:int,2:array<int,int>,3:ContentRegistry} */
-  private function readyRun(bool $nextCombat): array
+  private function readyRun(bool $nextCombat, ?string $sideFamily = null): array
   {
-    $content = RunModifierContentFixture::registry($nextCombat);
+    $content = RunModifierContentFixture::registry($nextCombat, $sideFamily);
     $services = ControllerServiceFactory::buildContentAware($this->pdo, null, $content);
     $userId = $services['accountCreationService']->createLocal('modifier-' . bin2hex(random_bytes(5)) . '@example.test',
       password_hash('test-password', PASSWORD_DEFAULT), 'Focus Tester');

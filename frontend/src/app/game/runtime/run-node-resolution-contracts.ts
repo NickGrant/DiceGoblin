@@ -17,7 +17,7 @@ export interface CombatRunNodeResolutionResult extends ResolutionBase {
   readonly battle: { readonly id: string; readonly outcome: ResolvedBattleOutcome; readonly engineVersion: 1;
     readonly playbackVersion: 1; readonly endingRound: number; readonly endingTick: number };
   readonly terminalPlayerHp: Readonly<Record<string, number>>;
-  readonly appliedModifiers?: readonly { readonly id: string; readonly modifierId: string; readonly remainingCombats: 0 }[];
+  readonly appliedModifiers?: readonly { readonly id: string; readonly modifierId: string; readonly remainingCombats: 0 | 1 }[];
   readonly run: { readonly id: string; readonly status: 'active' | 'failed'; readonly endedAt: string | null };
 }
 
@@ -173,7 +173,7 @@ function parseBattleFacts(data: Record<string, unknown>): Omit<CombatRunNodeReso
   if (run['status'] !== 'active' && run['status'] !== 'failed') throw new RunNodeResolutionContractError('Resolved run status is invalid.');
   const endedAt = run['ended_at'] === null ? null : timestamp(run['ended_at'], 'Resolved run ended_at');
   if ((run['status'] === 'active') !== (endedAt === null)) throw new RunNodeResolutionContractError('Resolved run lifecycle is incoherent.');
-  const appliedModifiers = parseAppliedModifiers(data['applied_modifiers']);
+  const appliedModifiers = parseAppliedModifiers(data['applied_modifiers'], outcome);
   return { battle: Object.freeze({ id: id(battle['id'], 'Battle id'), outcome, engineVersion: 1, playbackVersion: 1,
       endingRound: integer(battle['ending_round'], 'Battle ending round'), endingTick: integer(battle['ending_tick'], 'Battle ending tick') }),
     node: base.node, newlyAvailableNodeIds: base.newlyAvailableNodeIds, terminalPlayerHp: Object.freeze(terminalPlayerHp),
@@ -181,7 +181,7 @@ function parseBattleFacts(data: Record<string, unknown>): Omit<CombatRunNodeReso
     ...(appliedModifiers ? { appliedModifiers } : {}) };
 }
 
-function parseAppliedModifiers(value: unknown): CombatRunNodeResolutionResult['appliedModifiers'] {
+function parseAppliedModifiers(value: unknown, outcome: ResolvedBattleOutcome): CombatRunNodeResolutionResult['appliedModifiers'] {
   if (value === undefined) return undefined;
   if (!Array.isArray(value) || value.length === 0) throw new RunNodeResolutionContractError('Applied run modifiers are invalid.');
   let previousId: string | null = null;
@@ -193,9 +193,10 @@ function parseAppliedModifiers(value: unknown): CombatRunNodeResolutionResult['a
       || (instanceId.length === previousId.length && instanceId <= previousId)))
       throw new RunNodeResolutionContractError('Applied run modifier IDs must be uniquely ordered.');
     previousId = instanceId;
+    const remainingCombats = outcome === 'victory' ? 0 : 1;
     if (typeof row['modifier_id'] !== 'string' || !/^modifier\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/.test(row['modifier_id'])
-      || row['remaining_combats'] !== 0) throw new RunNodeResolutionContractError('Applied run modifier is invalid.');
-    return Object.freeze({ id: instanceId, modifierId: row['modifier_id'], remainingCombats: 0 as const });
+      || row['remaining_combats'] !== remainingCombats) throw new RunNodeResolutionContractError('Applied run modifier is invalid.');
+    return Object.freeze({ id: instanceId, modifierId: row['modifier_id'], remainingCombats });
   }));
 }
 
