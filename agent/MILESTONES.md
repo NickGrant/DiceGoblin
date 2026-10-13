@@ -7,7 +7,7 @@ Read this for sequencing/planning or when closing/promoting an execution package
 **Status:** Active
 
 ### Related Issues
-- Milestone 10 Package 6 - Run-scoped modifier model + authoritative application
+- Milestone 10 Package 7 - Contextual consumables + multi-step encounter interaction
 
 Milestone 1 - Walking Skeleton is complete and passed manual user UAT.
 
@@ -36,6 +36,8 @@ Milestone 10 Package 3 - Hazard encounter foundation is approved through correct
 Milestone 10 Package 4 - Shrine encounter foundation is approved through correction `c121a67a4903637424c68fb9347f9f9192f4c2e5`. Test-only Shrine fixtures prove multi-choice authoritative resolution through the shared non-combat boundary using immediate HP effects, without bypassing the canonical reward model or adding production Shrine content to Farm or Mountains.
 
 Milestone 10 Package 5 - Chaos encounter foundation is approved at `32caee03565d2c86c0f54e50f076975f13ea806b`. Test-only Chaos fixtures prove server-owned weighted random outcomes with stable authored outcome IDs, receipt-finalized selection, exact HP transitions, replay without reroll, and no production Chaos content in Farm or Mountains.
+
+Milestone 10 Package 6 - Run-scoped modifier model + authoritative application is approved through correction `736f5211a6e2fff1838fa5c6ec779e229f7368d6`. The accepted model uses narrow authored next-combat Attack modifiers persisted as run-owned instances, applies them authoritatively to Combat/Boss assembly, consumes them only on victory, preserves them on defeat/stalemate while isolating failed runs, and keeps tuning server-private.
 
 The major game-wide visual/UI overhaul remains intentionally deferred.
 
@@ -75,8 +77,8 @@ Knowledge/objectives remain Milestone 11. Mystic Cave/onboarding remains Milesto
 3. **Hazard encounter foundation.** Approved through `31b53b106d84edf2db846ec971877080e08aac9f`.
 4. **Shrine encounter foundation.** Approved through `c121a67a4903637424c68fb9347f9f9192f4c2e5`.
 5. **Chaos encounter foundation.** Approved at `32caee03565d2c86c0f54e50f076975f13ea806b`.
-6. **Run-scoped modifier model + authoritative application.** Current.
-7. **Contextual consumables + multi-step encounter interaction.** Planned.
+6. **Run-scoped modifier model + authoritative application.** Approved through `736f5211a6e2fff1838fa5c6ec779e229f7368d6`.
+7. **Contextual consumables + multi-step encounter interaction.** Current.
 8. **Phaser RunScene branching/encounter interaction integration.** Planned.
 9. **Run-encounter-depth integrated verification/technical closure.** Planned.
 10. **Focused manual UAT before Milestone 11.** Planned.
@@ -88,8 +90,8 @@ Knowledge/objectives remain Milestone 11. Mystic Cave/onboarding remains Milesto
 - Package 3 added Hazards through that shared boundary and uses Mountains as the first production encounter/topology expansion; Farm remains the fixed tutorial.
 - Package 4 proved multi-choice Shrine resolution with test-only fixtures; it did not add production Shrines or create a parallel reward path.
 - Package 5 proved receipt-stable server-owned Chaos randomness with test-only fixtures; Farm and Mountains remain Chaos-free and Swamp remains the first planned production region for Chaos.
-- Package 6 owns run-scoped modifiers and their persistence/application semantics.
-- Package 7 adds contextual consumable and multi-step interaction only after encounter and modifier boundaries are stable.
+- Package 6 established narrow run-owned next-combat modifiers with authoritative Combat/Boss application, victory-only consumption, failed-run isolation, reconnect-safe projection, and receipt-stable lifecycle semantics.
+- Package 7 adds contextual consumable and multi-step interaction only after encounter and modifier boundaries are stable. Keep it narrowly focused on the minimum reusable interaction/progress state needed to prove resumable encounter steps and authoritative inventory consumption; do not manufacture production Shrine/Chaos content in Farm or Mountains.
 - Package 8 completes player-facing Phaser integration across branching and the new encounter types.
 - Package 9 proves the complete production-composed slice, persistence/reload/retry behavior, regression safety, and responsive capture coverage.
 - Package 10 is manual UAT. Do not begin Milestone 11 until it passes and the user explicitly confirms promotion.
