@@ -60,8 +60,9 @@ final class KinWrongMachineLifecycleClosureTest extends IntegrationTestCase
     $this->assertSame(20, $read['raw_chaos']);
     $this->assertSame(['item.chief_engineer_lens' => 2, 'item.kobold_scale' => 6,
       'item.mudking_crown_fragment' => 2, 'item.pig_ear' => 6], $this->ownedItems($userId));
-    $this->assertCount(2, $read['recipes']);
-    foreach ($read['recipes'] as $recipe) {
+    foreach (['reconstruction_recipe.reconstruct_pig_kin',
+      'reconstruction_recipe.reconstruct_lizard_kin'] as $recipeId) {
+      $recipe = $this->recipe($read, $recipeId);
       $this->assertSame(['first_restoration', 'random_unlocked', true, true],
         [$recipe['mode'], $recipe['unit_type_selection'], $recipe['prerequisites_met'], $recipe['reconstructable']]);
       $this->assertContains('unit_type.bruiser', $recipe['eligible_unit_type_ids']);

@@ -18,13 +18,11 @@ final class ShopOfferContentValidationTest extends TestCase
   public function testProductionCatalogContainsTheUatOffersAndProjectsNoPrices(): void
   {
     $registry = ContentRegistry::load($this->canonicalRoot());
-    $ids = ['shop_offer.cardboard_d10', 'shop_offer.cardboard_d12', 'shop_offer.cardboard_d20',
-      'shop_offer.cardboard_d4', 'shop_offer.cardboard_d6', 'shop_offer.cardboard_d8',
-      'shop_offer.field_poultice', 'shop_offer.goblin_bannerbearer', 'shop_offer.goblin_bruiser',
-      'shop_offer.goblin_guardian', 'shop_offer.goblin_marksman', 'shop_offer.goblin_saboteur', 'shop_offer.spark_tonic'];
-    $this->assertSame($ids, array_keys($registry->definitionsOfType('shop_offer')));
     $offers = (new ClientContentProjector())->project($registry)['content']['shop_offers'];
-    $this->assertSame($ids, array_keys($offers));
+    foreach ($registry->definitionsOfType('shop_offer') as $id => $offer) {
+      $this->assertArrayHasKey($id, $offers);
+      $this->assertSame($offer['grant'], $offers[$id]['grant']);
+    }
     $this->assertSame([10, 12, 20, 4, 6, 8], array_map(
       static fn(string $id): int => $offers[$id]['grant']['size'],
       ['shop_offer.cardboard_d10', 'shop_offer.cardboard_d12', 'shop_offer.cardboard_d20',

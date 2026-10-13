@@ -30,3 +30,11 @@ A milestone is not complete because its isolated backend or frontend layer exist
 
 ## Current Commands
 Use `agent/QUALITY_GATES.md` and repository scripts for current executable commands. Do not copy old command lists from Git history into new docs without verifying they still apply.
+
+## Canonical Regression Suite
+
+The discovered backend and frontend suites protect current vNext behavior. Keep deterministic algorithms, security and ownership failures, transaction rollback, idempotency, persistence boundaries, API envelope and secrecy checks, authored-content validation, and focused client/runtime behavior. Keep integrated walking-slice tests when they prove a contract across boundaries that isolated tests cannot; consolidate redundant copies of the same contract.
+
+Exact authored graph assertions belong where the graph shape is an accepted product contract, such as the Farm tutorial path and Goblin promotion graph. Flexible catalogs and regional layouts should be checked by stable references and semantic invariants, including reachable branches, hazards, and dead ends, rather than total counts, complete unrelated ID lists, or incidental ordering.
+
+Remove superseded prototype tests for completed milestones once their useful failure and retry cases exist in vNext coverage. Tests retained solely as migration evidence for unfinished milestones live in `backend/prototype-test-evidence/` or `frontend/prototype-test-evidence/`, outside canonical test discovery. They are not a passing regression gate against current vNext contracts. Reassess and remove or port them when the owning milestone implements its replacement. Git history preserves removed prototype tests.

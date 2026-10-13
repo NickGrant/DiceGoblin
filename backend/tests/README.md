@@ -29,7 +29,7 @@
 - `DatabaseTestCase` wraps each test in a transaction and rolls back after each test.
 - Use SQL fixtures under `backend/tests/Fixtures/`.
 - Reset the test database by loading `backend/migrations/vnext_baseline.sql` into the Docker `goblin_test` database.
-- The fresh baseline activates only vNext database/auth/session integration tests. Prototype gameplay integration tests are retained as migration evidence and report explicit skips until their owning milestones replace their schema and routes.
+- The canonical PHPUnit suite discovers current vNext `*Test.php` files under `backend/tests/`. It runs against the fresh vNext baseline without permanent prototype-schema skips. Retained pre-vNext migration evidence for unfinished Milestones 11-13 lives in `backend/prototype-test-evidence/` and is intentionally outside discovery; port useful cases to current tests when those milestones replace the behavior.
 
 ## Controlled Warband fixture
 

@@ -22,8 +22,6 @@ final class PermanentProgressionLifecycleTest extends IntegrationTestCase
   public function testProductionCatalogLinksEveryPermanentProgressionDefinition(): void
   {
     $content = $this->content();
-    $this->assertCount(9, $content->definitionsOfType('academy_upgrade'));
-    $this->assertCount(20, $content->definitionsOfType('unit_promotion'));
     foreach ($content->definitionsOfType('academy_upgrade') as $upgrade) {
       $this->assertSame('raw_chaos', $upgrade['price']['currency_id']);
       $content->unlock($upgrade['grant_unlock_id']);

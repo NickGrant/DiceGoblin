@@ -107,7 +107,8 @@ final class RunContentValidationTest extends TestCase
       $this->assertNotContains(ShrineContentFixture::ENCOUNTER_ID, array_column($generation['nodes'], 'encounter_id'));
     }
     $this->assertCount(5, $canonical->runGenerationForRegion('region.the_farm')['nodes']);
-    $this->assertCount(9, $canonical->runGenerationForRegion('region.mountains')['nodes']);
+    $this->assertContains('run_node_type.hazard', array_column(
+      $canonical->runGenerationForRegion('region.mountains')['nodes'], 'node_type_id'));
     $registry = ShrineContentFixture::registry();
     $encounter = $registry->encounter(ShrineContentFixture::ENCOUNTER_ID);
     $this->assertSame(['restore', 'endure'], array_column($encounter['actions'], 'id'));
@@ -192,7 +193,7 @@ final class RunContentValidationTest extends TestCase
       ['run_node_type.combat', 'run_node_type.loot', 'run_node_type.rest', 'run_node_type.boss', 'run_node_type.exit'],
       array_column($generation['nodes'], 'node_type_id'),
     );
-    $this->assertCount(8, $registry->definitionsOfType('run_node_type'));
+    $this->assertSame('non_combat', $registry->runNodeType('run_node_type.rest')['encounter_kind']);
     $this->assertSame('encounter.the_farm_mud_combat_1', $generation['nodes'][0]['encounter_id']);
     $this->assertSame('event.farm_loot_completed', $generation['nodes'][1]['event_id']);
     $this->assertSame('encounter.the_farm_mud_boss_1', $generation['nodes'][3]['encounter_id']);
@@ -207,15 +208,16 @@ final class RunContentValidationTest extends TestCase
 
     $this->assertSame('run_generation.mountains', $generation['id']);
     $this->assertSame('combat_1', $generation['start_node_key']);
-    $this->assertSame(['combat_1', 'loot', 'combat_2', 'rest', 'combat_3', 'boss', 'exit', 'loose_scree', 'rockfall'],
-      array_column($generation['nodes'], 'key'));
-    $this->assertSame([
-      'run_node_type.combat', 'run_node_type.loot', 'run_node_type.combat', 'run_node_type.rest',
-      'run_node_type.combat', 'run_node_type.boss', 'run_node_type.exit', 'run_node_type.hazard', 'run_node_type.hazard',
-    ], array_column($generation['nodes'], 'node_type_id'));
-    $this->assertSame([0, 1, 2, 3, 5, 6, 7, 4, 3], array_column(array_column($generation['nodes'], 'position'), 'column'));
-    $this->assertSame([1, 1, 1, 1, 1, 1, 1, 1, 2], array_column(array_column($generation['nodes'], 'position'), 'row'));
-    $this->assertCount(8, $generation['edges']);
+    $byKey = array_column($generation['nodes'], null, 'key');
+    $this->assertSame('run_node_type.boss', $byKey['boss']['node_type_id']);
+    $this->assertSame('run_node_type.exit', $byKey['exit']['node_type_id']);
+    $this->assertSame('run_node_type.hazard', $byKey['loose_scree']['node_type_id']);
+    $this->assertSame('run_node_type.hazard', $byKey['rockfall']['node_type_id']);
+    $outgoing = [];
+    foreach ($generation['edges'] as $edge) $outgoing[$edge['from']][] = $edge['to'];
+    $this->assertContains('rockfall', $outgoing['combat_2']);
+    $this->assertGreaterThanOrEqual(2, count($outgoing['combat_2']));
+    $this->assertArrayNotHasKey('rockfall', $outgoing);
   }
 
   public function testProjectionExposesOnlySafeNodeTypePresentation(): void

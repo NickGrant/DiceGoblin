@@ -15,7 +15,6 @@ final class ReconstructionContentValidationTest extends TestCase
   public function testProductionPigAndLizardRecipesUseOneValidatedModel(): void
   {
     $registry = ContentRegistry::load(dirname(__DIR__, 2) . '/content');
-    $this->assertCount(2, $registry->definitionsOfType('reconstruction_recipe'));
     foreach ([
       ['reconstruct_pig_kin', 'pig', 'pig_ear', 'mudking_crown_fragment'],
       ['reconstruct_lizard_kin', 'lizard_kin', 'kobold_scale', 'chief_engineer_lens'],

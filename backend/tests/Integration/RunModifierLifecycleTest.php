@@ -153,10 +153,10 @@ final class RunModifierLifecycleTest extends IntegrationTestCase
     $this->assertSame('1', (string)$this->scalar('SELECT `remaining_combats` FROM `run_modifiers` WHERE `run_id` = ?', [$runId]));
     $battle = (new BattlePersistenceRepository($this->pdo))->findForRunNode($runId, $ids[4]);
     $this->assertNotNull($battle);
-    $player = current(array_filter($battle->battle->combatInput->combatants,
-      static fn(array $row): bool => $row['side'] === 'player'));
-    $this->assertIsArray($player);
-    $this->assertSame(2, $player['stats']['attack'] - $this->baseAttackForParticipant($userId, $content));
+    $participant = $battle->battle->manifestArray()[0];
+    $this->assertSame('player', $participant['side']);
+    $player = $battle->battle->combatInput->combatants[$participant['combatant_key']];
+    $this->assertSame(2, $player['stats']['attack'] - $this->baseAttackForParticipant((int)$participant['unit_id'], $content));
     $this->assertSame($failed, $command->execute($userId, $runId, $ids[4], 'focused-failed-' . $outcome));
     $this->assertSame(1, $resolver->calls);
     $this->assertSame(1, $this->countModifiers($runId));
@@ -237,12 +237,9 @@ final class RunModifierLifecycleTest extends IntegrationTestCase
     yield 'Chaos' => ['chaos', \DiceGoblins\Tests\Support\ChaosContentFixture::ENCOUNTER_ID, 'accept'];
   }
 
-  private function baseAttackForParticipant(int $userId, ContentRegistry $content): int
+  private function baseAttackForParticipant(int $unitId, ContentRegistry $content): int
   {
-    $unit = $this->row('SELECT ui.`unit_type_id`, ui.`level` FROM `squad_units` su
-      JOIN `squads` s ON s.`id` = su.`squad_id`
-      JOIN `unit_instances` ui ON ui.`id` = su.`unit_id`
-      WHERE s.`user_id` = ? ORDER BY su.`position` LIMIT 1', [$userId]);
+    $unit = $this->row('SELECT `unit_type_id`, `level` FROM `unit_instances` WHERE `id` = ?', [$unitId]);
     $type = $content->unitType((string)$unit['unit_type_id']);
     return (new BaseLevelStatResolver())->resolve($type['base_stats'], $type['growth_per_level'], (int)$unit['level'])->attack;
   }

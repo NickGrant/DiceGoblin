@@ -33,21 +33,9 @@ final class ContentRegistryTest extends TestCase
       'art_key' => 'farm',
       'run_generation_id' => 'run_generation.the_farm',
     ], $registry->definition('region.the_farm'));
-    $this->assertCount(3, $registry->definitionsOfType('kin'));
-    $this->assertCount(20, $registry->definitionsOfType('unit_type'));
-    $this->assertCount(38, $registry->definitionsOfType('ability'));
-    $this->assertCount(7, $registry->definitionsOfType('enemy_unit_type'));
-    $this->assertCount(10, $registry->definitionsOfType('encounter'));
-    $this->assertCount(5, $registry->definitionsOfType('dice_material'));
-    $this->assertCount(6, $registry->definitionsOfType('dice_aspect'));
-    $this->assertCount(11, $registry->definitionsOfType('dice_profile'));
-    $this->assertCount(8, $registry->definitionsOfType('run_node_type'));
-    $this->assertCount(2, $registry->definitionsOfType('region'));
-    $this->assertCount(2, $registry->definitionsOfType('run_generation'));
-    $this->assertCount(14, $registry->definitionsOfType('unlock'));
-    $this->assertCount(6, $registry->definitionsOfType('capability'));
-    $this->assertCount(2, $registry->definitionsOfType('reconstruction_recipe'));
-    $this->assertCount(9, $registry->definitionsOfType('academy_upgrade'));
+    $this->assertSame('Basic Goblin', $registry->kin('kin.goblin')['display_name']);
+    $this->assertSame('combat', $registry->runNodeType('run_node_type.combat')['encounter_kind']);
+    $this->assertSame('fixed_graph_v1', $registry->runGenerationForRegion('region.the_farm')['algorithm']);
     $this->assertSame('region.mountains', $registry->unlock('unlock.region.mountains')['target_id']);
     $this->assertSame('unit_type.bruiser', $registry->unlock('unlock.unit_type.bruiser')['target_id']);
     $this->assertSame('Pig Kin', $registry->kin('kin.pig')['display_name']);
@@ -223,7 +211,7 @@ final class ContentRegistryTest extends TestCase
   public function testAcademyProjectionDoesNotExposePricesOrCapabilityInternals(): void
   {
     $projection = (new ClientContentProjector())->project(ContentRegistry::load($this->canonicalRoot()));
-    $this->assertCount(9, $projection['content']['academy_upgrades']);
+    $this->assertArrayHasKey('academy_upgrade.guardian', $projection['content']['academy_upgrades']);
     $this->assertSame(['id', 'display_name', 'description', 'category'],
       array_keys($projection['content']['academy_upgrades']['academy_upgrade.guardian']));
     $this->assertArrayNotHasKey('capabilities', $projection['content']);

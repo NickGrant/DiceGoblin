@@ -7,6 +7,10 @@
 **Status:** In Progress
 **Priority:** High
 
+#### Problem
+
+The accepted Milestone 10 encounter packages need one integrated production and test-only regression proof, and the canonical test suites still contain permanently skipped prototype cases and brittle authored-catalog snapshots.
+
 #### Accepted baseline
 
 Milestones 1-9 are complete. Milestone 10 Packages 1-8 are approved, with Package 8 approved at `a91fbece6e989c2a468fbafe88b1eb02553a3dfc`.
@@ -73,3 +77,14 @@ Run the applicable quality gates from `agent/QUALITY_GATES.md` after cleanup. Re
 Do not add production Shrine/Chaos to Farm or Mountains, Swamp/Frog Kin, new encounter families, new modifier families, Knowledge/Codex/Objectives, onboarding/Mystic Cave, Milestone 11+ functionality, or broad visual redesign.
 
 Do not promote Package 10 yourself. Leave Package 9 **In Progress** for architectural review.
+
+#### Package 9 implementation evidence (review candidate)
+
+- Audited all discovered backend and frontend test files before rationalization: **134 backend `*Test.php` files / 1,017 tests / 268 skips / 5,233 assertions**, and **90 frontend spec files / 562 executed tests / 0 skips**. The skipped backend cases depended on the retired prototype schema. Canonical suite after rationalization: **85 backend files / 749 executed tests / 0 skips / 5,242 assertions**, and **79 frontend spec files / 492 executed tests / 0 skips**. No previously executed backend test was removed.
+- Removed **42** permanently skipped backend files for completed prototype Academy/Shop, team/unit, combat/claim/reward, run/pattern SQL, progression, Wrong Machine, diagnostic, and old API/profile contracts. Accepted vNext command, query, persistence, security, rollback, idempotency, content, and RunScene tests own those behaviors. Removed **10** superseded Angular gameplay/service spec files for completed Regions, Run, Wrong Machine, unit, and authored catalog replacements; Phaser/runtime and current backend suites cover their live contracts.
+- Retained **7** prototype integration files outside canonical PHPUnit discovery in `backend/prototype-test-evidence/`: Bounty/Codex/objective and claim facts for Milestone 11; starter provisioning and Mystic Cave introduction for Milestone 12; old Chaos reels and Swamp generation ideas for Milestone 13. Retained the unrouted Angular Codex/Objective spec as Milestone 11 evidence in `frontend/prototype-test-evidence/`; its prototype catalog counts no longer gate current gameplay. Their migration status and removal triggers are documented in the evidence directories and testing strategy.
+- Replaced incidental whole-catalog counts and Shop ID inventory assertions with targeted stable-reference, grant/projection, secrecy, and semantic Mountains branch/Hazard/dead-end checks. Kept Farm's exact five-node tutorial graph and Goblin promotion graph assertions because those shapes are accepted product contracts. Current authored JSON and gameplay mechanics were not changed.
+- Focused backend validation/progression suites: **83 tests / 519 assertions passed**. Integrated Farm/Mountains, frontier, Rest/Hazard, test-only Shrine/Chaos, Combat/Boss, modifier, contextual-step, retry/reload, ownership, idempotency, persistence, and projection suites: **80 tests / 1,096 assertions passed**. A clean-baseline run exposed a modifier-test assertion comparing different unit instances; the assertion now uses the persisted battle manifest identity, and its focused suite passed **12 tests / 109 assertions**. Focused RunScene/map/contracts/GameStore frontend suites: **95 tests passed**.
+- Deterministic RunScene captures passed and were visually inspected: branching, production Hazard, and test-only contextual persisted step in **Compact, Standard, Wide**; modifier and production Rest in Standard; portrait rotate-device gate (**12 captures total**). Test-only contextual fixture content remained outside production Farm/Mountains authored content.
+- `npm run verify:package`: **passed** on the settled tree with LLM/context, docs lint, content validation (revision `9139c5f2865d1b1cded64e98fbf41a7549580f623aa2b8662f60bb034fcabcf7`), backend **749 tests / 5,242 assertions / 0 skips**, frontend **492 tests**, frontend production build, bundle check, and diff whitespace check. An initial attempt stopped at the issue schema check because this issue lacked its required `Problem` heading. A clean-baseline attempt exposed the modifier-test fixture mismatch above; both were corrected before the final passing run.
+- No production Shrine/Chaos, Swamp/Frog Kin, Milestone 11+ feature, or broad visual redesign was introduced. Package 9 remains **In Progress** for architectural review; Package 10 was not promoted.
