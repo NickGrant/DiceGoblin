@@ -2,134 +2,160 @@
 
 ## Milestone 10 - Run Encounter Depth
 
-### Milestone 10 Package 6 - Run-scoped modifier model + authoritative application
+### Milestone 10 Package 7 - Contextual consumables + multi-step encounter interaction
 
 **Status:** In Progress
 **Priority:** High
 
 #### Problem
 
-Packages 1-5 established the authoritative exploration frontier and generalized Rest, Hazard, Shrine, and Chaos encounter foundations, but vNext does not yet have an accepted persisted model for temporary effects that survive beyond the resolving encounter and influence later gameplay in the same run.
+Packages 1-6 now provide an authoritative exploration frontier, generalized non-combat encounters, server-owned random outcomes, and persisted run-scoped modifiers. The remaining encounter-depth gap is interaction that cannot be finalized by one stateless action: an encounter may need to expose an inventory-dependent option, consume an eligible item authoritatively, and/or persist a small intermediate choice so reload can resume the same encounter safely.
 
 #### Accepted baseline
 
-Milestones 1-9 are complete. Milestone 10 Packages 1-5 are approved through Chaos foundation `32caee03565d2c86c0f54e50f076975f13ea806b`.
+Milestones 1-9 are complete. Milestone 10 Packages 1-6 are approved through the Package 6 correction `736f5211a6e2fff1838fa5c6ec779e229f7368d6`.
 
-The run is authoritative server/MySQL state. Node resolution, encounter effects, frontier changes, player revision, and finalized receipts share the existing transactional/idempotency boundary. Rest/Hazard use immediate HP effects; test-only Shrine proves authored choice; test-only Chaos proves finalized server-owned randomness. Farm remains fixed and Mountains remains the only current production expansion, with Hazards but no Shrine/Chaos.
+The backend/MySQL run state is authoritative. Package 2 established the generic authored non-combat interaction boundary. Packages 3-5 proved Hazard, Shrine, and Chaos families without family-specific read/client dispatch. Package 6 established run-owned temporary modifier persistence and authoritative later application. Existing inventory/economy/reward boundaries remain canonical and must be reused rather than bypassed.
 
-Canonical reward boundaries remain in force: temporary run effects are effects/domain state, not rewards. Rewards add assets/progression/entitlements and continue through the accepted event/reward/finalization architecture.
-
-Prototype code contains prior run-combat-modifier concepts. Treat it only as migration evidence: inventory it before designing the vNext model, reuse semantics where they still fit canonical vNext architecture, and do not preserve prototype shape merely for compatibility.
+Farm remains the fixed five-node tutorial. Mountains remains the first production exploration region and adds Hazards only. Shrine and Chaos production content remain reserved for Swamp/Milestone 13. Package 7 must not add speculative production Shrine/Chaos content to Farm or Mountains merely to prove this architecture.
 
 #### Purpose
 
-Establish the smallest reusable persisted run-scoped modifier model needed for encounters to create temporary consequences that affect later gameplay and expire deterministically.
+Establish the smallest reusable contract for contextual consumable use and resumable multi-step encounter interaction.
 
-Package 6 should prove one narrow modifier lifecycle end-to-end: authoritative creation, projection where player-visible, later gameplay application, deterministic consumption/expiry, reload/reconnect, and idempotent receipts. It must not turn modifiers into a generic scripting engine or prematurely implement Package 7 multi-step/consumable mechanics.
+Prove one narrow encounter lifecycle in which the server determines whether a contextual inventory action is available, authoritatively consumes exactly one eligible owned item when chosen, persists only the minimal intermediate encounter state needed to resume after reload, and finalizes the node/frontier exactly once.
 
-#### Canonical design constraints
-
-- Modifiers are owned by an active run and cannot leak to another run or permanent player/unit state.
-- Persist only durable state needed to reproduce the modifier after reconnect and apply/expire it authoritatively.
-- Authored modifier semantics/tuning belong in validated canonical content where appropriate; runtime instances reference stable authored identity plus minimal lifecycle state rather than copying arbitrary effect graphs into SQL.
-- Backend owns modifier eligibility, creation, application, remaining duration/uses, consumption, expiry, and resulting gameplay state.
-- Client may receive a narrow player-visible projection sufficient to explain active modifiers, but never hidden tuning, arbitrary effect configuration, or server-only predicates.
-- Exact-key replay of the encounter/node that creates a modifier must not create a duplicate modifier or reset its duration.
-- Exact-key replay of later gameplay that consumes/applies a modifier must not apply or consume it twice.
-- Reload/reconnect must reproduce the same active modifier state and remaining lifecycle.
-- Terminal run completion/failure must leave no modifier capable of affecting later runs. Follow existing run retention/cleanup policy rather than inventing a second cleanup architecture.
-- Preserve the exploration frontier semantics from Package 1.
-- Respect the reward/effect boundary; modifiers do not directly grant currency/items/units/dice/XP/Codex/unlocks.
-- Do not introduce production Shrine or Chaos content to Farm/Mountains. If a source encounter is needed for proof, use validated test-only authored fixtures.
-- Do not introduce Package 7 consumables or multi-step encounter persistence.
+This is an interaction/persistence package, not a generalized dialogue engine, quest engine, item scripting language, or production Swamp content package.
 
 #### Required inventory before implementation
 
-Inspect current canonical combat/run architecture and the retained prototype run-modifier implementation, including any `RunCombatModifierService`, combat participant metadata, resolver handling, persistence, and tests that still exist.
+Before designing new storage or contracts, inspect:
+- the accepted vNext inventory/item ownership and consumption paths;
+- current run-node persistence and resolution receipts;
+- the generalized non-combat interaction projection/action submission boundary;
+- any retained prototype contextual-item or multi-step encounter implementation.
 
-Document in implementation evidence which prototype concepts were reused, replaced, or intentionally dropped. Current vNext canonical architecture wins on conflict.
+Document which existing boundaries are reused and which prototype concepts are intentionally dropped. Do not preserve prototype shape for compatibility.
 
-#### Minimum modifier proof
+#### Canonical design constraints
 
-Use one intentionally narrow, player-comprehensible modifier family rather than a generalized expression language.
+- Backend owns item eligibility, inventory quantity/ownership, consumption, encounter-step state, action validity, node completion, frontier changes, revision, and finalized receipts.
+- Client may display only actions currently authorized by the server. It must not infer that an item is usable from local inventory alone.
+- Contextual item use consumes existing authoritative inventory; it is not a reward grant and must not create a second inventory mutation path if an accepted one already exists.
+- Intermediate encounter state is run/node-owned and reconnect-safe. Persist only what is necessary to reconstruct the current authorized step; do not persist arbitrary client UI state.
+- A node in an intermediate step remains unresolved. It must not unlock successors or alter unrelated available frontier entries until the encounter is finalized.
+- Exact-key replay of a step mutation must not consume an item twice, advance two steps, duplicate effects, increment revision twice, or finalize the node twice.
+- A stale action from an earlier step must fail closed without mutation.
+- Locked/completed/foreign/terminal nodes cannot be interacted with through intermediate-step endpoints/contracts.
+- Player-visible authored copy/action labels may be projected; hidden predicates, item-consumption rules, effects, tuning, and authored catalogs remain server-private unless intentionally player-facing.
+- Respect the reward/effect boundary. Consuming an owned item is an inventory/domain mutation; any asset granted by the encounter remains a reward and must use the canonical reward path.
+- Do not introduce production Shrine/Chaos content to Farm or Mountains, Swamp production content, Frog Kin, Knowledge/Objectives, onboarding, or final visual redesign.
 
-Preferred proof: a **next-combat participating-warband stat modifier** created by a test-only encounter and consumed by the next eligible Combat/Boss resolution in that run.
+#### Minimum proof
 
-Choose the smallest stat/effect already cleanly supported by the deterministic combat engine. Do not add several modifier families merely because the prototype had them.
+Use validated test-only authored content unless an already-canonical production encounter genuinely requires this behavior.
 
-The authored definition should provide a stable modifier ID and bounded tuning. The persisted runtime instance should contain only the identity/source/lifecycle information necessary to reproduce authoritative behavior.
+The preferred proof is one test-only non-combat encounter with two stages:
 
-If the existing combat architecture makes a different equally narrow modifier materially safer, use it and explain why in implementation evidence.
+1. **Initial step** exposes a normal continue/decline-style action plus a contextual action only when the player owns an eligible existing consumable/item.
+2. Choosing the contextual item action atomically consumes exactly one eligible item and moves the encounter into a persisted intermediate step without completing the node.
+3. Reload/re-query reproduces the intermediate step and only its currently authorized actions/copy.
+4. A second action finalizes the encounter, completes the node, unlocks direct successors, and preserves unrelated available frontier nodes.
 
-#### Backend/content scope
+If the existing inventory model has no semantically valid consumable suitable for this proof, do not invent production item content casually. Use the narrowest validated test fixture that exercises the accepted inventory ownership/quantity machinery and explain why. Do not add a generalized item-effect system.
 
-1. Define and validate the minimal authored run-modifier definition required by the proof. Keep the schema bounded and family-specific.
-2. Add the minimal persistence required for active run modifier instances. Prefer integration with existing run persistence/migrations rather than an encounter-family table.
-3. Add an authoritative creation/application boundary reusable by later Shrine/Chaos production content without hard-coding those encounter families into combat/runtime infrastructure.
-4. Create the modifier through a validated test-only encounter/action fixture or equivalent test-only source using the existing action-aware node-resolution transaction.
-5. Prove creation is atomic with node completion/frontier/revision/receipt finalization.
-6. Apply the active modifier to the next eligible combat through the canonical combat assembly/resolution path. Do not make the client calculate modified stats/damage.
-7. Consume/decrement/expire the modifier atomically with the eligible combat resolution.
-8. Finalized combat/node receipts must contain enough authoritative facts to prove what modifier was applied/consumed without exposing private authored tuning unnecessarily.
-9. Reload/re-query before consumption reproduces the active modifier; reload/re-query after consumption shows it expired/updated.
-10. A failed or rejected encounter/combat resolution must not create, consume, or partially apply a modifier.
-11. Run ownership must be enforced. A modifier from run A cannot affect run B, another user, or later permanent unit state.
-12. Define deterministic behavior for Combat versus Boss eligibility and document it. Prefer both as combat-like eligible nodes if that matches the canonical combat path, but do not include Chaos merely because prototype code treated it as combat-like; vNext Chaos is currently a non-combat encounter family.
+The proof should demonstrate both contextual inventory gating and multi-step persistence in one coherent lifecycle rather than creating two unrelated abstractions.
 
-#### API/read projection
+#### Persistence scope
 
-Expose active player-visible run modifiers only if needed for understandable gameplay/reconnect state. If projected:
-- use stable modifier identity plus player-facing label/description and lifecycle such as remaining eligible combats;
-- source presentation may be included only when useful and safe;
-- do not expose raw internal effect graphs, hidden predicates, server RNG state, or canonical catalogs;
-- keep parsing strict and fail closed on malformed authoritative payloads.
+Prefer extending the existing run-node persistence model with minimal encounter-progress state if it can represent the accepted semantics cleanly. Avoid a new encounter-family-specific table.
 
-Do not add a standalone modifier endpoint unless the existing current-run/combat contracts cannot cleanly carry the required state.
+Any persisted progress must:
+- belong to exactly one run node;
+- be validated against that node's persisted encounter identity;
+- use stable authored step/state identity rather than arbitrary serialized client payloads;
+- be absent/terminal once the node is completed, unless existing retention conventions require historical data;
+- be deleted/cascaded with the run through existing ownership cleanup.
+
+Do not build generic workflow JSON, arbitrary key/value state, or an expression engine.
+
+#### API/read contract
+
+Prefer extending the existing current-run interaction projection and run-node mutation boundary rather than adding family-specific endpoints.
+
+The current authorized interaction may include a stable step identity if required for stale-action protection/reconnect. If exposed, it must be an opaque/stable authored identity, not arbitrary server state.
+
+The read model must derive authorized actions from authoritative persisted step + current inventory eligibility. It must not trust a client-submitted list of items or actions.
+
+If the existing resolution endpoint cannot safely distinguish intermediate progress from final node resolution, make the smallest generic contract extension needed and document it. Do not create Shrine/Chaos-specific APIs.
+
+#### Inventory semantics
+
+- Validate ownership/quantity under the same transaction/locking boundary as step advancement.
+- Consume exactly the authored required quantity; for this package prefer quantity 1.
+- If the item disappeared or quantity changed before submission, fail without advancing the step.
+- Exact-key replay returns the finalized step receipt without consuming again.
+- A different idempotency key attempting the stale prior-step action must fail without another consumption.
+- Inventory belonging to another user or otherwise ineligible inventory cannot satisfy the action.
+- Do not expose server-private eligibility predicates or effect configuration to the browser.
+
+#### Multi-step semantics
+
+- Initial -> intermediate advancement is a real authoritative mutation and should increment `player_revision` exactly once if that matches the accepted mutation contract.
+- Intermediate state survives reload/reconnect.
+- The node remains `available` while intermediate interaction is in progress unless the existing run model has a narrower accepted state representation; do not invent a globally new node status unless necessary.
+- Unrelated already-available nodes remain available while this node is mid-interaction.
+- Finalization completes the node and unlocks successors using Package 1 frontier semantics.
+- Once finalized, no intermediate action can be replayed under a new key.
+- Terminal run protections remain in force.
 
 #### Phaser/runtime scope
 
-Keep frontend work minimal and family-agnostic. RunScene may display active modifier state if required to make the persisted consequence understandable, but it must not calculate its effect or consumption.
-
-BattleScene/combat presentation may consume authoritative applied-modifier metadata/result facts, but must not independently decide whether a modifier applies.
-
-Do not perform Package 8's broader encounter/branching visual integration in this package.
+Keep frontend changes focused on generic interaction behavior:
+- render only server-authorized actions for the current step;
+- clearly distinguish an inventory/contextual action using server-provided player-facing text if needed;
+- block duplicate input while a mutation is pending;
+- after any step mutation, reconcile from authoritative response/current-run state rather than predicting inventory or step changes;
+- reload/re-entry renders the persisted current step;
+- no family-specific Shrine/Chaos client dispatch;
+- no Package 8 broad map/encounter visual redesign.
 
 #### Verification requirements
 
 Prove at minimum:
-- authored modifier definitions validate and malformed IDs/types/tuning/lifecycle values fail validation;
-- runtime modifier instances are run-owned and reconnect-safe;
-- the test-only source creates exactly one modifier atomically with its node resolution;
-- exact-key replay of source resolution creates no duplicate and does not reset lifecycle;
-- an unrelated non-combat node does not consume a next-combat modifier;
-- the next eligible Combat/Boss applies the modifier authoritatively and exactly once;
-- modifier application changes the intended authoritative combat calculation/result in a deterministic fixture;
-- consumption/expiry is persisted atomically with combat resolution;
-- exact-key replay of the combat does not apply or consume the modifier twice;
-- failed/rejected combat does not consume the modifier;
-- reload before and after consumption reproduces correct modifier state;
-- modifier from one run/user cannot affect another;
-- terminal run behavior cannot leak active modifiers into a later run;
-- browser-facing projection, if any, excludes hidden tuning/configuration;
-- existing Combat/Boss behavior without modifiers is unchanged;
-- Farm and Mountains production content remain free of production Shrine/Chaos modifier sources unless canonical content already requires otherwise;
-- Rest/Hazard/Shrine/Chaos/frontier/idempotency regressions remain green;
-- reward architecture remains untouched by temporary modifier application;
-- active-run Warband restrictions and broader run completion remain green.
+- authored step/action/contextual-item definitions validate; malformed step IDs, references, quantities, transitions, and unsupported effect/state shapes fail validation;
+- production Farm/Mountains content is unchanged unless an already-canonical production requirement explicitly says otherwise;
+- the initial test encounter projects the contextual action only when authoritative inventory eligibility is satisfied;
+- an ineligible/no-item player does not receive or successfully invoke that action;
+- choosing the contextual action consumes exactly one owned eligible item and advances exactly one step atomically;
+- the node is not completed and successors are not unlocked at the intermediate step;
+- unrelated available frontier nodes remain available;
+- exact-key replay of the contextual step returns the same receipt with no second consumption/revision/step advance;
+- a new-key stale initial-step request fails without mutation;
+- reload/re-query reproduces the intermediate step and authorized actions;
+- final-step action completes exactly once, unlocks direct successors, and preserves unrelated frontier;
+- exact-key finalization replay is stable; new-key post-completion requests fail;
+- locked/foreign/completed/terminal/corrupt-step requests do not mutate inventory or run state;
+- another user's inventory cannot satisfy or be consumed by the action;
+- browser projection excludes hidden eligibility/effect/configuration data;
+- existing inventory/economy behavior remains green;
+- Rest/Hazard/Shrine/Chaos, modifier lifecycle, Combat/Boss, Farm/Mountains completion, frontier, idempotency, and active-run Warband restrictions remain green;
+- no reward bypass is introduced.
 
 Run applicable gates from `agent/QUALITY_GATES.md`.
 
 #### Scope exclusions
 
 Do not add:
-- a generic arbitrary effect/expression language;
-- multiple speculative modifier families;
-- production Shrine or Chaos content to Farm/Mountains;
-- Swamp production content/Frog Kin;
-- contextual consumables;
-- multi-step encounter persistence;
-- permanent unit progression/equipment changes through modifiers;
-- direct reward grants through modifier effects;
+- a generic dialogue/workflow engine;
+- arbitrary encounter key/value state;
+- arbitrary item scripting/effect graphs;
+- multiple speculative consumable families;
+- production Shrine/Chaos content to Farm or Mountains;
+- Swamp/Frog Kin;
+- additional run-modifier families unless strictly required by an already-accepted contract;
+- Knowledge/Codex/Objectives;
+- onboarding/Mystic Cave;
 - Milestone 11+ functionality;
 - final visual redesign.
 
@@ -137,25 +163,19 @@ Do not add:
 
 Report:
 - implementation SHA;
-- prototype modifier inventory and explicit reuse/replace/drop decisions;
-- authored modifier schema and persisted runtime shape;
-- source-creation transaction/idempotency evidence;
-- exact authoritative combat application semantics;
-- Combat/Boss eligibility decision;
-- consumption/expiry transaction and replay evidence;
-- reload/run-ownership/terminal isolation evidence;
-- browser secrecy/projection evidence;
-- no-modifier combat regression evidence;
-- Rest/Hazard/Shrine/Chaos/frontier regression evidence;
+- inventory/prototype inventory performed before implementation and reuse/drop decisions;
+- authored test encounter/item/step representation;
+- persisted intermediate-state shape and why it is minimal;
+- API/read projection changes, if any, and proof they remain family-agnostic;
+- authoritative item eligibility/locking/consumption transaction semantics;
+- initial -> intermediate -> final lifecycle evidence;
+- exact-key replay and stale-new-key evidence at each mutation boundary;
+- reload/re-entry evidence;
+- frontier behavior while intermediate and after finalization;
+- foreign/locked/completed/terminal/corrupt-state rejection evidence;
+- browser secrecy evidence;
+- inventory/economy and Package 1-6 regression evidence;
 - focused/full quality-gate results;
-- confirmation no Package 7+, production Swamp, or reward-bypass scope was introduced.
+- confirmation no production Shrine/Chaos, Swamp, Package 8 visual integration, or Milestone 11+ scope was introduced.
 
-Leave Package 6 **In Progress** for architectural review. Do not promote Package 7 yourself.
-
-#### Package 6 implementation evidence (review candidate)
-
-- Prototype inventory: `RunCombatModifierService` applied broad `run_status_effects` objects to individual unit combat metadata, while prototype `RunLifecycleService` stored JSON status effects per run unit and removed next-combat effects during resolution. Retained the useful next eligible combat and participating-warband semantics. Replaced arbitrary per-unit JSON effects and prototype orchestration with one authored, bounded modifier definition, a run-owned relational instance, and the vNext combat assembly/transaction. Dropped generic stat multipliers, damage affixes, family aliases, and compatibility with prototype storage.
-- Authored/runtime shape: validated `run_modifier` has stable `modifier.*` ID, visible name/description, `next_combat_attack_bonus`, Attack bonus 1–10, and exactly one eligible combat. `run_modifiers` persists only run/source node/authored ID/remaining combats; composite source FK and run-scoped unique key guard ownership. The clean `goblin_test` baseline reset succeeded with this table. The source is a validated test-only Shrine action; Farm/Mountains production content and client catalog contain no modifier source or tuning.
-- Creation/application: the existing action-aware node command creates the row in its node/frontier/revision/receipt transaction. Exact source replay returns the finalized receipt and leaves one row. Combat and Boss share the authoritative combat handler: it locks active rows by run and adds the authored bonus to every participating player Attack during snapshot assembly. Victory consumes the row in the battle/node/revision/receipt transaction; `applied_modifiers` records remaining combats 0. Resolved defeat or stalemate applies the bonus to that attempted battle but preserves the row and records remaining combats 1. Deterministic Combat and Boss failure fixtures prove persisted remaining 1 and exact-key replay without another application; locked/rejected combat likewise leaves it unchanged. Loot, Rest, Hazard, Shrine, and Chaos side encounters each resolve while the active modifier remains at 1. The focused deterministic fixture verifies the +2 snapshot and increased attack component/damage for the same ability, target, and roll. No-modifier paths retain their prior receipt shape.
-- Reload/isolation: a new PDO/current-run query reproduces the active modifier before victorious consumption and omits it afterward. A failed run exposes no current-run state; its retained modifier is scoped to that failed run. Deterministic combat in a later run for the same user and in another user's run has no applied modifier and leaves the failed run's row untouched. Existing run deletion cascades to the modifier row. Client current-run projection contains only instance ID, authored identity, visible label/description, and remaining combats; strict frontend parsers reject private attack tuning/effects and false consumption claims in receipts. RunScene displays only the authoritative active label/lifecycle and re-queries after resolution.
-- Correction focused verification: modifier lifecycle 12 tests/109 assertions; combined modifier/Combat/Boss/Shrine/Chaos/Mountains regressions 19 tests/366 assertions; strict frontend receipt contracts 10 tests passed. These cover deterministic Combat/Boss victory, defeat, stalemate, exact replays, rejected combat, Loot/Rest/Hazard/Shrine/Chaos, later-run and foreign-user isolation, and unchanged no-modifier receipts. Final `npm run verify:package`: **PASS** (`artifacts/verification/package-summary.json`), backend 439 tests/2486 assertions with 173 retained prototype tests skipped, frontend 553 tests, production build, bundle, content, context, docs, and diff checks passed. Prior baseline/capture proof remains valid: the clean schema reset and Compact 960×540, reference 1600×900, and Wide 2200×900 deterministic `run-modifier` captures passed. No Package 7+, production Swamp, reward bypass, or new production Shrine/Chaos content was introduced.
+Leave Package 7 **In Progress** for architectural review. Do not promote Package 8 yourself.
