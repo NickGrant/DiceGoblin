@@ -81,10 +81,21 @@ export interface ExitRunNodeResolutionResult extends ResolutionBase {
   readonly run: { readonly id: string; readonly status: 'completed'; readonly endedAt: string };
 }
 
+export interface InteractionStepResult {
+  readonly resolutionType: 'interaction_step';
+  readonly encounterId: string;
+  readonly actionId: string;
+  readonly stepId: string;
+  readonly node: { readonly id: string; readonly status: 'available'; readonly completedAt: null };
+  readonly newlyAvailableNodeIds: readonly [];
+  readonly run: ResolvedActiveRun;
+  readonly playerRevision: number;
+}
+
 export type BattleRunNodeResolutionResult = CombatRunNodeResolutionResult | BossRunNodeResolutionResult;
 export type RunNodeResolutionResult = BattleRunNodeResolutionResult | LootRunNodeResolutionResult | RestRunNodeResolutionResult
   | HazardRunNodeResolutionResult | ShrineRunNodeResolutionResult | ChaosRunNodeResolutionResult
-  | ExitRunNodeResolutionResult;
+  | InteractionStepResult | ExitRunNodeResolutionResult;
 
 const positiveIdPattern = /^[1-9][0-9]*$/;
 const unlockIdPattern = /^unlock\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/;
@@ -157,8 +168,28 @@ export function parseRunNodeResolutionEnvelope(value: unknown): RunNodeResolutio
   if (data['resolution_type'] === 'hazard') return parseHazard(data);
   if (data['resolution_type'] === 'shrine') return parseShrine(data);
   if (data['resolution_type'] === 'chaos') return parseChaos(data);
+  if (data['resolution_type'] === 'interaction_step') return parseInteractionStep(data);
   if (data['resolution_type'] === 'exit') return parseExit(data);
   throw new RunNodeResolutionContractError('Node resolution type is unsupported.');
+}
+
+function parseInteractionStep(data: Record<string, unknown>): InteractionStepResult {
+  exact(data, ['resolution_type', 'encounter_id', 'action_id', 'step_id', 'node',
+    'newly_available_node_ids', 'run', 'player_revision'], 'Interaction step data');
+  const node = object(data['node'], 'Interaction step node');
+  exact(node, ['id', 'status', 'completed_at'], 'Interaction step node');
+  if (node['status'] !== 'available' || node['completed_at'] !== null
+    || !Array.isArray(data['newly_available_node_ids']) || data['newly_available_node_ids'].length !== 0
+    || typeof data['encounter_id'] !== 'string' || !/^encounter\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/.test(data['encounter_id'])
+    || typeof data['action_id'] !== 'string' || !/^[a-z][a-z0-9_]*$/.test(data['action_id'])
+    || typeof data['step_id'] !== 'string' || !/^[a-z][a-z0-9_]*$/.test(data['step_id'])) {
+    throw new RunNodeResolutionContractError('Interaction step is invalid.');
+  }
+  return Object.freeze({ resolutionType: 'interaction_step', encounterId: data['encounter_id'],
+    actionId: data['action_id'], stepId: data['step_id'],
+    node: Object.freeze({ id: id(node['id'], 'Interaction step node id'), status: 'available', completedAt: null }),
+    newlyAvailableNodeIds: Object.freeze([] as const), run: activeRun(object(data['run'], 'Interaction step run')),
+    playerRevision: integer(data['player_revision'], 'Interaction step player revision') });
 }
 
 function parseBattleFacts(data: Record<string, unknown>): Omit<CombatRunNodeResolutionResult, 'resolutionType'> {

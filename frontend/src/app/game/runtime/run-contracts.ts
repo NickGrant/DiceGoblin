@@ -18,6 +18,7 @@ export type CurrentRunNodeStatus = 'locked' | 'available' | 'completed';
 
 export interface RunNodeInteraction {
   readonly encounterId: string;
+  readonly stepId?: string;
   readonly title: string;
   readonly body: string;
   readonly prompt: string;
@@ -78,7 +79,10 @@ function nonEmptyText(value: unknown, context: string): string {
 
 function parseInteraction(value: unknown): RunNodeInteraction {
   const raw = record(value, 'Run node interaction');
-  exact(raw, ['encounter_id', 'title', 'body', 'prompt', 'actions'], 'Run node interaction');
+  const hasStep = Object.hasOwn(raw, 'step_id');
+  exact(raw, ['encounter_id', 'title', 'body', 'prompt', 'actions', ...(hasStep ? ['step_id'] : [])], 'Run node interaction');
+  if (hasStep && (typeof raw['step_id'] !== 'string' || !actionIdPattern.test(raw['step_id'])))
+    throw new RunContractError('Run node step id is invalid.');
   if (typeof raw['encounter_id'] !== 'string' || !/^encounter\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/.test(raw['encounter_id']))
     throw new RunContractError('Run node encounter id is invalid.');
   if (!Array.isArray(raw['actions']) || raw['actions'].length === 0) throw new RunContractError('Run node actions are invalid.');
@@ -90,7 +94,8 @@ function parseInteraction(value: unknown): RunNodeInteraction {
     seen.add(action['id']);
     return Object.freeze({ id: action['id'], label: nonEmptyText(action['label'], 'Run node action label') });
   });
-  return Object.freeze({ encounterId: raw['encounter_id'], title: nonEmptyText(raw['title'], 'Run node title'),
+  return Object.freeze({ encounterId: raw['encounter_id'], ...(hasStep ? { stepId: raw['step_id'] as string } : {}),
+    title: nonEmptyText(raw['title'], 'Run node title'),
     body: nonEmptyText(raw['body'], 'Run node body'), prompt: nonEmptyText(raw['prompt'], 'Run node prompt'),
     actions: Object.freeze(actions) });
 }

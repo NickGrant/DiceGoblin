@@ -10,6 +10,7 @@ use DiceGoblins\Content\ContentValidationException;
 use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Repositories\RunPersistenceRepository;
 use DiceGoblins\Repositories\RunModifierRepository;
+use DiceGoblins\Repositories\UserItemRepository;
 use JsonException;
 
 final class CurrentRunQuery
@@ -21,6 +22,7 @@ final class CurrentRunQuery
     private readonly PlayerStateRepository $playerState,
     private readonly ContentRegistry $content,
     private readonly RunModifierRepository $modifiers,
+    private readonly ?UserItemRepository $items = null,
   ) {}
 
   /** @return array{run:?array<string,mixed>,player_revision:int} */
@@ -32,7 +34,7 @@ final class CurrentRunQuery
     if ($root === null) return ['run' => null, 'player_revision' => (int)$state['player_revision']];
     $this->validateRoot($root, $userId);
     $runId = (int)$root['id'];
-    $nodes = $this->mapNodes($this->runs->listNodes($runId), $runId, (string)$root['region_id']);
+    $nodes = $this->mapNodes($this->runs->listNodes($runId), $runId, (string)$root['region_id'], $userId);
     $edges = $this->mapEdges($this->runs->listEdges($runId), $runId, $nodes);
     $units = $this->mapUnits($this->runs->listParticipatingUnits($runId), $runId, $userId);
     $modifiers = [];
@@ -89,7 +91,7 @@ final class CurrentRunQuery
   }
 
   /** @param list<array<string,mixed>> $rows @return list<array<string,mixed>> */
-  private function mapNodes(array $rows, int $runId, string $regionId): array
+  private function mapNodes(array $rows, int $runId, string $regionId, int $userId): array
   {
     if ($rows === []) throw new CurrentRunIntegrityException('Active run has no nodes.');
     $mapped = [];
@@ -131,6 +133,7 @@ final class CurrentRunQuery
       ];
       $expectedEncounterKind = $nodeType['encounter_kind'] ?? null;
       $encounterId = $row['encounter_id'] ?? null;
+      $stepId = $row['encounter_step_id'] ?? null;
       if (($expectedEncounterKind === null) !== ($encounterId === null)) {
         throw new CurrentRunIntegrityException('Run node encounter association is invalid.');
       }
@@ -144,14 +147,30 @@ final class CurrentRunQuery
           || (isset($nodeType['encounter_family']) && ($encounter['family'] ?? null) !== $nodeType['encounter_family'])) {
           throw new CurrentRunIntegrityException('Run node encounter does not match its run.');
         }
+        if ($stepId !== null && ($status !== 'available' || $encounter['kind'] !== 'non_combat'
+          || !isset($encounter['steps'][0]) || $encounter['steps'][0]['id'] !== $stepId)) {
+          throw new CurrentRunIntegrityException('Run node encounter step is invalid.');
+        }
         if ($status === 'available' && $encounter['kind'] === 'non_combat') {
+          $stage = $stepId === null ? $encounter : $encounter['steps'][0];
+          $actions = $stage['actions'];
+          if ($stepId === null && isset($encounter['steps'])) {
+            if ($this->items === null) throw new CurrentRunIntegrityException('Encounter inventory authority is unavailable.');
+            $owned = array_column($this->items->listPositiveForUser($userId), 'quantity', 'item_id');
+            $actions = array_values(array_filter($actions, static fn(array $action): bool =>
+              ($action['effect']['type'] ?? null) !== 'advance_step'
+              || ($owned[$action['effect']['item_id']] ?? 0) >= $action['effect']['quantity']));
+          }
           $projected['interaction'] = [
             'encounter_id' => $encounter['id'], 'title' => $encounter['display_name'],
-            'body' => $encounter['description'], 'prompt' => $encounter['prompt'],
+            'body' => $stage['body'] ?? $encounter['description'], 'prompt' => $stage['prompt'],
+            ...($stepId !== null ? ['step_id' => $stepId] : []),
             'actions' => array_map(static fn(array $action): array =>
-              ['id' => $action['id'], 'label' => $action['label']], $encounter['actions']),
+              ['id' => $action['id'], 'label' => $action['label']], $actions),
           ];
         }
+      } elseif ($stepId !== null) {
+        throw new CurrentRunIntegrityException('Run node encounter step has no encounter.');
       }
       $mapped[] = $projected;
     }

@@ -162,6 +162,27 @@ describe('run contracts', () => {
     expect(() => parseCurrentRunEnvelope(value, content())).toThrowError(RunContractError);
   });
 
+  it('accepts a stable current step and rejects private contextual rules', () => {
+    const value = currentEnvelope();
+    const nodes = value.data.run.nodes;
+    nodes[2].status = 'available'; nodes[2].completed_at = null;
+    nodes[3].status = 'locked'; nodes[3].completed_at = null; nodes[3].battle_id = null;
+    nodes[4].status = 'locked'; nodes[4].completed_at = null;
+    value.data.run.available_node_ids = ['12'];
+    nodes[2].interaction = { encounter_id: 'encounter.test_contextual_shrine', step_id: 'kindled',
+      title: 'Wick Shrine', body: 'The wick burns.', prompt: 'Complete?',
+      actions: [{ id: 'complete_rite', label: 'COMPLETE RITE' }] };
+    expect(parseCurrentRunEnvelope(value, content()).run?.nodes[2].interaction?.stepId).toBe('kindled');
+    for (const mutate of [
+      (v: any) => { v.data.run.nodes[2].interaction.step_id = 'Bad Step'; },
+      (v: any) => { v.data.run.nodes[2].interaction.actions[0].item_id = 'item.secret'; },
+      (v: any) => { v.data.run.nodes[2].interaction.actions[0].effect = { type: 'advance_step' }; },
+    ]) {
+      const invalid = structuredClone(value); mutate(invalid);
+      expect(() => parseCurrentRunEnvelope(invalid, content())).toThrowError(RunContractError);
+    }
+  });
+
   it('rejects every invalid battle-bearing and non-battle-bearing node correspondence', () => {
     const mutations = [
       (v: any) => v.data.run.nodes[0].battle_id = null,

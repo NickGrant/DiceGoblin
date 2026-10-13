@@ -14,7 +14,7 @@ final class RunNodeResolutionRepository
   /** @return array<string,mixed>|null */
   public function findNodeForUpdate(int $runId, int $nodeId): ?array
   {
-    $stmt = $this->pdo->prepare('SELECT `id`, `run_id`, `node_index`, `node_type_id`, `encounter_id`, `event_id`, `status`, `completed_at`
+    $stmt = $this->pdo->prepare('SELECT `id`, `run_id`, `node_index`, `node_type_id`, `encounter_id`, `encounter_step_id`, `event_id`, `status`, `completed_at`
       FROM `run_nodes` WHERE `run_id` = ? AND `id` = ? LIMIT 1 FOR UPDATE');
     $stmt->execute([$runId, $nodeId]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -88,10 +88,19 @@ final class RunNodeResolutionRepository
 
   public function completeNode(int $runId, int $nodeId, DateTimeImmutable $completedAt): void
   {
-    $stmt = $this->pdo->prepare("UPDATE `run_nodes` SET `status` = 'completed', `completed_at` = ?
+    $stmt = $this->pdo->prepare("UPDATE `run_nodes` SET `status` = 'completed', `completed_at` = ?, `encounter_step_id` = NULL
       WHERE `run_id` = ? AND `id` = ? AND `status` = 'available'");
     $stmt->execute([$completedAt->format('Y-m-d H:i:s'), $runId, $nodeId]);
     if ($stmt->rowCount() !== 1) throw new RuntimeException('Run node could not be completed.');
+  }
+
+  public function advanceEncounterStep(int $runId, int $nodeId, ?string $from, string $to): void
+  {
+    $this->requireTransaction();
+    $stmt = $this->pdo->prepare("UPDATE `run_nodes` SET `encounter_step_id` = ?
+      WHERE `run_id` = ? AND `id` = ? AND `status` = 'available' AND `encounter_step_id` <=> ?");
+    $stmt->execute([$to, $runId, $nodeId, $from]);
+    if ($stmt->rowCount() !== 1) throw new RuntimeException('Encounter step changed unexpectedly.');
   }
 
   /** @return list<int> */

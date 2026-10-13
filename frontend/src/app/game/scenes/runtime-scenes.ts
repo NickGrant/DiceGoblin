@@ -21,7 +21,7 @@ import { RuntimeApiError } from '../runtime/runtime-api-client';
 import { createRunMapLayout, createRunMapPresentation, runNodeColors } from '../runtime/run-map-model';
 import { Bounds } from '../runtime/runtime-viewport';
 import { RunNodeResolutionAttempt, RunNodeResolutionAttemptState } from '../runtime/run-node-resolution-attempt';
-import { ChaosRunNodeResolutionResult, ExitRunNodeResolutionResult, HazardRunNodeResolutionResult, LootRunNodeResolutionResult, RestRunNodeResolutionResult, RunNodeResolutionResult, ShrineRunNodeResolutionResult } from '../runtime/run-node-resolution-contracts';
+import { ChaosRunNodeResolutionResult, ExitRunNodeResolutionResult, HazardRunNodeResolutionResult, InteractionStepResult, LootRunNodeResolutionResult, RestRunNodeResolutionResult, RunNodeResolutionResult, ShrineRunNodeResolutionResult } from '../runtime/run-node-resolution-contracts';
 import { BattlePlaybackController } from '../runtime/battle-playback-controller';
 import { BattlePlaybackResult } from '../runtime/battle-playback-contracts';
 import { battleArtTextureKey, battleColumnX, supportedBattleArtAssets } from '../runtime/battle-presentation-layout';
@@ -423,7 +423,7 @@ export class GameScene extends RuntimeScene {
 }
 
 type RunSceneNodeResult = LootRunNodeResolutionResult | RestRunNodeResolutionResult | HazardRunNodeResolutionResult
-  | ShrineRunNodeResolutionResult | ChaosRunNodeResolutionResult | ExitRunNodeResolutionResult;
+  | ShrineRunNodeResolutionResult | ChaosRunNodeResolutionResult | InteractionStepResult | ExitRunNodeResolutionResult;
 
 function isRunSceneNodeResult(result: RunNodeResolutionResult): result is RunSceneNodeResult {
   return result.resolutionType === 'loot' || result.resolutionType === 'exit' || 'encounterId' in result;
@@ -642,6 +642,7 @@ export class RunScene extends RuntimeScene {
       }
       this.nodeMessage = result.resolutionType === 'loot'
         ? `Collected ${result.grantedRewards[0].amount} Teeth. Balance: ${result.wallet.teeth}.`
+        : result.resolutionType === 'interaction_step' ? 'The encounter continues. Choose the next action.'
         : result.resolutionType === 'rest' ? `${result.healing.length} ${result.healing.length === 1 ? 'unit' : 'units'} fully restored.`
           : result.resolutionType === 'hazard' ? `Hazard crossed. ${result.damage.length} ${result.damage.length === 1 ? 'unit' : 'units'} affected.`
             : result.resolutionType === 'shrine'
@@ -649,6 +650,9 @@ export class RunScene extends RuntimeScene {
                 : `Shrine resolved. ${result.hpChanges.length} ${result.hpChanges.length === 1 ? 'unit' : 'units'} affected.`
               : `Chaos resolved: ${result.outcomeId}. ${result.hpChanges.length} ${result.hpChanges.length === 1 ? 'unit' : 'units'} affected.`;
       await this.syncResolvedNode(result.run.id, result.node.id);
+      if (result.resolutionType === 'interaction_step' && this.runtimeStartup.contentRegistry) {
+        await this.runtimeStartup.store.retryItems(this.runtimeStartup.apiClient, this.runtimeStartup.contentRegistry);
+      }
       return;
     }
     if (outcome.kind === 'already-resolved') {
@@ -692,7 +696,10 @@ export class RunScene extends RuntimeScene {
     await this.runtimeStartup.store.retryCurrentRun(this.runtimeStartup.apiClient, content);
     const state = this.runtimeStartup.store.currentRun;
     const synced = state.status === 'fresh' && state.data?.id === runId
-      && state.data.nodes.some((candidate) => candidate.id === nodeId && candidate.status === 'completed');
+      && state.data.nodes.some((candidate) => candidate.id === nodeId
+        && (this.nodeResult?.resolutionType === 'interaction_step'
+          ? candidate.status === 'available' && candidate.interaction?.stepId === this.nodeResult.stepId
+          : candidate.status === 'completed'));
     this.nodeSyncState = synced ? 'succeeded' : 'sync-error';
     if (!synced) this.nodeMessage = 'The result is safe, but the run map could not be synchronized.';
     this.render();

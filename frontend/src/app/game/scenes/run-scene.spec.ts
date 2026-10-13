@@ -282,6 +282,35 @@ describe('RunScene lifecycle shell', () => {
     expect(scene.resolvedNodeSyncState).toBe('succeeded');
   });
 
+  it('reconciles an intermediate action from the current run and renders only the next step', async () => {
+    const initial = shrineAvailableRun();
+    const run: CurrentRun = { ...initial, nodes: initial.nodes.map((node) => node.id === '12'
+      ? { ...node, interaction: { encounterId: 'encounter.test_contextual_shrine', title: 'Wick Shrine',
+        body: 'A rite awaits.', prompt: 'Choose.', actions: [
+          { id: 'continue', label: 'CONTINUE' }, { id: 'offer_wick', label: 'OFFER WICK' }] } } : node) };
+    const middle: CurrentRun = { ...run, nodes: run.nodes.map((node) => node.id === '12'
+      ? { ...node, interaction: { encounterId: 'encounter.test_contextual_shrine', stepId: 'kindled',
+        title: 'Wick Shrine', body: 'The wick burns.', prompt: 'Complete?',
+        actions: [{ id: 'complete_rite', label: 'COMPLETE RITE' }] } } : node) };
+    const { scene, startup, api } = await readyHarness(run);
+    const text = attachRenderHarness(scene); scene.selectNode('12');
+    expect(text).toContain('OFFER WICK');
+    api.resolveRunNode.and.resolveTo({ resolutionType: 'interaction_step',
+      encounterId: 'encounter.test_contextual_shrine', actionId: 'offer_wick', stepId: 'kindled',
+      node: { id: '12', status: 'available', completedAt: null }, newlyAvailableNodeIds: [],
+      run: { id: '41', status: 'active', endedAt: null }, playerRevision: 8 });
+    api.getCurrentRun.and.resolveTo({ run: middle, playerRevision: 8 });
+    api.getItems.and.resolveTo({ ok: true, data: { items: [] } });
+    await scene.activateSelectedNonCombat('offer_wick');
+    expect(api.resolveRunNode).toHaveBeenCalledOnceWith('41', '12', 'csrf', 'run-node:fixed',
+      { encounterId: 'encounter.test_contextual_shrine', actionId: 'offer_wick' });
+    expect(startup.store.currentRun.data?.nodes[2].interaction?.stepId).toBe('kindled');
+    expect(startup.store.currentRun.data?.availableNodeIds).toEqual(['12', '13']);
+    expect(api.getItems).toHaveBeenCalledTimes(1);
+    expect(scene.resolvedNodeSyncState).toBe('succeeded');
+    expect(text).toContain('COMPLETE RITE');
+  });
+
   it('submits a Chaos interaction through the generic action path and reloads finalized HP', async () => {
     const { scene, startup, api } = await readyHarness(chaosAvailableRun());
     const textValues = attachRenderHarness(scene);

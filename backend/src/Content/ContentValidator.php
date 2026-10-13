@@ -109,6 +109,15 @@ final class ContentValidator
     $academyEvents = [];
     $academyRewards = [];
     foreach ($definitions as $id => $definition) {
+      if (($definition['type'] ?? null) === 'encounter' && ($definition['kind'] ?? null) === 'non_combat') {
+        foreach ($definition['actions'] as $action) {
+          if (($action['effect']['type'] ?? null) !== 'advance_step') continue;
+          $item = $this->requireReferenceType($definitions, $id, 'actions.effect.item_id', $action['effect']['item_id'], 'item');
+          if ($item['stackable'] !== true || $item['category'] !== 'material') {
+            throw new ContentValidationException("{$id} contextual item must be a stackable material.");
+          }
+        }
+      }
       if (($definition['type'] ?? null) === 'academy_upgrade') {
         $grant = $definition['grant_unlock_id'];
         if (isset($academyGrants[$grant])) throw new ContentValidationException("{$id} duplicates Academy grant '{$grant}'.");
@@ -836,7 +845,7 @@ final class ContentValidator
   {
     if (($definition['kind'] ?? null) === 'non_combat') {
       $this->requireExactFieldSet($definition,
-        ['id', 'type', 'kind', 'region_id', 'display_name', 'description', 'prompt', 'actions'], ['family'], $location);
+        ['id', 'type', 'kind', 'region_id', 'display_name', 'description', 'prompt', 'actions'], ['family', 'steps'], $location);
       $this->requireNamespace($definition, 'encounter.', $location);
       if (array_key_exists('family', $definition)) {
         $this->requireAllowedString($definition, 'family', ['rest', 'hazard', 'shrine', 'chaos'], $location);
@@ -849,9 +858,25 @@ final class ContentValidator
       if (!is_array($actions) || !array_is_list($actions) || $actions === []) {
         throw new ContentValidationException("{$location} actions must be a non-empty list.");
       }
-      $seen = [];
-      foreach ($actions as $index => $action) {
-        $where = "{$location} actions[{$index}]";
+      $steps = $definition['steps'] ?? [];
+      if (array_key_exists('steps', $definition)) {
+        if (!is_array($steps) || !array_is_list($steps) || count($steps) !== 1) {
+          throw new ContentValidationException("{$location} steps must contain exactly one intermediate step.");
+        }
+        $step = $steps[0];
+        if (!is_array($step) || array_is_list($step)) throw new ContentValidationException("{$location} step must be an object.");
+        $this->requireExactFieldSet($step, ['id', 'body', 'prompt', 'actions'], [], "{$location} step");
+        $this->requireLocalNodeKey($step, 'id', "{$location} step");
+        $this->requireBoundedNonEmptyString($step, 'body', 512, "{$location} step");
+        $this->requireBoundedNonEmptyString($step, 'prompt', 256, "{$location} step");
+        if (!is_array($step['actions']) || !array_is_list($step['actions']) || $step['actions'] === []) {
+          throw new ContentValidationException("{$location} step actions must be a non-empty list.");
+        }
+      }
+      $seen = []; $advances = 0;
+      foreach (array_merge($actions, $steps[0]['actions'] ?? []) as $index => $action) {
+        $inStep = $index >= count($actions);
+        $where = "{$location} " . ($inStep ? 'steps[0].actions[' . ($index - count($actions)) . ']' : 'actions[' . $index . ']');
         if (!is_array($action) || array_is_list($action)) throw new ContentValidationException("{$where} must be an object.");
         $this->requireExactFieldSet($action, ['id', 'label', 'effect'], [], $where);
         $actionId = $this->requireLocalNodeKey($action, 'id', $where);
@@ -861,9 +886,16 @@ final class ContentValidator
         $effect = $action['effect'];
         if (!is_array($effect) || array_is_list($effect)) throw new ContentValidationException("{$where} effect must be an object.");
         $effectType = $this->requireAllowedString($effect, 'type',
-          ['restore_participating_units_to_max', 'damage_random_participating_unit', 'damage_all_participating_units', 'random_participating_hp', 'create_run_modifier'],
+          ['restore_participating_units_to_max', 'damage_random_participating_unit', 'damage_all_participating_units', 'random_participating_hp', 'create_run_modifier', 'advance_step'],
           "{$where} effect");
-        if ($effectType === 'restore_participating_units_to_max') {
+        if ($effectType === 'advance_step') {
+          if ($inStep || $steps === [] || ++$advances !== 1) throw new ContentValidationException("{$where} step transition is invalid.");
+          $this->requireExactFieldSet($effect, ['type', 'step_id', 'item_id', 'quantity'], [], "{$where} effect");
+          $this->requireLocalNodeKey($effect, 'step_id', "{$where} effect");
+          if ($effect['step_id'] !== $steps[0]['id']) throw new ContentValidationException("{$where} step target is invalid.");
+          $this->requireStableIdWithNamespace($effect, 'item_id', 'item.', "{$where} effect");
+          $this->requireIntegerInRange($effect, 'quantity', 1, 1, "{$where} effect");
+        } elseif ($effectType === 'restore_participating_units_to_max') {
           $this->requireExactFieldSet($effect, ['type'], [], "{$where} effect");
         } elseif ($effectType === 'create_run_modifier') {
           $this->requireExactFieldSet($effect, ['type', 'modifier_id'], [], "{$where} effect");
@@ -894,16 +926,17 @@ final class ContentValidator
           $this->requireExactFieldSet($effect, ['type', 'amount'], [], "{$where} effect");
           $this->requireIntegerInRange($effect, 'amount', 1, 20, "{$where} effect");
         }
-        if (($definition['family'] ?? null) === 'rest' && $effectType !== 'restore_participating_units_to_max'
+        if ($effectType !== 'advance_step' && (($definition['family'] ?? null) === 'rest' && $effectType !== 'restore_participating_units_to_max'
           || ($definition['family'] ?? null) === 'hazard' && !in_array($effectType, ['damage_random_participating_unit', 'damage_all_participating_units'], true)
           || ($definition['family'] ?? null) === 'shrine'
             && !in_array($effectType, ['restore_participating_units_to_max', 'damage_all_participating_units', 'create_run_modifier'], true)
           || ($definition['family'] ?? null) === 'chaos' && $effectType !== 'random_participating_hp'
           || ($definition['family'] ?? null) !== 'chaos' && $effectType === 'random_participating_hp'
-          || ($definition['family'] ?? null) !== 'shrine' && $effectType === 'create_run_modifier') {
+          || ($definition['family'] ?? null) !== 'shrine' && $effectType === 'create_run_modifier')) {
           throw new ContentValidationException("{$where} effect is incompatible with encounter family.");
         }
       }
+      if ($steps !== [] && $advances !== 1) throw new ContentValidationException("{$location} must have one contextual step transition.");
       return;
     }
     $this->requireExactFieldSet($definition,

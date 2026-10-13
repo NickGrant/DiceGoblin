@@ -248,6 +248,7 @@ CREATE TABLE `run_nodes` (
   `node_index` INT UNSIGNED NOT NULL,
   `node_type_id` VARCHAR(128) NOT NULL,
   `encounter_id` VARCHAR(128) NULL,
+  `encounter_step_id` VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin NULL,
   `event_id` VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin NULL,
   `status` VARCHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'locked',
   `completed_at` TIMESTAMP NULL DEFAULT NULL,

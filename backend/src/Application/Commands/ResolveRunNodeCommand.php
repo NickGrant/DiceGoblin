@@ -8,6 +8,7 @@ use DateTimeZone;
 use Closure;
 use DiceGoblins\Application\RunNodes\RunNodeResolutionHandler;
 use DiceGoblins\Application\RunNodes\ActionRunNodeResolutionHandler;
+use DiceGoblins\Application\RunNodes\ContextualEncounterStepAdvancer;
 use DiceGoblins\Infrastructure\Clock;
 use DiceGoblins\Repositories\IdempotencyRequestRepository;
 use DiceGoblins\Repositories\PlayerStateRepository;
@@ -34,6 +35,7 @@ final class ResolveRunNodeCommand
     array $handlers,
     private readonly Clock $clock,
     private readonly ?Closure $beforeCommit = null,
+    private readonly ?ContextualEncounterStepAdvancer $steps = null,
   ) {
     foreach ($handlers as $handler) {
       $type = $handler->nodeTypeId();
@@ -112,11 +114,12 @@ final class ResolveRunNodeCommand
       }
 
       $outcome = $handler instanceof ActionRunNodeResolutionHandler
-        ? $handler->resolveAction($userId, $state, $run, $node,
-          $interaction['encounter_id'], $interaction['action_id'])
+        ? ($this->steps?->tryAdvance($userId, $run, $node, $interaction['encounter_id'], $interaction['action_id'])
+          ?? $handler->resolveAction($userId, $state, $run, $node,
+            $interaction['encounter_id'], $interaction['action_id']))
         : $handler->resolve($userId, $state, $run, $node);
       $completedAt = $this->clock->now()->setTimezone(new DateTimeZone('UTC'));
-      $this->nodes->completeNode($runId, $nodeId, $completedAt);
+      if ($outcome->nodeCompleted) $this->nodes->completeNode($runId, $nodeId, $completedAt);
       $available = [];
       $runStatus = 'active';
       $endedAt = null;
@@ -128,14 +131,15 @@ final class ResolveRunNodeCommand
         $this->nodes->completeRun($userId, $runId, $completedAt);
         $runStatus = 'completed';
         $endedAt = $this->timestamp($completedAt);
-      } else {
+      } elseif ($outcome->nodeCompleted) {
         $available = $this->nodes->unlockDirectOutgoingNodes($runId, $nodeId);
       }
       $revision = $this->playerState->incrementRevision($userId);
       $response = array_merge([
         'resolution_type' => $outcome->resolutionType,
       ], $outcome->facts, [
-        'node' => ['id' => (string)$nodeId, 'status' => 'completed', 'completed_at' => $this->timestamp($completedAt)],
+        'node' => ['id' => (string)$nodeId, 'status' => $outcome->nodeCompleted ? 'completed' : 'available',
+          'completed_at' => $outcome->nodeCompleted ? $this->timestamp($completedAt) : null],
         'newly_available_node_ids' => array_map('strval', $available),
         'run' => ['id' => (string)$runId, 'status' => $runStatus, 'ended_at' => $endedAt],
         'player_revision' => $revision,

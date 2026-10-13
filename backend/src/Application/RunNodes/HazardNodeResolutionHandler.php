@@ -46,8 +46,13 @@ final class HazardNodeResolutionHandler implements ActionRunNodeResolutionHandle
       || ($encounter['region_id'] ?? null) !== ($run['region_id'] ?? null)) {
       throw new RunNodeResolutionIntegrityException('Persisted Hazard encounter does not match this run.');
     }
+    $stepId = $node['encounter_step_id'] ?? null;
+    if ($stepId !== null && (!isset($encounter['steps'][0]) || $encounter['steps'][0]['id'] !== $stepId)) {
+      throw new RunNodeResolutionIntegrityException('Persisted Hazard step is invalid.');
+    }
+    $stage = $stepId === null ? $encounter : $encounter['steps'][0];
     $action = null;
-    foreach ($encounter['actions'] as $candidate) {
+    foreach ($stage['actions'] as $candidate) {
       if ($candidate['id'] === $actionId) { $action = $candidate; break; }
     }
     if ($action === null) throw new RunNodeResolutionException('invalid_node_request', 'Encounter action is unavailable.', 400);

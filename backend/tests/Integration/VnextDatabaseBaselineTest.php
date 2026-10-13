@@ -69,7 +69,7 @@ final class VnextDatabaseBaselineTest extends IntegrationTestCase
         AND DELETE_RULE = 'CASCADE'", []));
 
     $runNodeColumns = $this->pdo?->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'run_nodes' ORDER BY ORDINAL_POSITION")->fetchAll(\PDO::FETCH_COLUMN);
-    $this->assertSame(['id', 'run_id', 'node_index', 'node_type_id', 'encounter_id', 'event_id', 'status', 'completed_at',
+    $this->assertSame(['id', 'run_id', 'node_index', 'node_type_id', 'encounter_id', 'encounter_step_id', 'event_id', 'status', 'completed_at',
       'generated_metadata', 'created_at', 'updated_at'], $runNodeColumns);
     $modifierColumns = $this->pdo?->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'run_modifiers' ORDER BY ORDINAL_POSITION")->fetchAll(\PDO::FETCH_COLUMN);
     $this->assertSame(['id', 'run_id', 'source_node_id', 'modifier_id', 'remaining_combats', 'created_at'], $modifierColumns);

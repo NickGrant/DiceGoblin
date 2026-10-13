@@ -1,6 +1,24 @@
 import { RunNodeResolutionContractError, parseRunNodeResolutionEnvelope } from './run-node-resolution-contracts';
 
 describe('run node resolution contracts', () => {
+  it('parses an intermediate receipt without treating its node as completed', () => {
+    const value: any = { ok: true, data: { resolution_type: 'interaction_step',
+      encounter_id: 'encounter.test_contextual_shrine', action_id: 'offer_wick', step_id: 'kindled',
+      node: { id: '12', status: 'available', completed_at: null }, newly_available_node_ids: [],
+      run: { id: '41', status: 'active', ended_at: null }, player_revision: 8 } };
+    const parsed = parseRunNodeResolutionEnvelope(value);
+    expect(parsed.resolutionType).toBe('interaction_step');
+    if (parsed.resolutionType !== 'interaction_step') throw new Error('Expected intermediate step.');
+    expect(parsed.node.status).toBe('available');
+    for (const mutate of [
+      (v: any) => { v.data.item_id = 'item.secret'; },
+      (v: any) => { v.data.newly_available_node_ids = ['13']; },
+      (v: any) => { v.data.node.status = 'completed'; },
+    ]) {
+      const invalid = structuredClone(value); mutate(invalid);
+      expect(() => parseRunNodeResolutionEnvelope(invalid)).toThrowError(RunNodeResolutionContractError);
+    }
+  });
   function envelope(): any { return { ok: true, data: {
     resolution_type: 'combat',
     battle: { id: '81', outcome: 'victory', engine_version: 1, playback_version: 1, ending_round: 3, ending_tick: 41 },

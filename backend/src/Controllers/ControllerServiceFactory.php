@@ -246,7 +246,7 @@ final class ControllerServiceFactory
       'deleteSquadCommand' => new DeleteSquadCommand($pdo, $core['playerStateRepo'], $squadRepository, $squadCommandSupport, $activeRunPolicy),
       'renameUnitCommand' => new RenameUnitCommand($pdo, $core['playerStateRepo'], $unitRepository, $unitConfigurationSupport),
       'replaceUnitLoadoutCommand' => new ReplaceUnitLoadoutCommand($pdo, $core['playerStateRepo'], $unitRepository, $unitConfigurationSupport, $activeRunPolicy),
-      'currentRunQuery' => new CurrentRunQuery($runRepository, $core['playerStateRepo'], $content, $runModifierRepository),
+      'currentRunQuery' => new CurrentRunQuery($runRepository, $core['playerStateRepo'], $content, $runModifierRepository, $itemRepository),
       'abandonRunCommand' => new AbandonRunCommand($pdo, $core['playerStateRepo'], $runRepository, $content, new SystemClock()),
       'startRunCommand' => new StartRunCommand(
         $pdo,
@@ -279,6 +279,8 @@ final class ControllerServiceFactory
           new ExitNodeResolutionHandler($nodeResolutionRepository),
         ],
         new SystemClock(),
+        null,
+        new \DiceGoblins\Application\RunNodes\ContextualEncounterStepAdvancer($content, $itemRepository, $nodeResolutionRepository),
       ),
       'provisionWarbandFixtureCommand' => new ProvisionWarbandFixtureCommand(
         $pdo,
