@@ -11,7 +11,7 @@
   </php>
   <testsuites>
     <testsuite name="backend">
-      <directory>tests</directory>
+      <file>tests/BackendTestSuite.php</file>
     </testsuite>
   </testsuites>
 </phpunit>

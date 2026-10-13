@@ -192,7 +192,7 @@ final class RunContentValidationTest extends TestCase
       ['run_node_type.combat', 'run_node_type.loot', 'run_node_type.rest', 'run_node_type.boss', 'run_node_type.exit'],
       array_column($generation['nodes'], 'node_type_id'),
     );
-    $this->assertCount(7, $registry->definitionsOfType('run_node_type'));
+    $this->assertCount(8, $registry->definitionsOfType('run_node_type'));
     $this->assertSame('encounter.the_farm_mud_combat_1', $generation['nodes'][0]['encounter_id']);
     $this->assertSame('event.farm_loot_completed', $generation['nodes'][1]['event_id']);
     $this->assertSame('encounter.the_farm_mud_boss_1', $generation['nodes'][3]['encounter_id']);

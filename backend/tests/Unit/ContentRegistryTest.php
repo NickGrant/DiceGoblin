@@ -37,11 +37,11 @@ final class ContentRegistryTest extends TestCase
     $this->assertCount(20, $registry->definitionsOfType('unit_type'));
     $this->assertCount(38, $registry->definitionsOfType('ability'));
     $this->assertCount(7, $registry->definitionsOfType('enemy_unit_type'));
-    $this->assertCount(6, $registry->definitionsOfType('encounter'));
+    $this->assertCount(10, $registry->definitionsOfType('encounter'));
     $this->assertCount(5, $registry->definitionsOfType('dice_material'));
     $this->assertCount(6, $registry->definitionsOfType('dice_aspect'));
     $this->assertCount(11, $registry->definitionsOfType('dice_profile'));
-    $this->assertCount(5, $registry->definitionsOfType('run_node_type'));
+    $this->assertCount(8, $registry->definitionsOfType('run_node_type'));
     $this->assertCount(2, $registry->definitionsOfType('region'));
     $this->assertCount(2, $registry->definitionsOfType('run_generation'));
     $this->assertCount(14, $registry->definitionsOfType('unlock'));

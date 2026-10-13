@@ -67,7 +67,7 @@ final class BossNodeResolutionControllerTest extends IntegrationTestCase
     $bossId = (int)$nodes[3]['id']; $exitId = (int)$nodes[4]['id'];
     $this->assertSame(['encounter.the_farm_mud_boss_1', 'event.farm_boss_completed'],
       [$nodes[3]['encounter_id'], $nodes[3]['event_id']]);
-    $this->pdo?->prepare("UPDATE `run_nodes` SET `status` = CASE WHEN `id` = ? THEN 'available' ELSE `status` END WHERE `run_id` = ?")
+    $this->pdo?->prepare("UPDATE `run_nodes` SET `status` = CASE WHEN `node_index` = 2 THEN 'completed' WHEN `id` = ? THEN 'available' ELSE `status` END, `completed_at` = CASE WHEN `node_index` = 2 THEN UTC_TIMESTAMP() ELSE `completed_at` END WHERE `run_id` = ?")
       ->execute([$bossId, $runId]);
     $unitsBefore = $this->rows('SELECT ui.`id`, ui.`level`, ui.`xp`, rus.`current_hp` FROM `unit_instances` ui
       JOIN `run_unit_state` rus ON rus.`unit_id` = ui.`id` AND rus.`run_id` = ?
@@ -286,7 +286,8 @@ final class BossNodeResolutionControllerTest extends IntegrationTestCase
     $runId = (int)$run['run']['id'];
     $nodes = $this->rows('SELECT `id` FROM `run_nodes` WHERE `run_id` = ? ORDER BY `node_index`', [$runId]);
     $bossId = (int)$nodes[3]['id']; $exitId = (int)$nodes[4]['id'];
-    $this->pdo?->prepare("UPDATE `run_nodes` SET `status` = 'available' WHERE `id` = ?")->execute([$bossId]);
+    $this->pdo?->prepare("UPDATE `run_nodes` SET `status` = CASE WHEN `node_index` = 2 THEN 'completed' WHEN `id` = ? THEN 'available' ELSE `status` END, `completed_at` = CASE WHEN `node_index` = 2 THEN UTC_TIMESTAMP() ELSE `completed_at` END WHERE `run_id` = ?")
+      ->execute([$bossId, $runId]);
     return [$userId, $fixture, $runId, $bossId, $exitId];
   }
 

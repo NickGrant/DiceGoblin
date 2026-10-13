@@ -24,7 +24,7 @@ final class FixedGraphRunGeneratorTest extends TestCase
     $this->assertSame([
       ['node_index' => 0, 'node_type_id' => 'run_node_type.combat', 'encounter_id' => 'encounter.the_farm_mud_combat_1', 'event_id' => null, 'status' => 'available', 'generated_metadata' => ['position' => ['column' => 0, 'row' => 1]]],
       ['node_index' => 1, 'node_type_id' => 'run_node_type.loot', 'encounter_id' => null, 'event_id' => 'event.farm_loot_completed', 'status' => 'locked', 'generated_metadata' => ['position' => ['column' => 1, 'row' => 1]]],
-      ['node_index' => 2, 'node_type_id' => 'run_node_type.rest', 'encounter_id' => null, 'event_id' => null, 'status' => 'locked', 'generated_metadata' => ['position' => ['column' => 2, 'row' => 1]]],
+      ['node_index' => 2, 'node_type_id' => 'run_node_type.rest', 'encounter_id' => 'encounter.the_farm_rest', 'event_id' => null, 'status' => 'locked', 'generated_metadata' => ['position' => ['column' => 2, 'row' => 1]]],
       ['node_index' => 3, 'node_type_id' => 'run_node_type.boss', 'encounter_id' => 'encounter.the_farm_mud_boss_1', 'event_id' => 'event.farm_boss_completed', 'status' => 'locked', 'generated_metadata' => ['position' => ['column' => 3, 'row' => 1]]],
       ['node_index' => 4, 'node_type_id' => 'run_node_type.exit', 'encounter_id' => null, 'event_id' => null, 'status' => 'locked', 'generated_metadata' => ['position' => ['column' => 4, 'row' => 1]]],
     ], $first['nodes']);
@@ -46,21 +46,25 @@ final class FixedGraphRunGeneratorTest extends TestCase
       ->runGenerationForRegion('region.mountains');
     $graph = (new FixedGraphRunGenerator())->generate($definition);
 
-    $this->assertSame([0, 1, 2, 3, 4, 5, 6], array_column($graph['nodes'], 'node_index'));
+    $this->assertSame([0, 1, 2, 3, 4, 5, 6, 7, 8], array_column($graph['nodes'], 'node_index'));
     $this->assertSame([
       'run_node_type.combat', 'run_node_type.loot', 'run_node_type.combat', 'run_node_type.rest',
       'run_node_type.combat', 'run_node_type.boss', 'run_node_type.exit',
+      'run_node_type.hazard', 'run_node_type.hazard',
     ], array_column($graph['nodes'], 'node_type_id'));
     $this->assertSame([
-      'encounter.mountains_kobold_combat_1', null, 'encounter.mountains_kobold_combat_2', null,
-      'encounter.mountains_kobold_combat_3', 'encounter.mountains_kobold_boss_1', null,
+      'encounter.mountains_kobold_combat_1', null, 'encounter.mountains_kobold_combat_2',
+      'encounter.mountains_rest', 'encounter.mountains_kobold_combat_3',
+      'encounter.mountains_kobold_boss_1', null, 'encounter.mountains_loose_scree',
+      'encounter.mountains_rockfall',
     ], array_column($graph['nodes'], 'encounter_id'));
     $this->assertSame([null, 'event.mountains_loot_completed', null, null, null,
-      'event.mountains_boss_completed', null], array_column($graph['nodes'], 'event_id'));
-    $this->assertSame(['available', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked'],
+      'event.mountains_boss_completed', null, null, null], array_column($graph['nodes'], 'event_id'));
+    $this->assertSame(['available', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked',
+      'locked', 'locked'],
       array_column($graph['nodes'], 'status'));
-    $this->assertSame([0, 1, 2, 3, 4, 5], array_column($graph['edges'], 'from_node_index'));
-    $this->assertSame([1, 2, 3, 4, 5, 6], array_column($graph['edges'], 'to_node_index'));
+    $this->assertSame([0, 1, 2, 3, 7, 2, 4, 5], array_column($graph['edges'], 'from_node_index'));
+    $this->assertSame([1, 2, 3, 7, 4, 8, 5, 6], array_column($graph['edges'], 'to_node_index'));
   }
 
   /** @dataProvider invalidGraphProvider */

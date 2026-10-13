@@ -31,7 +31,9 @@ final class EconomyLifecycleIntegrationTest extends IntegrationTestCase
     (new UserUnlockRepository($this->pdo))->insertIfAbsent($userId, 'unlock.unit_type.bruiser');
     $catalog = $services['shopCatalogQuery']->execute($userId);
     $this->assertTrue($this->offer($catalog, 'shop_offer.goblin_bruiser')['available']);
-    $this->assertSame(['item.field_poultice', 'item.spark_tonic'], array_keys($content->definitionsOfType('item')));
+    $this->assertSame(['item.chief_engineer_lens', 'item.field_poultice', 'item.kobold_scale',
+      'item.mudking_crown_fragment', 'item.pig_ear', 'item.spark_tonic'],
+      array_keys($content->definitionsOfType('item')));
 
     $purchase = $services['purchaseShopOfferCommand'];
     $energyPurchase = $purchase->execute($userId, $this->purchaseRequest('shop_offer.spark_tonic', 4), 'closure-purchase-energy');
