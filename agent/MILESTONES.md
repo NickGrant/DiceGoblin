@@ -7,7 +7,7 @@ Read this for sequencing/planning or when closing/promoting an execution package
 **Status:** Active
 
 ### Related Issues
-- Milestone 10 Package 9 - Run-encounter-depth integrated verification/technical closure
+- Milestone 10 Package 10 - Focused manual UAT before Milestone 11
 
 Milestones 1-9 are complete and passed their required manual UAT.
 
@@ -26,6 +26,8 @@ Milestone 10 Package 6 - Run-scoped modifier model + authoritative application i
 Milestone 10 Package 7 - Contextual consumables + multi-step encounter interaction is approved through verification correction `bad02a8b80b18d7689faaa6b42db92ffc45395e6`. The correction also repaired canonical backend PHPUnit discovery so the complete suite is enumerated reliably.
 
 Milestone 10 Package 8 - Phaser RunScene branching/encounter interaction integration is approved at `a91fbece6e989c2a468fbafe88b1eb02553a3dfc`. RunScene now presents the authoritative exploration graph/frontier, generic multi-action and persisted-step encounters, narrow modifier/result facts, authoritative rejection/reload recovery, and responsive branching layouts without family-specific Shrine/Chaos dispatch or production content expansion.
+
+Milestone 10 Package 9 - Run-encounter-depth integrated verification/technical closure is approved at `88ca459864f0e545637ed13240e7c426717b6e38`. The package completed integrated Farm/Mountains and test-only encounter regression verification, rationalized obsolete prototype tests into a smaller zero-skip canonical suite, retained future-milestone migration evidence outside canonical discovery, and passed the full package verification gate.
 
 The major game-wide visual/UI overhaul remains intentionally deferred.
 
@@ -68,12 +70,12 @@ Knowledge/objectives remain Milestone 11. Mystic Cave/onboarding remains Milesto
 6. **Run-scoped modifier model + authoritative application.** Approved through `736f5211a6e2fff1838fa5c6ec779e229f7368d6`.
 7. **Contextual consumables + multi-step encounter interaction.** Approved through `bad02a8b80b18d7689faaa6b42db92ffc45395e6`.
 8. **Phaser RunScene branching/encounter interaction integration.** Approved at `a91fbece6e989c2a468fbafe88b1eb02553a3dfc`.
-9. **Run-encounter-depth integrated verification/technical closure.** Current.
-10. **Focused manual UAT before Milestone 11.** Planned.
+9. **Run-encounter-depth integrated verification/technical closure.** Approved at `88ca459864f0e545637ed13240e7c426717b6e38`.
+10. **Focused manual UAT before Milestone 11.** Current.
 
 ### Sequencing Notes
 
 - Packages 1-7 established the authoritative exploration, encounter, randomness, modifier, contextual-consumable, and resumable interaction contracts.
 - Package 8 completed the player-facing generic RunScene integration across those contracts while preserving server authority and responsive presentation.
-- Package 9 proves the complete production-composed slice, persistence/reload/retry behavior, regression safety, responsive capture coverage, and performs the approved test-suite rationalization: remove obsolete permanently skipped prototype coverage whose behavior has accepted vNext replacements, replace brittle whole-catalog/count assertions with durable invariants, and retain exact authored-content assertions only where the content shape itself is a canonical product contract.
+- Package 9 proved the complete production-composed slice, persistence/reload/retry behavior, regression safety, responsive capture coverage, and completed the approved test-suite rationalization.
 - Package 10 is manual UAT. Do not begin Milestone 11 until it passes and the user explicitly confirms promotion.
