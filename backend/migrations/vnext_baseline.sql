@@ -306,6 +306,20 @@ CREATE TABLE `run_unit_state` (
   CONSTRAINT `fk_run_unit_state_unit` FOREIGN KEY (`unit_id`) REFERENCES `unit_instances` (`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE `run_modifiers` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `run_id` BIGINT UNSIGNED NOT NULL,
+  `source_node_id` BIGINT UNSIGNED NOT NULL,
+  `modifier_id` VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `remaining_combats` TINYINT UNSIGNED NOT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_run_modifiers_source` (`run_id`, `source_node_id`, `modifier_id`),
+  CONSTRAINT `chk_run_modifiers_remaining` CHECK (`remaining_combats` = 1),
+  CONSTRAINT `fk_run_modifiers_source`
+    FOREIGN KEY (`run_id`, `source_node_id`) REFERENCES `run_nodes` (`run_id`, `id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 ALTER TABLE `user_state`
   ADD CONSTRAINT `fk_user_state_active_squad`
     FOREIGN KEY (`active_squad_id`) REFERENCES `squads` (`id`) ON DELETE SET NULL;

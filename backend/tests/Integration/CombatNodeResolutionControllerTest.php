@@ -140,7 +140,7 @@ final class CombatNodeResolutionControllerTest extends IntegrationTestCase
     $afterState = $this->row('SELECT `energy_current`, `energy_last_regen_at`, `teeth`, `raw_chaos`, `player_revision`
       FROM `user_state` WHERE `user_id` = ?', [$userId]);
     foreach (['energy_current', 'energy_last_regen_at', 'teeth', 'raw_chaos'] as $field) $this->assertSame($beforeState[$field], $afterState[$field]);
-    $current = (new CurrentRunQuery(new RunPersistenceRepository($this->pdo), new PlayerStateRepository($this->pdo), $this->content()))->execute($userId);
+    $current = (new CurrentRunQuery(new RunPersistenceRepository($this->pdo), new PlayerStateRepository($this->pdo), $this->content(), new \DiceGoblins\Repositories\RunModifierRepository($this->pdo)))->execute($userId);
     $this->assertSame(['completed', 'available', 'locked', 'locked', 'locked'], array_column($current['run']['nodes'], 'status'));
 
     $snapshot = $this->stateSnapshot($userId, $runId);
@@ -174,7 +174,7 @@ final class CombatNodeResolutionControllerTest extends IntegrationTestCase
       $after = $this->row('SELECT `energy_current`, `energy_last_regen_at`, `player_revision` FROM `user_state` WHERE `user_id` = ?', [$userId]);
       $this->assertSame([$before['energy_current'], $before['energy_last_regen_at']], [$after['energy_current'], $after['energy_last_regen_at']]);
       $this->assertSame((int)$before['player_revision'] + 1, (int)$after['player_revision']);
-      $this->assertNull((new CurrentRunQuery(new RunPersistenceRepository($this->pdo), new PlayerStateRepository($this->pdo), $this->content()))->execute($userId)['run']);
+      $this->assertNull((new CurrentRunQuery(new RunPersistenceRepository($this->pdo), new PlayerStateRepository($this->pdo), $this->content(), new \DiceGoblins\Repositories\RunModifierRepository($this->pdo)))->execute($userId)['run']);
       $this->assertSame(1, (int)$this->scalar('SELECT COUNT(*) FROM `battles` WHERE `run_id` = ?', [$runId]));
       if ($outcome === 'defeat') {
         $this->assertSame('0', (string)$this->scalar('SELECT COALESCE(SUM(`current_hp`), 0) FROM `run_unit_state` WHERE `run_id` = ?', [$runId]));
@@ -276,6 +276,7 @@ final class CombatNodeResolutionControllerTest extends IntegrationTestCase
         new CombatSnapshotAssembler($content, new SquadRepository($this->pdo), new UnitDetailQuery($units, $content),
           new WarbandDiceRepository($this->pdo)), $resolver, new CombatSeedDeriver(),
         new VictoryItemGrantService(new VictoryItemDropPolicy($content), new UserItemRepository($this->pdo)),
+        new \DiceGoblins\Repositories\RunModifierRepository($this->pdo), $content,
       )], $clock);
   }
 

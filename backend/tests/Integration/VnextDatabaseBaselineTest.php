@@ -30,6 +30,7 @@ final class VnextDatabaseBaselineTest extends IntegrationTestCase
       'password_reset_tokens',
       'resolved_events',
       'run_edges',
+      'run_modifiers',
       'run_nodes',
       'run_unit_state',
       'runs',
@@ -70,6 +71,11 @@ final class VnextDatabaseBaselineTest extends IntegrationTestCase
     $runNodeColumns = $this->pdo?->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'run_nodes' ORDER BY ORDINAL_POSITION")->fetchAll(\PDO::FETCH_COLUMN);
     $this->assertSame(['id', 'run_id', 'node_index', 'node_type_id', 'encounter_id', 'event_id', 'status', 'completed_at',
       'generated_metadata', 'created_at', 'updated_at'], $runNodeColumns);
+    $modifierColumns = $this->pdo?->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'run_modifiers' ORDER BY ORDINAL_POSITION")->fetchAll(\PDO::FETCH_COLUMN);
+    $this->assertSame(['id', 'run_id', 'source_node_id', 'modifier_id', 'remaining_combats', 'created_at'], $modifierColumns);
+    $this->assertSame('1', (string)$this->scalar("SELECT COUNT(*) FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS
+      WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'run_modifiers' AND CONSTRAINT_NAME = 'fk_run_modifiers_source'
+        AND DELETE_RULE = 'CASCADE'", []));
 
     $unlockColumns = $this->pdo?->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user_unlocks' ORDER BY ORDINAL_POSITION")->fetchAll(\PDO::FETCH_COLUMN);
     $this->assertSame(['user_id', 'unlock_id', 'granted_at'], $unlockColumns);

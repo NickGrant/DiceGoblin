@@ -120,6 +120,12 @@ final class ContentRegistry
     return $this->definitionOfType($id, 'encounter');
   }
 
+  /** @return array<string,mixed> */
+  public function runModifier(string $id): array
+  {
+    return $this->definitionOfType($id, 'run_modifier');
+  }
+
   /** @return array<string, mixed> */
   public function ability(string $id): array
   {

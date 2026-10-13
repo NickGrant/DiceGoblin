@@ -9,7 +9,9 @@ use DiceGoblins\Application\Rewards\VictoryItemGrantService;
 use DiceGoblins\Combat\Vnext\CombatResolver;
 use DiceGoblins\Domain\Battles\CombatSeedDeriver;
 use DiceGoblins\Domain\Battles\FinalizedBattle;
+use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Repositories\BattlePersistenceRepository;
+use DiceGoblins\Repositories\RunModifierRepository;
 use DiceGoblins\Repositories\RunNodeResolutionRepository;
 
 final class CombatNodeResolutionHandler implements RunNodeResolutionHandler
@@ -21,6 +23,8 @@ final class CombatNodeResolutionHandler implements RunNodeResolutionHandler
     private readonly CombatResolver $resolver,
     private readonly CombatSeedDeriver $seeds,
     private readonly VictoryItemGrantService $itemGrants,
+    private readonly RunModifierRepository $modifiers,
+    private readonly ContentRegistry $content,
   ) {}
 
   public function nodeTypeId(): string { return 'run_node_type.combat'; }
@@ -34,8 +38,31 @@ final class CombatNodeResolutionHandler implements RunNodeResolutionHandler
       throw new CombatResolutionIntegrityException('Persisted combat encounter identity is invalid.');
     }
     $seed = $this->seeds->derive($runId, $nodeId, $encounterId);
+    $activeModifiers = $this->modifiers->listActive($runId, true);
+    $attackBonus = 0;
+    $appliedModifiers = [];
+    foreach ($activeModifiers as $instance) {
+      if ((int)$instance['run_id'] !== $runId || (int)$instance['id'] < 1
+        || (int)$instance['source_node_id'] < 1 || (int)$instance['remaining_combats'] !== 1) {
+        throw new CombatResolutionIntegrityException('Run modifier instance is invalid.');
+      }
+      try {
+        $definition = $this->content->runModifier((string)$instance['modifier_id']);
+      } catch (\Throwable $e) {
+        throw new CombatResolutionIntegrityException('Run modifier definition is unavailable.', 0, $e);
+      }
+      if (($definition['kind'] ?? null) !== 'next_combat_attack_bonus'
+        || !is_int($definition['attack_bonus'] ?? null)
+        || $definition['attack_bonus'] < 1 || $definition['attack_bonus'] > 10) {
+        throw new CombatResolutionIntegrityException('Run modifier definition is unsupported.');
+      }
+      $attackBonus += $definition['attack_bonus'];
+      if ($attackBonus > 1000) throw new CombatResolutionIntegrityException('Run modifier stack exceeds the supported boundary.');
+      $appliedModifiers[] = ['id' => (string)$instance['id'], 'modifier_id' => (string)$instance['modifier_id'],
+        'remaining_combats' => 0];
+    }
     $assembled = $this->assembler->assemble($userId, (int)$run['squad_id'],
-      $this->nodes->listParticipatingUnitsForUpdate($runId), $encounterId, $seed);
+      $this->nodes->listParticipatingUnitsForUpdate($runId), $encounterId, $seed, $attackBonus);
     $combatResult = $this->resolver->resolve($assembled->input);
     $result = $combatResult->toArray();
     $battle = new FinalizedBattle((int)$result['engine_version'], (int)$result['playback_version'],
@@ -56,12 +83,14 @@ final class CombatNodeResolutionHandler implements RunNodeResolutionHandler
     }
     ksort($terminalHp, SORT_NUMERIC);
     $grantedItems = $result['outcome'] === 'victory' ? $this->itemGrants->grant($userId, $encounterId) : [];
+    if ($activeModifiers !== []) $this->modifiers->consume($runId, array_map(static fn(array $row): int => (int)$row['id'], $activeModifiers));
 
     return new RunNodeResolutionOutcome('combat', [
       'battle' => ['id' => (string)$battleId, 'outcome' => $result['outcome'],
         'engine_version' => $result['engine_version'], 'playback_version' => $result['playback_version'],
         'ending_round' => $result['ending_round'], 'ending_tick' => $result['ending_tick']],
       'terminal_player_hp' => $terminalHp,
+      ...($appliedModifiers !== [] ? ['applied_modifiers' => $appliedModifiers] : []),
       ...($grantedItems !== [] ? ['item_grants' => $grantedItems] : []),
     ], $result['outcome'] !== 'victory');
   }

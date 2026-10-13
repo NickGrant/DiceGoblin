@@ -45,6 +45,8 @@ export interface CurrentRun {
   readonly availableNodeIds: readonly string[];
   readonly edges: readonly { readonly fromNodeId: string; readonly toNodeId: string }[];
   readonly units: readonly { readonly unitId: string; readonly currentHp: number | null }[];
+  readonly modifiers?: readonly { readonly id: string; readonly modifierId: string;
+    readonly displayName: string; readonly description: string; readonly remainingCombats: 1 }[];
 }
 
 export interface CurrentRunResult {
@@ -192,7 +194,9 @@ export function parseCurrentRunEnvelope(value: unknown, content: ClientContentRe
   const playerRevision = nonNegativeInteger(data['player_revision'], 'Run player_revision');
   if (data['run'] === null) return Object.freeze({ run: null, playerRevision });
   const raw = record(data['run'], 'Current run');
-  exact(raw, ['id', 'region_id', 'squad_id', 'status', 'created_at', 'nodes', 'edges', 'available_node_ids', 'units'], 'Current run');
+  const hasModifiers = Object.hasOwn(raw, 'modifiers');
+  exact(raw, ['id', 'region_id', 'squad_id', 'status', 'created_at', 'nodes', 'edges', 'available_node_ids', 'units',
+    ...(hasModifiers ? ['modifiers'] : [])], 'Current run');
   if (raw['status'] !== 'active' || !Array.isArray(raw['nodes']) || !Array.isArray(raw['edges'])
     || !Array.isArray(raw['available_node_ids']) || !Array.isArray(raw['units']))
     throw new RunContractError('Current run root is malformed.');
@@ -270,11 +274,30 @@ export function parseCurrentRunEnvelope(value: unknown, content: ClientContentRe
     return Object.freeze({ unitId, currentHp });
   });
 
+  const rawModifiers = hasModifiers ? raw['modifiers'] : [];
+  if (!Array.isArray(rawModifiers) || (hasModifiers && rawModifiers.length === 0))
+    throw new RunContractError('Current run modifiers are invalid.');
+  let previousModifierId: string | null = null;
+  const modifiers = rawModifiers.map((candidate) => {
+    const modifier = record(candidate, 'Run modifier');
+    exact(modifier, ['id', 'modifier_id', 'display_name', 'description', 'remaining_combats'], 'Run modifier');
+    const instanceId = positiveId(modifier['id'], 'Run modifier id');
+    if (previousModifierId !== null && (instanceId.length < previousModifierId.length
+      || (instanceId.length === previousModifierId.length && instanceId <= previousModifierId)))
+      throw new RunContractError('Run modifier IDs must be uniquely ordered.');
+    previousModifierId = instanceId;
+    if (typeof modifier['modifier_id'] !== 'string' || !/^modifier\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/.test(modifier['modifier_id'])
+      || modifier['remaining_combats'] !== 1) throw new RunContractError('Run modifier identity or lifecycle is invalid.');
+    return Object.freeze({ id: instanceId, modifierId: modifier['modifier_id'],
+      displayName: nonEmptyText(modifier['display_name'], 'Run modifier name'),
+      description: nonEmptyText(modifier['description'], 'Run modifier description'), remainingCombats: 1 as const });
+  });
+
   return Object.freeze({
     run: Object.freeze({ id: positiveId(raw['id'], 'Run id'), regionId: regionId(raw['region_id'], content),
       squadId: positiveId(raw['squad_id'], 'Run squad_id'), status: 'active', createdAt: timestamp(raw['created_at'], 'Run created_at'),
       nodes: Object.freeze(nodes), availableNodeIds: Object.freeze(availableNodeIds),
-      edges: Object.freeze(edges), units: Object.freeze(units) }),
+      edges: Object.freeze(edges), units: Object.freeze(units), modifiers: Object.freeze(modifiers) }),
     playerRevision,
   });
 }

@@ -68,6 +68,7 @@ use DiceGoblins\Infrastructure\CryptoRewardRollSource;
 use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Repositories\RunPersistenceRepository;
 use DiceGoblins\Repositories\RunNodeResolutionRepository;
+use DiceGoblins\Repositories\RunModifierRepository;
 use DiceGoblins\Repositories\ResolvedEventRepository;
 use DiceGoblins\Repositories\BattlePersistenceRepository;
 use DiceGoblins\Repositories\IdempotencyRequestRepository;
@@ -166,6 +167,7 @@ final class ControllerServiceFactory
     $unitTypeAvailability = new UnitTypeAvailabilityPolicy($content);
     $normalUnitCreation = new NormalUnitCreationService($unitRepository, $content);
     $nodeResolutionRepository = new RunNodeResolutionRepository($pdo);
+    $runModifierRepository = new RunModifierRepository($pdo);
     $rewardApplication = new RewardApplicationService(
       $pdo, $content, new RewardFinalizer(new CryptoRewardRollSource()), new ResolvedEventRepository($pdo),
       $core['playerStateRepo'], $unitRepository, $unlockRepository,
@@ -177,6 +179,7 @@ final class ControllerServiceFactory
       $combatResolver ?? new CombatEngine(),
       new CombatSeedDeriver(),
       new VictoryItemGrantService(new VictoryItemDropPolicy($content), $itemRepository),
+      $runModifierRepository, $content,
     );
 
     return array_merge($core, [
@@ -243,7 +246,7 @@ final class ControllerServiceFactory
       'deleteSquadCommand' => new DeleteSquadCommand($pdo, $core['playerStateRepo'], $squadRepository, $squadCommandSupport, $activeRunPolicy),
       'renameUnitCommand' => new RenameUnitCommand($pdo, $core['playerStateRepo'], $unitRepository, $unitConfigurationSupport),
       'replaceUnitLoadoutCommand' => new ReplaceUnitLoadoutCommand($pdo, $core['playerStateRepo'], $unitRepository, $unitConfigurationSupport, $activeRunPolicy),
-      'currentRunQuery' => new CurrentRunQuery($runRepository, $core['playerStateRepo'], $content),
+      'currentRunQuery' => new CurrentRunQuery($runRepository, $core['playerStateRepo'], $content, $runModifierRepository),
       'abandonRunCommand' => new AbandonRunCommand($pdo, $core['playerStateRepo'], $runRepository, $content, new SystemClock()),
       'startRunCommand' => new StartRunCommand(
         $pdo,
@@ -271,7 +274,7 @@ final class ControllerServiceFactory
           new LootNodeResolutionHandler($nodeResolutionRepository, $unitRepository, $unlockRepository, $rewardApplication),
           new RestNodeResolutionHandler($nodeResolutionRepository, $unitRepository, $content, new BaseLevelStatResolver()),
           new HazardNodeResolutionHandler($nodeResolutionRepository, $unitRepository, $content, new BaseLevelStatResolver()),
-          new ShrineNodeResolutionHandler($nodeResolutionRepository, $unitRepository, $content),
+          new ShrineNodeResolutionHandler($nodeResolutionRepository, $unitRepository, $content, $runModifierRepository),
           new ChaosNodeResolutionHandler($nodeResolutionRepository, $unitRepository, $content),
           new ExitNodeResolutionHandler($nodeResolutionRepository),
         ],

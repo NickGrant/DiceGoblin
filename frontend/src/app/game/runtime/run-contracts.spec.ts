@@ -64,6 +64,23 @@ describe('run contracts', () => {
     expect(result.run?.regionId).toBe('region.the_farm');
   });
 
+  it('accepts only narrow active run modifier facts', () => {
+    const value: any = currentEnvelope();
+    value.data.run.modifiers = [{ id: '71', modifier_id: 'modifier.test_battle_focus',
+      display_name: 'Battle Focus', description: 'Next battle focus.', remaining_combats: 1 }];
+    expect(parseCurrentRunEnvelope(value, content()).run?.modifiers).toEqual([{
+      id: '71', modifierId: 'modifier.test_battle_focus', displayName: 'Battle Focus',
+      description: 'Next battle focus.', remainingCombats: 1,
+    }]);
+    for (const mutate of [
+      (copy: any) => copy.data.run.modifiers[0].attack_bonus = 2,
+      (copy: any) => copy.data.run.modifiers[0].remaining_combats = 0,
+      (copy: any) => copy.data.run.modifiers.push(copy.data.run.modifiers[0]),
+      (copy: any) => copy.data.run.modifiers = [],
+    ]) { const invalid = structuredClone(value); mutate(invalid);
+      expect(() => parseCurrentRunEnvelope(invalid, content())).toThrowError(RunContractError); }
+  });
+
   it('accepts the authored seven-node Mountains graph without region-specific parsing', () => {
     const value: any = currentEnvelope();
     value.data.run.region_id = 'region.mountains';

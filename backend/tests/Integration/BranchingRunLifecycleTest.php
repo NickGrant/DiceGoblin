@@ -93,7 +93,7 @@ final class BranchingRunLifecycleTest extends IntegrationTestCase
     $reloadedPdo = new PDO((string)getenv('TEST_DB_DSN'), (string)getenv('TEST_DB_USER'),
       (string)getenv('TEST_DB_PASS'), [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
     $reloaded = (new CurrentRunQuery(new RunPersistenceRepository($reloadedPdo),
-      new PlayerStateRepository($reloadedPdo), $content))->execute($userId)['run'];
+      new PlayerStateRepository($reloadedPdo), $content, new \DiceGoblins\Repositories\RunModifierRepository($reloadedPdo)))->execute($userId)['run'];
     $this->assertSame($expectedFrontier, $reloaded['available_node_ids']);
 
     $otherResult = $command->execute($userId, $runId, $ids[$other], 'other-branch-' . $choice);

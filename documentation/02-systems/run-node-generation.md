@@ -1,7 +1,7 @@
 ---
 Title: "Run Node Generation"
 Status: Canonical
-Last Updated: 2026-10-10
+Last Updated: 2026-10-12
 Owner: Systems Design + Engineering
 Depends On:
   - documentation/07-development-path/vnext-authored-content-model.md
@@ -66,6 +66,14 @@ Mountains Hazards use the same single-step interaction and receipt contract. Loo
 Shrine has a validated node family and reuses the immediate participating-unit HP effects. Package 4 proves two distinct choices in a test-only encounter: restore the participating units to maximum HP or damage each participating unit by up to 2 HP. Neither Farm nor Mountains production generation contains a Shrine. The selected HP transitions, completed node, frontier change, revision, and receipt share one transaction. The browser receives the selected action and finalized HP transitions, while effect type and amount remain private in the interaction projection. RunScene renders multiple authorized actions from that generic projection. Currency grants remain governed by the event and reward-definition pipeline.
 
 Chaos has a validated node family with one test-only authorized action and two weighted, server-private immediate HP outcomes. The server selects one outcome with a cryptographically secure integer roll, then records its stable outcome ID and resulting HP transitions in the finalized node receipt. An exact-key retry replays that receipt without another roll or HP mutation. The current-run interaction exposes only the encounter's visible action, and RunScene submits it through the same interaction path. Farm and Mountains contain no production Chaos node or encounter. Currency and other rewards continue through the event and reward-definition pipeline.
+
+## Run-scoped modifiers
+
+An authored `run_modifier` definition currently supports only `next_combat_attack_bonus`: a bounded positive Attack bonus and exactly one eligible combat. A validated test-only Shrine action creates a `run_modifiers` row containing the run, source node, authored modifier ID, and remaining eligible combats. Creation shares the node-resolution transaction and finalized receipt. Exact-key replay returns that receipt without creating another row or refreshing duration. No Farm or Mountains production node creates a modifier.
+
+The next resolved Combat or Boss in that run applies the bonus to every participating player combatant while assembling the authoritative combat snapshot. The combat engine then uses those effective stats for deterministic damage. The same resolution transaction persists the battle and consumes the modifier row; its receipt lists applied modifier identities and zero remaining combats. Rejected or rolled-back resolutions leave the row unchanged, and unrelated non-combat nodes do not consume it. Chaos is a non-combat action, so it is not eligible. The modifier never updates permanent unit stats, inventory, or reward state.
+
+The current-run read projects only active modifier ID, visible name/description, and remaining combat count. Authored tuning and effect configuration remain server-private. Terminal runs have no current-run projection; retained rows belong to their original run and cannot apply to a later run. Existing run cleanup removes those rows with the run.
 
 ## Combat Resolution Lifecycle
 An available ordinary Combat node is finalized once its authoritative battle is persisted, regardless of outcome. Victory marks the node completed and unlocks only directly outgoing persisted edges whose destination is still locked. The server does not reconstruct the Farm sequence or unlock later descendants. Defeat or stalemate also completes the node, unlocks nothing, and transitions the run to terminal `failed`; its battle, graph, and terminal run HP remain durable.

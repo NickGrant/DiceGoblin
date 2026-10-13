@@ -78,6 +78,7 @@ final class ContentValidator
       'dice_profile' => $this->validateDiceProfile($definition, $location),
       'run_node_type' => $this->validateRunNodeType($definition, $location),
       'run_generation' => $this->validateRunGeneration($definition, $location),
+      'run_modifier' => $this->validateRunModifier($definition, $location),
       'unlock' => $this->validateUnlock($definition, $location),
       'capability' => $this->validateCapability($definition, $location),
       'academy_upgrade' => $this->validateAcademyUpgrade($definition, $location),
@@ -337,6 +338,12 @@ final class ContentValidator
 
       if (($definition['type'] ?? null) === 'encounter') {
         $this->requireReferenceType($definitions, $id, 'region_id', $definition['region_id'], 'region');
+        foreach ($definition['actions'] ?? [] as $action) {
+          if (($action['effect']['type'] ?? null) === 'create_run_modifier') {
+            $this->requireReferenceType($definitions, $id, 'actions.effect.modifier_id',
+              $action['effect']['modifier_id'], 'run_modifier');
+          }
+        }
         foreach ($definition['combatants'] ?? [] as $combatant) {
           $this->requireReferenceType($definitions, $id, 'combatants.enemy_unit_type_id', $combatant['enemy_unit_type_id'], 'enemy_unit_type');
         }
@@ -686,6 +693,19 @@ final class ContentValidator
     );
   }
 
+  /** @param array<string,mixed> $definition */
+  private function validateRunModifier(array $definition, string $location): void
+  {
+    $this->requireExactFieldSet($definition,
+      ['id', 'type', 'display_name', 'description', 'kind', 'attack_bonus', 'remaining_combats'], [], $location);
+    $this->requireNamespace($definition, 'modifier.', $location);
+    $this->requireBoundedNonEmptyString($definition, 'display_name', 128, $location);
+    $this->requireBoundedNonEmptyString($definition, 'description', 512, $location);
+    $this->requireAllowedString($definition, 'kind', ['next_combat_attack_bonus'], $location);
+    $this->requireIntegerInRange($definition, 'attack_bonus', 1, 10, $location);
+    $this->requireIntegerInRange($definition, 'remaining_combats', 1, 1, $location);
+  }
+
   /** @param array<string, mixed> $definition */
   private function validateRunNodeType(array $definition, string $location): void
   {
@@ -841,10 +861,13 @@ final class ContentValidator
         $effect = $action['effect'];
         if (!is_array($effect) || array_is_list($effect)) throw new ContentValidationException("{$where} effect must be an object.");
         $effectType = $this->requireAllowedString($effect, 'type',
-          ['restore_participating_units_to_max', 'damage_random_participating_unit', 'damage_all_participating_units', 'random_participating_hp'],
+          ['restore_participating_units_to_max', 'damage_random_participating_unit', 'damage_all_participating_units', 'random_participating_hp', 'create_run_modifier'],
           "{$where} effect");
         if ($effectType === 'restore_participating_units_to_max') {
           $this->requireExactFieldSet($effect, ['type'], [], "{$where} effect");
+        } elseif ($effectType === 'create_run_modifier') {
+          $this->requireExactFieldSet($effect, ['type', 'modifier_id'], [], "{$where} effect");
+          $this->requireStableIdWithNamespace($effect, 'modifier_id', 'modifier.', "{$where} effect");
         } elseif ($effectType === 'random_participating_hp') {
           $this->requireExactFieldSet($effect, ['type', 'outcomes'], [], "{$where} effect");
           $outcomes = $effect['outcomes'];
@@ -874,9 +897,10 @@ final class ContentValidator
         if (($definition['family'] ?? null) === 'rest' && $effectType !== 'restore_participating_units_to_max'
           || ($definition['family'] ?? null) === 'hazard' && !in_array($effectType, ['damage_random_participating_unit', 'damage_all_participating_units'], true)
           || ($definition['family'] ?? null) === 'shrine'
-            && !in_array($effectType, ['restore_participating_units_to_max', 'damage_all_participating_units'], true)
+            && !in_array($effectType, ['restore_participating_units_to_max', 'damage_all_participating_units', 'create_run_modifier'], true)
           || ($definition['family'] ?? null) === 'chaos' && $effectType !== 'random_participating_hp'
-          || ($definition['family'] ?? null) !== 'chaos' && $effectType === 'random_participating_hp') {
+          || ($definition['family'] ?? null) !== 'chaos' && $effectType === 'random_participating_hp'
+          || ($definition['family'] ?? null) !== 'shrine' && $effectType === 'create_run_modifier') {
           throw new ContentValidationException("{$where} effect is incompatible with encounter family.");
         }
       }

@@ -301,7 +301,8 @@ final class BossNodeResolutionControllerTest extends IntegrationTestCase
     $combat = new CombatNodeResolutionHandler($nodes, new BattlePersistenceRepository($this->pdo),
       new CombatSnapshotAssembler($content, new SquadRepository($this->pdo), new UnitDetailQuery($units, $content),
         new WarbandDiceRepository($this->pdo)), $resolver, new CombatSeedDeriver(),
-      new VictoryItemGrantService(new VictoryItemDropPolicy($content), new UserItemRepository($this->pdo)));
+      new VictoryItemGrantService(new VictoryItemDropPolicy($content), new UserItemRepository($this->pdo)),
+      new \DiceGoblins\Repositories\RunModifierRepository($this->pdo), $content);
     $rewards = new RewardApplicationService($this->pdo, $content,
       new RewardFinalizer(new ScriptedRewardRollSource([1, 1])), new ResolvedEventRepository($this->pdo),
       new PlayerStateRepository($this->pdo), $units, $unlocks);

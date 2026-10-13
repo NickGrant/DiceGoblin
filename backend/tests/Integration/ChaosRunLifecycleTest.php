@@ -81,7 +81,7 @@ final class ChaosRunLifecycleTest extends IntegrationTestCase
       $reloaded = new PDO((string)getenv('TEST_DB_DSN'), (string)getenv('TEST_DB_USER'),
         (string)getenv('TEST_DB_PASS'), [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
       $this->assertSame($final, (new CurrentRunQuery(new RunPersistenceRepository($reloaded),
-        new PlayerStateRepository($reloaded), $content))->execute($userId)['run']);
+        new PlayerStateRepository($reloaded), $content, new \DiceGoblins\Repositories\RunModifierRepository($reloaded)))->execute($userId)['run']);
     }
   }
 

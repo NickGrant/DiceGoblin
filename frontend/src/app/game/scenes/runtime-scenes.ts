@@ -645,7 +645,8 @@ export class RunScene extends RuntimeScene {
         : result.resolutionType === 'rest' ? `${result.healing.length} ${result.healing.length === 1 ? 'unit' : 'units'} fully restored.`
           : result.resolutionType === 'hazard' ? `Hazard crossed. ${result.damage.length} ${result.damage.length === 1 ? 'unit' : 'units'} affected.`
             : result.resolutionType === 'shrine'
-              ? `Shrine resolved. ${result.hpChanges.length} ${result.hpChanges.length === 1 ? 'unit' : 'units'} affected.`
+              ? result.createdModifier ? 'Run modifier gained for the next battle.'
+                : `Shrine resolved. ${result.hpChanges.length} ${result.hpChanges.length === 1 ? 'unit' : 'units'} affected.`
               : `Chaos resolved: ${result.outcomeId}. ${result.hpChanges.length} ${result.hpChanges.length === 1 ? 'unit' : 'units'} affected.`;
       await this.syncResolvedNode(result.run.id, result.node.id);
       return;
@@ -836,6 +837,13 @@ export class RunScene extends RuntimeScene {
       `Active run · ${layout.nodes.length} locations`, { color: '#d9c9a5', fontFamily: 'system-ui, sans-serif',
         fontSize: compact ? '25px' : '17px' }).setOrigin(0.5);
     root.add([mapPanel, title, identity]);
+    const activeModifiers = this.runtimeStartup.store.currentRun.data?.modifiers ?? [];
+    if (activeModifiers.length > 0) {
+      const summary = activeModifiers.map((modifier) => `${modifier.displayName} (${modifier.remainingCombats} battle)`).join(' · ');
+      root.add(this.add.text(layout.panel.x + layout.panel.width / 2, layout.identityY + (compact ? 35 : 24),
+        summary, { color: '#f0c982', fontFamily: 'system-ui, sans-serif', fontSize: compact ? '19px' : '13px',
+          align: 'center', wordWrap: { width: layout.panel.width - 120 } }).setOrigin(0.5));
+    }
     const edgeGraphics = this.add.graphics();
     for (const edge of layout.edges) {
       edgeGraphics.lineStyle(compact ? 9 : 7, 0xb18a42, 0.85);

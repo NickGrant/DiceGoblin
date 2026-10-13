@@ -65,7 +65,7 @@ final class CurrentRunLifecycleControllerTest extends IntegrationTestCase
     $reloadedPdo = new PDO((string)getenv('TEST_DB_DSN'), (string)getenv('TEST_DB_USER'), (string)getenv('TEST_DB_PASS'),
       [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
     $reloaded = (new CurrentRunQuery(new RunPersistenceRepository($reloadedPdo),
-      new PlayerStateRepository($reloadedPdo), $this->content()))->execute($userId);
+      new PlayerStateRepository($reloadedPdo), $this->content(), new \DiceGoblins\Repositories\RunModifierRepository($reloadedPdo)))->execute($userId);
     $reloadedBruiser = array_values(array_filter($reloaded['run']['units'] ?? [],
       static fn(array $unit): bool => $unit['unit_id'] === (string)$bruiser));
     $this->assertSame([['unit_id' => (string)$bruiser, 'current_hp' => 9]], $reloadedBruiser);
@@ -111,7 +111,7 @@ final class CurrentRunLifecycleControllerTest extends IntegrationTestCase
     $this->assertSame('run_node_type.test_interaction',
       $content->runGeneration('run_generation.mountains')['nodes'][3]['node_type_id']);
     $query = new CurrentRunQuery(new RunPersistenceRepository($this->pdo),
-      new PlayerStateRepository($this->pdo), $content);
+      new PlayerStateRepository($this->pdo), $content, new \DiceGoblins\Repositories\RunModifierRepository($this->pdo));
     $read = $query->execute($userId)['run'];
     $interaction = $read['nodes'][2]['interaction'];
     $this->assertSame('run_node_type.test_interaction', $read['nodes'][2]['node_type_id']);
@@ -135,7 +135,7 @@ final class CurrentRunLifecycleControllerTest extends IntegrationTestCase
     $node = $this->row('SELECT `id` FROM `run_nodes` WHERE `run_id` = ? AND `node_index` = 2', [$runId]);
     $nodeId = (int)$node['id'];
     $query = new CurrentRunQuery(new RunPersistenceRepository($this->pdo),
-      new PlayerStateRepository($this->pdo), $this->content());
+      new PlayerStateRepository($this->pdo), $this->content(), new \DiceGoblins\Repositories\RunModifierRepository($this->pdo));
     foreach ([null, 'encounter.missing', 'encounter.mountains_rest', 'encounter.the_farm_mud_combat_1'] as $encounterId) {
       $this->pdo?->prepare('UPDATE `run_nodes` SET `encounter_id` = ? WHERE `id` = ?')->execute([$encounterId, $nodeId]);
       try {

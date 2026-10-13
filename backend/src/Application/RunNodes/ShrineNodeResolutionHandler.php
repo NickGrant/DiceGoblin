@@ -8,6 +8,7 @@ use DiceGoblins\Application\Commands\RunNodeResolutionIntegrityException;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Domain\CombatStats\BaseLevelStatResolver;
 use DiceGoblins\Repositories\RunNodeResolutionRepository;
+use DiceGoblins\Repositories\RunModifierRepository;
 use DiceGoblins\Repositories\WarbandUnitRepository;
 use Throwable;
 
@@ -17,6 +18,7 @@ final class ShrineNodeResolutionHandler implements ActionRunNodeResolutionHandle
     private readonly RunNodeResolutionRepository $nodes,
     private readonly WarbandUnitRepository $units,
     private readonly ContentRegistry $content,
+    private readonly RunModifierRepository $modifiers,
     private readonly BaseLevelStatResolver $stats = new BaseLevelStatResolver(),
   ) {}
 
@@ -52,6 +54,30 @@ final class ShrineNodeResolutionHandler implements ActionRunNodeResolutionHandle
     if ($action === null) throw new RunNodeResolutionException('invalid_node_request', 'Encounter action is unavailable.', 400);
     $effect = $action['effect'];
     $type = $effect['type'] ?? null;
+    if ($type === 'create_run_modifier') {
+      $modifierId = $effect['modifier_id'] ?? null;
+      if (count($effect) !== 2 || !is_string($modifierId)) {
+        throw new RunNodeResolutionIntegrityException('Shrine modifier effect is invalid.');
+      }
+      try {
+        $modifier = $this->content->runModifier($modifierId);
+        if (($modifier['kind'] ?? null) !== 'next_combat_attack_bonus'
+          || ($modifier['remaining_combats'] ?? null) !== 1) {
+          throw new RunNodeResolutionIntegrityException('Shrine modifier definition is unsupported.');
+        }
+        $instanceId = $this->modifiers->create((int)$run['id'], (int)$node['id'], $modifierId);
+        return new RunNodeResolutionOutcome('shrine', [
+          'encounter_id' => $encounterId, 'action_id' => $actionId,
+          'hp_changes' => [],
+          'created_modifier' => ['id' => (string)$instanceId, 'modifier_id' => $modifierId,
+            'remaining_combats' => 1],
+        ]);
+      } catch (RunNodeResolutionIntegrityException $e) {
+        throw $e;
+      } catch (Throwable $e) {
+        throw new RunNodeResolutionIntegrityException('Shrine modifier creation failed.', 0, $e);
+      }
+    }
     if (!in_array($type, ['restore_participating_units_to_max', 'damage_all_participating_units'], true)
       || ($type === 'restore_participating_units_to_max' && count($effect) !== 1)
       || ($type === 'damage_all_participating_units'

@@ -9,6 +9,7 @@ use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Content\ContentValidationException;
 use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Repositories\RunPersistenceRepository;
+use DiceGoblins\Repositories\RunModifierRepository;
 use JsonException;
 
 final class CurrentRunQuery
@@ -19,6 +20,7 @@ final class CurrentRunQuery
     private readonly RunPersistenceRepository $runs,
     private readonly PlayerStateRepository $playerState,
     private readonly ContentRegistry $content,
+    private readonly RunModifierRepository $modifiers,
   ) {}
 
   /** @return array{run:?array<string,mixed>,player_revision:int} */
@@ -33,6 +35,25 @@ final class CurrentRunQuery
     $nodes = $this->mapNodes($this->runs->listNodes($runId), $runId, (string)$root['region_id']);
     $edges = $this->mapEdges($this->runs->listEdges($runId), $runId, $nodes);
     $units = $this->mapUnits($this->runs->listParticipatingUnits($runId), $runId, $userId);
+    $modifiers = [];
+    foreach ($this->modifiers->listActive($runId) as $row) {
+      $source = array_values(array_filter($nodes, static fn(array $node): bool => $node['id'] === (string)$row['source_node_id']));
+      if ((int)$row['id'] < 1 || (int)$row['run_id'] !== $runId || (int)$row['remaining_combats'] !== 1
+        || count($source) !== 1 || $source[0]['status'] !== 'completed') {
+        throw new CurrentRunIntegrityException('Active run modifier state is invalid.');
+      }
+      try {
+        $definition = $this->content->runModifier((string)$row['modifier_id']);
+      } catch (ContentValidationException) {
+        throw new CurrentRunIntegrityException('Active run modifier content is invalid.');
+      }
+      if ($definition['kind'] !== 'next_combat_attack_bonus') {
+        throw new CurrentRunIntegrityException('Active run modifier kind is invalid.');
+      }
+      $modifiers[] = ['id' => (string)$row['id'], 'modifier_id' => $definition['id'],
+        'display_name' => $definition['display_name'], 'description' => $definition['description'],
+        'remaining_combats' => 1];
+    }
 
     return [
       'run' => [
@@ -46,6 +67,7 @@ final class CurrentRunQuery
         'available_node_ids' => array_values(array_map(static fn(array $node): string => $node['id'],
           array_filter($nodes, static fn(array $node): bool => $node['status'] === 'available'))),
         'units' => $units,
+        ...($modifiers !== [] ? ['modifiers' => $modifiers] : []),
       ],
       'player_revision' => (int)$state['player_revision'],
     ];

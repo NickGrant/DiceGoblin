@@ -179,7 +179,7 @@ async function installGameFixtureRoutes(page, options) {
   }));
   const battleScenes = ['battle-early', 'battle-mid', 'battle-complete', 'battle-compact', 'battle-wide', 'battle-portrait', 'battle-defeat',
     'battle-result-victory', 'battle-result-defeat', 'battle-result-stalemate', 'battle-result-compact', 'battle-result-wide', 'battle-result-error', 'battle-result-portrait'];
-  const runScenes = ['run', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-branching',
+  const runScenes = ['run', 'run-modifier', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-branching',
     'run-loot-available', 'run-loot-result', 'run-rest-available', 'run-rest-result',
     'run-hazard-available', 'run-hazard-result', 'run-supplies'];
   if (!['camp', 'camp-portrait', 'warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'unit-promotion', 'squad-editor', 'unit-configuration', ...runScenes, ...battleScenes].includes(scene)) return;
@@ -400,7 +400,9 @@ async function installGameFixtureRoutes(page, options) {
         run: { id: '401', region_id: hazardScene ? 'region.mountains' : 'region.the_farm', squad_id: '301', status: 'active', created_at: '2026-09-13T12:00:00Z',
           nodes, edges, available_node_ids: nodes.filter((node) => node.status === 'available').map((node) => node.id),
           units: activeFormation.filter(Boolean).map((unit_id, index) => ({ unit_id, current_hp: hazardScene
-            ? resolvedStage === 'hazard' && index === 0 ? 9 : 12 : restCompleted ? 24 + index : index === 0 ? 0 : 12 })) },
+            ? resolvedStage === 'hazard' && index === 0 ? 9 : 12 : restCompleted ? 24 + index : index === 0 ? 0 : 12 })),
+          ...(scene === 'run-modifier' ? { modifiers: [{ id: '701', modifier_id: 'modifier.test_battle_focus',
+            display_name: 'Battle Focus', description: 'Warband Attack rises in the next battle.', remaining_combats: 1 }] } : {}) },
         player_revision: resolvedStage === 'combat' ? 3 : resolvedStage === 'loot' ? 4 : 5,
       } };
     };
@@ -671,7 +673,7 @@ async function captureScene(options) {
             { timeout: options.timeoutMs },
           );
         }
-        if (['camp', 'camp-portrait', 'warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'unit-promotion', 'squad-editor', 'unit-configuration', 'run', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-branching',
+        if (['camp', 'camp-portrait', 'warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'unit-promotion', 'squad-editor', 'unit-configuration', 'run', 'run-modifier', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-branching',
             'run-loot-available', 'run-loot-result', 'run-rest-available', 'run-rest-result',
             'run-hazard-available', 'run-hazard-result', 'run-supplies',
           'battle-early', 'battle-mid', 'battle-complete', 'battle-compact', 'battle-wide', 'battle-portrait', 'battle-defeat',
@@ -680,7 +682,7 @@ async function captureScene(options) {
           const requestedGameScreen = options.scene.trim().toLowerCase();
           const gameScreen = ['warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'unit-promotion', 'squad-editor', 'unit-configuration'].includes(requestedGameScreen)
             ? requestedGameScreen : requestedGameScreen.startsWith('battle-') ? 'battle'
-              : ['run', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-branching', 'run-loot-available', 'run-loot-result', 'run-rest-available', 'run-rest-result', 'run-hazard-available', 'run-hazard-result', 'run-supplies'].includes(requestedGameScreen) ? 'run' : 'camp';
+              : ['run', 'run-modifier', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-branching', 'run-loot-available', 'run-loot-result', 'run-rest-available', 'run-rest-result', 'run-hazard-available', 'run-hazard-result', 'run-supplies'].includes(requestedGameScreen) ? 'run' : 'camp';
           await page.waitForSelector(`[data-game-screen="${gameScreen}"]`, { timeout: options.timeoutMs });
           if (gameScreen === 'warband') {
             await page.waitForSelector('[data-warband-ready="true"]', { timeout: options.timeoutMs });

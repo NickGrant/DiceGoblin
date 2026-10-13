@@ -17,6 +17,7 @@ export interface CombatRunNodeResolutionResult extends ResolutionBase {
   readonly battle: { readonly id: string; readonly outcome: ResolvedBattleOutcome; readonly engineVersion: 1;
     readonly playbackVersion: 1; readonly endingRound: number; readonly endingTick: number };
   readonly terminalPlayerHp: Readonly<Record<string, number>>;
+  readonly appliedModifiers?: readonly { readonly id: string; readonly modifierId: string; readonly remainingCombats: 0 }[];
   readonly run: { readonly id: string; readonly status: 'active' | 'failed'; readonly endedAt: string | null };
 }
 
@@ -24,6 +25,7 @@ export interface BossRunNodeResolutionResult extends ResolutionBase {
   readonly resolutionType: 'boss';
   readonly battle: CombatRunNodeResolutionResult['battle'];
   readonly terminalPlayerHp: Readonly<Record<string, number>>;
+  readonly appliedModifiers?: CombatRunNodeResolutionResult['appliedModifiers'];
   readonly run: CombatRunNodeResolutionResult['run'];
   readonly rewards: null | {
     readonly unitXp: readonly { readonly unitId: string; readonly amount: number; readonly levelBefore: number;
@@ -60,6 +62,7 @@ export interface ShrineRunNodeResolutionResult extends ResolutionBase {
   readonly encounterId: string;
   readonly actionId: string;
   readonly hpChanges: readonly { readonly unitId: string; readonly hpBefore: number; readonly hpAfter: number; readonly maxHp: number }[];
+  readonly createdModifier?: { readonly id: string; readonly modifierId: string; readonly remainingCombats: 1 };
   readonly run: ResolvedActiveRun;
 }
 
@@ -170,19 +173,41 @@ function parseBattleFacts(data: Record<string, unknown>): Omit<CombatRunNodeReso
   if (run['status'] !== 'active' && run['status'] !== 'failed') throw new RunNodeResolutionContractError('Resolved run status is invalid.');
   const endedAt = run['ended_at'] === null ? null : timestamp(run['ended_at'], 'Resolved run ended_at');
   if ((run['status'] === 'active') !== (endedAt === null)) throw new RunNodeResolutionContractError('Resolved run lifecycle is incoherent.');
+  const appliedModifiers = parseAppliedModifiers(data['applied_modifiers']);
   return { battle: Object.freeze({ id: id(battle['id'], 'Battle id'), outcome, engineVersion: 1, playbackVersion: 1,
       endingRound: integer(battle['ending_round'], 'Battle ending round'), endingTick: integer(battle['ending_tick'], 'Battle ending tick') }),
     node: base.node, newlyAvailableNodeIds: base.newlyAvailableNodeIds, terminalPlayerHp: Object.freeze(terminalPlayerHp),
-    run: Object.freeze({ id: id(run['id'], 'Resolved run id'), status: run['status'], endedAt }), playerRevision: base.playerRevision };
+    run: Object.freeze({ id: id(run['id'], 'Resolved run id'), status: run['status'], endedAt }), playerRevision: base.playerRevision,
+    ...(appliedModifiers ? { appliedModifiers } : {}) };
+}
+
+function parseAppliedModifiers(value: unknown): CombatRunNodeResolutionResult['appliedModifiers'] {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value) || value.length === 0) throw new RunNodeResolutionContractError('Applied run modifiers are invalid.');
+  let previousId: string | null = null;
+  return Object.freeze(value.map((candidate) => {
+    const row = object(candidate, 'Applied run modifier');
+    exact(row, ['id', 'modifier_id', 'remaining_combats'], 'Applied run modifier');
+    const instanceId = id(row['id'], 'Applied run modifier id');
+    if (previousId !== null && (instanceId.length < previousId.length
+      || (instanceId.length === previousId.length && instanceId <= previousId)))
+      throw new RunNodeResolutionContractError('Applied run modifier IDs must be uniquely ordered.');
+    previousId = instanceId;
+    if (typeof row['modifier_id'] !== 'string' || !/^modifier\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/.test(row['modifier_id'])
+      || row['remaining_combats'] !== 0) throw new RunNodeResolutionContractError('Applied run modifier is invalid.');
+    return Object.freeze({ id: instanceId, modifierId: row['modifier_id'], remainingCombats: 0 as const });
+  }));
 }
 
 function parseCombat(data: Record<string, unknown>): CombatRunNodeResolutionResult {
-  exact(data, ['resolution_type', 'battle', 'node', 'newly_available_node_ids', 'terminal_player_hp', 'run', 'player_revision'], 'Combat resolution data');
+  exact(data, ['resolution_type', 'battle', 'node', 'newly_available_node_ids', 'terminal_player_hp', 'run', 'player_revision',
+    ...(Object.hasOwn(data, 'applied_modifiers') ? ['applied_modifiers'] : [])], 'Combat resolution data');
   return Object.freeze({ resolutionType: 'combat', ...parseBattleFacts(data) });
 }
 
 function parseBoss(data: Record<string, unknown>): BossRunNodeResolutionResult {
-  exact(data, ['resolution_type', 'battle', 'node', 'newly_available_node_ids', 'terminal_player_hp', 'rewards', 'run', 'player_revision'], 'Boss resolution data');
+  exact(data, ['resolution_type', 'battle', 'node', 'newly_available_node_ids', 'terminal_player_hp', 'rewards', 'run', 'player_revision',
+    ...(Object.hasOwn(data, 'applied_modifiers') ? ['applied_modifiers'] : [])], 'Boss resolution data');
   const facts = parseBattleFacts(data);
   if (data['rewards'] === null) {
     if (facts.battle.outcome === 'victory') throw new RunNodeResolutionContractError('Boss victory rewards are missing.');
@@ -291,17 +316,28 @@ function parseHazard(data: Record<string, unknown>): HazardRunNodeResolutionResu
 }
 
 function parseShrine(data: Record<string, unknown>): ShrineRunNodeResolutionResult {
+  const createsModifier = Object.hasOwn(data, 'created_modifier');
   exact(data, ['resolution_type', 'encounter_id', 'action_id', 'hp_changes',
-    'node', 'newly_available_node_ids', 'run', 'player_revision'], 'Shrine resolution data');
-  return Object.freeze({ resolutionType: 'shrine', ...parseHpAction(data, 'Shrine') });
+    'node', 'newly_available_node_ids', 'run', 'player_revision',
+    ...(createsModifier ? ['created_modifier'] : [])], 'Shrine resolution data');
+  const facts = parseHpAction(data, 'Shrine', createsModifier);
+  if (!createsModifier) return Object.freeze({ resolutionType: 'shrine', ...facts });
+  const raw = object(data['created_modifier'], 'Created run modifier');
+  exact(raw, ['id', 'modifier_id', 'remaining_combats'], 'Created run modifier');
+  if (typeof raw['modifier_id'] !== 'string' || !/^modifier\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/.test(raw['modifier_id'])
+    || raw['remaining_combats'] !== 1) throw new RunNodeResolutionContractError('Created run modifier is invalid.');
+  return Object.freeze({ resolutionType: 'shrine', ...facts,
+    createdModifier: Object.freeze({ id: id(raw['id'], 'Created modifier id'),
+      modifierId: raw['modifier_id'], remainingCombats: 1 as const }) });
 }
 
-function parseHpAction(data: Record<string, unknown>, family: string): Omit<ShrineRunNodeResolutionResult, 'resolutionType'> {
+function parseHpAction(data: Record<string, unknown>, family: string, allowEmpty = false): Omit<ShrineRunNodeResolutionResult, 'resolutionType'> {
   if (typeof data['encounter_id'] !== 'string' || !/^encounter\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/.test(data['encounter_id'])
     || typeof data['action_id'] !== 'string' || !/^[a-z][a-z0-9_]*$/.test(data['action_id']))
     throw new RunNodeResolutionContractError(`${family} encounter action is invalid.`);
   const base = common(data); const raw = data['hp_changes'];
-  if (!Array.isArray(raw) || raw.length === 0) throw new RunNodeResolutionContractError(`${family} HP transitions are invalid.`);
+  if (!Array.isArray(raw) || (raw.length === 0) !== allowEmpty)
+    throw new RunNodeResolutionContractError(`${family} HP transitions are invalid.`);
   let prior: string | null = null;
   const hpChanges = raw.map((value) => {
     const row = object(value, `${family} HP transition`);

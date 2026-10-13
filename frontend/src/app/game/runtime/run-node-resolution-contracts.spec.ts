@@ -68,6 +68,29 @@ describe('run node resolution contracts', () => {
     expect(() => parseRunNodeResolutionEnvelope(inconsistent)).toThrowError(RunNodeResolutionContractError);
   });
 
+  it('parses modifier creation and consumption receipts without private tuning', () => {
+    const shrine: any = { ok: true, data: { resolution_type: 'shrine', encounter_id: 'encounter.test_modifier_shrine',
+      action_id: 'focus', hp_changes: [], created_modifier: { id: '71', modifier_id: 'modifier.test_battle_focus', remaining_combats: 1 },
+      node: { id: '12', status: 'completed', completed_at: '2026-09-17T12:01:00Z' },
+      newly_available_node_ids: ['13'], run: { id: '41', status: 'active', ended_at: null }, player_revision: 8 } };
+    const created = parseRunNodeResolutionEnvelope(shrine);
+    expect(created.resolutionType).toBe('shrine');
+    if (created.resolutionType !== 'shrine') throw new Error('Expected Shrine result.');
+    expect(created.createdModifier).toEqual({ id: '71', modifierId: 'modifier.test_battle_focus', remainingCombats: 1 });
+    const combat: any = envelope();
+    combat.data.applied_modifiers = [{ id: '71', modifier_id: 'modifier.test_battle_focus', remaining_combats: 0 }];
+    const consumed = parseRunNodeResolutionEnvelope(combat);
+    expect(consumed.resolutionType).toBe('combat');
+    if (consumed.resolutionType !== 'combat') throw new Error('Expected Combat result.');
+    expect(consumed.appliedModifiers).toEqual([{ id: '71', modifierId: 'modifier.test_battle_focus', remainingCombats: 0 }]);
+    for (const [source, mutate] of [
+      [shrine, (copy: any) => copy.data.created_modifier.attack_bonus = 2],
+      [combat, (copy: any) => copy.data.applied_modifiers[0].attack_bonus = 2],
+      [combat, (copy: any) => copy.data.applied_modifiers[0].remaining_combats = 1],
+    ] as const) { const invalid = structuredClone(source); mutate(invalid);
+      expect(() => parseRunNodeResolutionEnvelope(invalid)).toThrowError(RunNodeResolutionContractError); }
+  });
+
   it('parses a finalized Chaos outcome without exposing its table, weights, or effects', () => {
     const response = { ok: true, data: { resolution_type: 'chaos',
       encounter_id: 'encounter.test_chaos', action_id: 'accept', outcome_id: 'wound',

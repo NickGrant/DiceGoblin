@@ -40,6 +40,7 @@ final class CombatSnapshotAssembler
     array $runUnits,
     string $encounterId,
     string $seed,
+    int $attackBonus = 0,
   ): AssembledCombat {
     try {
       $formation = $this->squads->listFormationRowsForSquad($squadId, true);
@@ -119,8 +120,13 @@ final class CombatSnapshotAssembler
         }
 
         $key = 'player_p' . $position;
+        $combatStats = $resolved->toArray();
+        if ($attackBonus < 0 || $attackBonus > 1000 || $combatStats['attack'] > 1000000000 - $attackBonus) {
+          throw new CombatResolutionIntegrityException('Run combat modifier exceeds the supported attack boundary.');
+        }
+        $combatStats['attack'] += $attackBonus;
         $players[] = ['key' => $key, 'side' => 'player', 'position' => CombatFormationPosition::fromSquadPosition($position),
-          'stats' => $resolved->toArray(), 'max_hp' => $resolved->hp, 'current_hp' => $currentHp,
+          'stats' => $combatStats, 'max_hp' => $resolved->hp, 'current_hp' => $currentHp,
           'active_abilities' => $active, 'passive_abilities' => $passives, 'statuses' => []];
         $manifest[] = ['combatant_key' => $key, 'side' => 'player', 'unit_id' => $unitId,
           'unit_type_id' => (string)$detail['unit_type_id'], 'enemy_unit_type_id' => null,
