@@ -7,39 +7,25 @@ Read this for sequencing/planning or when closing/promoting an execution package
 **Status:** Active
 
 ### Related Issues
-- Milestone 10 Package 8 - Phaser RunScene branching/encounter interaction integration
+- Milestone 10 Package 9 - Run-encounter-depth integrated verification/technical closure
 
-Milestone 1 - Walking Skeleton is complete and passed manual user UAT.
+Milestones 1-9 are complete and passed their required manual UAT.
 
-Milestone 2 - Warband is complete and passed manual user UAT on 2026-09-13.
+Milestone 10 Package 1 - Branch-capable run topology and route-choice foundation is approved at `86c88987aaf14391660cb3b868cd10e537dd19d8` after the exploration-frontier correction.
 
-Milestone 3 - Enter Farm is complete and passed manual user UAT on 2026-09-15.
+Milestone 10 Package 2 - Generalized non-combat encounter contract and Rest migration is approved through correction `f782b368e3bc1e4672bcec886bf3a29263e5baf8`.
 
-Milestone 4 - Combat is complete and passed manual user UAT on 2026-09-17.
+Milestone 10 Package 3 - Hazard encounter foundation is approved through correction `31b53b106d84edf2db846ec971877080e08aac9f`.
 
-Milestone 5 - Complete Farm is complete and passed manual user UAT on 2026-09-19.
+Milestone 10 Package 4 - Shrine encounter foundation is approved through correction `c121a67a4903637424c68fb9347f9f9192f4c2e5`.
 
-Milestone 6 - Prove Region Generalization is complete and passed manual user UAT on 2026-09-25. Integrated technical closure was approved at `5c8548d8b70f10d16470a564c53d13d48d10b3e2`; UAT playback corrections through `bb49a28b41381b8ececb7fb3cf74b3a346d2116a` passed final review and Full Verification (backend 792 / 1,626 assertions; frontend 481).
+Milestone 10 Package 5 - Chaos encounter foundation is approved at `32caee03565d2c86c0f54e50f076975f13ea806b`.
 
-Milestone 7 - Economy and Inventory is complete and passed focused manual user UAT on 2026-09-28. Technical closure was approved at `e59b58e709892cc0a72e609576800dc45115813e`; UAT corrections through `ba21115247ee862a739f07906c5e1df0f304e2b7` fixed economy-screen navigation, Warband dice-confirmation layering, and shared Teeth/Shop state.
+Milestone 10 Package 6 - Run-scoped modifier model + authoritative application is approved through correction `736f5211a6e2fff1838fa5c6ec779e229f7368d6`.
 
-Milestone 8 - Permanent Progression is complete and passed focused manual user UAT on 2026-10-05. Technical closure was approved at `6314877766187931124c4d8fa5013da02354adfc`; Package 7 UAT passed with no blocking findings requiring a correction package.
+Milestone 10 Package 7 - Contextual consumables + multi-step encounter interaction is approved through verification correction `bad02a8b80b18d7689faaa6b42db92ffc45395e6`. The correction also repaired canonical backend PHPUnit discovery so the complete suite is enumerated reliably.
 
-Milestone 9 - Kin and Wrong Machine is complete and passed focused manual user UAT on 2026-10-10. Technical closure was approved at `8e8701c7fb071b7513fbcac4ac3da62e266f6f8e`; Package 5 basic focused UAT passed with no blocking findings requiring a correction package.
-
-Milestone 10 Package 1 - Branch-capable run topology and route-choice foundation is approved at `86c88987aaf14391660cb3b868cd10e537dd19d8` after the exploration-frontier correction. The accepted model preserves other available nodes after a resolution, supports optional dead ends and convergence, and keeps the authoritative frontier persisted/reconnect-safe.
-
-Milestone 10 Package 2 - Generalized non-combat encounter contract and Rest migration is approved through correction `f782b368e3bc1e4672bcec886bf3a29263e5baf8`. The accepted model projects authorized non-combat interactions from persisted authored encounter associations rather than Rest-specific query logic, keeps effects server-private, and preserves the shared authoritative resolution/idempotency boundary.
-
-Milestone 10 Package 3 - Hazard encounter foundation is approved through correction `31b53b106d84edf2db846ec971877080e08aac9f`. Mountains now proves continuing-path and optional-dead-end Hazards through the shared non-combat boundary; random participant targeting is server-owned, receipt-stable, and independent of persistence ordering. Farm remains unchanged.
-
-Milestone 10 Package 4 - Shrine encounter foundation is approved through correction `c121a67a4903637424c68fb9347f9f9192f4c2e5`. Test-only Shrine fixtures prove multi-choice authoritative resolution through the shared non-combat boundary using immediate HP effects, without bypassing the canonical reward model or adding production Shrine content to Farm or Mountains.
-
-Milestone 10 Package 5 - Chaos encounter foundation is approved at `32caee03565d2c86c0f54e50f076975f13ea806b`. Test-only Chaos fixtures prove server-owned weighted random outcomes with stable authored outcome IDs, receipt-finalized selection, exact HP transitions, replay without reroll, and no production Chaos content in Farm or Mountains.
-
-Milestone 10 Package 6 - Run-scoped modifier model + authoritative application is approved through correction `736f5211a6e2fff1838fa5c6ec779e229f7368d6`. The accepted model uses narrow authored next-combat Attack modifiers persisted as run-owned instances, applies them authoritatively to Combat/Boss assembly, consumes them only on victory, preserves them on defeat/stalemate while isolating failed runs, and keeps tuning server-private.
-
-Milestone 10 Package 7 - Contextual consumables + multi-step encounter interaction is approved through verification correction `bad02a8b80b18d7689faaa6b42db92ffc45395e6`. The accepted model uses minimal run-node-owned step identity, authoritative inventory gating/consumption, intermediate unresolved interaction receipts, reload-safe reconstruction, and exact-key replay. The correction also repaired canonical backend PHPUnit discovery so all `*Test.php` files are enumerated on the Windows Docker bind mount.
+Milestone 10 Package 8 - Phaser RunScene branching/encounter interaction integration is approved at `a91fbece6e989c2a468fbafe88b1eb02553a3dfc`. RunScene now presents the authoritative exploration graph/frontier, generic multi-action and persisted-step encounters, narrow modifier/result facts, authoritative rejection/reload recovery, and responsive branching layouts without family-specific Shrine/Chaos dispatch or production content expansion.
 
 The major game-wide visual/UI overhaul remains intentionally deferred.
 
@@ -65,7 +51,7 @@ Knowledge/objectives remain Milestone 11. Mystic Cave/onboarding remains Milesto
 - Phaser `RunScene` presents authoritative available routes/actions and reconciles mutation receipts; it does not predict hidden outcomes or fabricate route availability.
 - The authoritative exploration frontier is explicit and reconnect-safe. Resolving one available node does not consume other available nodes; a player may not resolve an arbitrary generated node merely because its identifier is known.
 - Reuse the existing idempotency/retry, reward, inventory, energy, unit-state, and run persistence boundaries where semantically valid.
-- Multi-step encounters should persist only the minimal durable state needed to resume safely; avoid encounter-specific persistence tables unless the shared run/node model cannot represent the accepted semantics.
+- Multi-step encounters persist only the minimal durable state needed to resume safely.
 - Farm remains the fixed linear tutorial graph: Combat -> Loot -> Rest -> Boss -> Exit.
 - Mountains is the first production region to introduce exploration branching and Hazards while retaining the Farm vocabulary; Shrine and Chaos encounters are not Mountains content.
 - Swamp is the first planned production region to add Shrine and Chaos to the encounter vocabulary. Later regions may use the full encounter array.
@@ -74,26 +60,20 @@ Knowledge/objectives remain Milestone 11. Mystic Cave/onboarding remains Milesto
 
 ### Package Queue
 
-1. **Branch-capable run topology + route-choice foundation.** Approved at `86c88987aaf14391660cb3b868cd10e537dd19d8` after exploration-frontier correction.
+1. **Branch-capable run topology + route-choice foundation.** Approved at `86c88987aaf14391660cb3b868cd10e537dd19d8`.
 2. **Generalized non-combat encounter contract + Rest migration.** Approved through `f782b368e3bc1e4672bcec886bf3a29263e5baf8`.
 3. **Hazard encounter foundation.** Approved through `31b53b106d84edf2db846ec971877080e08aac9f`.
 4. **Shrine encounter foundation.** Approved through `c121a67a4903637424c68fb9347f9f9192f4c2e5`.
 5. **Chaos encounter foundation.** Approved at `32caee03565d2c86c0f54e50f076975f13ea806b`.
 6. **Run-scoped modifier model + authoritative application.** Approved through `736f5211a6e2fff1838fa5c6ec779e229f7368d6`.
 7. **Contextual consumables + multi-step encounter interaction.** Approved through `bad02a8b80b18d7689faaa6b42db92ffc45395e6`.
-8. **Phaser RunScene branching/encounter interaction integration.** Current.
-9. **Run-encounter-depth integrated verification/technical closure.** Planned.
+8. **Phaser RunScene branching/encounter interaction integration.** Approved at `a91fbece6e989c2a468fbafe88b1eb02553a3dfc`.
+9. **Run-encounter-depth integrated verification/technical closure.** Current.
 10. **Focused manual UAT before Milestone 11.** Planned.
 
 ### Sequencing Notes
 
-- Package 1 established authoritative exploration-frontier topology so later encounter types can rely on explicit reachable-node semantics.
-- Package 2 established the generic authored non-combat interaction/read/resolution boundary and migrated Rest through it.
-- Package 3 added Hazards through that shared boundary and uses Mountains as the first production encounter/topology expansion; Farm remains the fixed tutorial.
-- Package 4 proved multi-choice Shrine resolution with test-only fixtures; it did not add production Shrines or create a parallel reward path.
-- Package 5 proved receipt-stable server-owned Chaos randomness with test-only fixtures; Farm and Mountains remain Chaos-free and Swamp remains the first planned production region for Chaos.
-- Package 6 established narrow run-owned next-combat modifiers with authoritative Combat/Boss application, victory-only consumption, failed-run isolation, reconnect-safe projection, and receipt-stable lifecycle semantics.
-- Package 7 adds contextual consumable and multi-step interaction only after encounter and modifier boundaries are stable. Keep it narrowly focused on the minimum reusable interaction/progress state needed to prove resumable encounter steps and authoritative inventory consumption; do not manufacture production Shrine/Chaos content in Farm or Mountains.
-- Package 8 completes player-facing Phaser integration across branching and the new encounter types.
-- Package 9 proves the complete production-composed slice, persistence/reload/retry behavior, regression safety, and responsive capture coverage. Before Package 9 closure, rationalize the canonical test suite: remove obsolete completed-prototype migration tests, replace brittle whole-catalog/count assertions with invariant/contract checks, and retain exact content snapshots only where authored topology itself is the accepted contract.
+- Packages 1-7 established the authoritative exploration, encounter, randomness, modifier, contextual-consumable, and resumable interaction contracts.
+- Package 8 completed the player-facing generic RunScene integration across those contracts while preserving server authority and responsive presentation.
+- Package 9 proves the complete production-composed slice, persistence/reload/retry behavior, regression safety, responsive capture coverage, and performs the approved test-suite rationalization: remove obsolete permanently skipped prototype coverage whose behavior has accepted vNext replacements, replace brittle whole-catalog/count assertions with durable invariants, and retain exact authored-content assertions only where the content shape itself is a canonical product contract.
 - Package 10 is manual UAT. Do not begin Milestone 11 until it passes and the user explicitly confirms promotion.
