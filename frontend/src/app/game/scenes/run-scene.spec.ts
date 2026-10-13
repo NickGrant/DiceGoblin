@@ -191,6 +191,19 @@ describe('RunScene lifecycle shell', () => {
     expect(reentered.startup.store.currentRun.data?.availableNodeIds).toEqual(['12', '13']);
   });
 
+  it('shows both authoritative branch choices and refuses locked or completed selections', async () => {
+    const { scene } = await readyHarness(branchRun());
+    const text = attachRenderHarness(scene);
+    (scene as unknown as { render(): void }).render();
+    expect(text.filter((value) => value === 'READY').length).toBe(2);
+    expect(text).toContain('LOCKED');
+    expect(text).toContain('COMPLETED');
+    scene.selectNode('11'); expect(scene.selectedMapNodeId).toBe('11');
+    scene.selectNode('12'); expect(scene.selectedMapNodeId).toBe('12');
+    scene.selectNode('13'); expect(scene.selectedMapNodeId).toBe('12');
+    scene.selectNode('10'); expect(scene.selectedMapNodeId).toBe('10'); // Completed battle replay is allowed.
+  });
+
   it('retries Loot run, node, and discriminator mismatches with the exact original attempt identity', async () => {
     const createKey = jasmine.createSpy('createKey').and.returnValues('run-node:first', 'run-node:second');
     const { scene, startup, api } = await readyHarness(lootAvailableRun(), createKey);
@@ -311,6 +324,40 @@ describe('RunScene lifecycle shell', () => {
     expect(text).toContain('COMPLETE RITE');
   });
 
+  it('does not invent a contextual action from a locally owned inventory item', async () => {
+    const initial = shrineAvailableRun();
+    const run: CurrentRun = { ...initial, nodes: initial.nodes.map((node) => node.id === '12'
+      ? { ...node, interaction: { encounterId: 'encounter.test_contextual_shrine', title: 'Wick Shrine',
+        body: 'A rite awaits.', prompt: 'Choose.', actions: [{ id: 'continue', label: 'CONTINUE' }] } } : node) };
+    const { scene, startup, api } = await readyHarness(run);
+    api.getItems.and.resolveTo({ ok: true, data: { items: [{ item_id: 'item.test.heal', quantity: 2 }] } });
+    await startup.store.loadItems(api, content());
+    const text = attachRenderHarness(scene);
+    scene.selectNode('12');
+    expect(text).toContain('CONTINUE');
+    expect(text).not.toContain('OFFER WICK');
+    await scene.activateSelectedNonCombat('offer_wick');
+    expect(api.resolveRunNode).not.toHaveBeenCalled();
+  });
+
+  it('refreshes a definitively rejected action and retries only a failed read', async () => {
+    const { scene, startup, api } = await readyHarness(hazardAvailableRun());
+    spyOn<any>(scene, 'render').and.stub(); scene.selectNode('12');
+    api.resolveRunNode.and.rejectWith(new RuntimeApiError('http', 409, 'run_node_unavailable'));
+    api.getCurrentRun.and.returnValues(Promise.reject(new RuntimeApiError('network')),
+      Promise.resolve({ run: hazardCompletedRun(), playerRevision: 8 }));
+    await scene.activateSelectedNonCombat('cross');
+    expect(scene.nodeActionState).toBe('rejected');
+    expect(scene.resolvedNodeSyncState).toBe('sync-error');
+    scene.selectNode('13'); expect(scene.selectedMapNodeId).toBe('12');
+    await scene.retryNodeSync();
+    expect(scene.resolvedNodeSyncState).toBe('succeeded');
+    expect(startup.store.currentRun.data?.availableNodeIds).toEqual(['13', '14']);
+    expect(api.resolveRunNode).toHaveBeenCalledTimes(1);
+    expect(api.getCurrentRun).toHaveBeenCalledTimes(3);
+    scene.selectNode('13'); expect(scene.selectedMapNodeId).toBe('13');
+  });
+
   it('submits a Chaos interaction through the generic action path and reloads finalized HP', async () => {
     const { scene, startup, api } = await readyHarness(chaosAvailableRun());
     const textValues = attachRenderHarness(scene);
@@ -326,6 +373,30 @@ describe('RunScene lifecycle shell', () => {
       { encounterId: 'encounter.test_chaos', actionId: 'accept' });
     expect(startup.store.currentRun.data?.units[0].currentHp).toBe(3);
     expect(scene.resolvedNodeSyncState).toBe('succeeded');
+    expect(textValues.join(' ')).toContain('Chaos resolved: wound.');
+    expect(textValues.join(' ')).not.toContain('weight');
+  });
+
+  it('shows only narrow active modifier facts from the current run', async () => {
+    const run: CurrentRun = { ...branchRun(), modifiers: [{ id: '71', modifierId: 'modifier.test_battle_focus',
+      displayName: 'Battle Focus', description: 'Next battle only.', remainingCombats: 1 }] };
+    const { scene } = await readyHarness(run);
+    const text = attachRenderHarness(scene);
+    (scene as unknown as { render(): void }).render();
+    expect(text).toContain('Battle Focus (1 battle)');
+    expect(text.join(' ')).not.toContain('attack_bonus');
+  });
+
+  it('leaves no actionable run nodes after an authoritative terminal current-run read', async () => {
+    const { scene, startup, api, sceneStart } = await readyHarness(branchRun());
+    spyOn<any>(scene, 'render').and.stub();
+    api.getCurrentRun.and.resolveTo({ run: null, playerRevision: 8 });
+    await startup.store.retryCurrentRun(api, content());
+    (scene as unknown as { handleRunState(): void }).handleRunState();
+    expect(sceneStart).toHaveBeenCalledOnceWith(GAME_SCENE_KEY);
+    expect(startup.store.bootstrap?.active_run).toBeNull();
+    scene.selectNode('11'); await scene.activateSelectedNonCombat();
+    expect(api.resolveRunNode).not.toHaveBeenCalled();
   });
 
   it('holds a Hazard retry while the outcome is ambiguous and preserves its action identity', async () => {

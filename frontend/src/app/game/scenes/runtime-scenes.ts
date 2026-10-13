@@ -497,7 +497,8 @@ export class RunScene extends RuntimeScene {
   get combatActionState(): RunNodeResolutionAttemptState { return this.nodeAttempt.state; }
   get nodeActionState(): RunNodeResolutionAttemptState { return this.nodeAttempt.state; }
   get routeChoicePending(): boolean {
-    return this.nodeAttempt.state === 'submitting' || this.nodeAttempt.state === 'retryable';
+    return this.nodeAttempt.state === 'submitting' || this.nodeAttempt.state === 'retryable'
+      || this.nodeSyncState === 'syncing';
   }
   get resolvedNodeSyncState(): string { return this.nodeSyncState; }
   get exitReconciliationLocked(): boolean { return this.nodeResult?.resolutionType === 'exit'; }
@@ -535,7 +536,7 @@ export class RunScene extends RuntimeScene {
 
   selectNode(nodeId: string): void {
     if (this.exitReconciliationLocked || this.suppliesOpen || this.abandonState !== 'idle'
-      || this.routeChoicePending
+      || this.routeChoicePending || this.runtimeStartup.store.currentRun.status !== 'fresh'
       || !this.runtimeStartup.store.currentRun.data?.nodes.some((node) => node.id === nodeId
         && (this.runtimeStartup.store.currentRun.data?.availableNodeIds.includes(nodeId)
           || (node.status === 'completed' && node.battleId !== null)))) return;
@@ -545,6 +546,8 @@ export class RunScene extends RuntimeScene {
 
   async activateSelectedCombat(): Promise<void> {
     if (this.exitReconciliationLocked) return;
+    if (this.nodeSyncState === 'sync-error') { await this.retryNodeSync(); return; }
+    if (this.nodeSyncState === 'syncing' || this.runtimeStartup.store.currentRun.status !== 'fresh') return;
     const run = this.runtimeStartup.store.currentRun.data;
     const node = run?.nodes.find((candidate) => candidate.id === this.selectedNodeId);
     const bootstrap = this.runtimeStartup.store.bootstrap;
@@ -578,6 +581,10 @@ export class RunScene extends RuntimeScene {
       else { this.nodeMessage = 'Combat was already resolved. Reload to recover its battle.'; this.render(); }
       return;
     }
+    if (outcome.kind === 'rejected') {
+      await this.refreshAfterNodeRejection(run.id, node.id);
+      return;
+    }
     this.nodeMessage = outcome.kind === 'ambiguous'
       ? 'The result is uncertain. Retry with the same combat attempt.'
       : 'Combat could not be entered. The run cache was not changed.';
@@ -595,7 +602,7 @@ export class RunScene extends RuntimeScene {
     if (!run || !node || !bootstrap || (!node.interaction && node.nodeTypeId !== 'run_node_type.loot'
       && node.nodeTypeId !== 'run_node_type.exit')) return;
     if (this.nodeSyncState === 'sync-error') { await this.retryNodeSync(); return; }
-    if (this.nodeSyncState === 'syncing') return;
+    if (this.nodeSyncState === 'syncing' || this.runtimeStartup.store.currentRun.status !== 'fresh') return;
     if (!run.availableNodeIds.includes(node.id) || node.battleId !== null
       || this.nodeAttempt.state === 'submitting'
       || (this.nodeAttempt.state === 'retryable' && this.nodeAttempt.identity?.nodeId !== node.id)) return;
@@ -660,6 +667,10 @@ export class RunScene extends RuntimeScene {
       await this.syncResolvedNode(run.id, node.id);
       return;
     }
+    if (outcome.kind === 'rejected') {
+      await this.refreshAfterNodeRejection(run.id, node.id);
+      return;
+    }
     this.nodeMessage = outcome.kind === 'ambiguous'
       ? 'The result is uncertain. Retry with the same node attempt.'
       : 'This location could not be resolved. The run cache was not changed.';
@@ -670,7 +681,26 @@ export class RunScene extends RuntimeScene {
     const identity = this.nodeSyncIdentity;
     if (!identity || this.nodeSyncState !== 'sync-error') return;
     if (this.nodeResult?.resolutionType === 'exit') { await this.syncExitBootstrap(this.nodeResult); return; }
+    if (!this.nodeResult) { await this.refreshAfterNodeRejection(identity.runId, identity.nodeId); return; }
     await this.syncResolvedNode(identity.runId, identity.nodeId);
+  }
+
+  private async refreshAfterNodeRejection(runId: string, nodeId: string): Promise<void> {
+    const content = this.runtimeStartup.contentRegistry;
+    if (!content) return;
+    this.nodeResult = null;
+    this.nodeSyncIdentity = { runId, nodeId };
+    this.nodeSyncState = 'syncing';
+    this.nodeMessage = 'The server rejected that action. Checking the current run...';
+    this.render();
+    await this.runtimeStartup.store.retryCurrentRun(this.runtimeStartup.apiClient, content);
+    if (this.runtimeStartup.store.currentRun.status === 'fresh'
+      && this.runtimeStartup.store.currentRun.data === null) return;
+    this.nodeSyncState = this.runtimeStartup.store.currentRun.status === 'fresh' ? 'succeeded' : 'sync-error';
+    this.nodeMessage = this.nodeSyncState === 'succeeded'
+      ? 'Run updated. Choose an available location.'
+      : 'The run could not be refreshed. Retry synchronization.';
+    this.render();
   }
 
   private async syncExitBootstrap(result: ExitRunNodeResolutionResult): Promise<void> {
@@ -826,7 +856,8 @@ export class RunScene extends RuntimeScene {
     }
 
     const presentation = createRunMapPresentation(run, content);
-    const layout = createRunMapLayout(snapshot, presentation);
+    const selected = presentation.nodes.find((node) => node.id === this.selectedNodeId);
+    const layout = createRunMapLayout(snapshot, presentation, selected?.interaction?.actions.length ?? 1);
     this.renderMap(root, layout, presentation.regionName);
     if (this.abandonState !== 'idle') this.renderAbandonConfirmation(root, layout.confirmation);
     else if (this.suppliesOpen) this.renderSupplies(root, layout.confirmation);
@@ -871,7 +902,7 @@ export class RunScene extends RuntimeScene {
         this.selectedNodeId === node.id ? 0xffffff : colors.border, 1);
       graphic.strokeCircle(node.centerX, node.centerY, node.radius);
       if (this.abandonState === 'idle' && !this.suppliesOpen && !this.exitReconciliationLocked
-        && !this.routeChoicePending
+        && !this.routeChoicePending && this.runtimeStartup.store.currentRun.status === 'fresh'
         && (node.isReachable || (node.status === 'completed' && node.battleId !== null))) {
         graphic.setInteractive(new Phaser.Geom.Circle(node.centerX, node.centerY, node.radius), Phaser.Geom.Circle.Contains)
           .on('pointerup', () => this.selectNode(node.id));
@@ -892,7 +923,7 @@ export class RunScene extends RuntimeScene {
     }
     const selected = layout.nodes.find((node) => node.id === this.selectedNodeId);
     const multipleActions = (selected?.interaction?.actions.length ?? 0) > 1;
-    const detail = this.add.text(layout.panel.x + layout.panel.width / 2, layout.detailY - (multipleActions ? 70 : 0),
+    const detail = this.add.text(layout.panel.x + layout.panel.width / 2, layout.detailY,
       selected ? `${selected.name} · ${selected.statusLabel} — ${selected.description}`
         : 'Select a location for details. Ready locations are not entered yet.', {
         color: '#b9d3bb', fontFamily: 'system-ui, sans-serif', fontSize: compact ? '26px' : '16px',
@@ -901,11 +932,14 @@ export class RunScene extends RuntimeScene {
     root.add(detail);
     if (!this.exitReconciliationLocked && selected
       && (selected.nodeTypeId === 'run_node_type.combat' || selected.nodeTypeId === 'run_node_type.boss')) {
-      const canFight = selected.isReachable && selected.battleId === null;
-      const canWatch = selected.status === 'completed' && selected.battleId !== null;
+      const canFight = this.runtimeStartup.store.currentRun.status === 'fresh'
+        && selected.isReachable && selected.battleId === null;
+      const canWatch = this.runtimeStartup.store.currentRun.status === 'fresh'
+        && selected.status === 'completed' && selected.battleId !== null;
       const submitting = this.nodeAttempt.state === 'submitting';
-      if (canFight || canWatch) this.addButton(root, layout.combatButton,
-        canWatch ? 'WATCH / REPLAY BATTLE' : submitting ? 'RESOLVING…' : this.nodeAttempt.state === 'retryable' ? 'RETRY FIGHT'
+      const retrySync = this.nodeSyncState === 'sync-error' && this.nodeSyncIdentity?.nodeId === selected.id;
+      if (canFight || canWatch || retrySync) this.addButton(root, layout.combatButton,
+        retrySync ? 'RETRY SYNC' : canWatch ? 'WATCH / REPLAY BATTLE' : submitting ? 'RESOLVING…' : this.nodeAttempt.state === 'retryable' ? 'RETRY FIGHT'
           : selected.nodeTypeId === 'run_node_type.boss' ? 'FIGHT BOSS' : 'ENTER COMBAT',
         () => void this.activateSelectedCombat(), canWatch ? 0x315d68 : 0x8a5424, !submitting);
     }
@@ -913,16 +947,15 @@ export class RunScene extends RuntimeScene {
       && this.nodeSyncIdentity?.nodeId === selected.id))
       && (selected.interaction || selected.nodeTypeId === 'run_node_type.loot'
         || selected.nodeTypeId === 'run_node_type.exit')) {
-      const available = selected.isReachable && selected.battleId === null;
+      const available = this.runtimeStartup.store.currentRun.status === 'fresh'
+        && selected.isReachable && selected.battleId === null;
       const submitting = this.nodeAttempt.state === 'submitting' || this.nodeSyncState === 'syncing';
       const retrySync = this.nodeSyncState === 'sync-error' && this.nodeSyncIdentity?.nodeId === selected.id;
       if (available || retrySync) {
         const actions = selected.interaction?.actions ?? [];
         if (actions.length > 1 && !retrySync) {
           actions.forEach((action, index) => {
-            const region = this.box(layout.combatButton.x,
-              layout.combatButton.y - (actions.length - index - 1) * (layout.combatButton.height + 12),
-              layout.combatButton.width, layout.combatButton.height);
+            const region = layout.interactionButtons[index];
             const retryable = this.nodeAttempt.state === 'retryable';
             const sameAttempt = this.nodeAttempt.identity?.interaction?.actionId === action.id;
             this.addButton(root, region, submitting ? 'RESOLVING…' : retryable && sameAttempt ? 'RETRY RESOLVE' : action.label,
@@ -1012,7 +1045,8 @@ export class RunScene extends RuntimeScene {
       actionCursor(button);
     }
     const text = this.add.text(region.x + region.width / 2, region.y + region.height / 2, label, { color: enabled ? '#fff4d3' : '#d4c8ae',
-      fontFamily: 'system-ui, sans-serif', fontSize: this.runtimeViewport.snapshot.layoutClass === 'compact' ? '30px' : '17px', fontStyle: 'bold' }).setOrigin(0.5);
+      fontFamily: 'system-ui, sans-serif', fontSize: this.runtimeViewport.snapshot.layoutClass === 'compact' ? '30px' : '17px',
+      fontStyle: 'bold', align: 'center', wordWrap: { width: region.width - 24 } }).setOrigin(0.5);
     root.add([button, text]);
   }
 

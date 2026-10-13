@@ -48,6 +48,7 @@ export interface RunMapLayout {
   readonly returnButton: Bounds;
   readonly abandonButton: Bounds;
   readonly combatButton: Bounds;
+  readonly interactionButtons: readonly Bounds[];
   readonly confirmation: Bounds;
   readonly titleY: number;
   readonly identityY: number;
@@ -99,6 +100,7 @@ export function createRunMapPresentation(run: CurrentRun, content: ClientContent
 export function createRunMapLayout(
   snapshot: RuntimeViewportSnapshot,
   presentation: RunMapPresentation,
+  interactionActionCount = 1,
 ): RunMapLayout {
   const compact = snapshot.layoutClass === 'compact';
   const margin = compact ? 26 : 44;
@@ -110,8 +112,18 @@ export function createRunMapLayout(
     panelWidth,
     panelHeight,
   );
-  const map = bounds(panel.x + (compact ? 74 : 86), panel.y + (compact ? 142 : 138),
-    panel.width - (compact ? 148 : 172), panel.height - (compact ? 355 : 340));
+  const buttonWidth = compact ? 330 : 280;
+  const buttonHeight = compact ? 92 : 58;
+  const buttonY = panel.bottom - buttonHeight - (compact ? 24 : 28);
+  const actionColumns = Math.min(Math.max(interactionActionCount, 1), 3);
+  const actionRows = Math.ceil(interactionActionCount / actionColumns);
+  const multipleActions = interactionActionCount > 1;
+  const actionGap = compact ? 18 : 16;
+  const actionTop = buttonY - (multipleActions ? actionRows * buttonHeight + (actionRows - 1) * actionGap + actionGap : 0);
+  const mapTop = panel.y + (compact ? 142 : 138);
+  const mapBottom = multipleActions ? actionTop - (compact ? 120 : 100) : panel.bottom - (compact ? 314 : 202);
+  const map = bounds(panel.x + (compact ? 74 : 86), mapTop,
+    panel.width - (compact ? 148 : 172), Math.max(180, mapBottom - mapTop));
   const radius = compact ? 55 : 48;
   const columns = presentation.nodes.map((node) => node.position.column);
   const rows = presentation.nodes.map((node) => node.position.row);
@@ -138,18 +150,21 @@ export function createRunMapLayout(
       startX: from.centerX + ux * inset, startY: from.centerY + uy * inset,
       endX: to.centerX - ux * inset, endY: to.centerY - uy * inset });
   });
-  const buttonWidth = compact ? 330 : 280;
-  const buttonHeight = compact ? 92 : 58;
-  const buttonY = panel.bottom - buttonHeight - (compact ? 24 : 28);
+  const actionWidth = Math.min(buttonWidth, (panel.width - 96 - (actionColumns - 1) * actionGap) / actionColumns);
+  const actionRowWidth = actionColumns * actionWidth + (actionColumns - 1) * actionGap;
+  const interactionButtons = Array.from({ length: interactionActionCount }, (_, index) => bounds(
+    panel.x + (panel.width - actionRowWidth) / 2 + (index % actionColumns) * (actionWidth + actionGap),
+    actionTop + Math.floor(index / actionColumns) * (buttonHeight + actionGap), actionWidth, buttonHeight));
   return Object.freeze({ panel, map, nodes: Object.freeze(nodes), edges: Object.freeze(edges),
     returnButton: bounds(panel.x + 38, buttonY, buttonWidth, buttonHeight),
     abandonButton: bounds(panel.right - buttonWidth - 38, buttonY, buttonWidth, buttonHeight),
     combatButton: bounds(panel.x + (panel.width - buttonWidth) / 2, buttonY, buttonWidth, buttonHeight),
+    interactionButtons: Object.freeze(interactionButtons),
     confirmation: bounds(panel.x + (panel.width - Math.min(760, panel.width - 100)) / 2,
       panel.y + (panel.height - Math.min(390, panel.height - 80)) / 2,
       Math.min(760, panel.width - 100), Math.min(390, panel.height - 80)),
     titleY: panel.y + (compact ? 48 : 44), identityY: panel.y + (compact ? 100 : 91),
-    detailY: map.bottom + (compact ? -70 : 30) });
+    detailY: multipleActions ? actionTop - (compact ? 55 : 48) : map.bottom + (compact ? 50 : 30) });
 }
 
 function normalized(value: number, minimum: number, maximum: number): number {

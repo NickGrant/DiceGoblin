@@ -132,3 +132,14 @@ Report:
 - confirmation no production Shrine/Chaos, Swamp, broad visual redesign, or Milestone 11+ scope was introduced.
 
 Leave Package 8 **In Progress** for architectural review. Do not promote Package 9 yourself.
+
+#### Package 8 implementation evidence (review candidate)
+
+- Before implementation, inspected the RunScene/map model and tests, GameStore current-run reconciliation, generic encounter action UI, deterministic capture fixtures, accepted responsive/orientation contract, and Package 1–7 server/client contracts.
+- RunScene renders the server-projected graph, edges, and all available frontier nodes. Locked/completed nodes retain their distinct presentation and action rules. Selecting or resolving one branch preserves other available nodes through authoritative current-run reconciliation; Combat/Boss return continues to refresh the run.
+- Projected non-combat interactions use their server-provided copy and ordered action IDs, including multiple actions and a persisted contextual next step. The client does not infer contextual eligibility from inventory or dispatch by encounter family. Finalized visible result facts and the narrow modifier projection remain client-safe; hidden effects, outcome weights, and modifier tuning are not projected.
+- Mutation submission blocks duplicate input. An ambiguous outcome retains its attempt for exact retry. A definitive rejection refreshes the current run before another action; if that read fails, the retry performs only the read. Stale current-run data cannot be selected or submitted. Terminal state removes stale run actions.
+- Focused RunScene/map-model suites: **44 tests passed**. Added coverage for independent branching nodes, locked/finished selection, contextual eligibility, rejection/read-only recovery, modifier secrecy, terminal actions, and responsive multi-action bounds; existing intermediate-step, idempotency, Combat/Boss, and result tests passed.
+- Deterministic captures passed and were visually inspected at Compact, Standard, and Wide sizes for branching, contextual initial actions, and persisted contextual step (**9 captures**). Compact Rest regression and portrait rotate-device gate captures passed (**2 additional captures**). The Compact map/detail and multi-action bounds were adjusted for legibility without a global visual redesign.
+- `npm run verify:package`: **passed**. LLM/context, docs lint, content validation, backend **1,017 tests / 5,233 assertions**, frontend **562 tests**, frontend production build, bundle check, and diff whitespace check all passed. No backend contract or production authored-content changes were made.
+- No production Shrine/Chaos content, Swamp/Frog Kin, new encounter family/effect scripting, broad visual redesign, Milestone 11+, or Package 9 work was introduced. Package 8 remains **In Progress** for architectural review.

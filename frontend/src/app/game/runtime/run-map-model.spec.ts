@@ -42,11 +42,35 @@ describe('run map model', () => {
         expect(node.centerY - node.radius).toBeGreaterThanOrEqual(layout.map.y);
         expect(node.centerY + node.radius).toBeLessThanOrEqual(layout.map.bottom);
       }
+      expect(layout.detailY).toBeGreaterThan(Math.max(...layout.nodes.map((node) =>
+        node.centerY + node.radius + (snapshot.layoutClass === 'compact' ? 43 : 38))));
       for (const control of [layout.returnButton, layout.abandonButton]) {
         expect(control.x).toBeGreaterThanOrEqual(snapshot.safeBounds.x);
         expect(control.right).toBeLessThanOrEqual(snapshot.safeBounds.right);
         expect(control.bottom).toBeLessThanOrEqual(snapshot.safeBounds.bottom);
       }
+    }
+  });
+
+  it('reserves a separate readable action row for multiple encounter choices at every layout size', () => {
+    const presentation = createRunMapPresentation(run(), content());
+    for (const [width, height, coarsePointer] of [[844, 390, true], [1600, 900, false], [2560, 1080, false]] as const) {
+      const snapshot = calculateRuntimeViewport({ cssWidth: width, cssHeight: height,
+        safeInsetsCss: { top: 0, right: 0, bottom: 0, left: 0 }, coarsePointer, noHover: coarsePointer });
+      const layout = createRunMapLayout(snapshot, presentation, 3);
+      expect(layout.interactionButtons.length).toBe(3);
+      expect(layout.map.bottom).toBeLessThan(layout.detailY);
+      expect(layout.detailY).toBeGreaterThan(Math.max(...layout.nodes.map((node) =>
+        node.centerY + node.radius + (snapshot.layoutClass === 'compact' ? 43 : 38))));
+      expect(layout.detailY).toBeLessThan(layout.interactionButtons[0].y);
+      for (const button of layout.interactionButtons) {
+        expect(button.x).toBeGreaterThanOrEqual(snapshot.safeBounds.x);
+        expect(button.right).toBeLessThanOrEqual(snapshot.safeBounds.right);
+        expect(button.y).toBeGreaterThan(layout.map.bottom);
+        expect(button.bottom).toBeLessThanOrEqual(layout.returnButton.y);
+      }
+      expect(layout.interactionButtons[0].right).toBeLessThan(layout.interactionButtons[1].x);
+      expect(layout.interactionButtons[1].right).toBeLessThan(layout.interactionButtons[2].x);
     }
   });
 

@@ -181,7 +181,7 @@ async function installGameFixtureRoutes(page, options) {
     'battle-result-victory', 'battle-result-defeat', 'battle-result-stalemate', 'battle-result-compact', 'battle-result-wide', 'battle-result-error', 'battle-result-portrait'];
   const runScenes = ['run', 'run-modifier', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-branching',
     'run-loot-available', 'run-loot-result', 'run-rest-available', 'run-rest-result',
-    'run-hazard-available', 'run-hazard-result', 'run-supplies'];
+    'run-hazard-available', 'run-hazard-result', 'run-contextual-initial', 'run-contextual-step', 'run-supplies'];
   if (!['camp', 'camp-portrait', 'warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'unit-promotion', 'squad-editor', 'unit-configuration', ...runScenes, ...battleScenes].includes(scene)) return;
 
   if (battleScenes.includes(scene)) {
@@ -369,7 +369,9 @@ async function installGameFixtureRoutes(page, options) {
   }
   if (runScenes.includes(scene)) {
     const hazardScene = scene.startsWith('run-hazard-');
-    let resolvedStage = ['run-rest-available', 'run-rest-result', 'run-hazard-available', 'run-hazard-result', 'run-branching'].includes(scene) ? 'loot' : 'combat';
+    const contextualScene = scene.startsWith('run-contextual-');
+    let resolvedStage = ['run-rest-available', 'run-rest-result', 'run-hazard-available', 'run-hazard-result',
+      'run-branching', 'run-contextual-initial', 'run-contextual-step'].includes(scene) ? 'loot' : 'combat';
     const runResponse = () => {
       const combatAvailable = scene === 'run-combat-available';
       const branching = scene === 'run-branching';
@@ -378,7 +380,7 @@ async function installGameFixtureRoutes(page, options) {
       const nodes = [
         { id: '501', node_index: 0, node_type_id: 'run_node_type.combat', status: combatAvailable ? 'available' : 'completed', completed_at: combatAvailable ? null : '2026-09-13T12:02:00Z', battle_id: combatAvailable ? null : '601', position: { column: 0, row: 1 } },
         { id: '502', node_index: 1, node_type_id: 'run_node_type.loot', status: combatAvailable ? 'locked' : lootCompleted ? 'completed' : 'available', completed_at: lootCompleted ? '2026-09-13T12:03:00Z' : null, battle_id: null, position: { column: 1, row: branching ? 0 : 1 } },
-        { id: '503', node_index: branching ? 3 : 2, node_type_id: hazardScene ? 'run_node_type.hazard' : 'run_node_type.rest', status: lootCompleted ? restCompleted ? 'completed' : 'available' : 'locked', completed_at: restCompleted ? '2026-09-13T12:04:00Z' : null, battle_id: null, position: { column: 2, row: 1 } },
+        { id: '503', node_index: branching ? 3 : 2, node_type_id: contextualScene ? 'run_node_type.shrine' : hazardScene ? 'run_node_type.hazard' : 'run_node_type.rest', status: lootCompleted ? restCompleted ? 'completed' : 'available' : 'locked', completed_at: restCompleted ? '2026-09-13T12:04:00Z' : null, battle_id: null, position: { column: 2, row: 1 } },
         { id: '504', node_index: branching ? 4 : 3, node_type_id: 'run_node_type.boss', status: restCompleted ? 'available' : 'locked', completed_at: null, battle_id: null, position: { column: 3, row: 1 } },
         { id: '505', node_index: branching ? 5 : 4, node_type_id: 'run_node_type.exit', status: 'locked', completed_at: null, battle_id: null, position: { column: 4, row: 1 } },
       ];
@@ -391,6 +393,16 @@ async function installGameFixtureRoutes(page, options) {
       if (readyHazard) readyHazard.interaction = { encounter_id: 'encounter.mountains_loose_scree', title: 'Loose Scree',
         body: 'The narrow trail gives way beneath the warband.', prompt: 'Cross the unstable slope? One participating unit loses up to 3 HP.',
         actions: [{ id: 'cross', label: 'CROSS SLOPE' }] };
+      const readyContextual = nodes.find((node) => node.node_type_id === 'run_node_type.shrine' && node.status === 'available');
+      if (readyContextual) readyContextual.interaction = scene === 'run-contextual-step'
+        ? { encounter_id: 'encounter.test_contextual_shrine', step_id: 'kindled', title: 'Wick Shrine',
+          body: 'The wick is lit. Its glow steadies the warband as the rite reaches its final choice.',
+          prompt: 'Complete the rite?', actions: [{ id: 'complete_rite', label: 'COMPLETE RITE' }] }
+        : { encounter_id: 'encounter.test_contextual_shrine', title: 'Wick Shrine',
+          body: 'A weathered shrine waits beside the trail. A small offering can kindle its cold lantern.',
+          prompt: 'How will the warband proceed?', actions: [
+            { id: 'continue', label: 'CONTINUE WITHOUT OFFERING' }, { id: 'offer_wick', label: 'OFFER A RITUAL WICK' },
+          ] };
       const edges = [
         { from_node_id: '501', to_node_id: '502' }, { from_node_id: '502', to_node_id: '503' },
         { from_node_id: '503', to_node_id: '504' }, { from_node_id: '504', to_node_id: '505' },
@@ -675,14 +687,14 @@ async function captureScene(options) {
         }
         if (['camp', 'camp-portrait', 'warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'unit-promotion', 'squad-editor', 'unit-configuration', 'run', 'run-modifier', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-branching',
             'run-loot-available', 'run-loot-result', 'run-rest-available', 'run-rest-result',
-            'run-hazard-available', 'run-hazard-result', 'run-supplies',
+            'run-hazard-available', 'run-hazard-result', 'run-contextual-initial', 'run-contextual-step', 'run-supplies',
           'battle-early', 'battle-mid', 'battle-complete', 'battle-compact', 'battle-wide', 'battle-portrait', 'battle-defeat',
           'battle-result-victory', 'battle-result-defeat', 'battle-result-stalemate', 'battle-result-compact', 'battle-result-wide', 'battle-result-error', 'battle-result-portrait'].includes(options.scene.trim().toLowerCase())) {
           await page.waitForSelector('.game-host__mount canvas', { timeout: options.timeoutMs });
           const requestedGameScreen = options.scene.trim().toLowerCase();
           const gameScreen = ['warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'unit-promotion', 'squad-editor', 'unit-configuration'].includes(requestedGameScreen)
             ? requestedGameScreen : requestedGameScreen.startsWith('battle-') ? 'battle'
-              : ['run', 'run-modifier', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-branching', 'run-loot-available', 'run-loot-result', 'run-rest-available', 'run-rest-result', 'run-hazard-available', 'run-hazard-result', 'run-supplies'].includes(requestedGameScreen) ? 'run' : 'camp';
+              : ['run', 'run-modifier', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-branching', 'run-loot-available', 'run-loot-result', 'run-rest-available', 'run-rest-result', 'run-hazard-available', 'run-hazard-result', 'run-contextual-initial', 'run-contextual-step', 'run-supplies'].includes(requestedGameScreen) ? 'run' : 'camp';
           await page.waitForSelector(`[data-game-screen="${gameScreen}"]`, { timeout: options.timeoutMs });
           if (gameScreen === 'warband') {
             await page.waitForSelector('[data-warband-ready="true"]', { timeout: options.timeoutMs });
@@ -735,14 +747,17 @@ async function captureScene(options) {
           if (requestedGameScreen === 'run-combat-available') {
             const canvas = page.locator('.game-host__mount canvas'); const box = await canvas.boundingBox();
             if (!box) throw new Error('Run canvas was unavailable.');
-            await canvas.click({ position: { x: box.width * 225 / 1600, y: box.height * 418 / 900 }, force: true });
+            await canvas.click({ position: { x: box.width * 225 / 1600,
+              y: box.height * (options.height <= 599 ? 340 : 418) / 900 }, force: true });
           }
            if (['run-loot-available', 'run-loot-result', 'run-rest-available', 'run-rest-result',
-             'run-hazard-available', 'run-hazard-result'].includes(requestedGameScreen)) {
+             'run-hazard-available', 'run-hazard-result', 'run-contextual-initial', 'run-contextual-step'].includes(requestedGameScreen)) {
             const canvas = page.locator('.game-host__mount canvas'); const box = await canvas.boundingBox();
             if (!box) throw new Error('Run canvas was unavailable.');
-             const nodeX = requestedGameScreen.startsWith('run-rest-') || requestedGameScreen.startsWith('run-hazard-') ? 800 : options.width <= 900 ? 562 : 512;
-            await canvas.click({ position: { x: box.width * nodeX / 1600, y: box.height * 418 / 900 }, force: true });
+             const nodeX = requestedGameScreen.startsWith('run-rest-') || requestedGameScreen.startsWith('run-hazard-')
+               || requestedGameScreen.startsWith('run-contextual-') ? 800 : options.width <= 900 ? 562 : 512;
+            await canvas.click({ position: { x: box.width * nodeX / 1600,
+              y: box.height * (options.height <= 599 ? 340 : 418) / 900 }, force: true });
             if (requestedGameScreen.endsWith('-result')) {
               await canvas.click({ position: { x: box.width / 2, y: box.height * 800 / 900 }, force: true });
               await page.waitForSelector(`[data-run-node-result="${requestedGameScreen === 'run-loot-result' ? 'loot' : requestedGameScreen === 'run-hazard-result' ? 'hazard' : 'rest'}"]`, { timeout: options.timeoutMs });
