@@ -7,7 +7,7 @@ Read this for sequencing/planning or when closing/promoting an execution package
 **Status:** Active
 
 ### Related Issues
-- Milestone 10 Package 7 - Contextual consumables + multi-step encounter interaction
+- Milestone 10 Package 8 - Phaser RunScene branching/encounter interaction integration
 
 Milestone 1 - Walking Skeleton is complete and passed manual user UAT.
 
@@ -38,6 +38,8 @@ Milestone 10 Package 4 - Shrine encounter foundation is approved through correct
 Milestone 10 Package 5 - Chaos encounter foundation is approved at `32caee03565d2c86c0f54e50f076975f13ea806b`. Test-only Chaos fixtures prove server-owned weighted random outcomes with stable authored outcome IDs, receipt-finalized selection, exact HP transitions, replay without reroll, and no production Chaos content in Farm or Mountains.
 
 Milestone 10 Package 6 - Run-scoped modifier model + authoritative application is approved through correction `736f5211a6e2fff1838fa5c6ec779e229f7368d6`. The accepted model uses narrow authored next-combat Attack modifiers persisted as run-owned instances, applies them authoritatively to Combat/Boss assembly, consumes them only on victory, preserves them on defeat/stalemate while isolating failed runs, and keeps tuning server-private.
+
+Milestone 10 Package 7 - Contextual consumables + multi-step encounter interaction is approved through verification correction `bad02a8b80b18d7689faaa6b42db92ffc45395e6`. The accepted model uses minimal run-node-owned step identity, authoritative inventory gating/consumption, intermediate unresolved interaction receipts, reload-safe reconstruction, and exact-key replay. The correction also repaired canonical backend PHPUnit discovery so all `*Test.php` files are enumerated on the Windows Docker bind mount.
 
 The major game-wide visual/UI overhaul remains intentionally deferred.
 
@@ -78,8 +80,8 @@ Knowledge/objectives remain Milestone 11. Mystic Cave/onboarding remains Milesto
 4. **Shrine encounter foundation.** Approved through `c121a67a4903637424c68fb9347f9f9192f4c2e5`.
 5. **Chaos encounter foundation.** Approved at `32caee03565d2c86c0f54e50f076975f13ea806b`.
 6. **Run-scoped modifier model + authoritative application.** Approved through `736f5211a6e2fff1838fa5c6ec779e229f7368d6`.
-7. **Contextual consumables + multi-step encounter interaction.** Current.
-8. **Phaser RunScene branching/encounter interaction integration.** Planned.
+7. **Contextual consumables + multi-step encounter interaction.** Approved through `bad02a8b80b18d7689faaa6b42db92ffc45395e6`.
+8. **Phaser RunScene branching/encounter interaction integration.** Current.
 9. **Run-encounter-depth integrated verification/technical closure.** Planned.
 10. **Focused manual UAT before Milestone 11.** Planned.
 
@@ -93,5 +95,5 @@ Knowledge/objectives remain Milestone 11. Mystic Cave/onboarding remains Milesto
 - Package 6 established narrow run-owned next-combat modifiers with authoritative Combat/Boss application, victory-only consumption, failed-run isolation, reconnect-safe projection, and receipt-stable lifecycle semantics.
 - Package 7 adds contextual consumable and multi-step interaction only after encounter and modifier boundaries are stable. Keep it narrowly focused on the minimum reusable interaction/progress state needed to prove resumable encounter steps and authoritative inventory consumption; do not manufacture production Shrine/Chaos content in Farm or Mountains.
 - Package 8 completes player-facing Phaser integration across branching and the new encounter types.
-- Package 9 proves the complete production-composed slice, persistence/reload/retry behavior, regression safety, and responsive capture coverage.
+- Package 9 proves the complete production-composed slice, persistence/reload/retry behavior, regression safety, and responsive capture coverage. Before Package 9 closure, rationalize the canonical test suite: remove obsolete completed-prototype migration tests, replace brittle whole-catalog/count assertions with invariant/contract checks, and retain exact content snapshots only where authored topology itself is the accepted contract.
 - Package 10 is manual UAT. Do not begin Milestone 11 until it passes and the user explicitly confirms promotion.
