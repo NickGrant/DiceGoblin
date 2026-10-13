@@ -2,144 +2,74 @@
 
 ## Milestone 10 - Run Encounter Depth
 
-### Milestone 10 Package 8 - Phaser RunScene branching/encounter interaction integration
+### Milestone 10 Package 9 - Run-encounter-depth integrated verification/technical closure
 
 **Status:** In Progress
 **Priority:** High
 
-#### Problem
-
-Packages 1-7 now provide the authoritative backend contracts for exploration-frontier branching, generic non-combat interactions, production Mountains Hazards, test-proven Shrine/Chaos families, run-scoped modifiers, contextual inventory actions, and reload-safe multi-step encounter progress. The remaining player-facing gap is to ensure `RunScene` presents and reconciles these contracts coherently as one run experience rather than as backend-only capabilities or isolated test fixtures.
-
 #### Accepted baseline
 
-Milestones 1-9 are complete. Milestone 10 Packages 1-7 are approved through the Package 7 verification correction `bad02a8b80b18d7689faaa6b42db92ffc45395e6`.
+Milestones 1-9 are complete. Milestone 10 Packages 1-8 are approved, with Package 8 approved at `a91fbece6e989c2a468fbafe88b1eb02553a3dfc`.
 
-The backend/MySQL run state remains authoritative. `GET /api/v1/runs/current` supplies the persisted exploration graph/frontier, player-visible interaction projection, active run modifiers, and current encounter step where applicable. Run-node mutation uses the existing resolution endpoint and finalized idempotency receipts. The client must reconcile from server authority rather than predict route availability, hidden effects, random outcomes, item eligibility, modifier consumption, or step transitions.
-
-Production region vocabulary remains:
-- Farm: Combat, Loot, Rest, Boss, Exit; fixed linear tutorial.
-- Mountains: Combat, Loot, Rest, Hazard, Boss, Exit; branching/dead ends.
-- Shrine and Chaos production content remain reserved for Swamp/Milestone 13.
-
-Package 8 must not add speculative production Shrine/Chaos content merely to create screenshots.
+The accepted slice now includes authoritative exploration-frontier branching, generic non-combat interactions, production Mountains Hazards, test-proven Shrine/Chaos families, run-scoped next-combat modifiers, contextual consumable/multi-step interactions, and Phaser RunScene integration. Farm remains the fixed tutorial and Mountains remains the only production branching/Hazard expansion in Milestone 10; production Shrine/Chaos remains reserved for Swamp/Milestone 13.
 
 #### Purpose
 
-Complete the generic Phaser `RunScene` integration needed to make the accepted Milestone 10 run model usable and understandable to players.
+Perform Milestone 10 integrated technical closure. Prove the complete production-composed Farm/Mountains run experience and the reusable test-only encounter foundations remain coherent across backend, storage, API projection, runtime reconciliation, Phaser interaction, retry/reload behavior, and responsive presentation.
 
-The scene must correctly present multiple simultaneously available nodes, distinguish unavailable/completed/available topology, render the generic non-combat interaction surface including multiple actions and intermediate steps, submit authorized actions once, and reconcile authoritative results/reloads without family-specific Shrine/Chaos dispatch.
+This package also owns the repository-wide test-suite rationalization identified during Package 7 review. The goal is a smaller, higher-signal canonical regression suite, not an arbitrary test-count reduction.
 
-This is integration/presentation work, not the deferred game-wide visual redesign.
+#### Integrated verification requirements
 
-#### Required inventory before implementation
+Verify the accepted Milestone 10 behavior end-to-end and at owning architectural layers:
+- Farm remains exactly Combat -> Loot -> Rest -> Boss -> Exit and completes correctly.
+- Mountains retains accepted branching/dead-end topology and Hazard vocabulary without production Shrine/Chaos.
+- Multiple available frontier nodes survive resolving a sibling branch.
+- Locked/foreign/completed nodes cannot be resolved again; completed battle playback may remain viewable without re-resolving gameplay.
+- Rest/Hazard and test-only Shrine/Chaos continue through the shared generic interaction boundary.
+- Chaos/Hazard randomness remains server-owned, deterministic under injected test RNG, finalized in receipts, and not rerolled on exact-key replay.
+- Run modifiers apply authoritatively to Combat/Boss, consume only under accepted semantics, survive reload where applicable, and expose only narrow safe projection.
+- Contextual consumable eligibility is server-owned; inventory consumption and encounter progress are atomic/idempotent.
+- Multi-step progress reloads/re-enters safely and exposes only the current authorized step/actions.
+- Combat/Boss return reconciles current run/frontier/modifiers.
+- Terminal completion/failure leaves no stale actionable run state.
+- Hidden effects, weights, tuning, unrevealed content, and server-private authored configuration remain absent from browser projection.
+- Compact, Standard, Wide, and portrait-gate behavior remain consistent with canonical client architecture.
 
-Before changing `RunScene`, inspect:
-- the current RunScene/map model and tests;
-- the shared GameRuntime/current-run cache and mutation reconciliation path;
-- current generic non-combat action UI introduced in earlier packages;
-- deterministic capture/debug fixtures already used for RunScene;
-- the accepted responsive/orientation contract in `documentation/07-development-path/vnext-phaser-client-architecture.md`;
-- Package 1-7 backend/client contracts.
+#### Test-suite rationalization
 
-Reuse current runtime/input/layout primitives. Do not create a second run-state store or family-specific encounter UI architecture.
+Audit the complete discovered backend and frontend suites before deleting anything. Classify tests by durable contract rather than by historical milestone.
 
-#### Canonical interaction requirements
+Apply these rules:
+- Keep deterministic domain/unit tests for algorithms and invariants.
+- Keep auth/security/ownership, transaction rollback, idempotency, persistence-boundary, API-envelope/projection-secrecy, and authored-content structural/reference validation tests.
+- Keep focused integration/walking-slice tests where they prove behavior spanning real architectural boundaries, but consolidate redundant copies of the same contract across multiple layers.
+- Keep exact authored-content assertions only when the exact content shape is itself canonical product behavior. Farm's fixed five-node topology is an explicit example worth protecting.
+- For flexible authored content such as catalogs and non-locked regional layouts, prefer semantic invariants over exact counts, full ID inventories, or incidental ordering.
+- Remove obsolete prototype tests that are permanently skipped and whose behavior is already covered by accepted vNext tests from completed milestones. Git history is sufficient migration history.
+- Retain prototype tests only when they are still useful migration evidence for not-yet-implemented Milestones 11-13; make their transitional status explicit and keep them out of the canonical passing regression expectation where appropriate.
+- Replace brittle assertions such as total ability/unit/encounter/item counts or unrelated exact catalog lists with targeted existence/reference/behavior invariants.
+- Do not weaken security, transaction, idempotency, secrecy, graph-validity, or deterministic algorithm coverage merely to reduce suite size.
+- Do not convert useful behavioral tests into broad snapshots.
 
-- Render the authoritative graph and all currently available frontier nodes. Resolving one available node must not visually remove another still-available node.
-- Locked nodes are visible only to the extent already allowed by the accepted current-run projection and must not be interactable.
-- Completed nodes remain distinguishable from available/locked nodes without becoming actionable again.
-- Converging paths and optional dead ends must render from authoritative edges; do not infer a single route from node list order.
-- Generic non-combat interaction uses projected title/body/prompt/actions only. Do not branch client behavior on Rest/Hazard/Shrine/Chaos family.
-- Multiple actions render generically from server order and stable action identity.
-- Intermediate interaction responses keep the node unresolved and trigger authoritative reconciliation so the next step/copy/actions appear after reload/re-entry.
-- Contextual actions are shown only when projected by the server. Do not infer item eligibility from local inventory.
-- While a mutation is pending, prevent duplicate submissions for that interaction.
-- Random/hidden outcomes remain server-owned. The client may present finalized player-visible result facts but must not know outcome weights or hidden effect configuration.
-- Active run modifiers may be presented using the accepted narrow projection. Do not expose authored tuning that the API intentionally withholds.
-- Combat/Boss navigation continues through the accepted battle flow; returning from battle must refresh/reconcile the current run/frontier/modifier state.
-- Terminal run behavior remains authoritative and must not leave stale actionable nodes on screen.
+Document the resulting disposition sufficiently that future agents know what belongs in the canonical suite and when remaining prototype migration evidence should be removed. Update `documentation/06-testing-release/00-testing-strategy.md` and/or `backend/tests/README.md` if needed so the policy is durable rather than chat-only.
 
-#### Responsive/presentation scope
+#### Verification evidence
 
-Use the accepted logical 1600x900 reference and responsive classes:
-- Compact: CSS height <=599 or safe logical width <1440.
-- Standard: normal reference composition.
-- Wide: safe logical width >=1920 and CSS height >=720.
-- Portrait touch-first gameplay remains blocked by the rotate-device presentation while preserving runtime state.
-
-Package 8 may make focused layout changes necessary for branching maps and encounter interaction usability. Do not perform the deferred global art/UI redesign.
-
-The scene should remain usable with more than one available node and with interaction copy/actions of reasonable authored lengths. Avoid fixed positioning that only works for the current Mountains node count.
-
-#### Test requirements
-
-Prefer behavior/invariant tests over snapshots of incidental content. Do not add assertions for total catalog counts or exact unrelated content lists.
-
-Prove at minimum:
-- a branching current-run payload renders more than one available node as independently actionable;
-- choosing one available node and reconciling the response preserves another still-available frontier node;
-- locked and completed nodes are not actionable;
-- edges/topology render from authoritative graph relationships rather than assumed sequential order;
-- a generic Rest/Hazard interaction renders projected copy/actions without family-specific dispatch;
-- multiple actions render and submit their stable action IDs correctly;
-- a contextual action absent from the projection is not fabricated from inventory state;
-- an intermediate `interaction_step` response does not mark the node completed locally and reconciliation renders the persisted next step;
-- duplicate input is blocked while mutation is pending;
-- exact server errors return the scene to a usable reconciled state rather than leaving input permanently disabled;
-- finalized random encounter facts can be presented without exposing hidden outcome weights/effects;
-- modifier projection can be displayed/reconciled without exposing hidden attack-bonus tuning;
-- returning from Combat/Boss refreshes current-run state;
-- terminal completion/failure removes stale run actions;
-- Compact, Standard, and Wide deterministic captures remain legible for the affected RunScene states;
-- portrait rotate-device behavior/state preservation remains green if affected by the changes.
-
-Run applicable gates from `agent/QUALITY_GATES.md`.
-
-#### Test-suite hygiene note
-
-A repository-wide test audit performed when Package 7 closed found substantial retained prototype and brittle content-snapshot coverage. Do not expand those patterns in Package 8. Package 9 technical closure will include rationalization of the canonical suite: completed-prototype tests that are permanently skipped should be removed once their accepted vNext replacement coverage exists; whole-catalog counts and unrelated exact content inventories should be replaced with targeted invariants; exact authored graph assertions should remain only where the graph itself is a canonical product contract.
+Run the applicable quality gates from `agent/QUALITY_GATES.md` after cleanup. Report:
+- implementation/closure SHA;
+- test inventory before and after rationalization, including executed/skipped totals;
+- deleted/consolidated prototype test groups and why accepted vNext coverage replaces them;
+- retained future-milestone prototype groups and their owning milestone;
+- brittle content assertions replaced with durable invariants;
+- focused integrated lifecycle/idempotency/reload/security/secrecy results;
+- frontend RunScene/runtime regression results;
+- deterministic responsive captures for important Milestone 10 states;
+- full `npm run verify:package` result;
+- confirmation no production Shrine/Chaos, Swamp/Frog Kin, Milestone 11+, or broad visual redesign was introduced.
 
 #### Scope exclusions
 
-Do not add:
-- production Shrine/Chaos content to Farm or Mountains;
-- Swamp/Frog Kin;
-- new encounter families or effect scripting;
-- additional run-modifier families;
-- new persistence/state architecture;
-- Knowledge/Codex/Objectives;
-- onboarding/Mystic Cave;
-- Milestone 11+ functionality;
-- broad/global visual redesign.
+Do not add production Shrine/Chaos to Farm or Mountains, Swamp/Frog Kin, new encounter families, new modifier families, Knowledge/Codex/Objectives, onboarding/Mystic Cave, Milestone 11+ functionality, or broad visual redesign.
 
-#### Completion evidence
-
-Report:
-- implementation SHA;
-- RunScene/runtime inventory performed before implementation;
-- branching/frontier presentation and reconciliation behavior;
-- generic encounter action rendering/submission behavior;
-- intermediate-step reconciliation behavior;
-- pending-input/error recovery behavior;
-- Combat/Boss return reconciliation;
-- modifier/result presentation behavior if changed;
-- proof no family-specific Shrine/Chaos client dispatch was introduced;
-- focused frontend/runtime test results;
-- deterministic Compact/Standard/Wide captures and portrait verification where applicable;
-- backend regression result if shared contracts changed;
-- full applicable package gates;
-- confirmation no production Shrine/Chaos, Swamp, broad visual redesign, or Milestone 11+ scope was introduced.
-
-Leave Package 8 **In Progress** for architectural review. Do not promote Package 9 yourself.
-
-#### Package 8 implementation evidence (review candidate)
-
-- Before implementation, inspected the RunScene/map model and tests, GameStore current-run reconciliation, generic encounter action UI, deterministic capture fixtures, accepted responsive/orientation contract, and Package 1–7 server/client contracts.
-- RunScene renders the server-projected graph, edges, and all available frontier nodes. Locked/completed nodes retain their distinct presentation and action rules. Selecting or resolving one branch preserves other available nodes through authoritative current-run reconciliation; Combat/Boss return continues to refresh the run.
-- Projected non-combat interactions use their server-provided copy and ordered action IDs, including multiple actions and a persisted contextual next step. The client does not infer contextual eligibility from inventory or dispatch by encounter family. Finalized visible result facts and the narrow modifier projection remain client-safe; hidden effects, outcome weights, and modifier tuning are not projected.
-- Mutation submission blocks duplicate input. An ambiguous outcome retains its attempt for exact retry. A definitive rejection refreshes the current run before another action; if that read fails, the retry performs only the read. Stale current-run data cannot be selected or submitted. Terminal state removes stale run actions.
-- Focused RunScene/map-model suites: **44 tests passed**. Added coverage for independent branching nodes, locked/finished selection, contextual eligibility, rejection/read-only recovery, modifier secrecy, terminal actions, and responsive multi-action bounds; existing intermediate-step, idempotency, Combat/Boss, and result tests passed.
-- Deterministic captures passed and were visually inspected at Compact, Standard, and Wide sizes for branching, contextual initial actions, and persisted contextual step (**9 captures**). Compact Rest regression and portrait rotate-device gate captures passed (**2 additional captures**). The Compact map/detail and multi-action bounds were adjusted for legibility without a global visual redesign.
-- `npm run verify:package`: **passed**. LLM/context, docs lint, content validation, backend **1,017 tests / 5,233 assertions**, frontend **562 tests**, frontend production build, bundle check, and diff whitespace check all passed. No backend contract or production authored-content changes were made.
-- No production Shrine/Chaos content, Swamp/Frog Kin, new encounter family/effect scripting, broad visual redesign, Milestone 11+, or Package 9 work was introduced. Package 8 remains **In Progress** for architectural review.
+Do not promote Package 10 yourself. Leave Package 9 **In Progress** for architectural review.
