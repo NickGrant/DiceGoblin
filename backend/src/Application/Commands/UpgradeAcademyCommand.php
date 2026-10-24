@@ -55,6 +55,9 @@ final class UpgradeAcademyCommand
       }
 
       $balance = $state['raw_chaos']; $revision = $state['player_revision'];
+      if (!$this->unlocks->owns($userId, 'unlock.capability.academy_access')) {
+        throw new AcademyUpgradeException('academy_locked', 'Academy is locked.', 403);
+      }
       if (!$this->safeNonNegative($balance) || !$this->safeNonNegative($state['teeth'])
         || !$this->safeNonNegative($revision) || $revision === ClientSafeInteger::MAXIMUM) {
         throw new AcademyUpgradeIntegrityException('Academy wallet or revision is incoherent.');

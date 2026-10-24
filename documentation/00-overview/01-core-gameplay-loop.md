@@ -16,7 +16,7 @@ Tags: [overview, gameplay-loop, vnext]
 ## Between Runs
 1. Enter Camp through the authenticated Phaser game client.
 2. Inspect and configure the active squad, unit ability order, and exact dice bindings.
-3. Use available Camp systems such as Shop, Academy, Wrong Machine, objectives, and Codex when unlocked.
+3. Use available Camp systems when unlocked. Completing the Farm boss unlocks Shop; Academy access is a 250 Teeth Shop purchase. Wrong Machine, objectives, and Codex follow their own progression.
 4. Choose an available region and start a run.
 
 ## Run Start

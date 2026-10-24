@@ -31,6 +31,16 @@ final class AcademyUpgradeCommandTest extends IntegrationTestCase
   protected function tearDown(): void
   { parent::tearDown(); foreach ($this->roots as $root) { if (is_file($root . '/all.json')) unlink($root . '/all.json'); rmdir($root); } }
 
+  public function testLockedAcademyCannotSpendRawChaos(): void
+  {
+    $user = $this->user();
+    $this->pdo?->prepare('DELETE FROM `user_unlocks` WHERE `user_id` = ? AND `unlock_id` = ?')
+      ->execute([$user, 'unlock.capability.academy_access']);
+    $this->assertError('academy_locked', fn() => $this->command()->execute($user,
+      $this->request('guardian', 5), 'academy-locked-key'));
+    $this->assertSame('50', (string)$this->scalar('SELECT `raw_chaos` FROM `user_state` WHERE `user_id` = ?', [$user]));
+  }
+
   public function testUnitUpgradeSpendsGrantsOnceAndReplaysBeforeCurrentOwnership(): void
   {
     $user = $this->user(); $command = $this->command();
@@ -119,8 +129,9 @@ final class AcademyUpgradeCommandTest extends IntegrationTestCase
     catch (AcademyUpgradeIntegrityException) { $this->addToAssertionCount(1); }
     $this->assertSame(['50', '50', '2026-09-28 09:00:00', '1'], array_map('strval', array_values($this->pdo?->query(
       "SELECT `raw_chaos`, `energy_current`, `energy_last_regen_at`, `player_revision` FROM `user_state` WHERE `user_id` = {$user}")->fetch(\PDO::FETCH_ASSOC))));
-    foreach (['user_unlocks', 'resolved_events', 'idempotency_requests'] as $table)
+    foreach (['resolved_events', 'idempotency_requests'] as $table)
       $this->assertSame('0', (string)$this->scalar("SELECT COUNT(*) FROM `{$table}` WHERE `user_id` = ?", [$user]));
+    $this->assertSame('2', (string)$this->scalar('SELECT COUNT(*) FROM `user_unlocks` WHERE `user_id` = ?', [$user]));
   }
 
   public function testReceiptCorruptionIsAnIntegrityFailureAndDifferentExpectedPriceConflicts(): void
@@ -197,6 +208,9 @@ final class AcademyUpgradeCommandTest extends IntegrationTestCase
     $id = (int)$this->pdo?->lastInsertId(); $this->trackUserId($id);
     $this->pdo?->prepare('INSERT INTO `user_state` (`user_id`, `raw_chaos`, `teeth`, `energy_current`, `energy_last_regen_at`, `player_revision`) VALUES (?, ?, ?, ?, ?, 1)')
       ->execute([$id, $chaos, $teeth, $energy, $anchor]);
+    $unlocks = new UserUnlockRepository($this->pdo);
+    $unlocks->insertIfAbsent($id, 'unlock.capability.shop_access');
+    $unlocks->insertIfAbsent($id, 'unlock.capability.academy_access');
     return $id;
   }
   /** @return array<string,mixed> */

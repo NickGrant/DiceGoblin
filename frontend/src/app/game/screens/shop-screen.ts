@@ -10,6 +10,8 @@ import { createEconomyLayout, EconomyLayout } from './economy-layout';
 import { actionCursor } from './action-cursor';
 
 export function shopGrantLabel(offer: ClientShopOfferDefinition, content: ClientContentRegistry): string {
+  if (offer.grant.type === 'unlock') return offer.grant.unlock_id === 'unlock.capability.academy_access'
+    ? 'Academy access' : offer.grant.unlock_id;
   if (offer.grant.type === 'item') {
     const item = content.getItem(offer.grant.item_id);
     return `${item?.display_name ?? offer.grant.item_id} ×${offer.grant.quantity}`;
@@ -78,7 +80,8 @@ export class ShopScreen implements GameSceneScreen {
     const outcome = await this.purchaseAttempt.submit((payload, key) =>
       this.api.purchaseShopOffer(payload, bootstrap.session.csrf_token, key, this.content));
     if (outcome.kind === 'success') {
-      try { this.store.reconcileShopPurchase(outcome.result, this.content); this.message = 'Purchase complete.'; }
+      try { this.store.reconcileShopPurchase(outcome.result, this.content); this.message = 'Purchase complete.';
+        if (outcome.result.output.type === 'unlock') void this.store.retryShop(this.api, this.content); }
       catch { this.message = 'Purchase committed, but local state disagrees. Reload to recover safely.'; }
     } else if (outcome.kind === 'ambiguous') this.message = 'The result is uncertain. Retry this same purchase attempt.';
     else if (outcome.kind === 'rejected') this.message = 'Purchase rejected. Review the offer and try again.';

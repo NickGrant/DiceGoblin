@@ -45,6 +45,9 @@ export type ClientShopOfferDefinition = {
 } | {
   readonly id: string;
   readonly grant: { readonly type: 'unit'; readonly unit_type_id: string; readonly kin_id: 'kin.goblin' };
+} | {
+  readonly id: string;
+  readonly grant: { readonly type: 'unlock'; readonly unlock_id: string };
 };
 
 export interface ClientAcademyUpgradeDefinition {
@@ -720,6 +723,13 @@ export class ClientContentRegistry {
         throw new ClientContentError(`Shop offer '${catalogId}' has an invalid unit grant.`);
       return Object.freeze({ id, grant: Object.freeze({ type, unit_type_id: unitTypeId, kin_id: 'kin.goblin' as const }) });
     }
+    if (type === 'unlock') {
+      requireExactFields(grant, ['type', 'unlock_id'], `Shop offer '${catalogId}' grant`);
+      const unlockId = requireNonEmptyString(grant, 'unlock_id');
+      if (!stableIdPattern.test(unlockId) || !unlockId.startsWith('unlock.capability.'))
+        throw new ClientContentError(`Shop offer '${catalogId}' has an invalid unlock grant.`);
+      return Object.freeze({ id, grant: Object.freeze({ type, unlock_id: unlockId }) });
+    }
     throw new ClientContentError(`Shop offer '${catalogId}' has an unsupported grant.`);
   }
 
@@ -798,7 +808,7 @@ export class ClientContentRegistry {
         const profile = this.diceProfiles.get(offer.grant.dice_profile_id);
         if (!profile || !profile.allowed_sizes.includes(offer.grant.size))
           throw new ClientContentError(`Shop offer '${offer.id}' references an incompatible die profile.`);
-      } else {
+      } else if (offer.grant.type === 'unit') {
         const unitType = this.unitTypes.get(offer.grant.unit_type_id);
         if (!unitType || unitType.tier !== 1 || !this.kinDefinitions.has(offer.grant.kin_id))
           throw new ClientContentError(`Shop offer '${offer.id}' references an unavailable base unit.`);

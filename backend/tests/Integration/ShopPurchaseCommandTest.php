@@ -31,6 +31,44 @@ final class ShopPurchaseCommandTest extends IntegrationTestCase
   protected function supportsVnextBaseline(): bool { return true; }
   protected function tearDown(): void { parent::tearDown(); foreach ($this->roots as $root) $this->removeTree($root); }
 
+  public function testAcademyAccessPurchaseSpendsOnceAndReplaysFinalReceipt(): void
+  {
+    $userId = $this->user(300);
+    $command = $this->command(ContentRegistry::load(dirname(__DIR__, 2) . '/content'));
+    $request = $this->request('shop_offer.academy_access', 250);
+    $first = $command->execute($userId, $request, 'academy-access-purchase');
+    $this->assertSame(['type' => 'unlock', 'unlock_id' => 'unlock.capability.academy_access'], $first['output']);
+    $this->assertSame(50, $first['spend']['balance_after']);
+    $this->assertSame(2, $first['player_revision']);
+    $this->assertSame($first, $command->execute($userId, $request, 'academy-access-purchase'));
+    $this->assertSame('50', (string)$this->scalar('SELECT `teeth` FROM `user_state` WHERE `user_id` = ?', [$userId]));
+    $this->assertSame('2', (string)$this->scalar('SELECT COUNT(*) FROM `user_unlocks` WHERE `user_id` = ?', [$userId]));
+    try { $command->execute($userId, $request, 'academy-access-other-key'); $this->fail('Owned offer should be unavailable.'); }
+    catch (ShopPurchaseException $e) { $this->assertSame('shop_offer_unavailable', $e->errorCode); }
+  }
+
+  public function testLockedShopCannotSpend(): void
+  {
+    $userId = $this->user(300);
+    $this->pdo?->prepare('DELETE FROM `user_unlocks` WHERE `user_id` = ?')->execute([$userId]);
+    try { $this->command($this->content())->execute($userId, $this->request('shop_offer.item', 7), 'shop-locked-key');
+      $this->fail('Locked Shop should reject purchase.'); }
+    catch (ShopPurchaseException $e) { $this->assertSame('shop_locked', $e->errorCode); }
+    $this->assertSame('300', (string)$this->scalar('SELECT `teeth` FROM `user_state` WHERE `user_id` = ?', [$userId]));
+    $this->assertSame('0', (string)$this->scalar('SELECT COUNT(*) FROM `idempotency_requests` WHERE `user_id` = ?', [$userId]));
+  }
+
+  public function testFinalizedPurchaseReplaysBeforeCurrentShopAccessCheck(): void
+  {
+    $userId = $this->user(10); $command = $this->command($this->content());
+    $request = $this->request('shop_offer.item', 7);
+    $first = $command->execute($userId, $request, 'shop-access-replay');
+    $this->pdo?->prepare('DELETE FROM `user_unlocks` WHERE `user_id` = ?')->execute([$userId]);
+    $this->assertSame($first, $command->execute($userId, $request, 'shop-access-replay'));
+    $this->assertSame('3', (string)$this->scalar('SELECT `teeth` FROM `user_state` WHERE `user_id` = ?', [$userId]));
+    $this->assertSame('2', (string)$this->scalar('SELECT `quantity` FROM `user_items` WHERE `user_id` = ?', [$userId]));
+  }
+
   public function testItemPurchaseIsAtomicAndExactRetryReplaysAfterOfferRemoval(): void
   {
     $userId = $this->user(10); $command = $this->command($this->content());
@@ -284,6 +322,7 @@ final class ShopPurchaseCommandTest extends IntegrationTestCase
     $this->pdo?->prepare('INSERT INTO `users` (`display_name`) VALUES (?)')->execute(['Shop Purchase ' . bin2hex(random_bytes(4))]);
     $id = (int)$this->pdo?->lastInsertId(); $this->trackUserId($id);
     $this->pdo?->prepare('INSERT INTO `user_state` (`user_id`, `teeth`, `energy_current`, `player_revision`) VALUES (?, ?, 50, ?)')->execute([$id, $teeth, $revision]);
+    (new UserUnlockRepository($this->pdo))->insertIfAbsent($id, 'unlock.capability.shop_access');
     return $id;
   }
   /** @return array{offer_id:string,expected_price:array{currency_id:string,amount:int}} */

@@ -65,6 +65,12 @@ Minor visual-polish observations may be recorded for the deferred visual/UI over
 
 If UAT exposes a functional defect, keep Package 10 In Progress and correct only the defect required to satisfy the accepted Milestone 10 contracts. Run appropriate focused/full verification after any correction before repeating the affected UAT case.
 
+#### UAT correction in progress: Camp facility access
+
+The local account reset was complete, but Shop and Academy were always open in vNext. The user confirmed the original progression rule for this correction: Farm boss completion grants Shop access, and Academy access costs 250 Teeth in Shop. The correction authors the Farm reward and Shop offer, enforces both gates at the API and Phaser Camp boundaries, and keeps the account's current run untouched.
+
+Implementation verification: focused affected backend integration suites passed (68 tests, 738 assertions); authored Shop/reward content suites passed (38 tests, 125 assertions); final `npm run verify:package` passed (backend 759 tests / 5,275 assertions; frontend 495 tests; content validation, production build, bundle, documentation, context, and diff gates passed). Deterministic locked Camp Compact and Shop Standard/Compact captures completed. During UAT, the existing local database volume was found to predate the canonical baseline: `run_nodes.encounter_step_id` and `run_modifiers` were missing. Those two canonical schema pieces were added to the local UAT database without resetting or modifying the active Farm run; its current-run query then returned the intact five-node Farm graph and participating unit HP. Package 10 remains In Progress pending repeat manual UAT.
+
 #### Scope exclusions
 
 Do not add Knowledge/Codex/Objectives, onboarding/Mystic Cave, Swamp/Frog Kin, production Shrine/Chaos, new encounter families, new modifier families, or broad visual redesign during this UAT package.

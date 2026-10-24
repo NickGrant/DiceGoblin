@@ -875,13 +875,21 @@ export class GameStore {
 
   reconcileShopPurchase(result: ShopPurchaseResult, content: ClientContentRegistry): void {
     const bootstrap = this.requireMutationRevision(result.playerRevision);
-    this.cachedBootstrap = Object.freeze({ ...bootstrap, player: Object.freeze({ ...bootstrap.player,
-      teeth: result.spend.balanceAfter, player_revision: result.playerRevision }) });
+    if (result.output.type === 'unlock' && bootstrap.progression.unlock_ids.includes(result.output.unlockId))
+      throw new ShopContractError('Purchased unlock is already owned.');
     if (bootstrap.player.teeth !== result.spend.balanceBefore) {
       this.failEconomyReconciliation(result.output.type, true);
       throw new ShopContractError('Purchase balance contradicts cached authoritative state.');
     }
+    this.cachedBootstrap = Object.freeze({ ...bootstrap, player: Object.freeze({ ...bootstrap.player,
+      teeth: result.spend.balanceAfter, player_revision: result.playerRevision }),
+      progression: result.output.type === 'unlock' ? Object.freeze({ ...bootstrap.progression,
+        unlock_ids: Object.freeze([...bootstrap.progression.unlock_ids, result.output.unlockId]) }) : bootstrap.progression });
     try {
+      if (result.output.type === 'unlock' && this.academyState.status !== 'not-loaded')
+        this.setAcademy({ status: 'stale', data: this.academyState.data, error: null });
+      if (result.output.type === 'unlock' && this.shopState.status !== 'not-loaded')
+        this.setShop({ status: 'stale', data: this.shopState.data, error: null });
       if (result.output.type === 'item') this.reconcileItemQuantity(result.output.itemId, result.output.ownedQuantityAfter,
         content.getItem(result.output.itemId), false, result.output.quantityGranted);
       if (result.output.type === 'die' && this.warbandCache.dice.status === 'fresh' && this.warbandCache.dice.data) {

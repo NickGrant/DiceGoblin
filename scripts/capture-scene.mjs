@@ -196,7 +196,8 @@ async function installGameFixtureRoutes(page, options) {
     'item.capture.ore': { id: 'item.capture.ore', display_name: 'Raw Scrap', description: 'Useful material with no direct action.', category: 'material', rarity: 'common', icon_key: 'capture_ore', stackable: true },
   };
   const revision = projection.revision;
-  const fixtureChaos = options.progressionState === 'unaffordable' ? 4 : 17;
+  const fixtureChaos = options.progressionState === 'locked' ? 0
+    : options.progressionState === 'unaffordable' ? 4 : 17;
   const fixtureLevel = options.progressionState === 'below-level' ? 2 : 5;
   const fixtureXp = options.progressionState === 'below-level' ? 74 : 185;
   await page.route('**/game-content.json', (route) => route.fulfill({
@@ -225,10 +226,10 @@ async function installGameFixtureRoutes(page, options) {
       data: {
         account: { id: options.userId, display_name: options.displayName, role: 'user' },
         player: {
-          teeth: 1234,
+          teeth: scene === 'shop' ? 7 : options.progressionState === 'locked' ? 0 : 1234,
           raw_chaos: fixtureChaos,
           energy: {
-            current: 57,
+            current: options.progressionState === 'locked' ? 50 : 57,
             normal_max: 50,
             regeneration_per_hour: 12,
             regeneration_interval_seconds: 300,
@@ -242,10 +243,14 @@ async function installGameFixtureRoutes(page, options) {
         server_time: '2026-09-11T00:00:00Z',
         content_revision: revision,
         progression: {
-          unlock_ids: ['unlock.region.mountains', 'unlock.capability.wrong_machine_access',
+          unlock_ids: [...(options.progressionState === 'locked' ? []
+            : ['unlock.region.mountains', 'unlock.capability.wrong_machine_access', 'unlock.capability.shop_access']),
+            ...(scene === 'academy' || options.progressionState === 'owned'
+              ? ['unlock.capability.academy_access'] : []),
             ...(scene === 'wrong-machine' && options.progressionState === 'owned'
               ? ['unlock.kin.pig', 'unlock.kin.lizard_kin'] : [])],
-          available_region_ids: ['region.the_farm', 'region.mountains'],
+          available_region_ids: options.progressionState === 'locked'
+            ? ['region.the_farm'] : ['region.the_farm', 'region.mountains'],
         },
         active_squad: {
           id: '301', name: 'Bogbreakers', is_active: true, formation: activeFormation,
@@ -265,16 +270,14 @@ async function installGameFixtureRoutes(page, options) {
       { item_id: 'item.spark_tonic', quantity: 2 },
     ] } }),
   }));
+  const shopDefinitions = JSON.parse(await readFile(path.resolve(process.cwd(), 'backend/content/shop_offers/catalog.json'), 'utf8')).definitions;
+  const shopOffers = shopDefinitions.map((offer) => ({ offer_id: offer.id, price: offer.price,
+    available: offer.grant.type === 'unit' || (offer.grant.type === 'die' && offer.grant.size > 8)
+      ? false : offer.grant.type === 'unlock' ? options.progressionState !== 'owned' : true,
+    can_afford: 7 >= offer.price.amount })).sort((a, b) => a.offer_id < b.offer_id ? -1 : a.offer_id > b.offer_id ? 1 : 0);
   await page.route('**/api/v1/shop', (route) => route.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, data: {
-      teeth: 7, player_revision: 3, offers: [
-        { offer_id: 'shop_offer.cardboard_d4', price: { currency_id: 'teeth', amount: 4 }, available: true, can_afford: true },
-        { offer_id: 'shop_offer.cardboard_d6', price: { currency_id: 'teeth', amount: 6 }, available: true, can_afford: true },
-        { offer_id: 'shop_offer.cardboard_d8', price: { currency_id: 'teeth', amount: 8 }, available: true, can_afford: false },
-        { offer_id: 'shop_offer.field_poultice', price: { currency_id: 'teeth', amount: 4 }, available: true, can_afford: true },
-        { offer_id: 'shop_offer.goblin_bruiser', price: { currency_id: 'teeth', amount: 8 }, available: false, can_afford: false },
-        { offer_id: 'shop_offer.spark_tonic', price: { currency_id: 'teeth', amount: 4 }, available: true, can_afford: true },
-      ],
+      teeth: 7, player_revision: 3, offers: shopOffers,
     } }),
   }));
   if (scene === 'academy') {

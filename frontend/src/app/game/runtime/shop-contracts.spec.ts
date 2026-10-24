@@ -2,6 +2,25 @@ import { ClientContentRegistry } from './client-content-registry';
 import { ShopContractError, parseShopCatalogEnvelope, parseShopPurchaseEnvelope } from './shop-contracts';
 
 describe('Shop contracts', () => {
+  it('accepts the exact authored Academy unlock and rejects a substituted unlock', () => {
+    const registry = new ClientContentRegistry({ revision: 'a'.repeat(64), content: {
+      gameplay: { run_energy_cost: 10 }, regions: {}, kin: {}, unit_types: {}, abilities: {},
+      dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {}, items: {},
+      academy_upgrades: {}, unit_promotions: {}, shop_offers: {
+        'shop_offer.academy_access': { id: 'shop_offer.academy_access',
+          grant: { type: 'unlock', unlock_id: 'unlock.capability.academy_access' } },
+      },
+    } });
+    const request = { offer_id: 'shop_offer.academy_access', expected_price: { currency_id: 'teeth' as const, amount: 250 } };
+    const envelope = { ok: true, data: { offer_id: request.offer_id,
+      spend: { currency_id: 'teeth', amount: 250, balance_before: 300, balance_after: 50 },
+      player_revision: 2, output: { type: 'unlock', unlock_id: 'unlock.capability.academy_access' } } };
+    expect(parseShopPurchaseEnvelope(envelope, request, registry).output)
+      .toEqual({ type: 'unlock', unlockId: 'unlock.capability.academy_access' });
+    expect(() => parseShopPurchaseEnvelope({ ...envelope, data: { ...envelope.data,
+      output: { type: 'unlock', unlock_id: 'unlock.capability.shop_access' } } }, request, registry))
+      .toThrowError(ShopContractError);
+  });
   function content(withOffers = true, dieSize: 4 | 6 | 8 | 10 | 12 | 20 = 8): ClientContentRegistry {
     return new ClientContentRegistry({ revision: 'a'.repeat(64), content: {
       gameplay: { run_energy_cost: 10 }, regions: {},

@@ -31,7 +31,23 @@ final class ShopOfferContentValidationTest extends TestCase
     $this->assertSame('item.spark_tonic', $offers['shop_offer.spark_tonic']['grant']['item_id']);
     $this->assertSame('item.field_poultice', $offers['shop_offer.field_poultice']['grant']['item_id']);
     $this->assertSame('unit_type.bruiser', $offers['shop_offer.goblin_bruiser']['grant']['unit_type_id']);
+    $this->assertSame(['type' => 'unlock', 'unlock_id' => 'unlock.capability.academy_access'],
+      $offers['shop_offer.academy_access']['grant']);
+    $this->assertSame(250, $registry->shopOffer('shop_offer.academy_access')['price']['amount']);
     $this->assertStringNotContainsString('price', json_encode($offers, JSON_THROW_ON_ERROR));
+  }
+
+  public function testShopUnlockGrantRequiresExistingFeatureCapability(): void
+  {
+    $offer = ['id' => 'shop_offer.access', 'type' => 'shop_offer',
+      'grant' => ['type' => 'unlock', 'unlock_id' => 'unlock.capability.academy_access'],
+      'price' => ['currency_id' => 'teeth', 'amount' => 250]];
+    $this->assertSame($offer['grant'], $this->registry([$offer], false)->shopOffer('shop_offer.access')['grant']);
+    foreach (['unlock.missing', 'unlock.region.mountains'] as $invalidId) {
+      $invalid = $offer; $invalid['grant']['unlock_id'] = $invalidId;
+      try { $this->registry([$invalid], false); $this->fail('Expected invalid feature unlock grant.'); }
+      catch (ContentValidationException) { $this->addToAssertionCount(1); }
+    }
   }
 
   public function testValidItemAndDieOffersLoadAndProjectWithoutPrices(): void

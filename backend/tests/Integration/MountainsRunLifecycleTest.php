@@ -87,7 +87,8 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
     $farmBoss = $services['resolveRunNodeCommand']->execute(
       $userId, $farmRunId, $farmNodeIds[3], 'integrated-farm-boss');
     $this->assertBattleResolution($farmBoss, $farmRunId, $farmNodeIds[3], $farmNodeIds[4], 'boss');
-    $this->assertSame([['outcome' => 'granted', 'unlock_id' => 'unlock.region.mountains']],
+    $this->assertSame([['outcome' => 'granted', 'unlock_id' => 'unlock.capability.shop_access'],
+      ['outcome' => 'granted', 'unlock_id' => 'unlock.region.mountains']],
       $farmBoss['rewards']['unlocks']);
     $this->assertSame([
       ['item_id' => 'item.mudking_crown_fragment', 'quantity' => 1, 'owned_after' => 1],
@@ -439,7 +440,7 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
       new VictoryItemGrantService(new VictoryItemDropPolicy($content), new UserItemRepository($this->pdo)),
       new \DiceGoblins\Repositories\RunModifierRepository($this->pdo), $content);
     $rewards = new RewardApplicationService($this->pdo, $content,
-      new RewardFinalizer(new ScriptedRewardRollSource([1, 1])), new ResolvedEventRepository($this->pdo),
+      new RewardFinalizer(new ScriptedRewardRollSource([1, 1, 1])), new ResolvedEventRepository($this->pdo),
       $state, $units, $unlocks);
     return new ResolveRunNodeCommand($this->pdo, $state, new RunPersistenceRepository($this->pdo), $nodes,
       new IdempotencyRequestRepository($this->pdo), [

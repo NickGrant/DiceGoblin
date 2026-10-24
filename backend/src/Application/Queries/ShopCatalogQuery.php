@@ -31,6 +31,9 @@ final class ShopCatalogQuery
       throw new ShopIntegrityException('Required Shop player state is unavailable.');
     }
     $unlockIds = $this->unlocks->listIdsForUser($userId);
+    if (!in_array('unlock.capability.shop_access', $unlockIds, true)) {
+      throw new ShopLockedException('Shop is locked.');
+    }
     $availableUnitTypes = array_flip($this->unitTypes->availableUnitTypeIds($unlockIds));
     $capabilities = new PermanentCapabilityPolicy($this->content);
     $offers = [];
@@ -46,6 +49,7 @@ final class ShopCatalogQuery
           'unit' => isset($availableUnitTypes[(string)$definition['grant']['unit_type_id']]),
           'die' => $capabilities->canAcquireDie($definition['grant']['size'],
             $this->content->diceProfile($definition['grant']['dice_profile_id']), $unlockIds),
+          'unlock' => !in_array($definition['grant']['unlock_id'], $unlockIds, true),
           default => true,
         },
         'can_afford' => $state['teeth'] >= $amount,

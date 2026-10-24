@@ -26,6 +26,9 @@ final class AcademyQuery
       throw new RuntimeException('Required Academy player state is unavailable.');
     }
     $owned = array_fill_keys($this->unlocks->listIdsForUser($userId), true);
+    if (!isset($owned['unlock.capability.academy_access'])) {
+      throw new AcademyLockedException('Academy is locked.');
+    }
     $upgrades = [];
     foreach ($this->content->definitionsOfType('academy_upgrade') as $id => $upgrade) {
       $isOwned = isset($owned[$upgrade['grant_unlock_id']]);

@@ -63,6 +63,9 @@ final class PurchaseShopOfferCommand
       }
 
       $balance = $state['teeth'];
+      if (!$this->unlocks->owns($userId, 'unlock.capability.shop_access')) {
+        throw new ShopPurchaseException('shop_locked', 'Shop is locked.', 403);
+      }
       $revision = $state['player_revision'];
       if ($balance < 0 || $balance > ClientSafeInteger::MAXIMUM || $revision < 0
         || $revision >= ClientSafeInteger::MAXIMUM) {
@@ -91,6 +94,10 @@ final class PurchaseShopOfferCommand
           $offer['grant']['size'], $profile, $this->unlocks->listIdsForUser($userId, true))) {
           throw new ShopPurchaseException('shop_offer_unavailable', 'Shop offer is unavailable.', 403);
         }
+      }
+      if (($offer['grant']['type'] ?? null) === 'unlock'
+        && $this->unlocks->owns($userId, $offer['grant']['unlock_id'])) {
+        throw new ShopPurchaseException('shop_offer_unavailable', 'Shop offer is unavailable.', 403);
       }
       if ($purchase->expectedAmount !== $price) {
         throw new ShopPurchaseException('shop_offer_changed', 'Shop offer changed; refresh before purchasing.', 409);
@@ -164,6 +171,13 @@ final class PurchaseShopOfferCommand
       if (($unitType['tier'] ?? null) !== 1) throw new ShopPurchaseIntegrityException('Shop unit tier is incoherent.');
       return ['type' => 'unit', 'unit' => $this->unitCreation->create($userId, $unitTypeId, $kinId)];
     }
+    if (($grant['type'] ?? null) === 'unlock') {
+      $unlockId = $grant['unlock_id'] ?? null;
+      if (!is_string($unlockId) || $unlockId === '' || !$this->unlocks->insertIfAbsent($userId, $unlockId)) {
+        throw new ShopPurchaseIntegrityException('Shop unlock grant is incoherent.');
+      }
+      return ['type' => 'unlock', 'unlock_id' => $unlockId];
+    }
     throw new ShopPurchaseIntegrityException('Shop grant type is incoherent.');
   }
 
@@ -203,7 +217,10 @@ final class PurchaseShopOfferCommand
       && is_string($unit['display_name'] ?? null) && trim($unit['display_name']) !== '' && strlen(trim($unit['display_name'])) <= 128
       && is_string($unit['unit_type_id'] ?? null) && ($unit['kin_id'] ?? null) === 'kin.goblin'
       && ($unit['level'] ?? null) === 1 && ($unit['xp'] ?? null) === 0 && ($unit['lifecycle_status'] ?? null) === 'active';
-    if (!$itemValid && !$dieValid && !$unitValid) throw new ShopPurchaseIntegrityException('Persisted Shop receipt output is invalid.');
+    $unlockValid = ($output['type'] ?? null) === 'unlock' && $this->exact($output, ['type', 'unlock_id'])
+      && is_string($output['unlock_id'] ?? null)
+      && preg_match('/^unlock\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/D', $output['unlock_id']) === 1;
+    if (!$itemValid && !$dieValid && !$unitValid && !$unlockValid) throw new ShopPurchaseIntegrityException('Persisted Shop receipt output is invalid.');
   }
 
   /** @param array<string,mixed> $value @param list<string> $keys */

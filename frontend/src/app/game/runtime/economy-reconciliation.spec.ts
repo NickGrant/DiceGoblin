@@ -18,6 +18,18 @@ describe('GameStore Package 7 reconciliation', () => {
       'shop_offer.test.unit': { id: 'shop_offer.test.unit', grant: { type: 'unit', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin' } },
     } } });
   const bootstrap = (revision = 4): GameBootstrapData => ({ account: { id: '1', display_name: 'Goblin', role: 'user' }, player: { teeth: 100, raw_chaos: 2, player_revision: revision, energy: { current: 10, normal_max: 50, regeneration_per_hour: 12, regeneration_interval_seconds: 300, last_regeneration_at: '2026-01-01T00:00:00Z', next_regeneration_at: '2026-01-01T00:05:00Z', fully_regenerated_at: '2026-01-01T03:20:00Z' } }, session: { authenticated: true, csrf_token: 'csrf' }, server_time: '2026-01-01T00:00:00Z', content_revision: 'a'.repeat(64), progression: { unlock_ids: [], available_region_ids: ['region.the_farm'] }, active_squad: { id: '31', name: 'Raiders', is_active: true, formation: ['11', null, null, null, null, null, null, null, null], units: [{ id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active' }] }, active_run: null });
+
+  it('reconciles a purchased facility unlock into shared progression exactly once', () => {
+    const store = new GameStore(); store.hydrateBootstrap({ ...bootstrap(), player: { ...bootstrap().player, teeth: 300 } });
+    const result = { offerId: 'shop_offer.academy_access', spend: { currencyId: 'teeth' as const,
+      amount: 250, balanceBefore: 300, balanceAfter: 50 }, playerRevision: 5,
+      output: { type: 'unlock' as const, unlockId: 'unlock.capability.academy_access' } };
+    store.reconcileShopPurchase(result, content());
+    expect(store.bootstrap?.player.teeth).toBe(50);
+    expect(store.bootstrap?.progression.unlock_ids).toEqual(['unlock.capability.academy_access']);
+    expect(() => store.reconcileShopPurchase(result, content())).toThrow();
+    expect(store.bootstrap?.progression.unlock_ids).toEqual(['unlock.capability.academy_access']);
+  });
   function api(): jasmine.SpyObj<RuntimeApiClient> { const client = jasmine.createSpyObj<RuntimeApiClient>('api', ['getUnits', 'getDice', 'getSquads', 'getItems', 'getShop', 'getCurrentRun']); client.getUnits.and.resolveTo({ ok: true, data: { units: [{ id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active' }] } }); client.getDice.and.resolveTo({ ok: true, data: { dice: [{ id: '21', size: 6, profile_id: 'dice_profile.bone', lifecycle_status: 'active', bindings: [] }] } }); client.getSquads.and.resolveTo({ ok: true, data: { squads: [{ id: '31', name: 'Raiders', is_active: true, formation: ['11', null, null, null, null, null, null, null, null] }] } }); client.getItems.and.resolveTo({ ok: true, data: { items: [{ item_id: 'item.test.heal', quantity: 2 }] } }); return client; }
 
   it('adds purchased die and unit outputs only to already-loaded caches while the global player owns Teeth', async () => {

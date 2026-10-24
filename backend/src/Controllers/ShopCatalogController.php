@@ -8,6 +8,7 @@ use DiceGoblins\Application\Commands\IdempotencyKeyException;
 use DiceGoblins\Application\Commands\ShopPurchaseException;
 use DiceGoblins\Application\Commands\ShopPurchaseIntegrityException;
 use DiceGoblins\Application\Queries\ShopIntegrityException;
+use DiceGoblins\Application\Queries\ShopLockedException;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Controllers\Concerns\RequiresCsrf;
 use DiceGoblins\Core\Db;
@@ -39,6 +40,8 @@ final class ShopCatalogController
     try {
       $services = ControllerServiceFactory::buildContentAware($pdo, $core, $this->content);
       Response::json(['ok' => true, 'data' => $services['shopCatalogQuery']->execute($userId)]);
+    } catch (ShopLockedException) {
+      Response::json(['ok' => false, 'error' => ['code' => 'shop_locked', 'message' => 'Shop is locked.']], 403);
     } catch (ShopIntegrityException) {
       Response::json(['ok' => false, 'error' => [
         'code' => 'shop_data_integrity_error', 'message' => 'Shop data is unavailable.',

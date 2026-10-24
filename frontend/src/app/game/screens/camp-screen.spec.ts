@@ -146,8 +146,23 @@ describe('CampScreen', () => {
     expect(unlocked.wrongMachineAccess).toBeTrue();
   });
 
+  it('derives Shop and Academy access from their permanent bootstrap unlocks', () => {
+    const locked = createCampViewModel(storeWith(bootstrap()), content());
+    expect(locked.shopAccess).toBeFalse();
+    expect(locked.academyAccess).toBeFalse();
+    const base = bootstrap();
+    const shop = createCampViewModel(storeWith({ ...base, progression: { ...base.progression,
+      unlock_ids: ['unlock.capability.shop_access'] } }), content());
+    expect(shop.shopAccess).toBeTrue();
+    expect(shop.academyAccess).toBeFalse();
+    const academy = createCampViewModel(storeWith({ ...base, progression: { ...base.progression,
+      unlock_ids: ['unlock.capability.shop_access', 'unlock.capability.academy_access'] } }), content());
+    expect(academy.shopAccess).toBeTrue();
+    expect(academy.academyAccess).toBeTrue();
+  });
+
   it('renders a non-interactive locked entry and enables its pointer only after the unlock', () => {
-    const locked = sceneHarness(); const unlocked = sceneHarness();
+    const locked = sceneHarness(); const unlocked = sceneHarness(); const allFacilities = sceneHarness();
     new CampScreen(locked.scene, storeWith(bootstrap()), new RuntimeViewport(),
       undefined, undefined, undefined, content()).create();
     const base = bootstrap();
@@ -156,6 +171,11 @@ describe('CampScreen', () => {
       undefined, undefined, undefined, content()).create();
     expect(locked.textValues).toContain('WRONG MACHINE  ›');
     expect(unlocked.interactiveCount()).toBe(locked.interactiveCount() + 1);
+    new CampScreen(allFacilities.scene, storeWith({ ...base, progression: { ...base.progression,
+      unlock_ids: ['unlock.capability.shop_access', 'unlock.capability.academy_access',
+        'unlock.capability.wrong_machine_access'] } }), new RuntimeViewport(),
+      undefined, undefined, undefined, content()).create();
+    expect(allFacilities.interactiveCount()).toBe(locked.interactiveCount() + 3);
   });
 
   it('fails visibly instead of fabricating Camp state when bootstrap is absent', () => {
@@ -478,7 +498,9 @@ describe('CampScreen', () => {
   it('returns from Warband, Shop, and empty Supplies through visible Return and Escape without re-entering requestBack', async () => {
     const revision = 'a'.repeat(64);
     const apiClient = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getBootstrap']);
-    apiClient.getBootstrap.and.resolveTo({ ok: true, data: bootstrap() });
+    const base = bootstrap();
+    apiClient.getBootstrap.and.resolveTo({ ok: true, data: { ...base, progression: { ...base.progression,
+      unlock_ids: ['unlock.capability.shop_access'] } } });
     const contentLoader = jasmine.createSpyObj<ClientContentLoader>('ClientContentLoader', ['loadProjection']);
     contentLoader.loadProjection.and.resolveTo({ revision, content: {
       gameplay: { run_energy_cost: 10 },

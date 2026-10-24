@@ -168,6 +168,12 @@
         "currency_id": "teeth",
         "amount": 60
       }
+    },
+    {
+      "id": "shop_offer.academy_access",
+      "type": "shop_offer",
+      "grant": { "type": "unlock", "unlock_id": "unlock.capability.academy_access" },
+      "price": { "currency_id": "teeth", "amount": 250 }
     }
   ]
 }

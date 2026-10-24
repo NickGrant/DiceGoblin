@@ -1,5 +1,5 @@
 {
-    "revision": "9139c5f2865d1b1cded64e98fbf41a7549580f623aa2b8662f60bb034fcabcf7",
+    "revision": "6a69fa4327d31cd2f491816721b4bbad032329191c45260b3a5ca02071050281",
     "content": {
         "gameplay": {
             "run_energy_cost": 10
@@ -1310,6 +1310,13 @@
             }
         },
         "shop_offers": {
+            "shop_offer.academy_access": {
+                "id": "shop_offer.academy_access",
+                "grant": {
+                    "type": "unlock",
+                    "unlock_id": "unlock.capability.academy_access"
+                }
+            },
             "shop_offer.cardboard_d10": {
                 "id": "shop_offer.cardboard_d10",
                 "grant": {

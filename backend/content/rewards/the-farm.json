@@ -30,6 +30,12 @@
           "probability_basis_points": 10000,
           "reward_type": "unlock",
           "config": { "unlock_id": "unlock.region.mountains" }
+        },
+        {
+          "key": "shop",
+          "probability_basis_points": 10000,
+          "reward_type": "unlock",
+          "config": { "unlock_id": "unlock.capability.shop_access" }
         }
       ]
     }

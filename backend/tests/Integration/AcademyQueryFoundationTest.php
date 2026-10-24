@@ -14,6 +14,27 @@ final class AcademyQueryFoundationTest extends IntegrationTestCase
 {
   protected function supportsVnextBaseline(): bool { return true; }
 
+  public function testAcademyReadIsLockedUntilPurchased(): void
+  {
+    $userId = $this->user();
+    $this->pdo?->prepare('DELETE FROM `user_unlocks` WHERE `user_id` = ?')->execute([$userId]);
+    $query = new AcademyQuery(new PlayerStateRepository($this->pdo), new UserUnlockRepository($this->pdo),
+      ContentRegistry::load(dirname(__DIR__, 2) . '/content'));
+    $this->expectException(\DiceGoblins\Application\Queries\AcademyLockedException::class);
+    $query->execute($userId);
+  }
+
+  public function testLockedAcademyEndpointReturnsForbiddenWithoutCatalog(): void
+  {
+    $userId = $this->user();
+    $this->pdo?->prepare('DELETE FROM `user_unlocks` WHERE `user_id` = ?')->execute([$userId]);
+    $_SESSION['user_id'] = $userId;
+    $response = $this->invoke(fn() => (new AcademyReadController())->catalog());
+    $this->assertSame(403, $response['status']);
+    $this->assertSame('academy_locked', $response['body']['error']['code'] ?? null);
+    $this->assertArrayNotHasKey('data', $response['body']);
+  }
+
   public function testReadDerivesOwnershipAndPrerequisitesWithoutMutation(): void
   {
     $userId = $this->user();
@@ -39,7 +60,7 @@ final class AcademyQueryFoundationTest extends IntegrationTestCase
     $this->assertTrue($afterById['academy_upgrade.die_size_d12']['available']);
     $this->assertSame(3, $after['raw_chaos']);
     $this->assertSame(7, $after['player_revision']);
-    $this->assertSame('1', (string)$this->scalar('SELECT COUNT(*) FROM `user_unlocks` WHERE `user_id` = ?', [$userId]));
+    $this->assertSame('2', (string)$this->scalar('SELECT COUNT(*) FROM `user_unlocks` WHERE `user_id` = ?', [$userId]));
   }
 
   public function testEndpointRequiresAuthentication(): void
@@ -58,7 +79,7 @@ final class AcademyQueryFoundationTest extends IntegrationTestCase
     $this->assertSame(3, $response['body']['data']['raw_chaos']);
     $this->assertSame(7, $response['body']['data']['player_revision']);
     $this->assertSame($before, $this->pdo?->query("SELECT `raw_chaos`, `player_revision` FROM `user_state` WHERE `user_id` = {$userId}")->fetch());
-    $this->assertSame('0', (string)$this->scalar('SELECT COUNT(*) FROM `user_unlocks` WHERE `user_id` = ?', [$userId]));
+    $this->assertSame('1', (string)$this->scalar('SELECT COUNT(*) FROM `user_unlocks` WHERE `user_id` = ?', [$userId]));
   }
 
   private function user(): int
@@ -66,6 +87,7 @@ final class AcademyQueryFoundationTest extends IntegrationTestCase
     $this->pdo?->exec("INSERT INTO `users` (`display_name`) VALUES ('Academy Query')");
     $id = (int)$this->pdo?->lastInsertId(); $this->trackUserId($id);
     $this->pdo?->prepare('INSERT INTO `user_state` (`user_id`, `raw_chaos`, `energy_current`, `player_revision`) VALUES (?, 3, 50, 7)')->execute([$id]);
+    (new UserUnlockRepository($this->pdo))->insertIfAbsent($id, 'unlock.capability.academy_access');
     return $id;
   }
 }

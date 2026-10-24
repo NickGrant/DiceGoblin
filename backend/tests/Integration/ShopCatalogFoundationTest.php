@@ -19,6 +19,38 @@ final class ShopCatalogFoundationTest extends IntegrationTestCase
   protected function supportsVnextBaseline(): bool { return true; }
   protected function tearDown(): void { parent::tearDown(); foreach ($this->roots as $root) $this->removeTree($root); }
 
+  public function testShopReadIsLockedUntilFarmUnlock(): void
+  {
+    $userId = $this->user('Shop Gate', 300, 1);
+    $this->pdo?->prepare('DELETE FROM `user_unlocks` WHERE `user_id` = ?')->execute([$userId]);
+    $query = $this->query(ContentRegistry::load(dirname(__DIR__, 2) . '/content'));
+    $this->expectException(\DiceGoblins\Application\Queries\ShopLockedException::class);
+    $query->execute($userId);
+  }
+
+  public function testLockedShopEndpointReturnsForbiddenWithoutCatalog(): void
+  {
+    $userId = $this->user('Shop Locked API', 300, 1);
+    $this->pdo?->prepare('DELETE FROM `user_unlocks` WHERE `user_id` = ?')->execute([$userId]);
+    $_SESSION['user_id'] = $userId;
+    $response = $this->invoke(fn() => (new ShopCatalogController())->catalog());
+    $this->assertSame(403, $response['status']);
+    $this->assertSame('shop_locked', $response['body']['error']['code'] ?? null);
+    $this->assertArrayNotHasKey('data', $response['body']);
+  }
+
+  public function testAcademyAccessOfferIsAvailableOnceThenOwned(): void
+  {
+    $userId = $this->user('Academy Offer', 300, 1);
+    $query = $this->query(ContentRegistry::load(dirname(__DIR__, 2) . '/content'));
+    $offers = array_column($query->execute($userId)['offers'], null, 'offer_id');
+    $this->assertTrue($offers['shop_offer.academy_access']['available']);
+    $this->assertTrue($offers['shop_offer.academy_access']['can_afford']);
+    (new UserUnlockRepository($this->pdo))->insertIfAbsent($userId, 'unlock.capability.academy_access');
+    $offers = array_column($query->execute($userId)['offers'], null, 'offer_id');
+    $this->assertFalse($offers['shop_offer.academy_access']['available']);
+  }
+
   public function testProductionShopReturnsCanonicalOffersWithCurrentWalletAndRevision(): void
   {
     $userId = $this->user('Canonical Shop', 13, 4);
@@ -26,12 +58,12 @@ final class ShopCatalogFoundationTest extends IntegrationTestCase
     $this->assertSame(13, $result['teeth']);
     $this->assertSame(4, $result['player_revision']);
     $this->assertSame([
-      'shop_offer.cardboard_d10', 'shop_offer.cardboard_d12', 'shop_offer.cardboard_d20',
+      'shop_offer.academy_access', 'shop_offer.cardboard_d10', 'shop_offer.cardboard_d12', 'shop_offer.cardboard_d20',
       'shop_offer.cardboard_d4', 'shop_offer.cardboard_d6', 'shop_offer.cardboard_d8',
       'shop_offer.field_poultice', 'shop_offer.goblin_bannerbearer', 'shop_offer.goblin_bruiser',
       'shop_offer.goblin_guardian', 'shop_offer.goblin_marksman', 'shop_offer.goblin_saboteur', 'shop_offer.spark_tonic',
     ], array_column($result['offers'], 'offer_id'));
-    $this->assertFalse($result['offers'][7]['available']);
+    $this->assertFalse($result['offers'][8]['available']);
   }
 
   public function testCanonicalAcademyUnitOffersRequireTheirExactUnlock(): void
@@ -149,6 +181,7 @@ final class ShopCatalogFoundationTest extends IntegrationTestCase
     $stmt = $this->pdo?->prepare('INSERT INTO `users` (`display_name`) VALUES (?)'); $stmt?->execute([$name]);
     $id = (int)$this->pdo?->lastInsertId(); $this->trackUserId($id);
     $this->pdo?->prepare('INSERT INTO `user_state` (`user_id`, `teeth`, `energy_current`, `player_revision`) VALUES (?, ?, 50, ?)')->execute([$id, $teeth, $revision]);
+    (new UserUnlockRepository($this->pdo))->insertIfAbsent($id, 'unlock.capability.shop_access');
     return $id;
   }
   private function query(ContentRegistry $content): ShopCatalogQuery

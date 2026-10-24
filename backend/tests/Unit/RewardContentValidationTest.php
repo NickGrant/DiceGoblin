@@ -45,7 +45,7 @@ final class RewardContentValidationTest extends TestCase
     ]], $registry->rewardDefinition('reward_definition.farm_loot_completed')['entries']);
   }
 
-  public function testCanonicalFarmBossRewardIsExactlyParticipatingXpAndMountains(): void
+  public function testCanonicalFarmBossRewardGrantsParticipatingXpMountainsAndShop(): void
   {
     $registry = ContentRegistry::load($this->canonicalRoot());
     $this->assertSame('reward_definition.farm_boss_completed',
@@ -55,6 +55,8 @@ final class RewardContentValidationTest extends TestCase
         'config' => ['target_scope' => 'participating_units', 'amount' => 16]],
       ['key' => 'mountains', 'probability_basis_points' => 10000, 'reward_type' => 'unlock',
         'config' => ['unlock_id' => 'unlock.region.mountains']],
+      ['key' => 'shop', 'probability_basis_points' => 10000, 'reward_type' => 'unlock',
+        'config' => ['unlock_id' => 'unlock.capability.shop_access']],
     ], $registry->rewardDefinition('reward_definition.farm_boss_completed')['entries']);
   }
 

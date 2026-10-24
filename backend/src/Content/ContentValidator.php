@@ -307,6 +307,12 @@ final class ContentValidator
           if (!in_array($grant['size'], $profile['allowed_sizes'], true)) {
             throw new ContentValidationException("{$id} grant size is not allowed by its dice profile.");
           }
+        } elseif ($grant['type'] === 'unlock') {
+          $unlock = $this->requireReferenceType($definitions, $id, 'grant.unlock_id', $grant['unlock_id'], 'unlock');
+          $capability = $this->requireReferenceType($definitions, $id, 'grant.unlock_id.target_id', $unlock['target_id'], 'capability');
+          if ($unlock['target_type'] !== 'capability' || $capability['kind'] !== 'feature_access') {
+            throw new ContentValidationException("{$id} Shop unlock grant must target feature access.");
+          }
         } else {
           $unitType = $this->requireReferenceType(
             $definitions, $id, 'grant.unit_type_id', $grant['unit_type_id'], 'unit_type');
@@ -664,7 +670,7 @@ final class ContentValidator
     if (!is_array($grant) || array_is_list($grant)) {
       throw new ContentValidationException("{$location} field 'grant' must be an object.");
     }
-    $grantType = $this->requireAllowedString($grant, 'type', ['item', 'die', 'unit'], "{$location} field 'grant'");
+    $grantType = $this->requireAllowedString($grant, 'type', ['item', 'die', 'unit', 'unlock'], "{$location} field 'grant'");
     if ($grantType === 'item') {
       $this->requireExactFieldSet($grant, ['type', 'item_id', 'quantity'], [], "{$location} field 'grant'");
       $this->requireStableIdWithNamespace($grant, 'item_id', 'item.', "{$location} field 'grant'");
@@ -682,6 +688,9 @@ final class ContentValidator
       if (!in_array($grant['size'], self::SUPPORTED_DIE_SIZES, true)) {
         throw new ContentValidationException("{$location} field 'grant.size' must be a standard die size.");
       }
+    } elseif ($grantType === 'unlock') {
+      $this->requireExactFieldSet($grant, ['type', 'unlock_id'], [], "{$location} field 'grant'");
+      $this->requireStableIdWithNamespace($grant, 'unlock_id', 'unlock.', "{$location} field 'grant'");
     } else {
       $this->requireExactFieldSet($grant, ['type', 'unit_type_id', 'kin_id'], [], "{$location} field 'grant'");
       $this->requireStableIdWithNamespace($grant, 'unit_type_id', 'unit_type.', "{$location} field 'grant'");

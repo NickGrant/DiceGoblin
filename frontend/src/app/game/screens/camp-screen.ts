@@ -31,6 +31,8 @@ export interface CampViewModel {
   readonly availableRegions: readonly { readonly id: string; readonly displayName: string; readonly artKey: string }[];
   readonly activeRunRegionName: string | null;
   readonly wrongMachineAccess: boolean;
+  readonly shopAccess: boolean;
+  readonly academyAccess: boolean;
 }
 
 export interface CampLayout {
@@ -93,6 +95,8 @@ export function createCampViewModel(store: GameStore, content: ClientContentRegi
     availableRegions,
     activeRunRegionName: activeRunRegion?.display_name ?? null,
     wrongMachineAccess: bootstrap.progression.unlock_ids.includes('unlock.capability.wrong_machine_access'),
+    shopAccess: bootstrap.progression.unlock_ids.includes('unlock.capability.shop_access'),
+    academyAccess: bootstrap.progression.unlock_ids.includes('unlock.capability.academy_access'),
   };
 }
 
@@ -286,9 +290,9 @@ export class CampScreen implements GameSceneScreen {
 
     this.addPanel(root, layout.panel);
     this.addCampDestinationButton(root, layout.warbandButton, 'WARBAND', this.openWarband, layout);
-    this.addCampDestinationButton(root, layout.shopButton, 'SHOP', this.openShop, layout);
+    this.addCampDestinationButton(root, layout.shopButton, 'SHOP', this.openShop, layout, view.shopAccess);
     this.addCampDestinationButton(root, layout.suppliesButton, 'SUPPLIES', this.openInventory, layout);
-    this.addCampDestinationButton(root, layout.academyButton, 'ACADEMY', this.openAcademy, layout);
+    this.addCampDestinationButton(root, layout.academyButton, 'ACADEMY', this.openAcademy, layout, view.academyAccess);
     this.addCampDestinationButton(root, layout.wrongMachineButton, 'WRONG MACHINE', this.openWrongMachine, layout,
       view.wrongMachineAccess);
     this.addRegionSelector(root, layout, view);

@@ -51,6 +51,9 @@ final class PermanentProgressionLifecycleTest extends IntegrationTestCase
     $user = (int)$this->pdo?->lastInsertId(); $this->trackUserId($user);
     $this->pdo?->prepare('INSERT INTO `user_state` (`user_id`, `teeth`, `raw_chaos`, `energy_current`, `energy_last_regen_at`, `player_revision`) VALUES (?, 500, 80, 50, ?, 1)')
       ->execute([$user, '2026-09-28 12:00:00']);
+    $facilityUnlocks = new UserUnlockRepository($this->pdo);
+    $facilityUnlocks->insertIfAbsent($user, 'unlock.capability.shop_access');
+    $facilityUnlocks->insertIfAbsent($user, 'unlock.capability.academy_access');
     $fixture = (new ProvisionWarbandFixtureCommand($this->pdo, new WarbandFixtureRepository($this->pdo), $content))->execute($user);
     $this->pdo?->prepare('INSERT INTO `dice_instances` (`user_id`, `size`, `profile_id`) VALUES (?, 6, ?)')
       ->execute([$user, 'dice_profile.wood_plain']);

@@ -21,6 +21,8 @@ export type ShopPurchaseOutput = {
 } | {
   readonly type: 'unit'; readonly unit: { readonly id: string; readonly displayName: string; readonly unitTypeId: string;
     readonly kinId: 'kin.goblin'; readonly level: 1; readonly xp: 0; readonly lifecycleStatus: 'active' };
+} | {
+  readonly type: 'unlock'; readonly unlockId: string;
 };
 export interface ShopPurchaseResult {
   readonly offerId: string;
@@ -130,6 +132,11 @@ export function parseShopPurchaseEnvelope(
     }
     parsedOutput = Object.freeze({ type: 'unit', unit: Object.freeze({ id: unit['id'], displayName: unit['display_name'].trim(),
       unitTypeId: unit['unit_type_id'] as string, kinId: 'kin.goblin', level: 1, xp: 0, lifecycleStatus: 'active' }) });
+  } else if (output['type'] === 'unlock') {
+    if (!exact(output, ['type', 'unlock_id']) || offer.grant.type !== 'unlock'
+      || output['unlock_id'] !== offer.grant.unlock_id)
+      throw new ShopContractError('Shop unlock output is incoherent.');
+    parsedOutput = Object.freeze({ type: 'unlock', unlockId: output['unlock_id'] as string });
   } else {
     throw new ShopContractError('Shop purchase output type is invalid.');
   }

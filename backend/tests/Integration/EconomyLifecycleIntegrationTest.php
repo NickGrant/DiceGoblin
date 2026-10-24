@@ -22,11 +22,12 @@ final class EconomyLifecycleIntegrationTest extends IntegrationTestCase
     $userId = (int)$this->pdo?->lastInsertId(); $this->trackUserId($userId);
     $this->pdo?->prepare('INSERT INTO `user_state` (`user_id`, `teeth`, `raw_chaos`, `energy_current`, `energy_last_regen_at`, `player_revision`) VALUES (?, 100, 0, 5, UTC_TIMESTAMP(), 1)')
       ->execute([$userId]);
+    (new UserUnlockRepository($this->pdo))->insertIfAbsent($userId, 'unlock.capability.shop_access');
 
     $services = ControllerServiceFactory::buildContentAware($this->pdo, null, $content);
     $initial = $services['gameBootstrapQuery']->execute($userId, new DateTimeImmutable('now', new DateTimeZone('UTC')));
     $lockedCatalog = $services['shopCatalogQuery']->execute($userId);
-    $this->assertSame([100, 1, 13], [$initial['player']['teeth'], $initial['player']['player_revision'], count($lockedCatalog['offers'])]);
+    $this->assertSame([100, 1, 14], [$initial['player']['teeth'], $initial['player']['player_revision'], count($lockedCatalog['offers'])]);
     $this->assertFalse($this->offer($lockedCatalog, 'shop_offer.goblin_bruiser')['available']);
     (new UserUnlockRepository($this->pdo))->insertIfAbsent($userId, 'unlock.unit_type.bruiser');
     $catalog = $services['shopCatalogQuery']->execute($userId);

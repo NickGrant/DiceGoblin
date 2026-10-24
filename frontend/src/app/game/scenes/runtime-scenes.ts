@@ -290,9 +290,15 @@ export class GameScene extends RuntimeScene {
     this.activateScreen('warband');
   }
 
-  showShop(): void { this.navigator.navigate('shop'); this.activateScreen('shop'); }
+  showShop(): void {
+    if (!this.runtimeStartup.store.bootstrap?.progression.unlock_ids.includes('unlock.capability.shop_access')) return;
+    this.navigator.navigate('shop'); this.activateScreen('shop');
+  }
   showInventory(): void { this.navigator.navigate('inventory'); this.activateScreen('inventory'); }
-  showAcademy(): void { this.navigator.navigate('academy'); this.activateScreen('academy'); }
+  showAcademy(): void {
+    if (!this.runtimeStartup.store.bootstrap?.progression.unlock_ids.includes('unlock.capability.academy_access')) return;
+    this.navigator.navigate('academy'); this.activateScreen('academy');
+  }
   showWrongMachine(): void {
     if (!this.runtimeStartup.store.bootstrap?.progression.unlock_ids.includes('unlock.capability.wrong_machine_access')) return;
     this.navigator.navigate('wrong-machine'); this.activateScreen('wrong-machine');

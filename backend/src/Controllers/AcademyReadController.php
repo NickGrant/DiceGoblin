@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace DiceGoblins\Controllers;
 
 use DiceGoblins\Application\Queries\AcademyQuery;
+use DiceGoblins\Application\Queries\AcademyLockedException;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Core\Db;
 use DiceGoblins\Core\Response;
@@ -34,6 +35,8 @@ final class AcademyReadController
       $content = $this->content ?? ContentRegistry::load(dirname(__DIR__, 2) . '/content');
       $query = new AcademyQuery(new PlayerStateRepository($pdo), new UserUnlockRepository($pdo), $content);
       Response::json(['ok' => true, 'data' => $query->execute($userId)]);
+    } catch (AcademyLockedException) {
+      Response::json(['ok' => false, 'error' => ['code' => 'academy_locked', 'message' => 'Academy is locked.']], 403);
     } catch (Throwable) {
       Response::json(['ok' => false, 'error' => ['code' => 'academy_data_integrity_error', 'message' => 'Academy data is unavailable.']], 500);
     }

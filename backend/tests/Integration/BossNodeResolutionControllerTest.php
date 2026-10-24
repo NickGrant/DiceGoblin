@@ -80,8 +80,9 @@ final class BossNodeResolutionControllerTest extends IntegrationTestCase
     $this->assertSame(['boss', 'victory', 'active'], [$data['resolution_type'], $data['battle']['outcome'], $data['run']['status']]);
     $this->assertSame([(string)$exitId], $data['newly_available_node_ids']);
     $this->assertSame($revision + 1, $data['player_revision']);
-    $this->assertEquals([['unlock_id' => 'unlock.region.mountains',
-      'outcome' => $preOwned ? 'already_owned' : 'granted']], $data['rewards']['unlocks']);
+    $this->assertEquals([['unlock_id' => 'unlock.capability.shop_access', 'outcome' => 'granted'],
+      ['unlock_id' => 'unlock.region.mountains',
+        'outcome' => $preOwned ? 'already_owned' : 'granted']], $data['rewards']['unlocks']);
     $this->assertSame(array_map('strval', array_column($unitsBefore, 'id')),
       array_column($data['rewards']['unit_xp'], 'unit_id'));
     $this->assertSame(array_fill(0, count($unitsBefore), 16), array_column($data['rewards']['unit_xp'], 'amount'));
@@ -305,7 +306,7 @@ final class BossNodeResolutionControllerTest extends IntegrationTestCase
       new VictoryItemGrantService(new VictoryItemDropPolicy($content), new UserItemRepository($this->pdo)),
       new \DiceGoblins\Repositories\RunModifierRepository($this->pdo), $content);
     $rewards = new RewardApplicationService($this->pdo, $content,
-      new RewardFinalizer(new ScriptedRewardRollSource([1, 1])), new ResolvedEventRepository($this->pdo),
+      new RewardFinalizer(new ScriptedRewardRollSource([1, 1, 1])), new ResolvedEventRepository($this->pdo),
       new PlayerStateRepository($this->pdo), $units, $unlocks);
     return new ResolveRunNodeCommand($this->pdo, new PlayerStateRepository($this->pdo),
       new RunPersistenceRepository($this->pdo), $nodes, new IdempotencyRequestRepository($this->pdo),
