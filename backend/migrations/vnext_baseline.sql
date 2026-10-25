@@ -73,6 +73,15 @@ CREATE TABLE `user_unlocks` (
   CONSTRAINT `fk_user_unlocks_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE `user_codex_ownership` (
+  `user_id` BIGINT UNSIGNED NOT NULL,
+  `codex_id` VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `granted_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`user_id`, `codex_id`),
+  CONSTRAINT `chk_user_codex_ownership_id` CHECK (CHAR_LENGTH(`codex_id`) > 0),
+  CONSTRAINT `fk_user_codex_ownership_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE `user_items` (
   `user_id` BIGINT UNSIGNED NOT NULL,
   `item_id` VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,

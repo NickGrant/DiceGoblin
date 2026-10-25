@@ -28,7 +28,7 @@ final class FinalizedRewardResult
     }
     if (!is_array($data['entries']) || !array_is_list($data['entries'])) throw new RewardResultException('Finalized reward entries must be an ordered list.');
 
-    $keys = $currencyState = $unitState = $unlockState = [];
+    $keys = $currencyState = $unitState = $unlockState = $codexState = [];
     $xpUnitSet = null;
     $xpResolver = new UnitXpResolver();
     foreach ($data['entries'] as $index => $entry) {
@@ -41,14 +41,14 @@ final class FinalizedRewardResult
       }
       $keys[$key] = true;
       $type = $entry['reward_type'] ?? null;
-      if (!in_array($type, ['currency', 'unit_xp', 'unlock'], true)) throw new RewardResultException('Finalized reward type is unsupported.');
+      if (!in_array($type, ['currency', 'unit_xp', 'unlock', 'codex'], true)) throw new RewardResultException('Finalized reward type is unsupported.');
       $probability = self::integer($entry['probability_basis_points'] ?? null, 1, 10000, 'probability');
       $roll = self::integer($entry['roll'] ?? null, 1, 10000, 'roll');
       $outcome = $entry['outcome'] ?? null;
       if (!in_array($outcome, ['not_rolled', 'granted', 'already_owned'], true)) throw new RewardResultException('Finalized reward outcome is unsupported.');
       $rolled = $roll <= $probability;
       if (($outcome === 'not_rolled') === $rolled) throw new RewardResultException('Finalized reward roll and outcome are inconsistent.');
-      if ($outcome === 'already_owned' && $type !== 'unlock') throw new RewardResultException('Only unlock rewards may be already owned.');
+      if ($outcome === 'already_owned' && !in_array($type, ['unlock', 'codex'], true)) throw new RewardResultException('Only unique rewards may be already owned.');
       if ($outcome === 'not_rolled') {
         if ($entry['grant'] !== null) throw new RewardResultException('A non-rolled reward must not contain grant facts.');
         continue;
@@ -56,7 +56,8 @@ final class FinalizedRewardResult
       if (!is_array($entry['grant']) || array_is_list($entry['grant'])) throw new RewardResultException('Rolled reward grant facts are malformed.');
       if ($type === 'currency') self::validateCurrencyGrant($entry['grant'], $currencyState);
       elseif ($type === 'unit_xp') self::validateXpGrant($entry['grant'], $unitState, $xpUnitSet, $xpResolver);
-      else self::validateUnlockGrant($entry['grant'], $outcome, $unlockState);
+      elseif ($type === 'unlock') self::validateUnlockGrant($entry['grant'], $outcome, $unlockState);
+      else self::validateCodexGrant($entry['grant'], $outcome, $codexState);
     }
     return new self($data);
   }
@@ -146,6 +147,15 @@ final class FinalizedRewardResult
     self::fields($grant, ['unlock_id'], 'unlock grant');
     $id = self::stableId($grant['unlock_id'] ?? null, 'unlock.', 'unlock_id');
     if (isset($state[$id]) && $outcome !== 'already_owned') throw new RewardResultException('Repeated finalized unlock must be already owned.');
+    $state[$id] = $outcome;
+  }
+
+  /** @param array<string,mixed> $grant @param array<string,string> $state */
+  private static function validateCodexGrant(array $grant, string $outcome, array &$state): void
+  {
+    self::fields($grant, ['codex_id'], 'Codex grant');
+    $id = self::stableId($grant['codex_id'] ?? null, 'codex.', 'codex_id');
+    if (isset($state[$id]) && $outcome !== 'already_owned') throw new RewardResultException('Repeated finalized Codex entry must be already owned.');
     $state[$id] = $outcome;
   }
 

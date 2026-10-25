@@ -441,7 +441,7 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
       new \DiceGoblins\Repositories\RunModifierRepository($this->pdo), $content);
     $rewards = new RewardApplicationService($this->pdo, $content,
       new RewardFinalizer(new ScriptedRewardRollSource([1, 1, 1])), new ResolvedEventRepository($this->pdo),
-      $state, $units, $unlocks);
+      $state, $units, $unlocks, new \DiceGoblins\Repositories\UserCodexRepository($this->pdo));
     return new ResolveRunNodeCommand($this->pdo, $state, new RunPersistenceRepository($this->pdo), $nodes,
       new IdempotencyRequestRepository($this->pdo), [
         $combat, new BossNodeResolutionHandler($combat, $nodes, $units, $unlocks, $rewards),

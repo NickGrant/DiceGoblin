@@ -307,7 +307,7 @@ final class BossNodeResolutionControllerTest extends IntegrationTestCase
       new \DiceGoblins\Repositories\RunModifierRepository($this->pdo), $content);
     $rewards = new RewardApplicationService($this->pdo, $content,
       new RewardFinalizer(new ScriptedRewardRollSource([1, 1, 1])), new ResolvedEventRepository($this->pdo),
-      new PlayerStateRepository($this->pdo), $units, $unlocks);
+      new PlayerStateRepository($this->pdo), $units, $unlocks, new \DiceGoblins\Repositories\UserCodexRepository($this->pdo));
     return new ResolveRunNodeCommand($this->pdo, new PlayerStateRepository($this->pdo),
       new RunPersistenceRepository($this->pdo), $nodes, new IdempotencyRequestRepository($this->pdo),
       [new BossNodeResolutionHandler($combat, $nodes, $units, $unlocks, $rewards, $afterCombat, $afterRewards)], $clock);

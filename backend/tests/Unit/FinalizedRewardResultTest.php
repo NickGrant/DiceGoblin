@@ -50,7 +50,7 @@ final class FinalizedRewardResultTest extends TestCase
       'roll outcome mismatch' => [fn(array &$p) => $p['entries'][0]['outcome'] = 'not_rolled', 'inconsistent'],
       'rolled grant missing' => [fn(array &$p) => $p['entries'][0]['grant'] = null, 'grant facts'],
       'not rolled grant present' => [fn(array &$p) => $p['entries'][5]['grant'] = ['currency_id' => 'teeth'], 'must not contain'],
-      'already owned currency' => [fn(array &$p) => $p['entries'][0]['outcome'] = 'already_owned', 'Only unlock'],
+      'already owned currency' => [fn(array &$p) => $p['entries'][0]['outcome'] = 'already_owned', 'Only unique'],
       'currency arithmetic' => [fn(array &$p) => $p['entries'][0]['grant']['balance_after'] = 12, 'arithmetic'],
       'currency overflow' => [function(array &$p): void {
         $p['entries'][0]['grant']['balance_before'] = PHP_INT_MAX;
@@ -82,6 +82,21 @@ final class FinalizedRewardResultTest extends TestCase
       'negative balance' => [fn(array &$p) => $p['entries'][0]['grant']['balance_before'] = -1, 'balance'],
       'extra presentation field' => [fn(array &$p) => $p['display_name'] = 'Prize', 'field set'],
     ];
+  }
+
+  public function testCodexFinalizedFactsAreStrictAndRepeatedGrantMustBeAlreadyOwned(): void
+  {
+    $result = $this->validResult();
+    $result['entries'][] = ['entry_index' => 6, 'key' => 'codex', 'reward_type' => 'codex',
+      'probability_basis_points' => 10000, 'roll' => 1, 'outcome' => 'granted',
+      'grant' => ['codex_id' => 'codex.farm.mudking']];
+    $result['entries'][] = ['entry_index' => 7, 'key' => 'codex_again', 'reward_type' => 'codex',
+      'probability_basis_points' => 10000, 'roll' => 1, 'outcome' => 'already_owned',
+      'grant' => ['codex_id' => 'codex.farm.mudking']];
+    $this->assertSame($result, FinalizedRewardResult::fromArray($result)->toArray());
+    $result['entries'][7]['outcome'] = 'granted';
+    $this->expectException(RewardResultException::class);
+    FinalizedRewardResult::fromArray($result);
   }
 
   /** @return array<string,mixed> */

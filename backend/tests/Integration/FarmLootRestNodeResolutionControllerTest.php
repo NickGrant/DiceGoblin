@@ -455,7 +455,7 @@ final class FarmLootRestNodeResolutionControllerTest extends IntegrationTestCase
     $unlocks = new UserUnlockRepository($this->pdo);
     $rewards = new RewardApplicationService($this->pdo, $content,
       new RewardFinalizer(new ScriptedRewardRollSource($rolls)), new ResolvedEventRepository($this->pdo),
-      $state, $units, $unlocks);
+      $state, $units, $unlocks, new \DiceGoblins\Repositories\UserCodexRepository($this->pdo));
     return new ResolveRunNodeCommand($this->pdo, $state, new RunPersistenceRepository($this->pdo), $nodes,
       new IdempotencyRequestRepository($this->pdo), [
         new LootNodeResolutionHandler($nodes, $units, $unlocks, $rewards),

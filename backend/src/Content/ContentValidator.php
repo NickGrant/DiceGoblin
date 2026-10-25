@@ -80,6 +80,7 @@ final class ContentValidator
       'run_generation' => $this->validateRunGeneration($definition, $location),
       'run_modifier' => $this->validateRunModifier($definition, $location),
       'unlock' => $this->validateUnlock($definition, $location),
+      'codex_entry' => $this->validateCodexEntry($definition, $location),
       'capability' => $this->validateCapability($definition, $location),
       'academy_upgrade' => $this->validateAcademyUpgrade($definition, $location),
       'unit_promotion' => $this->validateUnitPromotion($definition, $location),
@@ -290,6 +291,8 @@ final class ContentValidator
         foreach ($definition['entries'] as $entry) {
           if ($entry['reward_type'] === 'unlock') {
             $this->requireReferenceType($definitions, $id, 'entries.config.unlock_id', $entry['config']['unlock_id'], 'unlock');
+          } elseif ($entry['reward_type'] === 'codex') {
+            $this->requireReferenceType($definitions, $id, 'entries.config.codex_id', $entry['config']['codex_id'], 'codex_entry');
           }
         }
       }
@@ -441,6 +444,18 @@ final class ContentValidator
   }
 
   /** @param array<string, mixed> $definition */
+  private function validateCodexEntry(array $definition, string $location): void
+  {
+    $this->requireExactFieldSet($definition, ['id', 'type', 'title', 'body'], [], $location);
+    $this->requireNamespace($definition, 'codex.', $location);
+    $this->requireNonEmptyString($definition, 'title', $location);
+    $this->requireNonEmptyString($definition, 'body', $location);
+    if (mb_strlen($definition['title']) > 120 || mb_strlen($definition['body']) > 2000) {
+      throw new ContentValidationException("{$location} Codex presentation exceeds its bounds.");
+    }
+  }
+
+  /** @param array<string, mixed> $definition */
   private function validateCapability(array $definition, string $location): void
   {
     $this->requireExactFieldSet($definition, ['id', 'type', 'kind', 'value'], [], $location);
@@ -575,7 +590,7 @@ final class ContentValidator
       }
       $keys[$key] = true;
       $this->requireIntegerInRange($entry, 'probability_basis_points', 1, 10000, $entryLocation);
-      $rewardType = $this->requireAllowedString($entry, 'reward_type', ['currency', 'unit_xp', 'unlock'], $entryLocation);
+      $rewardType = $this->requireAllowedString($entry, 'reward_type', ['currency', 'unit_xp', 'unlock', 'codex'], $entryLocation);
       $config = $entry['config'] ?? null;
       if (!is_array($config) || array_is_list($config)) {
         throw new ContentValidationException("{$entryLocation} field 'config' must be an object.");
@@ -589,9 +604,12 @@ final class ContentValidator
         $this->requireExactFieldSet($config, ['target_scope', 'amount'], [], $configLocation);
         $this->requireAllowedString($config, 'target_scope', ['participating_units'], $configLocation);
         $this->requireIntegerInRange($config, 'amount', 1, PHP_INT_MAX, $configLocation);
-      } else {
+      } elseif ($rewardType === 'unlock') {
         $this->requireExactFieldSet($config, ['unlock_id'], [], $configLocation);
         $this->requireStableIdWithNamespace($config, 'unlock_id', 'unlock.', $configLocation);
+      } else {
+        $this->requireExactFieldSet($config, ['codex_id'], [], $configLocation);
+        $this->requireStableIdWithNamespace($config, 'codex_id', 'codex.', $configLocation);
       }
     }
   }

@@ -287,7 +287,7 @@ final class ContentRegistryTest extends TestCase
   private function canonicalDefinitions(ContentRegistry $registry): array
   {
     $definitions = [];
-    foreach (['gameplay_config', 'region', 'kin', 'unit_type', 'enemy_unit_type', 'encounter', 'ability', 'dice_material', 'dice_aspect', 'dice_profile', 'run_node_type', 'run_generation', 'unlock', 'capability', 'academy_upgrade', 'unit_promotion', 'reconstruction_recipe', 'event', 'reward_definition', 'item', 'shop_offer'] as $type) {
+    foreach (['gameplay_config', 'region', 'kin', 'unit_type', 'enemy_unit_type', 'encounter', 'ability', 'dice_material', 'dice_aspect', 'dice_profile', 'run_node_type', 'run_generation', 'unlock', 'capability', 'academy_upgrade', 'unit_promotion', 'reconstruction_recipe', 'event', 'reward_definition', 'item', 'shop_offer', 'codex_entry'] as $type) {
       foreach ($registry->definitionsOfType($type) as $definition) $definitions[] = $definition;
     }
     return $definitions;

@@ -1,4 +1,5 @@
 import { resolveApiBaseUrl } from '../../core/config/runtime-config';
+import { CodexContractError, CodexEntry, parseCodexEnvelope } from './codex-contracts';
 import {
   SquadConfigurationPayload,
   SquadDeleteResult,
@@ -115,6 +116,15 @@ export class RuntimeApiClient {
 
   async getItems(): Promise<unknown> {
     return this.get('/api/v1/items');
+  }
+
+  async getCodex(): Promise<readonly CodexEntry[]> {
+    const value = await this.get('/api/v1/codex');
+    try { return parseCodexEnvelope(value); }
+    catch (error) {
+      if (error instanceof CodexContractError) throw new RuntimeApiError('malformed-response', 200);
+      throw error;
+    }
   }
 
   async getShop(): Promise<unknown> {

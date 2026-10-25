@@ -163,6 +163,12 @@ final class ContentRegistry
   }
 
   /** @return array<string, mixed> */
+  public function codexEntry(string $id): array
+  {
+    return $this->definitionOfType($id, 'codex_entry');
+  }
+
+  /** @return array<string, mixed> */
   public function academyUpgrade(string $id): array
   {
     return $this->definitionOfType($id, 'academy_upgrade');

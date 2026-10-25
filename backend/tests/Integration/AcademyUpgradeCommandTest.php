@@ -221,7 +221,8 @@ final class AcademyUpgradeCommandTest extends IntegrationTestCase
   {
     $content ??= $this->content(); $players = new PlayerStateRepository($this->pdo); $unlocks = new UserUnlockRepository($this->pdo);
     $rewards = new RewardApplicationService($this->pdo, $content, new RewardFinalizer(new CryptoRewardRollSource()),
-      new ResolvedEventRepository($this->pdo), $players, new WarbandUnitRepository($this->pdo), $unlocks);
+      new ResolvedEventRepository($this->pdo), $players, new WarbandUnitRepository($this->pdo), $unlocks,
+      new \DiceGoblins\Repositories\UserCodexRepository($this->pdo));
     $clock = new class($now) implements Clock {
       public function __construct(private readonly string $now) {}
       public function now(): DateTimeImmutable { return new DateTimeImmutable($this->now); }

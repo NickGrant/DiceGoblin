@@ -32,7 +32,7 @@ describe('GameStore Warband cache', () => {
   }
 
   function api(): jasmine.SpyObj<RuntimeApiClient> {
-    const result = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getBootstrap', 'getUnits', 'getUnitDetail', 'getDice', 'getSquads', 'getItems', 'getShop', 'getCurrentRun', 'startRun', 'abandonRun', 'renameUnit', 'replaceUnitLoadout']);
+    const result = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getBootstrap', 'getUnits', 'getUnitDetail', 'getDice', 'getSquads', 'getItems', 'getCodex', 'getShop', 'getCurrentRun', 'startRun', 'abandonRun', 'renameUnit', 'replaceUnitLoadout']);
     result.getUnits.and.resolveTo({ ok: true, data: { units: [{ id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active' }] } });
     result.getDice.and.resolveTo({ ok: true, data: { dice: [
       { id: '21', size: 6, profile_id: 'dice_profile.bone', lifecycle_status: 'active', bindings: [{ unit_id: '11', ability_id: 'ability.bash', slot_index: 0 }] },
@@ -51,6 +51,42 @@ describe('GameStore Warband cache', () => {
     } } });
     return result;
   }
+
+  it('keeps Codex lazy, reuses a fresh read, and marks it stale after player revision changes', async () => {
+    const store = new GameStore(); const client = api();
+    const entries = [{ id: 'codex.farm.mudking', title: 'The Mudking', body: null, owned: false }];
+    client.getCodex.and.resolveTo(entries);
+    store.hydrateBootstrap(bootstrap());
+    expect(store.codex.status).toBe('not-loaded');
+    expect(client.getCodex).not.toHaveBeenCalled();
+    await store.loadCodex(client); await store.loadCodex(client);
+    expect(store.codex.data).toEqual(entries);
+    expect(client.getCodex).toHaveBeenCalledTimes(1);
+    store.hydrateBootstrap({ ...bootstrap(), player: { ...bootstrap().player, player_revision: 8 } });
+    expect(store.codex.status).toBe('stale');
+    client.getCodex.and.resolveTo([{ ...entries[0], body: 'The Mudking rules the Farm.', owned: true }]);
+    await store.loadCodex(client);
+    expect(store.codex.data?.[0].owned).toBeTrue();
+    store.clear();
+    expect(store.codex.status).toBe('not-loaded');
+  });
+
+  it('discards an in-flight Codex read after progression revision changes', async () => {
+    const store = new GameStore(); const client = api();
+    store.hydrateBootstrap(bootstrap());
+    let resolveOld!: (entries: readonly { id: string; title: string; body: string | null; owned: boolean }[]) => void;
+    const oldRead = new Promise<readonly { id: string; title: string; body: string | null; owned: boolean }[]>((resolve) => { resolveOld = resolve; });
+    const newEntries = [{ id: 'codex.farm.mudking', title: 'The Mudking', body: 'Knowledge.', owned: true }];
+    client.getCodex.and.returnValues(oldRead, Promise.resolve(newEntries));
+    const first = store.loadCodex(client);
+    store.hydrateBootstrap({ ...bootstrap(), player: { ...bootstrap().player, player_revision: 8 } });
+    const second = store.loadCodex(client);
+    await second;
+    resolveOld([{ ...newEntries[0], body: null, owned: false }]); await first;
+    expect(store.codex.status).toBe('fresh');
+    expect(store.codex.data).toEqual(newEntries);
+    expect(client.getCodex).toHaveBeenCalledTimes(2);
+  });
 
   it('strictly parses and retains the compact active-run bootstrap summary', () => {
     const data = { ...bootstrap(), active_run: {

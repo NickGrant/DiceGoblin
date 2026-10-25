@@ -41,6 +41,7 @@ final class VnextDatabaseBaselineTest extends IntegrationTestCase
       'unit_ability_loadout',
       'unit_instances',
       'unit_promotions',
+      'user_codex_ownership',
       'user_external_identities',
       'user_items',
       'user_local_credentials',
@@ -79,6 +80,13 @@ final class VnextDatabaseBaselineTest extends IntegrationTestCase
 
     $unlockColumns = $this->pdo?->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user_unlocks' ORDER BY ORDINAL_POSITION")->fetchAll(\PDO::FETCH_COLUMN);
     $this->assertSame(['user_id', 'unlock_id', 'granted_at'], $unlockColumns);
+    $codexColumns = $this->pdo?->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user_codex_ownership' ORDER BY ORDINAL_POSITION")->fetchAll(\PDO::FETCH_COLUMN);
+    $this->assertSame(['user_id', 'codex_id', 'granted_at'], $codexColumns);
+    $this->assertSame('2', (string)$this->scalar("SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user_codex_ownership' AND INDEX_NAME = 'PRIMARY' AND NON_UNIQUE = 0", []));
+    $this->assertSame('1', (string)$this->scalar("SELECT COUNT(*) FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS
+      WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'user_codex_ownership' AND CONSTRAINT_NAME = 'fk_user_codex_ownership_user'
+        AND DELETE_RULE = 'CASCADE'", []));
     $itemColumns = $this->pdo?->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user_items' ORDER BY ORDINAL_POSITION")->fetchAll(\PDO::FETCH_COLUMN);
     $this->assertSame(['user_id', 'item_id', 'quantity'], $itemColumns);
     $this->assertSame('2', (string)$this->scalar("SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS

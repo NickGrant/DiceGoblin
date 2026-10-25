@@ -111,6 +111,12 @@ export interface AcademyState {
   readonly error: WarbandDomainErrorKind | null;
 }
 
+export interface CodexState {
+  readonly status: WarbandDomainStatus;
+  readonly data: readonly CodexEntry[] | null;
+  readonly error: WarbandDomainErrorKind | null;
+}
+
 export interface WrongMachineState {
   readonly status: WarbandDomainStatus;
   readonly data: WrongMachineCatalog | null;
@@ -340,6 +346,7 @@ export class GameStore {
   private readonly itemListeners = new Set<(state: WarbandDomainState<OwnedItemStack>) => void>();
   private readonly shopListeners = new Set<(state: ShopState) => void>();
   private readonly academyListeners = new Set<(state: AcademyState) => void>();
+  private readonly codexListeners = new Set<(state: CodexState) => void>();
   private readonly wrongMachineListeners = new Set<(state: WrongMachineState) => void>();
   private readonly promotionListeners = new Set<(unitId: string, state: UnitPromotionOptionsState) => void>();
   private currentRunState: CurrentRunState = Object.freeze({ status: 'not-loaded', data: null, error: null });
@@ -350,6 +357,9 @@ export class GameStore {
   private shopInFlight: Promise<void> | null = null;
   private academyState: AcademyState = Object.freeze({ status: 'not-loaded', data: null, error: null });
   private academyInFlight: Promise<void> | null = null;
+  private codexState: CodexState = Object.freeze({ status: 'not-loaded', data: null, error: null });
+  private codexInFlight: Promise<void> | null = null;
+  private codexEpoch = 0;
   private wrongMachineState: WrongMachineState = Object.freeze({ status: 'not-loaded', data: null, error: null });
   private wrongMachineInFlight: Promise<void> | null = null;
   private wrongMachineEpoch = 0;
@@ -368,6 +378,7 @@ export class GameStore {
   private set cachedBootstrap(value: GameBootstrapData | null) {
     const prior = this.bootstrapCache?.player ?? null;
     this.bootstrapCache = value;
+    if (prior && value && prior.player_revision !== value.player.player_revision) this.markCodexStale();
     if (prior !== (value?.player ?? null)) {
       for (const listener of this.playerListeners) listener(value?.player ?? null);
     }
@@ -394,6 +405,7 @@ export class GameStore {
   }
 
   get academy(): AcademyState { return this.academyState; }
+  get codex(): CodexState { return this.codexState; }
   get wrongMachine(): WrongMachineState { return this.wrongMachineState; }
 
   promotionOptions(unitId: string): UnitPromotionOptionsState {
@@ -435,6 +447,11 @@ export class GameStore {
   subscribeAcademy(listener: (state: AcademyState) => void): () => void {
     this.academyListeners.add(listener);
     return () => this.academyListeners.delete(listener);
+  }
+
+  subscribeCodex(listener: (state: CodexState) => void): () => void {
+    this.codexListeners.add(listener);
+    return () => this.codexListeners.delete(listener);
   }
 
   subscribeWrongMachine(listener: (state: WrongMachineState) => void): () => void {
@@ -688,6 +705,32 @@ export class GameStore {
 
   retryAcademy(api: RuntimeApiClient, content: ClientContentRegistry): Promise<void> {
     return this.loadAcademy(api, content, true);
+  }
+
+  loadCodex(api: RuntimeApiClient, reload = false): Promise<void> {
+    const state = this.codexState;
+    if (!reload && state.status === 'fresh') return Promise.resolve();
+    if (this.codexInFlight) return this.codexInFlight;
+    const generation = this.cacheGeneration; const epoch = this.codexEpoch;
+    this.setCodex({ status: 'loading', data: state.data, error: null });
+    const promise = api.getCodex().then((entries) => {
+      if (generation === this.cacheGeneration && epoch === this.codexEpoch)
+        this.setCodex({ status: 'fresh', data: entries, error: null });
+    }).catch((error: unknown) => {
+      if (generation === this.cacheGeneration && epoch === this.codexEpoch)
+        this.setCodex({ status: 'error', data: state.data, error: domainErrorKind(error) });
+    }).finally(() => { if (this.codexInFlight === promise) this.codexInFlight = null; });
+    this.codexInFlight = promise;
+    return promise;
+  }
+
+  retryCodex(api: RuntimeApiClient): Promise<void> { return this.loadCodex(api, true); }
+
+  markCodexStale(): void {
+    this.codexEpoch += 1;
+    this.codexInFlight = null;
+    if (this.codexState.status !== 'not-loaded')
+      this.setCodex({ status: 'stale', data: this.codexState.data, error: null });
   }
 
   loadWrongMachine(api: RuntimeApiClient, content: ClientContentRegistry, reload = false): Promise<void> {
@@ -1171,6 +1214,9 @@ export class GameStore {
     this.shopInFlight = null;
     this.academyState = Object.freeze({ status: 'not-loaded', data: null, error: null });
     this.academyInFlight = null;
+    this.codexState = Object.freeze({ status: 'not-loaded', data: null, error: null });
+    this.codexInFlight = null;
+    this.codexEpoch += 1;
     this.wrongMachineState = Object.freeze({ status: 'not-loaded', data: null, error: null });
     this.wrongMachineInFlight = null;
     this.wrongMachineEpoch += 1;
@@ -1182,6 +1228,7 @@ export class GameStore {
     for (const listener of this.itemListeners) listener(this.itemInventoryState);
     for (const listener of this.shopListeners) listener(this.shopState);
     for (const listener of this.academyListeners) listener(this.academyState);
+    for (const listener of this.codexListeners) listener(this.codexState);
     for (const listener of this.wrongMachineListeners) listener(this.wrongMachineState);
     for (const unitId of promotionIds) {
       const empty = this.promotionOptions(unitId);
@@ -1417,6 +1464,11 @@ export class GameStore {
     for (const listener of this.academyListeners) listener(this.academyState);
   }
 
+  private setCodex(state: CodexState): void {
+    this.codexState = Object.freeze(state);
+    for (const listener of this.codexListeners) listener(this.codexState);
+  }
+
   private setWrongMachine(state: WrongMachineState): void {
     this.wrongMachineState = Object.freeze(state);
     for (const listener of this.wrongMachineListeners) listener(this.wrongMachineState);
@@ -1498,6 +1550,7 @@ import { ShopCatalogResult, ShopContractError, ShopPurchaseResult, parseShopCata
 import { EnergyRestoreResult, RunUnitHealResult } from './consumable-contracts';
 import { DiceSalvageResult, DiceSellResult } from './dice-lifecycle-contracts';
 import { AcademyCatalogResult, AcademyContractError, AcademyUpgradeResult } from './academy-contracts';
+import { CodexEntry } from './codex-contracts';
 import { UnitPromotionContractError, UnitPromotionOptionsResult } from './unit-promotion-contracts';
 import { UnitPromotionMutationContractError, UnitPromotionResult } from './unit-promotion-mutation-contracts';
 import { ReconstructionResult, WrongMachineCatalog, WrongMachineContractError } from './wrong-machine-contracts';

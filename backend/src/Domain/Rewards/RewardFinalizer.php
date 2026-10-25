@@ -20,6 +20,7 @@ final class RewardFinalizer
     $units = $context->units();
     uksort($units, [FinalizedRewardResult::class, 'compareIds']);
     $unlocks = $context->unlocks();
+    $codex = $context->codex();
     $entries = [];
     foreach ($definition['entries'] as $index => $authored) {
       $roll = $this->rolls->nextBasisPointRoll();
@@ -57,11 +58,16 @@ final class RewardFinalizer
           }
           $entry['outcome'] = 'granted';
           $entry['grant'] = ['target_scope' => 'participating_units', 'amount_per_unit' => $amount, 'units' => $transitions];
-        } else {
+        } elseif ($type === 'unlock') {
           $unlockId = (string)$config['unlock_id'];
           $entry['outcome'] = isset($unlocks[$unlockId]) ? 'already_owned' : 'granted';
           $entry['grant'] = ['unlock_id' => $unlockId];
           $unlocks[$unlockId] = true;
+        } else {
+          $codexId = (string)$config['codex_id'];
+          $entry['outcome'] = isset($codex[$codexId]) ? 'already_owned' : 'granted';
+          $entry['grant'] = ['codex_id' => $codexId];
+          $codex[$codexId] = true;
         }
       }
       $entries[] = $entry;

@@ -75,6 +75,7 @@ use DiceGoblins\Repositories\IdempotencyRequestRepository;
 use DiceGoblins\Repositories\SquadRepository;
 use DiceGoblins\Repositories\UserRepository;
 use DiceGoblins\Repositories\UserUnlockRepository;
+use DiceGoblins\Repositories\UserCodexRepository;
 use DiceGoblins\Repositories\UserItemRepository;
 use DiceGoblins\Repositories\WarbandDiceRepository;
 use DiceGoblins\Repositories\WarbandFixtureRepository;
@@ -164,6 +165,7 @@ final class ControllerServiceFactory
     $activeRunPolicy = new ActiveRunConfigurationPolicy($runRepository);
     $activeRunSummary = new ActiveRunSummaryQuery($runRepository, $content);
     $unlockRepository = new UserUnlockRepository($pdo);
+    $codexRepository = new UserCodexRepository($pdo);
     $itemRepository = new UserItemRepository($pdo);
     $regionAvailability = new RegionAvailabilityPolicy($content);
     $unitTypeAvailability = new UnitTypeAvailabilityPolicy($content);
@@ -172,7 +174,7 @@ final class ControllerServiceFactory
     $runModifierRepository = new RunModifierRepository($pdo);
     $rewardApplication = new RewardApplicationService(
       $pdo, $content, new RewardFinalizer(new CryptoRewardRollSource()), new ResolvedEventRepository($pdo),
-      $core['playerStateRepo'], $unitRepository, $unlockRepository,
+      $core['playerStateRepo'], $unitRepository, $unlockRepository, $codexRepository,
     );
     $combatNodeHandler = new CombatNodeResolutionHandler(
       $nodeResolutionRepository,

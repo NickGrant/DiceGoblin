@@ -13,6 +13,8 @@ final class RewardContext
   private array $units = [];
   /** @var array<string,bool> */
   private array $unlocks = [];
+  /** @var array<string,bool> */
+  private array $codex = [];
 
   /** @param list<array{unit_id:int|string,level:int,xp:int}> $participatingUnits
    *  @param list<string> $ownedUnlockIds
@@ -22,6 +24,7 @@ final class RewardContext
     public readonly int $rawChaos,
     array $participatingUnits,
     array $ownedUnlockIds,
+    array $ownedCodexIds = [],
   ) {
     if ($teeth < 0 || $rawChaos < 0) throw new InvalidArgumentException('Reward balances cannot be negative.');
     $xpResolver = new UnitXpResolver();
@@ -44,12 +47,26 @@ final class RewardContext
       }
       $this->unlocks[$unlockId] = true;
     }
+    foreach ($ownedCodexIds as $codexId) {
+      if (!is_string($codexId) || preg_match('/^codex\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/', $codexId) !== 1 || isset($this->codex[$codexId])) {
+        throw new InvalidArgumentException('Owned Codex context is invalid.');
+      }
+      $this->codex[$codexId] = true;
+    }
   }
 
   /** @return array<string,array{unit_id:string,level:int,xp:int}> */
   public function units(): array { return $this->units; }
   /** @return array<string,bool> */
   public function unlocks(): array { return $this->unlocks; }
+  /** @return array<string,bool> */
+  public function codex(): array { return $this->codex; }
+
+  /** @param list<string> $ids */
+  public function withCodexIds(array $ids): self
+  {
+    return new self($this->teeth, $this->rawChaos, array_values($this->units), array_keys($this->unlocks), $ids);
+  }
 
   private static function canonicalId(int|string $id): string
   {

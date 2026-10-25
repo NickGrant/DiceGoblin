@@ -14,6 +14,7 @@ use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Repositories\ResolvedEventRepository;
 use DiceGoblins\Repositories\UserRepository;
 use DiceGoblins\Repositories\UserUnlockRepository;
+use DiceGoblins\Repositories\UserCodexRepository;
 use DiceGoblins\Repositories\WarbandUnitRepository;
 use DiceGoblins\Tests\Support\IntegrationTestCase;
 use DiceGoblins\Tests\Support\ScriptedRewardRollSource;
@@ -231,7 +232,7 @@ final class RewardApplicationServiceTest extends IntegrationTestCase
   {
     return new RewardApplicationService(
       $this->pdo, $this->content(), new RewardFinalizer($rolls), new ResolvedEventRepository($this->pdo),
-      new PlayerStateRepository($this->pdo), new WarbandUnitRepository($this->pdo), new UserUnlockRepository($this->pdo),
+      new PlayerStateRepository($this->pdo), new WarbandUnitRepository($this->pdo), new UserUnlockRepository($this->pdo), new UserCodexRepository($this->pdo),
     );
   }
 

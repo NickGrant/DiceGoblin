@@ -1,0 +1,10 @@
+{
+  "definitions": [
+    {
+      "id": "codex.farm.mudking",
+      "type": "codex_entry",
+      "title": "The Mudking",
+      "body": "The Mudking rules the Farm's muddy paths and rallies the boars that defend them."
+    }
+  ]
+}
