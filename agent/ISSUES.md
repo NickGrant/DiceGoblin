@@ -83,6 +83,10 @@ The local active Mountains run correctly reflected the prior authored nine-node 
 
 The Compact map spacing was adjusted only for dense three-row graphs after deterministic capture exposed overlapping selectable nodes. Focused affected backend suites passed (75 tests / 604 assertions), the frontend suite passed (497 tests), and Standard 1600x900, Compact 1280x560, and Wide 2200x1000 deterministic Mountains captures completed and were visually reviewed. The first aggregate run found a stale fixed-nine-node assertion in the existing lifecycle test; that test now explicitly uses the fixed base graph, while the production start test proves variable persisted topology and exact replay. Final `npm run verify:package` passed: backend 763 tests / 5,318 assertions; frontend 497 tests; content, context, documentation, production build, bundle, and diff gates passed. Package 10 remains In Progress pending repeat Mountains manual UAT.
 
+#### Manual UAT acceptance
+
+The user confirmed that UAT appears complete and that the current Mountains branch density is good enough for now. No blocking Milestone 10 UAT defect remains reported. Further map-generation design and variety are deferred for a later work package; the current server-authored side-trail generator remains the accepted UAT baseline. Manual UAT is accepted; Package 10 remains in the active-issue workflow pending milestone promotion. Milestone 11 has not been activated or promoted.
+
 #### Scope exclusions
 
 Do not add Knowledge/Codex/Objectives, onboarding/Mystic Cave, Swamp/Frog Kin, production Shrine/Chaos, new encounter families, new modifier families, or broad visual redesign during this UAT package.

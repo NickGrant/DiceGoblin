@@ -71,11 +71,11 @@ Knowledge/objectives remain Milestone 11. Mystic Cave/onboarding remains Milesto
 7. **Contextual consumables + multi-step encounter interaction.** Approved through `bad02a8b80b18d7689faaa6b42db92ffc45395e6`.
 8. **Phaser RunScene branching/encounter interaction integration.** Approved at `a91fbece6e989c2a468fbafe88b1eb02553a3dfc`.
 9. **Run-encounter-depth integrated verification/technical closure.** Approved at `88ca459864f0e545637ed13240e7c426717b6e38`.
-10. **Focused manual UAT before Milestone 11.** Current.
+10. **Focused manual UAT before Milestone 11.** User accepted the current Farm/Mountains experience and deferred further map-generation work; awaiting milestone promotion.
 
 ### Sequencing Notes
 
 - Packages 1-7 established the authoritative exploration, encounter, randomness, modifier, contextual-consumable, and resumable interaction contracts.
 - Package 8 completed the player-facing generic RunScene integration across those contracts while preserving server authority and responsive presentation.
 - Package 9 proved the complete production-composed slice, persistence/reload/retry behavior, regression safety, responsive capture coverage, and completed the approved test-suite rationalization.
-- Package 10 is manual UAT. Do not begin Milestone 11 until it passes and the user explicitly confirms promotion.
+- Package 10 manual UAT has been accepted. Do not begin Milestone 11 until the user explicitly confirms promotion.
