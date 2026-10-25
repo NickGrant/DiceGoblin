@@ -17,6 +17,7 @@ export interface CombatRunNodeResolutionResult extends ResolutionBase {
   readonly battle: { readonly id: string; readonly outcome: ResolvedBattleOutcome; readonly engineVersion: 1;
     readonly playbackVersion: 1; readonly endingRound: number; readonly endingTick: number };
   readonly terminalPlayerHp: Readonly<Record<string, number>>;
+  readonly itemGrants?: readonly { readonly itemId: string; readonly quantity: number; readonly ownedAfter: number }[];
   readonly appliedModifiers?: readonly { readonly id: string; readonly modifierId: string; readonly remainingCombats: 0 | 1 }[];
   readonly run: { readonly id: string; readonly status: 'active' | 'failed'; readonly endedAt: string | null };
 }
@@ -25,6 +26,7 @@ export interface BossRunNodeResolutionResult extends ResolutionBase {
   readonly resolutionType: 'boss';
   readonly battle: CombatRunNodeResolutionResult['battle'];
   readonly terminalPlayerHp: Readonly<Record<string, number>>;
+  readonly itemGrants?: CombatRunNodeResolutionResult['itemGrants'];
   readonly appliedModifiers?: CombatRunNodeResolutionResult['appliedModifiers'];
   readonly run: CombatRunNodeResolutionResult['run'];
   readonly rewards: null | {
@@ -205,11 +207,30 @@ function parseBattleFacts(data: Record<string, unknown>): Omit<CombatRunNodeReso
   const endedAt = run['ended_at'] === null ? null : timestamp(run['ended_at'], 'Resolved run ended_at');
   if ((run['status'] === 'active') !== (endedAt === null)) throw new RunNodeResolutionContractError('Resolved run lifecycle is incoherent.');
   const appliedModifiers = parseAppliedModifiers(data['applied_modifiers'], outcome);
+  const itemGrants = parseItemGrants(data['item_grants'], outcome);
   return { battle: Object.freeze({ id: id(battle['id'], 'Battle id'), outcome, engineVersion: 1, playbackVersion: 1,
       endingRound: integer(battle['ending_round'], 'Battle ending round'), endingTick: integer(battle['ending_tick'], 'Battle ending tick') }),
     node: base.node, newlyAvailableNodeIds: base.newlyAvailableNodeIds, terminalPlayerHp: Object.freeze(terminalPlayerHp),
     run: Object.freeze({ id: id(run['id'], 'Resolved run id'), status: run['status'], endedAt }), playerRevision: base.playerRevision,
-    ...(appliedModifiers ? { appliedModifiers } : {}) };
+    ...(appliedModifiers ? { appliedModifiers } : {}), ...(itemGrants ? { itemGrants } : {}) };
+}
+function parseItemGrants(value: unknown, outcome: ResolvedBattleOutcome): CombatRunNodeResolutionResult['itemGrants'] {
+  if (value === undefined) return undefined;
+  if (outcome !== 'victory' || !Array.isArray(value) || value.length === 0)
+    throw new RunNodeResolutionContractError('Battle item grants are invalid.');
+  const seen = new Set<string>();
+  return Object.freeze(value.map((candidate) => {
+    const row = object(candidate, 'Battle item grant');
+    exact(row, ['item_id', 'quantity', 'owned_after'], 'Battle item grant');
+    const itemId = row['item_id'];
+    if (typeof itemId !== 'string' || !/^item\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/.test(itemId) || seen.has(itemId))
+      throw new RunNodeResolutionContractError('Battle item grant ID is invalid.');
+    seen.add(itemId);
+    const quantity = positiveInteger(row['quantity'], 'Battle item grant quantity');
+    const ownedAfter = positiveInteger(row['owned_after'], 'Battle item owned quantity');
+    if (ownedAfter < quantity) throw new RunNodeResolutionContractError('Battle item grant balance is invalid.');
+    return Object.freeze({ itemId, quantity, ownedAfter });
+  }));
 }
 
 function parseAppliedModifiers(value: unknown, outcome: ResolvedBattleOutcome): CombatRunNodeResolutionResult['appliedModifiers'] {
@@ -233,13 +254,15 @@ function parseAppliedModifiers(value: unknown, outcome: ResolvedBattleOutcome): 
 
 function parseCombat(data: Record<string, unknown>): CombatRunNodeResolutionResult {
   exact(data, ['resolution_type', 'battle', 'node', 'newly_available_node_ids', 'terminal_player_hp', 'run', 'player_revision',
-    ...(Object.hasOwn(data, 'applied_modifiers') ? ['applied_modifiers'] : [])], 'Combat resolution data');
+    ...(Object.hasOwn(data, 'applied_modifiers') ? ['applied_modifiers'] : []),
+    ...(Object.hasOwn(data, 'item_grants') ? ['item_grants'] : [])], 'Combat resolution data');
   return Object.freeze({ resolutionType: 'combat', ...parseBattleFacts(data) });
 }
 
 function parseBoss(data: Record<string, unknown>): BossRunNodeResolutionResult {
   exact(data, ['resolution_type', 'battle', 'node', 'newly_available_node_ids', 'terminal_player_hp', 'rewards', 'run', 'player_revision',
-    ...(Object.hasOwn(data, 'applied_modifiers') ? ['applied_modifiers'] : [])], 'Boss resolution data');
+    ...(Object.hasOwn(data, 'applied_modifiers') ? ['applied_modifiers'] : []),
+    ...(Object.hasOwn(data, 'item_grants') ? ['item_grants'] : [])], 'Boss resolution data');
   const facts = parseBattleFacts(data);
   if (data['rewards'] === null) {
     if (facts.battle.outcome === 'victory') throw new RunNodeResolutionContractError('Boss victory rewards are missing.');

@@ -71,6 +71,12 @@ The local account reset was complete, but Shop and Academy were always open in v
 
 Implementation verification: focused affected backend integration suites passed (68 tests, 738 assertions); authored Shop/reward content suites passed (38 tests, 125 assertions); final `npm run verify:package` passed (backend 759 tests / 5,275 assertions; frontend 495 tests; content validation, production build, bundle, documentation, context, and diff gates passed). Deterministic locked Camp Compact and Shop Standard/Compact captures completed. During UAT, the existing local database volume was found to predate the canonical baseline: `run_nodes.encounter_step_id` and `run_modifiers` were missing. Those two canonical schema pieces were added to the local UAT database without resetting or modifying the active Farm run; its current-run query then returned the intact five-node Farm graph and participating unit HP. Package 10 remains In Progress pending repeat manual UAT.
 
+#### UAT correction: victorious Combat/Boss material receipt projection
+
+The Farm Boss victory committed successfully in the local UAT run, but the browser rejected its finalized `item_grants` field. The server's authoritative victory-material grant had been added after the strict Combat/Boss response parser and was not represented in that browser contract. The correction validates and projects only item ID, granted quantity, and owned quantity from the optional finalized grant list for both Combat and Boss, and invalidates a loaded inventory slice when new materials arrive. It preserves the existing boss battle, unlocks, and materials; no gameplay command was replayed or run state edited. The persisted UAT boss receipt showed the granted Shop/Mountains unlocks and Pig materials, and the boss node is completed with Exit available.
+
+Verification: focused frontend suite passed (496 tests), including representative finalized Farm Combat/Boss material receipts, malformed/private grant rejection, and RunScene inventory invalidation. Full `npm run verify:package` passed: backend 759 tests / 5,275 assertions; frontend 496 tests; content, context, documentation, production build, bundle, and diff gates passed. Repeat Farm Boss playback/Exit UAT is pending; Package 10 remains In Progress.
+
 #### Scope exclusions
 
 Do not add Knowledge/Codex/Objectives, onboarding/Mystic Cave, Swamp/Frog Kin, production Shrine/Chaos, new encounter families, new modifier families, or broad visual redesign during this UAT package.

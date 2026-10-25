@@ -456,6 +456,11 @@ export class GameStore {
     this.setCurrentRun({ status: 'stale', data: this.currentRunState.data, error: null });
   }
 
+  markItemsStale(): void {
+    if (this.itemInventoryState.status === 'fresh')
+      this.setItems({ status: 'stale', data: this.itemInventoryState.data, error: null });
+  }
+
   reconcileResolvedRunNodePlayerState(result: LootRunNodeResolutionResult | RestRunNodeResolutionResult | HazardRunNodeResolutionResult | ShrineRunNodeResolutionResult | ChaosRunNodeResolutionResult | InteractionStepResult): void {
     const bootstrap = this.cachedBootstrap;
     if (!bootstrap || result.playerRevision < bootstrap.player.player_revision)

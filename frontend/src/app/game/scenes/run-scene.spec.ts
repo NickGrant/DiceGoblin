@@ -434,11 +434,14 @@ describe('RunScene lifecycle shell', () => {
   it('resolves an available Boss once into retained BattleScene presentation', async () => {
     const { scene, startup, api, sceneStart } = await readyHarness(bossAvailableRun());
     spyOn<any>(scene, 'render').and.stub();
-    api.resolveRunNode.and.resolveTo(bossResolutionSuccess());
+    const staleItems = spyOn(startup.store, 'markItemsStale').and.callThrough();
+    api.resolveRunNode.and.resolveTo({ ...bossResolutionSuccess(),
+      itemGrants: [{ itemId: 'item.pig_ear', quantity: 2, ownedAfter: 3 }] });
     scene.selectNode('13'); await scene.activateSelectedCombat();
     expect(api.resolveRunNode).toHaveBeenCalledTimes(1);
     expect(startup.battlePresentation.resolution?.resolutionType).toBe('boss');
     expect(startup.battlePresentation.marker).toEqual(jasmine.objectContaining({ battleId: '82', runNodeId: '13' }));
+    expect(staleItems).toHaveBeenCalledTimes(1);
     expect(sceneStart).toHaveBeenCalledWith(BATTLE_SCENE_KEY);
   });
 

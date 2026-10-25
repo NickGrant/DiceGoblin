@@ -576,6 +576,7 @@ export class RunScene extends RuntimeScene {
       }
       this.runtimeStartup.battlePresentation.retainResolution(result);
       this.runtimeStartup.store.markCurrentRunStale();
+      if (result.itemGrants) this.runtimeStartup.store.markItemsStale();
       this.presentBattle(bootstrap.account.id, result.battle.id, result.run.id, result.node.id);
       return;
     }

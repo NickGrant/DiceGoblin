@@ -34,6 +34,41 @@ describe('run node resolution contracts', () => {
     expect(parsed.terminalPlayerHp).toEqual({ '21': 12, '22': 0 });
   });
 
+  it('accepts finalized victory material grants on Combat and Boss without accepting private reward fields', () => {
+    const combat = envelope();
+    combat.data.item_grants = [{ item_id: 'item.pig_ear', quantity: 1, owned_after: 3 }];
+    const parsedCombat = parseRunNodeResolutionEnvelope(combat);
+    expect(parsedCombat.resolutionType === 'combat' && parsedCombat.itemGrants)
+      .toEqual([{ itemId: 'item.pig_ear', quantity: 1, ownedAfter: 3 }]);
+
+    const boss = structuredClone(combat);
+    boss.data.resolution_type = 'boss';
+    boss.data.item_grants = [
+      { item_id: 'item.mudking_crown_fragment', quantity: 1, owned_after: 1 },
+      { item_id: 'item.pig_ear', quantity: 2, owned_after: 5 },
+    ];
+    boss.data.rewards = { unit_xp: [{ unit_id: '21', amount: 16, level_before: 1, xp_before: 90,
+      level_after: 2, xp_after: 6 }], unlocks: [
+      { unlock_id: 'unlock.capability.shop_access', outcome: 'granted' },
+      { unlock_id: 'unlock.region.mountains', outcome: 'granted' },
+    ] };
+    const parsedBoss = parseRunNodeResolutionEnvelope(boss);
+    expect(parsedBoss.resolutionType === 'boss' && parsedBoss.itemGrants).toEqual([
+      { itemId: 'item.mudking_crown_fragment', quantity: 1, ownedAfter: 1 },
+      { itemId: 'item.pig_ear', quantity: 2, ownedAfter: 5 },
+    ]);
+    for (const mutate of [
+      (value: any) => { value.data.item_grants[0].roll = 1; },
+      (value: any) => { value.data.item_grants[0].owned_after = 0; },
+      (value: any) => { value.data.item_grants.push(value.data.item_grants[0]); },
+      (value: any) => { value.data.battle.outcome = 'defeat'; value.data.run.status = 'failed';
+        value.data.run.ended_at = '2026-09-16T12:00:00Z'; },
+    ]) {
+      const invalid = structuredClone(boss); mutate(invalid);
+      expect(() => parseRunNodeResolutionEnvelope(invalid)).toThrowError(RunNodeResolutionContractError);
+    }
+  });
+
   it('parses strict player-safe Loot and Rest variants without private authored facts', () => {
     const loot = parseRunNodeResolutionEnvelope({ ok: true, data: { resolution_type: 'loot',
       wallet: { teeth: 18 }, granted_rewards: [{ reward_type: 'currency', currency_id: 'teeth', amount: 8 }],
