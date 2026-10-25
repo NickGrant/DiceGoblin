@@ -83,7 +83,8 @@ use DiceGoblins\Services\CsrfService;
 use DiceGoblins\Services\AccountCreationService;
 use DiceGoblins\Services\PasswordResetService;
 use DiceGoblins\Services\SessionService;
-use DiceGoblins\RunGeneration\FixedGraphRunGenerator;
+use DiceGoblins\RunGeneration\VariableTrailRunGenerator;
+use DiceGoblins\RunGeneration\RunGraphGenerator;
 use PDO;
 
 final class ControllerServiceFactory
@@ -140,6 +141,7 @@ final class ControllerServiceFactory
     ?array $core = null,
     ?ContentRegistry $content = null,
     ?CombatResolver $combatResolver = null,
+    ?RunGraphGenerator $runGenerator = null,
   ): array
   {
     $core ??= self::buildCore($pdo);
@@ -257,7 +259,7 @@ final class ControllerServiceFactory
         $unlockRepository,
         $content,
         $regionAvailability,
-        new FixedGraphRunGenerator(),
+        $runGenerator ?? new VariableTrailRunGenerator(),
         new RunParticipationValidator($content, $unitConfigurationSupport),
         new EnergySpendCalculator(),
         new SystemClock(),

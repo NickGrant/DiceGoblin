@@ -137,6 +137,16 @@ final class RunStartControllerTest extends IntegrationTestCase
     $this->assertSame('region.mountains', $persisted['region_id'] ?? null);
     $this->assertSame($fixture['active_squad_id'], (string)($persisted['squad_id'] ?? ''));
     $this->assertSame('active', $persisted['status'] ?? null);
+    $runId = (int)$run['id'];
+    $nodeCount = (int)$this->scalar('SELECT COUNT(*) FROM `run_nodes` WHERE `run_id` = ?', [$runId]);
+    $this->assertContains($nodeCount, [11, 12]);
+    $this->assertContains((int)$this->scalar('SELECT COUNT(*) FROM (SELECT `from_node_id` FROM `run_edges` WHERE `run_id` = ? GROUP BY `from_node_id` HAVING COUNT(*) > 1) AS `splits`', [$runId]), [3, 4]);
+    $current = ControllerServiceFactory::buildContentAware($this->pdo)['currentRunQuery']->execute($userId);
+    $this->assertCount($nodeCount, $current['run']['nodes']);
+    $this->assertCount(1, $current['run']['available_node_ids']);
+    $this->assertSame($response['body'], $this->httpCommand($userId,
+      ['region_id' => 'region.mountains'], 'http-mountains-key')['body']);
+    $this->assertSame($nodeCount, (int)$this->scalar('SELECT COUNT(*) FROM `run_nodes` WHERE `run_id` = ?', [$runId]));
   }
 
   public function testSuccessfulFarmStartPersistsAuthoritativeAggregateAndResponse(): void

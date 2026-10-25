@@ -218,6 +218,29 @@ final class RunContentValidationTest extends TestCase
     $this->assertContains('rockfall', $outgoing['combat_2']);
     $this->assertGreaterThanOrEqual(2, count($outgoing['combat_2']));
     $this->assertArrayNotHasKey('rockfall', $outgoing);
+    $this->assertSame([2, 3], [$generation['variable_trails']['minimum'], $generation['variable_trails']['maximum']]);
+  }
+
+  public function testVariableTrailAuthorshipRejectsInvalidReferencesAndPlacement(): void
+  {
+    foreach ([
+      static fn(array &$config) => $config['attachments'][0]['from'] = 'missing',
+      static fn(array &$config) => $config['attachments'][1]['position'] = $config['attachments'][0]['position'],
+      static fn(array &$config) => $config['template_keys'][0] = 'boss',
+      static fn(array &$config) => $config['maximum'] = 6,
+      static fn(array &$config) => $config['attachments'][0]['from'] = 'combat_2',
+    ] as $mutate) {
+      $definitions = $this->canonicalDefinitions();
+      $this->mutate($definitions, 'run_generation.mountains',
+        static function (array &$definition) use ($mutate): void { $mutate($definition['variable_trails']); });
+      try {
+        (new ContentValidator())->validate([['path' => 'variable-trails-invalid.json',
+          'document' => ['definitions' => $definitions]]]);
+        $this->fail('Invalid variable trail authorship was accepted.');
+      } catch (ContentValidationException) {
+        $this->addToAssertionCount(1);
+      }
+    }
   }
 
   public function testProjectionExposesOnlySafeNodeTypePresentation(): void

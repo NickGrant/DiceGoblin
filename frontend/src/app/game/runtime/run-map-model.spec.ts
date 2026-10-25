@@ -52,6 +52,26 @@ describe('run map model', () => {
     }
   });
 
+  it('keeps a twelve-location three-row Mountains map selectable in Compact landscape', () => {
+    const base = createRunMapPresentation(mountainsRun(), content());
+    const positions = [[0, 1], [1, 1], [2, 1], [3, 1], [5, 1], [6, 1], [7, 1],
+      [4, 1], [3, 2], [1, 0], [4, 0], [6, 0]];
+    const nodes = positions.map(([column, row], index) => ({ ...base.nodes[index % base.nodes.length],
+      id: String(101 + index), nodeIndex: index, position: { column, row } }));
+    const snapshot = calculateRuntimeViewport({ cssWidth: 1280, cssHeight: 560,
+      safeInsetsCss: { top: 0, right: 0, bottom: 0, left: 0 }, coarsePointer: true, noHover: true });
+    const layout = createRunMapLayout(snapshot, { ...base, nodes });
+    for (let left = 0; left < layout.nodes.length; left++) {
+      for (let right = left + 1; right < layout.nodes.length; right++) {
+        const a = layout.nodes[left], b = layout.nodes[right];
+        expect(Math.hypot(a.centerX - b.centerX, a.centerY - b.centerY))
+          .withContext(`Nodes ${left} and ${right} must not overlap.`).toBeGreaterThanOrEqual(a.radius + b.radius);
+      }
+    }
+    expect(layout.detailY).toBeGreaterThan(Math.max(...layout.nodes.map((node) => node.centerY + node.radius + 43)));
+    expect(layout.detailY).toBeLessThan(layout.returnButton.y);
+  });
+
   it('reserves a separate readable action row for multiple encounter choices at every layout size', () => {
     const presentation = createRunMapPresentation(run(), content());
     for (const [width, height, coarsePointer] of [[844, 390, true], [1600, 900, false], [2560, 1080, false]] as const) {

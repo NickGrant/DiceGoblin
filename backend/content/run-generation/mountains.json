@@ -70,7 +70,19 @@
         { "from": "combat_2", "to": "rockfall" },
         { "from": "combat_3", "to": "boss" },
         { "from": "boss", "to": "exit" }
-      ]
+      ],
+      "variable_trails": {
+        "minimum": 2,
+        "maximum": 3,
+        "template_keys": ["rockfall", "loose_scree"],
+        "attachments": [
+          { "from": "combat_1", "position": { "column": 1, "row": 0 } },
+          { "from": "loot", "position": { "column": 2, "row": 2 } },
+          { "from": "rest", "position": { "column": 4, "row": 0 } },
+          { "from": "loose_scree", "position": { "column": 5, "row": 2 } },
+          { "from": "combat_3", "position": { "column": 6, "row": 0 } }
+        ]
+      }
     }
   ]
 }

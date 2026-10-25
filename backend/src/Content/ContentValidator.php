@@ -746,7 +746,7 @@ final class ContentValidator
   /** @param array<string, mixed> $definition */
   private function validateRunGeneration(array $definition, string $location): void
   {
-    $this->requireExactFieldSet($definition, ['id', 'type', 'algorithm', 'start_node_key', 'nodes', 'edges'], [], $location);
+    $this->requireExactFieldSet($definition, ['id', 'type', 'algorithm', 'start_node_key', 'nodes', 'edges'], ['variable_trails'], $location);
     $this->requireNamespace($definition, 'run_generation.', $location);
     $this->requireAllowedString($definition, 'algorithm', self::RUN_GENERATION_ALGORITHMS, $location);
     $this->requireLocalNodeKey($definition, 'start_node_key', $location);
@@ -807,6 +807,64 @@ final class ContentValidator
       if (!isset($nodeKeys[$from]) || !isset($nodeKeys[$to])) {
         throw new ContentValidationException("{$location} edge '{$from}' -> '{$to}' references an unknown local node key.");
       }
+    }
+    if (array_key_exists('variable_trails', $definition)) {
+      $this->validateVariableTrails($definition, $location);
+    }
+  }
+
+  /** @param array<string, mixed> $definition */
+  private function validateVariableTrails(array $definition, string $location): void
+  {
+    $config = $definition['variable_trails'];
+    if (!is_array($config) || array_is_list($config)) {
+      throw new ContentValidationException("{$location} variable_trails must be an object.");
+    }
+    $this->requireExactFieldSet($config, ['minimum', 'maximum', 'template_keys', 'attachments'], [], "{$location} variable_trails");
+    $this->requireIntegerValueInRange($config['minimum'], 1, 16, "{$location} variable_trails.minimum");
+    $this->requireIntegerValueInRange($config['maximum'], $config['minimum'], 16, "{$location} variable_trails.maximum");
+    $byKey = array_column($definition['nodes'], null, 'key');
+    $positions = [];
+    foreach ($definition['nodes'] as $node) {
+      $position = $node['position'];
+      $positions[$position['column'] . ':' . $position['row']] = true;
+    }
+    $templates = $config['template_keys'];
+    if (!is_array($templates) || !array_is_list($templates) || $templates === []) {
+      throw new ContentValidationException("{$location} variable_trails.template_keys must be a non-empty list.");
+    }
+    $seenTemplates = [];
+    foreach ($templates as $key) {
+      if (!is_string($key) || !isset($byKey[$key]) || $byKey[$key]['node_type_id'] !== 'run_node_type.hazard') {
+        throw new ContentValidationException("{$location} variable trail template must reference an authored Hazard node.");
+      }
+      if (isset($seenTemplates[$key])) throw new ContentValidationException("{$location} variable trail templates must be unique.");
+      $seenTemplates[$key] = true;
+    }
+    $attachments = $config['attachments'];
+    if (!is_array($attachments) || !array_is_list($attachments) || count($attachments) < $config['maximum']) {
+      throw new ContentValidationException("{$location} variable trail attachments are insufficient.");
+    }
+    $seen = [];
+    $outgoing = array_count_values(array_column($definition['edges'], 'from'));
+    foreach ($attachments as $offset => $attachment) {
+      $where = "{$location} variable_trails.attachments[{$offset}]";
+      if (!is_array($attachment) || array_is_list($attachment)) throw new ContentValidationException("{$where} must be an object.");
+      $this->requireExactFieldSet($attachment, ['from', 'position'], [], $where);
+      $from = $this->requireLocalNodeKey($attachment, 'from', $where);
+      if (!isset($byKey[$from]) || isset($seen[$from]) || ($outgoing[$from] ?? 0) !== 1
+        || in_array($byKey[$from]['node_type_id'], ['run_node_type.boss', 'run_node_type.exit'], true)) {
+        throw new ContentValidationException("{$where} must attach to a unique continuing node.");
+      }
+      $seen[$from] = true;
+      $position = $attachment['position'];
+      if (!is_array($position) || array_is_list($position)) throw new ContentValidationException("{$where} position must be an object.");
+      $this->requireExactFieldSet($position, ['column', 'row'], [], "{$where} position");
+      $this->requireIntegerValueInRange($position['column'] ?? null, -1000, 1000, "{$where} position.column");
+      $this->requireIntegerValueInRange($position['row'] ?? null, -1000, 1000, "{$where} position.row");
+      $positionKey = $position['column'] . ':' . $position['row'];
+      if (isset($positions[$positionKey])) throw new ContentValidationException("{$where} position overlaps another node.");
+      $positions[$positionKey] = true;
     }
   }
 
@@ -1278,6 +1336,9 @@ final class ContentValidator
   /** @param array<string, mixed> $definition */
   private function validateFarmGenerationStructure(array $definition): void
   {
+    if (array_key_exists('variable_trails', $definition)) {
+      throw new ContentValidationException('region.the_farm generation must remain fixed.');
+    }
     $expectedTypes = [
       'run_node_type.combat',
       'run_node_type.loot',

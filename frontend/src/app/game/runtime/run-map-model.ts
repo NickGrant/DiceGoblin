@@ -103,6 +103,11 @@ export function createRunMapLayout(
   interactionActionCount = 1,
 ): RunMapLayout {
   const compact = snapshot.layoutClass === 'compact';
+  const columns = presentation.nodes.map((node) => node.position.column);
+  const rows = presentation.nodes.map((node) => node.position.row);
+  const minColumn = Math.min(...columns), maxColumn = Math.max(...columns);
+  const minRow = Math.min(...rows), maxRow = Math.max(...rows);
+  const denseCompact = compact && presentation.nodes.length > 9 && maxRow - minRow >= 2;
   const margin = compact ? 26 : 44;
   const panelWidth = Math.min(snapshot.layoutClass === 'wide' ? 1960 : 1510, snapshot.safeBounds.width - margin * 2);
   const panelHeight = snapshot.safeBounds.height - margin * 2;
@@ -120,17 +125,14 @@ export function createRunMapLayout(
   const multipleActions = interactionActionCount > 1;
   const actionGap = compact ? 18 : 16;
   const actionTop = buttonY - (multipleActions ? actionRows * buttonHeight + (actionRows - 1) * actionGap + actionGap : 0);
-  const mapTop = panel.y + (compact ? 142 : 138);
-  const mapBottom = multipleActions ? actionTop - (compact ? 120 : 100) : panel.bottom - (compact ? 314 : 202);
+  const mapTop = panel.y + (denseCompact ? 95 : compact ? 142 : 138);
+  const mapBottom = multipleActions ? actionTop - (compact ? 120 : 100)
+    : panel.bottom - (denseCompact ? 244 : compact ? 314 : 202);
   const map = bounds(panel.x + (compact ? 74 : 86), mapTop,
     panel.width - (compact ? 148 : 172), Math.max(180, mapBottom - mapTop));
-  const radius = compact ? 55 : 48;
-  const columns = presentation.nodes.map((node) => node.position.column);
-  const rows = presentation.nodes.map((node) => node.position.row);
-  const minColumn = Math.min(...columns), maxColumn = Math.max(...columns);
-  const minRow = Math.min(...rows), maxRow = Math.max(...rows);
+  const radius = denseCompact ? 42 : compact ? 55 : 48;
   const usableWidth = Math.max(0, map.width - (radius + 45) * 2);
-  const usableHeight = Math.max(0, map.height - (radius + 38) * 2) * (compact ? 0.75 : 1);
+  const usableHeight = Math.max(0, map.height - (radius + 38) * 2) * (compact && !denseCompact ? 0.75 : 1);
   const nodes = presentation.nodes.map((node): RunMapLayoutNode => Object.freeze({
     ...node,
     centerX: map.x + radius + 45 + normalized(node.position.column, minColumn, maxColumn) * usableWidth,
@@ -164,7 +166,8 @@ export function createRunMapLayout(
       panel.y + (panel.height - Math.min(390, panel.height - 80)) / 2,
       Math.min(760, panel.width - 100), Math.min(390, panel.height - 80)),
     titleY: panel.y + (compact ? 48 : 44), identityY: panel.y + (compact ? 100 : 91),
-    detailY: multipleActions ? actionTop - (compact ? 55 : 48) : map.bottom + (compact ? 50 : 30) });
+    detailY: multipleActions ? actionTop - (compact ? 55 : 48)
+      : denseCompact ? buttonY - 55 : map.bottom + (compact ? 50 : 30) });
 }
 
 function normalized(value: number, minimum: number, maximum: number): number {

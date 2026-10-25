@@ -58,7 +58,7 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
   {
     [$userId] = $this->fixtureAccount('mountains-lifecycle');
     $services = ControllerServiceFactory::buildContentAware(
-      $this->pdo, null, null, $this->fixedResolver('victory'));
+      $this->pdo, null, null, $this->fixedResolver('victory'), new FixedGraphRunGenerator());
     $now = new DateTimeImmutable('2026-09-20 12:00:00', new DateTimeZone('UTC'));
     $bootstrap = $services['gameBootstrapQuery']->execute($userId, $now);
     $this->assertSame([], $bootstrap['progression']['unlock_ids']);

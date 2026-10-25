@@ -179,7 +179,7 @@ async function installGameFixtureRoutes(page, options) {
   }));
   const battleScenes = ['battle-early', 'battle-mid', 'battle-complete', 'battle-compact', 'battle-wide', 'battle-portrait', 'battle-defeat',
     'battle-result-victory', 'battle-result-defeat', 'battle-result-stalemate', 'battle-result-compact', 'battle-result-wide', 'battle-result-error', 'battle-result-portrait'];
-  const runScenes = ['run', 'run-modifier', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-branching',
+  const runScenes = ['run', 'run-modifier', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-branching', 'run-mountains-trails',
     'run-loot-available', 'run-loot-result', 'run-rest-available', 'run-rest-result',
     'run-hazard-available', 'run-hazard-result', 'run-contextual-initial', 'run-contextual-step', 'run-supplies'];
   if (!['camp', 'camp-portrait', 'warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'unit-promotion', 'squad-editor', 'unit-configuration', ...runScenes, ...battleScenes].includes(scene)) return;
@@ -258,7 +258,7 @@ async function installGameFixtureRoutes(page, options) {
         },
         active_run: options.activeRun || (scene === 'unit-promotion' && options.progressionState === 'locked') || runScenes.includes(scene)
           || (battleScenes.includes(scene) && !['battle-defeat', 'battle-result-defeat', 'battle-result-stalemate'].includes(scene))
-          ? { id: '401', region_id: scene.startsWith('run-hazard-') ? 'region.mountains' : 'region.the_farm', squad_id: '301', status: 'active' }
+          ? { id: '401', region_id: scene.startsWith('run-hazard-') || scene === 'run-mountains-trails' ? 'region.mountains' : 'region.the_farm', squad_id: '301', status: 'active' }
           : null,
       },
     }),
@@ -376,6 +376,23 @@ async function installGameFixtureRoutes(page, options) {
     let resolvedStage = ['run-rest-available', 'run-rest-result', 'run-hazard-available', 'run-hazard-result',
       'run-branching', 'run-contextual-initial', 'run-contextual-step'].includes(scene) ? 'loot' : 'combat';
     const runResponse = () => {
+      if (scene === 'run-mountains-trails') {
+        const types = ['combat', 'loot', 'combat', 'rest', 'combat', 'boss', 'exit', 'hazard', 'hazard', 'hazard', 'hazard', 'hazard'];
+        const positions = [[0, 1], [1, 1], [2, 1], [3, 1], [5, 1], [6, 1], [7, 1], [4, 1], [3, 2], [1, 0], [4, 0], [6, 0]];
+        const nodes = types.map((type, index) => ({ id: String(501 + index), node_index: index,
+          node_type_id: `run_node_type.${type}`, status: index === 0 ? 'completed' : [1, 9].includes(index) ? 'available' : 'locked',
+          completed_at: index === 0 ? '2026-09-13T12:02:00Z' : null,
+          battle_id: index === 0 ? '601' : null, position: { column: positions[index][0], row: positions[index][1] },
+          ... (index === 9 ? { interaction: { encounter_id: 'encounter.mountains_rockfall', title: 'Rockfall',
+            body: 'Loose stone falls across a side trail.', prompt: 'Cross the trail?',
+            actions: [{ id: 'cross', label: 'CROSS' }] } } : {}) }));
+        const links = [[0, 1], [1, 2], [2, 3], [3, 7], [7, 4], [2, 8], [4, 5], [5, 6], [0, 9], [3, 10], [4, 11]];
+        return { ok: true, data: { run: { id: '401', region_id: 'region.mountains', squad_id: '301', status: 'active',
+          created_at: '2026-09-13T12:00:00Z', nodes,
+          edges: links.map(([from, to]) => ({ from_node_id: String(501 + from), to_node_id: String(501 + to) })),
+          available_node_ids: ['502', '510'],
+          units: activeFormation.filter(Boolean).map((unit_id) => ({ unit_id, current_hp: 24 })) }, player_revision: 3 } };
+      }
       const combatAvailable = scene === 'run-combat-available';
       const branching = scene === 'run-branching';
       const lootCompleted = resolvedStage === 'loot' || resolvedStage === 'rest' || resolvedStage === 'hazard';
@@ -697,7 +714,7 @@ async function captureScene(options) {
           const requestedGameScreen = options.scene.trim().toLowerCase();
           const gameScreen = ['warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'unit-promotion', 'squad-editor', 'unit-configuration'].includes(requestedGameScreen)
             ? requestedGameScreen : requestedGameScreen.startsWith('battle-') ? 'battle'
-              : ['run', 'run-modifier', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-branching', 'run-loot-available', 'run-loot-result', 'run-rest-available', 'run-rest-result', 'run-hazard-available', 'run-hazard-result', 'run-contextual-initial', 'run-contextual-step', 'run-supplies'].includes(requestedGameScreen) ? 'run' : 'camp';
+              : ['run', 'run-modifier', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-branching', 'run-mountains-trails', 'run-loot-available', 'run-loot-result', 'run-rest-available', 'run-rest-result', 'run-hazard-available', 'run-hazard-result', 'run-contextual-initial', 'run-contextual-step', 'run-supplies'].includes(requestedGameScreen) ? 'run' : 'camp';
           await page.waitForSelector(`[data-game-screen="${gameScreen}"]`, { timeout: options.timeoutMs });
           if (gameScreen === 'warband') {
             await page.waitForSelector('[data-warband-ready="true"]', { timeout: options.timeoutMs });
