@@ -1,94 +1,155 @@
 # Active Execution Issue
 
-## Milestone 10 - Run Encounter Depth
+## Milestone 11 - Knowledge and Objectives
 
-### Milestone 10 Package 10 - Focused manual UAT before Milestone 11
+### Milestone 11 Package 1 - Codex ownership and read-model foundation
 
 **Status:** In Progress
 **Priority:** High
 
 #### Problem
 
-Milestone 10 technical implementation and automated verification are complete, but the player-facing run experience must pass focused manual UAT before the milestone can close and Milestone 11 begins.
+Milestone 10 is complete and manual UAT passed. Milestone 11 now needs its first durable knowledge primitive before dialogue or objective orchestration can be added.
+
+The accepted progression model defines Codex entries as unique collectible rewards representing meaningful retained knowledge, lore, discoveries, or important information. Current vNext has no canonical authored Codex definition/ownership/read-model slice proving that contract end to end.
 
 #### Accepted baseline
 
-Milestones 1-9 are complete. Milestone 10 Packages 1-9 are approved, with Package 9 approved at `88ca459864f0e545637ed13240e7c426717b6e38`.
-
-The accepted Milestone 10 slice includes authoritative exploration-frontier branching, generic non-combat interactions, production Mountains Hazards, test-proven Shrine/Chaos families, run-scoped next-combat modifiers, contextual consumable/multi-step interactions, and Phaser RunScene integration. Farm remains the fixed tutorial. Mountains remains the only production branching/Hazard expansion in Milestone 10; production Shrine/Chaos remains reserved for Swamp/Milestone 13.
-
-Package 9 completed integrated technical closure and test-suite rationalization. The canonical regression suite is now zero-skip; future Milestone 11-13 prototype migration evidence is explicitly outside canonical test discovery.
+- Milestones 1-10 are complete and passed manual UAT.
+- Milestone 10 UAT acceptance is recorded through `d97bcb52c4b834cf72a68d827eac8e196c05adbb`.
+- `documentation/07-development-path/vnext-progression-state-model.md` is canonical for Codex/objective progression semantics.
+- `documentation/07-development-path/vnext-reward-unlock-model.md` owns reward finalization/application/idempotency semantics.
+- Backend/MySQL remains authoritative; authored catalogs live in canonical JSON; client state is a cache/projection of backend authority.
+- The canonical test suite is zero-skip. Prototype M11 evidence retained outside canonical discovery may be inspected for behavior but is not architectural authority.
 
 #### Purpose
 
-Perform focused player-facing UAT against the production-composed Milestone 10 experience. This package is a manual acceptance gate, not an implementation package. Do not add Milestone 11 functionality while UAT is pending.
+Implement the smallest reusable Codex foundation:
 
-#### Manual UAT checklist
+1. authored Codex entry definitions with stable IDs and validation;
+2. durable per-player unique Codex ownership;
+3. Codex grant support through the accepted finalized reward pipeline;
+4. a player-safe authoritative Codex read contract that distinguishes authored catalog presentation from player ownership without exposing private reward/event configuration;
+5. strict ownership/security/idempotency behavior suitable for later dialogue and objective packages.
 
-Verify on the current `vnext-game-overhaul` branch/build:
+Do not implement dialogue selection, objective counters, or the final Phaser Codex screen in this package.
 
-1. **Farm tutorial run**
-   - Start a Farm run with a valid squad.
-   - Confirm the run remains the fixed Combat -> Loot -> Rest -> Boss -> Exit path.
-   - Complete the run and confirm node availability advances correctly, combat returns to the run map, Rest resolves correctly, Boss completes, and Exit returns safely to Camp.
-   - Confirm completed combat/boss playback may be revisited without re-resolving gameplay.
+#### Required inventory before implementation
 
-2. **Mountains exploration run**
-   - Start a Mountains run.
-   - Confirm the map visibly branches and presents only currently available nodes as actionable.
-   - Resolve one branch and confirm another already-available sibling remains available.
-   - Confirm locked nodes cannot be entered early.
-   - Exercise a production Hazard and confirm its authoritative result is presented and the run remains usable afterward.
-   - Exercise an optional dead end if available and confirm it does not incorrectly terminate or consume other available routes.
-   - Continue through Boss and Exit and confirm the run completes normally.
+Inspect and record reuse/drop decisions for:
+- accepted unique unlock reward persistence/application and duplicate behavior;
+- current reward definition/finalization/application pipeline;
+- authored-content registry/validator/client-projection conventions;
+- current API/query/controller/cache patterns for lazy player-owned collections;
+- retained prototype Codex implementation/tests, if present;
+- existing database naming/ownership/foreign-key conventions.
 
-3. **Run persistence and navigation**
-   - During an active run, return to Camp and re-enter the run; confirm topology, completed nodes, available frontier, unit HP, and any visible active run state remain coherent.
-   - Reload the browser during an active run and confirm the same authoritative run state returns.
-   - Confirm abandoning a run still requires confirmation and returns cleanly to Camp.
+Do not preserve prototype API/schema/UI shape merely for compatibility.
 
-4. **Run supplies**
-   - Open Supplies during a run.
-   - If a healing consumable is owned, use it on an eligible participating unit and confirm inventory and HP reconcile correctly.
-   - Confirm invalid/ineligible use is not presented as a successful mutation.
+#### Canonical design constraints
 
-5. **Responsive/player-facing sanity**
-   - Inspect the run experience at the normal desktop viewport used for play.
-   - If practical, spot-check Compact landscape and Wide layout for readable topology/actions without overlap or inaccessible controls.
-   - Confirm portrait touch-first presentation still shows the rotate-device gate rather than a broken gameplay layout.
+##### Codex semantics
 
-#### Acceptance criteria
+- A Codex entry is a unique collectible reward and durable knowledge record.
+- Codex entries must have player-facing meaning; do not use them as arbitrary invisible story flags.
+- Duplicate Codex grants resolve to no additional ownership under the accepted unique-reward rule.
+- Do not introduce generic region-completion state, story flags, historical-event persistence, `has_seen_dialogue`, or a catch-all progression table.
 
-Manual UAT passes when the user confirms that the production Farm and Mountains run flows are functionally usable and no blocking regression is found in branching/frontier behavior, encounter interaction, combat return, persistence/reload, supplies, run completion, or responsive interaction.
+##### Authored content
 
-Minor visual-polish observations may be recorded for the deferred visual/UI overhaul if they do not prevent play or obscure authoritative state/actions.
+- Define Codex entries in canonical authored JSON with stable `codex.*` identity.
+- Include only the authored player-facing fields needed by the read/presentation contract plus any narrow server-private classification needed now.
+- Validate IDs, exact field shapes, references, bounds, and duplicate identities consistently with existing content validation.
+- Do not author speculative dialogue trees or objective catalogs in Package 1.
 
-If UAT exposes a functional defect, keep Package 10 In Progress and correct only the defect required to satisfy the accepted Milestone 10 contracts. Run appropriate focused/full verification after any correction before repeating the affected UAT case.
+##### Persistence
 
-#### UAT correction in progress: Camp facility access
+- Persist unique ownership in a narrow player/Codex relation following existing ownership-table conventions.
+- Enforce uniqueness at the database boundary.
+- Ownership must be user-scoped and foreign ownership must never satisfy another player's read/reward state.
+- Use the repository/storage boundary; do not embed persistence in controllers/content objects.
+- Clean bootstrap/reset must create the canonical schema.
 
-The local account reset was complete, but Shop and Academy were always open in vNext. The user confirmed the original progression rule for this correction: Farm boss completion grants Shop access, and Academy access costs 250 Teeth in Shop. The correction authors the Farm reward and Shop offer, enforces both gates at the API and Phaser Camp boundaries, and keeps the account's current run untouched.
+##### Reward integration
 
-Implementation verification: focused affected backend integration suites passed (68 tests, 738 assertions); authored Shop/reward content suites passed (38 tests, 125 assertions); final `npm run verify:package` passed (backend 759 tests / 5,275 assertions; frontend 495 tests; content validation, production build, bundle, documentation, context, and diff gates passed). Deterministic locked Camp Compact and Shop Standard/Compact captures completed. During UAT, the existing local database volume was found to predate the canonical baseline: `run_nodes.encounter_step_id` and `run_modifiers` were missing. Those two canonical schema pieces were added to the local UAT database without resetting or modifying the active Farm run; its current-run query then returned the intact five-node Farm graph and participating unit HP. Package 10 remains In Progress pending repeat manual UAT.
+- Add Codex as a supported unique reward type through the existing event -> reward definition -> finalized result -> transactional application pipeline.
+- Finalized reward results must contain only the stable facts needed to replay/apply safely.
+- Exact-key retry/replay cannot create duplicate ownership, reroll, reapply, or increment revision twice.
+- A duplicate already-owned Codex reward must follow the accepted duplicate unique-reward behavior rather than throwing or inventing compensation.
+- Do not create a direct Codex-grant endpoint or bypass the reward pipeline.
 
-#### UAT correction: victorious Combat/Boss material receipt projection
+##### Read/API contract
 
-The Farm Boss victory committed successfully in the local UAT run, but the browser rejected its finalized `item_grants` field. The server's authoritative victory-material grant had been added after the strict Combat/Boss response parser and was not represented in that browser contract. The correction validates and projects only item ID, granted quantity, and owned quantity from the optional finalized grant list for both Combat and Boss, and invalidates a loaded inventory slice when new materials arrive. It preserves the existing boss battle, unlocks, and materials; no gameplay command was replayed or run state edited. The persisted UAT boss receipt showed the granted Shop/Mountains unlocks and Pig materials, and the boss node is completed with Exit available.
+- Provide the smallest authoritative read contract needed for later Codex presentation.
+- Prefer established lazy-query/cache patterns rather than adding Codex to bootstrap unless canonical client architecture clearly requires otherwise.
+- Return player-safe authored presentation and ownership/discovery state only.
+- Do not expose event definitions, reward probabilities, hidden prerequisites, private dialogue routing, or future objective configuration.
+- Missing/corrupt authored or persisted references must fail closed/integrity-safe rather than silently fabricating entries.
 
-Verification: focused frontend suite passed (496 tests), including representative finalized Farm Combat/Boss material receipts, malformed/private grant rejection, and RunScene inventory invalidation. Full `npm run verify:package` passed: backend 759 tests / 5,275 assertions; frontend 496 tests; content, context, documentation, production build, bundle, and diff gates passed. Repeat Farm Boss playback/Exit UAT is pending; Package 10 remains In Progress.
+##### Client scope
 
-#### UAT correction: variable Mountains side trails
+- Add strict frontend contract/cache support only as needed to consume the read model and prove secrecy/reconciliation boundaries.
+- Do not build the full Phaser Codex screen; that is Package 2.
+- Do not add dialogue-specific or objective-specific client state.
 
-The local active Mountains run correctly reflected the prior authored nine-node graph: it had one split and one optional Rockfall dead end. The user clarified the intended experience as varying generated routes with typically three or four split points, mostly optional side trails. New Mountains starts now retain the authored boss route and choose two or three additional Hazard trails from distinct authored attachment positions, giving three or four split points. The server persists the selected nodes and edges in the start transaction; exact-key replay preserves the same graph without another Energy spend. Farm remains fixed. Existing active runs, including the user's current UAT run, retain their saved topology and were not modified. A new Mountains run is required to exercise the expanded map.
+#### Minimum proof
 
-The Compact map spacing was adjusted only for dense three-row graphs after deterministic capture exposed overlapping selectable nodes. Focused affected backend suites passed (75 tests / 604 assertions), the frontend suite passed (497 tests), and Standard 1600x900, Compact 1280x560, and Wide 2200x1000 deterministic Mountains captures completed and were visually reviewed. The first aggregate run found a stale fixed-nine-node assertion in the existing lifecycle test; that test now explicitly uses the fixed base graph, while the production start test proves variable persisted topology and exact replay. Final `npm run verify:package` passed: backend 763 tests / 5,318 assertions; frontend 497 tests; content, context, documentation, production build, bundle, and diff gates passed. Package 10 remains In Progress pending repeat Mountains manual UAT.
+Use a narrow test-authored or production-appropriate Codex entry and prove:
 
-#### Manual UAT acceptance
+1. a finalized event reward can grant an unowned Codex entry transactionally;
+2. ownership persists and appears in the authoritative Codex read model after reload/re-query;
+3. the same finalized reward replay does not grant again or increment revision again;
+4. a later legitimate duplicate roll of the same unique Codex entry resolves according to the accepted duplicate-reward rule without duplicate ownership;
+5. another user does not inherit/observe that ownership;
+6. malformed/private authored facts do not reach the browser projection.
 
-The user confirmed that UAT appears complete and that the current Mountains branch density is good enough for now. No blocking Milestone 10 UAT defect remains reported. Further map-generation design and variety are deferred for a later work package; the current server-authored side-trail generator remains the accepted UAT baseline. Manual UAT is accepted; Package 10 remains in the active-issue workflow pending milestone promotion. Milestone 11 has not been activated or promoted.
+Do not manufacture a production dialogue/objective merely to trigger the proof. A narrow validated fixture is preferred if no existing production event semantically grants meaningful Codex knowledge yet.
+
+#### Verification requirements
+
+Prove at minimum:
+- authored Codex structural/semantic validation, including malformed IDs/fields and duplicate/reference failures;
+- clean-schema ownership table constraints and cascade behavior;
+- repository ownership/list/read behavior and cross-player isolation;
+- reward-definition validation for Codex grants;
+- finalized Codex reward application and duplicate unique-reward semantics;
+- exact-key replay/idempotency and revision stability;
+- transaction rollback on corrupt/missing Codex references;
+- authoritative read projection after grant and reload;
+- browser contract rejects private/unknown fields;
+- existing currency/item/unit/unlock/XP reward paths remain green;
+- M1-M10 regression suite remains green;
+- no dialogue/objective/M12+ scope leakage.
+
+Run the applicable gates in `agent/QUALITY_GATES.md` and full `npm run verify:package` before review.
 
 #### Scope exclusions
 
-Do not add Knowledge/Codex/Objectives, onboarding/Mystic Cave, Swamp/Frog Kin, production Shrine/Chaos, new encounter families, new modifier families, or broad visual redesign during this UAT package.
+Do not add in Package 1:
+- Phaser Codex screen beyond minimal contract/cache plumbing;
+- dialogue selection/history/routing;
+- generic story flags or `has_seen_dialogue` state;
+- objective/bounty definitions or progress counters;
+- gameplay-fact objective wiring;
+- objective completion rewards;
+- Mystic Cave/onboarding;
+- Swamp/Frog Kin or production Shrine/Chaos expansion;
+- final visual redesign;
+- Milestone 12+ work.
 
-Do not begin or promote Milestone 11 until the user explicitly confirms that Milestone 10 UAT passes.
+#### Completion evidence required
+
+Report:
+- implementation SHA;
+- prototype/current-system inventory and reuse/drop decisions;
+- authored Codex representation and validation rules;
+- persistence schema/repository shape and uniqueness/ownership guarantees;
+- reward pipeline changes and duplicate semantics;
+- API/read projection and browser-secrecy proof;
+- idempotency/replay/revision behavior;
+- cross-player and corrupt-state rejection proof;
+- focused test results;
+- full package-gate results;
+- confirmation that dialogue/objectives/M12+ were not introduced.
+
+Leave Package 1 **In Progress** for review. Do not promote Package 2.
