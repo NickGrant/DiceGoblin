@@ -2,80 +2,63 @@
 
 Read this for sequencing/planning or when closing/promoting an execution package. Normal implementation should use `agent/ISSUES.md` instead.
 
-## Milestone 10 - Run Encounter Depth
+## Milestone 11 - Knowledge and Objectives
 
 **Status:** Active
 
 ### Related Issues
-- Milestone 10 Package 10 - Focused manual UAT before Milestone 11
+- Milestone 11 Package 1 - Codex ownership and read-model foundation
 
-Milestones 1-9 are complete and passed their required manual UAT.
+Milestones 1-10 are complete and passed their required manual UAT.
 
-Milestone 10 Package 1 - Branch-capable run topology and route-choice foundation is approved at `86c88987aaf14391660cb3b868cd10e537dd19d8` after the exploration-frontier correction.
-
-Milestone 10 Package 2 - Generalized non-combat encounter contract and Rest migration is approved through correction `f782b368e3bc1e4672bcec886bf3a29263e5baf8`.
-
-Milestone 10 Package 3 - Hazard encounter foundation is approved through correction `31b53b106d84edf2db846ec971877080e08aac9f`.
-
-Milestone 10 Package 4 - Shrine encounter foundation is approved through correction `c121a67a4903637424c68fb9347f9f9192f4c2e5`.
-
-Milestone 10 Package 5 - Chaos encounter foundation is approved at `32caee03565d2c86c0f54e50f076975f13ea806b`.
-
-Milestone 10 Package 6 - Run-scoped modifier model + authoritative application is approved through correction `736f5211a6e2fff1838fa5c6ec779e229f7368d6`.
-
-Milestone 10 Package 7 - Contextual consumables + multi-step encounter interaction is approved through verification correction `bad02a8b80b18d7689faaa6b42db92ffc45395e6`. The correction also repaired canonical backend PHPUnit discovery so the complete suite is enumerated reliably.
-
-Milestone 10 Package 8 - Phaser RunScene branching/encounter interaction integration is approved at `a91fbece6e989c2a468fbafe88b1eb02553a3dfc`. RunScene now presents the authoritative exploration graph/frontier, generic multi-action and persisted-step encounters, narrow modifier/result facts, authoritative rejection/reload recovery, and responsive branching layouts without family-specific Shrine/Chaos dispatch or production content expansion.
-
-Milestone 10 Package 9 - Run-encounter-depth integrated verification/technical closure is approved at `88ca459864f0e545637ed13240e7c426717b6e38`. The package completed integrated Farm/Mountains and test-only encounter regression verification, rationalized obsolete prototype tests into a smaller zero-skip canonical suite, retained future-milestone migration evidence outside canonical discovery, and passed the full package verification gate.
+Milestone 10 closed after Package 10 manual UAT acceptance through `d97bcb52c4b834cf72a68d827eac8e196c05adbb`. The accepted Milestone 10 baseline includes authoritative exploration-frontier branching, generalized non-combat encounters, production Mountains Hazards and variable optional side trails, test-proven Shrine/Chaos families, run-scoped modifiers, contextual consumable/multi-step interactions, and generic Phaser RunScene integration. UAT corrections restored Shop/Academy progression gates, accepted finalized Combat/Boss material receipts in the client contract, and expanded Mountains route variety. Further map-generation variety is deferred.
 
 The major game-wide visual/UI overhaul remains intentionally deferred.
 
 ### Outcome
 
-Deepen authored runs beyond linear combat/reward sequences while preserving the accepted authoritative run architecture:
-- branch-capable run topology and player route choice;
-- Rest encounters through the generalized encounter model;
-- hazards and shrines;
-- Chaos encounters;
-- run-scoped modifiers;
-- contextual consumable interaction where encounters require it;
-- multi-step node interactions where needed;
-- persistent/reconnect-safe authoritative state and Phaser presentation.
+Establish retained player knowledge and gameplay objectives without introducing a generic progression/history system:
+- Codex entries as unique collectible rewards and durable knowledge;
+- Codex read/presentation surfaces;
+- knowledge-aware dialogue selection where meaningful dialogue grants Codex knowledge;
+- authored objectives/bounties with domain-owned mutable progress;
+- progress driven from authoritative gameplay facts/events rather than client claims;
+- automatic objective completion and rewards through the accepted event-to-reward pipeline;
+- reconnect-safe persistence and strict player-safe projection.
 
-Knowledge/objectives remain Milestone 11. Mystic Cave/onboarding remains Milestone 12. Swamp/Frog Kin remains Milestone 13.
+Mystic Cave/onboarding remains Milestone 12. Swamp/Frog Kin remains Milestone 13. Hardening/cutover remains Milestone 14.
 
 ### Architectural Direction
 
-- Extend the existing authored region/run/node architecture rather than creating a second run engine.
-- Server/MySQL state remains authoritative for generated topology, current position, choices, encounter progress, modifiers, rewards, and terminal state where persistence is required.
-- Authored encounter definitions belong in canonical content JSON; do not move gameplay catalogs into SQL or client constants.
-- Phaser `RunScene` presents authoritative available routes/actions and reconciles mutation receipts; it does not predict hidden outcomes or fabricate route availability.
-- The authoritative exploration frontier is explicit and reconnect-safe. Resolving one available node does not consume other available nodes; a player may not resolve an arbitrary generated node merely because its identifier is known.
-- Reuse the existing idempotency/retry, reward, inventory, energy, unit-state, and run persistence boundaries where semantically valid.
-- Multi-step encounters persist only the minimal durable state needed to resume safely.
-- Farm remains the fixed linear tutorial graph: Combat -> Loot -> Rest -> Boss -> Exit.
-- Mountains is the first production region to introduce exploration branching and Hazards while retaining the Farm vocabulary; Shrine and Chaos encounters are not Mountains content.
-- Swamp is the first planned production region to add Shrine and Chaos to the encounter vocabulary. Later regions may use the full encounter array.
-- Avoid region-specific branches in application/runtime code; regional vocabulary/topology belongs in authored content.
-- Final visual polish remains deferred; responsive interaction and deterministic capture remain required.
+- Follow `documentation/07-development-path/vnext-progression-state-model.md` as the canonical progression/Codex/objective decision.
+- Do not create a generic `player_progression`, story-flag, historical-event, `has_seen_dialogue`, or catch-all state layer.
+- Codex entries are unique collectible rewards representing meaningful retained knowledge, lore, discoveries, or important dialogue information.
+- Important dialogue may grant Codex entries; dialogue selection may use Codex ownership as a prerequisite. Dialogues remain replayable and duplicate Codex rewards resolve through the normal unique-reward rule.
+- Objectives/bounties own their mutable intermediate progress because the counter itself matters. Objective counters are not unlocks or rewards.
+- Objective completion emits/uses the accepted event-to-reward model; completion rewards must retain existing finalization/idempotency guarantees.
+- Backend/MySQL remains authoritative for Codex ownership, objective progress/completion, eligibility, rewards, revision, and idempotency.
+- Authored definitions belong in canonical content JSON. Do not move content catalogs into SQL or client constants.
+- Client surfaces consume player-safe projections and authoritative mutation/read results; they do not infer completion from local gameplay state.
+- Reuse existing reward/unlock, authored-content, API, storage, client-cache, and idempotency boundaries where semantically valid.
+- Prototype implementation/tests are migration evidence only. Preserve useful behavior, not obsolete prototype architecture.
+- Final visual polish remains deferred; new Phaser surfaces must remain responsive and usable.
 
 ### Package Queue
 
-1. **Branch-capable run topology + route-choice foundation.** Approved at `86c88987aaf14391660cb3b868cd10e537dd19d8`.
-2. **Generalized non-combat encounter contract + Rest migration.** Approved through `f782b368e3bc1e4672bcec886bf3a29263e5baf8`.
-3. **Hazard encounter foundation.** Approved through `31b53b106d84edf2db846ec971877080e08aac9f`.
-4. **Shrine encounter foundation.** Approved through `c121a67a4903637424c68fb9347f9f9192f4c2e5`.
-5. **Chaos encounter foundation.** Approved at `32caee03565d2c86c0f54e50f076975f13ea806b`.
-6. **Run-scoped modifier model + authoritative application.** Approved through `736f5211a6e2fff1838fa5c6ec779e229f7368d6`.
-7. **Contextual consumables + multi-step encounter interaction.** Approved through `bad02a8b80b18d7689faaa6b42db92ffc45395e6`.
-8. **Phaser RunScene branching/encounter interaction integration.** Approved at `a91fbece6e989c2a468fbafe88b1eb02553a3dfc`.
-9. **Run-encounter-depth integrated verification/technical closure.** Approved at `88ca459864f0e545637ed13240e7c426717b6e38`.
-10. **Focused manual UAT before Milestone 11.** User accepted the current Farm/Mountains experience and deferred further map-generation work; awaiting milestone promotion.
+1. **Codex ownership and read-model foundation.** Current. Establish authored Codex definitions, unique ownership persistence/reward application, player-safe read projection, and strict validation without dialogue/objective orchestration.
+2. **Phaser Codex surface + Camp integration.** Planned. Present owned/discovered knowledge through the accepted runtime/cache architecture and responsive Phaser UI.
+3. **Knowledge-aware dialogue contract.** Planned. Establish authored replayable dialogue selection using meaningful Codex ownership prerequisites and Codex reward completion without generic story flags.
+4. **Objective/bounty authored model + persistence/read contract.** Planned. Establish authored requirements and domain-owned mutable player progress/completion state.
+5. **Authoritative gameplay-fact objective progress.** Planned. Feed objective progress from accepted authoritative gameplay outcomes/events with transactional/idempotent semantics rather than client claims.
+6. **Automatic objective completion + reward finalization.** Planned. Complete objectives automatically when requirements are met and resolve rewards through the accepted event/reward pipeline exactly once.
+7. **Phaser Objectives surface + authoritative reconciliation.** Planned. Present active/completed objectives and progress without client-side completion inference.
+8. **Knowledge/objectives integrated verification and technical closure.** Planned. Verify persistence, reconnect/retry, secrecy, reward idempotency, regression safety, and responsive presentation.
+9. **Focused manual UAT before Milestone 12.** Planned.
 
 ### Sequencing Notes
 
-- Packages 1-7 established the authoritative exploration, encounter, randomness, modifier, contextual-consumable, and resumable interaction contracts.
-- Package 8 completed the player-facing generic RunScene integration across those contracts while preserving server authority and responsive presentation.
-- Package 9 proved the complete production-composed slice, persistence/reload/retry behavior, regression safety, responsive capture coverage, and completed the approved test-suite rationalization.
-- Package 10 manual UAT has been accepted. Do not begin Milestone 11 until the user explicitly confirms promotion.
+- Package 1 starts with the smallest durable knowledge primitive already accepted by the progression-state model: Codex ownership.
+- Dialogue is sequenced after Codex ownership/read presentation so it consumes an established knowledge primitive rather than defining one implicitly.
+- Objective persistence is established before wiring gameplay facts so progress semantics and ownership are explicit.
+- Objective reward completion follows authoritative progress wiring and must reuse the accepted reward pipeline rather than adding a parallel grant path.
+- Do not begin Milestone 12 until Milestone 11 technical closure and focused manual UAT pass.
