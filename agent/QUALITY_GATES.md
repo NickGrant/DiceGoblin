@@ -7,6 +7,7 @@ If a documented command is stale because the package intentionally replaces that
 
 ## Core Commands
 - Compact package verification: `npm run verify:package` (captures full gate logs under ignored `artifacts/verification/` and writes `package-summary.json`; use `-- --continue-on-failure` when a complete failure inventory is more useful than fail-fast feedback)
+- Production PHP front controller syntax: included in `verify:package` via `php -l backend/public/index.php` (Docker backend path on Windows when PHP is unavailable locally)
 - Agent/context integrity: `npm run llm:check`
 - Documentation headers: `npm run docs:lint`
 - Backend suite: `npm run test:backend` (Docker variant: `npm run test:backend:docker`)
