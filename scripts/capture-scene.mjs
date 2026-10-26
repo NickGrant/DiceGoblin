@@ -182,7 +182,7 @@ async function installGameFixtureRoutes(page, options) {
   const runScenes = ['run', 'run-modifier', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-branching', 'run-mountains-trails',
     'run-loot-available', 'run-loot-result', 'run-rest-available', 'run-rest-result',
     'run-hazard-available', 'run-hazard-result', 'run-contextual-initial', 'run-contextual-step', 'run-supplies'];
-  if (!['camp', 'camp-portrait', 'warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'unit-promotion', 'squad-editor', 'unit-configuration', ...runScenes, ...battleScenes].includes(scene)) return;
+  if (!['camp', 'camp-portrait', 'warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'codex', 'unit-promotion', 'squad-editor', 'unit-configuration', ...runScenes, ...battleScenes].includes(scene)) return;
 
   if (battleScenes.includes(scene)) {
     await page.addInitScript(({ accountId }) => sessionStorage.setItem('dice-goblins:battle-presentation:v1', JSON.stringify({
@@ -288,6 +288,21 @@ async function installGameFixtureRoutes(page, options) {
     await page.route('**/api/v1/academy', (route) => route.fulfill({ status: 200, contentType: 'application/json',
       body: JSON.stringify({ ok: true, data: { raw_chaos: fixtureChaos, player_revision: 3,
         upgrades: catalog.sort((a, b) => a.upgrade_id.localeCompare(b.upgrade_id)) } }) }));
+    return;
+  }
+  if (scene === 'codex') {
+    const definitions = JSON.parse(await readFile(path.resolve(process.cwd(), 'backend/content/codex/farm.json'), 'utf8')).definitions;
+    const entries = [...definitions,
+      { id: 'codex.mountains.engineer', title: 'The Chief Engineer', body: 'The Chief Engineer commands a noisy workshop beneath the mountains.' },
+      { id: 'codex.mountains.secrets', title: 'Mountain Secrets', body: 'Undiscovered capture knowledge.' },
+    ].sort((a, b) => a.id.localeCompare(b.id));
+    await page.route('**/api/v1/codex', (route) => options.progressionState === 'read-error'
+      ? route.fulfill({ status: 503, contentType: 'application/json',
+        body: JSON.stringify({ ok: false, error: { code: 'read_unavailable' } }) })
+      : route.fulfill({ status: 200, contentType: 'application/json',
+        body: JSON.stringify({ ok: true, data: { entries: entries.map((entry, index) => ({
+          id: entry.id, title: entry.title, owned: index < 2, body: index < 2 ? entry.body : null,
+        })) } }) }));
     return;
   }
   if (scene === 'wrong-machine') {
@@ -705,14 +720,14 @@ async function captureScene(options) {
             { timeout: options.timeoutMs },
           );
         }
-        if (['camp', 'camp-portrait', 'warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'unit-promotion', 'squad-editor', 'unit-configuration', 'run', 'run-modifier', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-branching',
+        if (['camp', 'camp-portrait', 'warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'codex', 'unit-promotion', 'squad-editor', 'unit-configuration', 'run', 'run-modifier', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-branching',
             'run-loot-available', 'run-loot-result', 'run-rest-available', 'run-rest-result',
             'run-hazard-available', 'run-hazard-result', 'run-contextual-initial', 'run-contextual-step', 'run-supplies',
           'battle-early', 'battle-mid', 'battle-complete', 'battle-compact', 'battle-wide', 'battle-portrait', 'battle-defeat',
           'battle-result-victory', 'battle-result-defeat', 'battle-result-stalemate', 'battle-result-compact', 'battle-result-wide', 'battle-result-error', 'battle-result-portrait'].includes(options.scene.trim().toLowerCase())) {
           await page.waitForSelector('.game-host__mount canvas', { timeout: options.timeoutMs });
           const requestedGameScreen = options.scene.trim().toLowerCase();
-          const gameScreen = ['warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'unit-promotion', 'squad-editor', 'unit-configuration'].includes(requestedGameScreen)
+          const gameScreen = ['warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'codex', 'unit-promotion', 'squad-editor', 'unit-configuration'].includes(requestedGameScreen)
             ? requestedGameScreen : requestedGameScreen.startsWith('battle-') ? 'battle'
               : ['run', 'run-modifier', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-branching', 'run-mountains-trails', 'run-loot-available', 'run-loot-result', 'run-rest-available', 'run-rest-result', 'run-hazard-available', 'run-hazard-result', 'run-contextual-initial', 'run-contextual-step', 'run-supplies'].includes(requestedGameScreen) ? 'run' : 'camp';
           await page.waitForSelector(`[data-game-screen="${gameScreen}"]`, { timeout: options.timeoutMs });
@@ -727,6 +742,10 @@ async function captureScene(options) {
           }
           if (gameScreen === 'academy') {
             await page.waitForSelector('[data-academy-ready="true"]', { timeout: options.timeoutMs });
+          }
+          if (gameScreen === 'codex') {
+            await page.waitForSelector(options.progressionState === 'read-error'
+              ? '[data-codex-status="error"]' : '[data-codex-status="fresh"]', { timeout: options.timeoutMs });
           }
           if (gameScreen === 'wrong-machine') {
             await page.waitForSelector(options.progressionState === 'read-error'

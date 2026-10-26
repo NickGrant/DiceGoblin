@@ -178,6 +178,16 @@ describe('CampScreen', () => {
     expect(allFacilities.interactiveCount()).toBe(locked.interactiveCount() + 3);
   });
 
+  it('keeps Codex available from Camp without a facility unlock', () => {
+    const ui = sceneHarness();
+    new CampScreen(ui.scene, storeWith(bootstrap()), new RuntimeViewport(),
+      undefined, undefined, undefined, content()).create();
+    expect(ui.textValues).toContain('CODEX  ›');
+    const layout = createCampLayout(viewportSnapshot(844, 390));
+    expect(layout.codexButton.right).toBeLessThanOrEqual(layout.panel.right);
+    expect(layout.codexButton.x).toBeGreaterThan(layout.wrongMachineButton.right);
+  });
+
   it('fails visibly instead of fabricating Camp state when bootstrap is absent', () => {
     expect(() => createCampViewModel(new GameStore(), content())).toThrowError(CampStateUnavailableError);
   });
@@ -493,6 +503,29 @@ describe('CampScreen', () => {
     expect(warbandScreen.destroy).toHaveBeenCalledTimes(1);
     expect(apiClient.getBootstrap).toHaveBeenCalledTimes(1);
     expect(contentLoader.loadProjection).toHaveBeenCalledTimes(1);
+  });
+
+  it('navigates Camp to Codex and back in the same GameScene', async () => {
+    const apiClient = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getBootstrap']);
+    apiClient.getBootstrap.and.resolveTo({ ok: true, data: bootstrap() });
+    const contentLoader = jasmine.createSpyObj<ClientContentLoader>('ClientContentLoader', ['loadProjection']);
+    contentLoader.loadProjection.and.resolveTo({ revision: 'a'.repeat(64), content: {
+      gameplay: { run_energy_cost: 10 }, regions: {}, kin: {}, unit_types: {}, abilities: {},
+      dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {}, items: {},
+      unit_promotions: {}, academy_upgrades: {}, shop_offers: {},
+    } });
+    const startup = new RuntimeStartup(apiClient, contentLoader); await startup.start();
+    const camp = jasmine.createSpyObj<GameSceneScreen>('camp', ['create', 'reflow', 'destroy'], { key: 'camp' });
+    const codex = jasmine.createSpyObj<GameSceneScreen>('codex', ['create', 'reflow', 'destroy'], { key: 'codex' });
+    const game = new GameScene(new RuntimeLifecycleState(), startup, new RuntimeViewport(),
+      () => camp, undefined, undefined, undefined, undefined, undefined, undefined, undefined,
+      undefined, () => codex);
+    game.showCamp(); game.showCodex();
+    expect(game.activeScreenKey).toBe('codex');
+    game.goBack();
+    expect(game.activeScreenKey).toBe('camp');
+    expect(codex.destroy).toHaveBeenCalledTimes(1);
+    expect(apiClient.getBootstrap).toHaveBeenCalledTimes(1);
   });
 
   it('returns from Warband, Shop, and empty Supplies through visible Return and Escape without re-entering requestBack', async () => {

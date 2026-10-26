@@ -46,6 +46,7 @@ export interface CampLayout {
   readonly suppliesButton: Bounds;
   readonly academyButton: Bounds;
   readonly wrongMachineButton: Bounds;
+  readonly codexButton: Bounds;
   readonly regionSelector: Bounds;
   readonly runButton: Bounds;
   readonly headingY: number;
@@ -131,8 +132,8 @@ export function createCampLayout(snapshot: RuntimeViewportSnapshot): CampLayout 
   ) as [Bounds, Bounds, Bounds];
   const destinationGap = 12;
   const destinationWidth = Math.min(mode === 'compact' ? 170 : 180,
-    (panel.width - 76 - destinationGap * 4) / 5);
-  const destinationX = panel.right - 38 - destinationWidth * 5 - destinationGap * 4;
+    (panel.width - 76 - destinationGap * 5) / 6);
+  const destinationX = panel.right - 38 - destinationWidth * 6 - destinationGap * 5;
   const destinationY = panel.y + 40;
   const destinationHeight = mode === 'compact' ? 92 : 58;
   const destination = (index: number) => box(destinationX + index * (destinationWidth + destinationGap),
@@ -154,6 +155,7 @@ export function createCampLayout(snapshot: RuntimeViewportSnapshot): CampLayout 
     suppliesButton: destination(2),
     academyButton: destination(3),
     wrongMachineButton: destination(4),
+    codexButton: destination(5),
     regionSelector: box(centerX - (mode === 'compact' ? 310 : 260), panel.y + 195,
       mode === 'compact' ? 620 : 520, mode === 'compact' ? 54 : 48),
     runButton: box(centerX - (mode === 'compact' ? 230 : 190), panel.y + (mode === 'compact' ? 270 : 260),
@@ -193,6 +195,7 @@ export class CampScreen implements GameSceneScreen {
     private readonly openInventory: () => void = () => undefined,
     private readonly openAcademy: () => void = () => undefined,
     private readonly openWrongMachine: () => void = () => undefined,
+    private readonly openCodex: () => void = () => undefined,
   ) {}
 
   static preload(scene: Phaser.Scene): void {
@@ -295,6 +298,7 @@ export class CampScreen implements GameSceneScreen {
     this.addCampDestinationButton(root, layout.academyButton, 'ACADEMY', this.openAcademy, layout, view.academyAccess);
     this.addCampDestinationButton(root, layout.wrongMachineButton, 'WRONG MACHINE', this.openWrongMachine, layout,
       view.wrongMachineAccess);
+    this.addCampDestinationButton(root, layout.codexButton, 'CODEX', this.openCodex, layout);
     this.addRegionSelector(root, layout, view);
     this.addRunButton(root, layout, view);
     const divider = this.scene.add.graphics();
