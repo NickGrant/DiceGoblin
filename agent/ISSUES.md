@@ -139,3 +139,15 @@ Report:
 - confirmation that dialogue/objectives/M12+ were not introduced.
 
 Leave Package 2 **In Progress** for review. Do not promote Package 3.
+
+#### Package 2 implementation evidence (review candidate)
+
+- Implementation commit: `890ae10` (Phaser Codex screen and Camp destination). Package remains **In Progress** for architectural review.
+- Inventory/reuse: Camp's existing destination row and GameScene navigator own entry/return; the Package 1 `GameStore` Codex slice and strict `GET /api/v1/codex` parser own authority; neighboring progression screens supplied background/button conventions and read retry patterns; `RuntimeViewport` supplies Compact/Standard/Wide safe bounds and the existing portrait gate. The visual guide's parchment/green/brass palette is used at functional fidelity. The unrouted prototype Angular Codex page was removed after replacement; no second catalog or store was kept.
+- Screen lifecycle: Camp's always available CODEX destination opens `CodexScreen` inside the persistent GameScene. Opening subscribes to the lazy shared cache and reads only when needed; Return/Escape destroy the screen subscription and restore Camp without restarting runtime. The screen keeps only selected entry and list/body page numbers locally.
+- Authority/secrecy: the server ordered entries are rendered without client sorting or authored fallback. Discovered and undiscovered rows have distinct labels/colors. Detail body is rendered only for `owned` entries with an authoritative non-null body; undiscovered detail contains only a fixed discovery message. Long list titles are abbreviated in the row while the complete server title remains in detail; body paging retains every source character.
+- Read states: first open shows Loading, failures show a retry action using `GameStore.retryCodex`, and stale revision changes reload immediately while the screen is open or on the next open. No client ownership or reward mutation was added.
+- Focused Chrome suites: 59/59 tests passed (Codex screen, Camp navigation, GameStore). This includes lazy/fresh reuse, owned/unowned secrecy, selection, error/retry, revision invalidation, subscription cleanup, and responsive bounds/body pagination.
+- Deterministic captures completed and visually reviewed: `artifacts/screenshots/m11-p2-codex-compact.png` (844x390 mobile Compact), `m11-p2-codex-standard.png` (1600x900 Standard), `m11-p2-codex-wide.png` (2560x1080 Wide), `m11-p2-codex-error.png` (read failure), and `m11-p2-camp-compact.png` (six Camp destinations). The shared portrait/orientation path was unchanged.
+- Full `npm run verify:package`: **PASS**, 7m 5s. Backend 772 tests/5,373 assertions; frontend 508 tests; PHP front-controller syntax, content validation, context/docs lint, production build, bundle budget, and diff check passed. No backend contract changed; the backend aggregate was run by the full gate.
+- Scope: no dialogue, objectives, Codex grants/rewards, M12, or other gameplay mechanics were introduced.
