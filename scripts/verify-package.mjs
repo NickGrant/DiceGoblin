@@ -15,6 +15,9 @@ const gates = [
   { id: "llm-check", label: "LLM/context", command: npmBin, args: ["run", "llm:check"] },
   { id: "docs-lint", label: "Docs lint", command: npmBin, args: ["run", "docs:lint"] },
   dockerPhp
+    ? { id: "front-controller-syntax", label: "PHP front controller syntax", command: "docker", args: ["compose", "exec", "-T", "backend", "php", "-l", "public/index.php"] }
+    : { id: "front-controller-syntax", label: "PHP front controller syntax", command: "php", args: ["-l", "backend/public/index.php"] },
+  dockerPhp
     ? { id: "content-validate", label: "Content", command: "docker", args: ["compose", "run", "--rm", "-T", "--no-deps", "-v", `${path.join(root, "frontend")}:/frontend`, "backend", "php", "bin/validate-content.php"] }
     : { id: "content-validate", label: "Content", command: npmBin, args: ["run", "content:validate"] },
   { id: "backend-tests", label: "Backend", command: npmBin,
