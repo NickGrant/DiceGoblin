@@ -7,7 +7,7 @@ Read this for sequencing/planning or when closing/promoting an execution package
 **Status:** Active
 
 ### Related Issues
-- Milestone 11 Package 1 - Codex ownership and read-model foundation
+- Milestone 11 Package 2 - Phaser Codex surface + Camp integration
 
 Milestones 1-10 are complete and passed their required manual UAT.
 
@@ -45,8 +45,8 @@ Mystic Cave/onboarding remains Milestone 12. Swamp/Frog Kin remains Milestone 13
 
 ### Package Queue
 
-1. **Codex ownership and read-model foundation.** Current. Establish authored Codex definitions, unique ownership persistence/reward application, player-safe read projection, and strict validation without dialogue/objective orchestration.
-2. **Phaser Codex surface + Camp integration.** Planned. Present owned/discovered knowledge through the accepted runtime/cache architecture and responsive Phaser UI.
+1. **Codex ownership and read-model foundation.** Approved through correction `88ed69f62826977f37d5c5eb365913d9805dcc5f`; evidence recorded at `eaea0d2a497d2b4a1cf7300232ff7a5d58f47ec7`. Establishes authored Codex definitions, unique ownership persistence/reward application, player-safe read projection, strict validation, and durable front-controller composition verification.
+2. **Phaser Codex surface + Camp integration.** Current. Present owned/discovered knowledge through the accepted runtime/cache architecture and responsive Phaser UI.
 3. **Knowledge-aware dialogue contract.** Planned. Establish authored replayable dialogue selection using meaningful Codex ownership prerequisites and Codex reward completion without generic story flags.
 4. **Objective/bounty authored model + persistence/read contract.** Planned. Establish authored requirements and domain-owned mutable player progress/completion state.
 5. **Authoritative gameplay-fact objective progress.** Planned. Feed objective progress from accepted authoritative gameplay outcomes/events with transactional/idempotent semantics rather than client claims.
@@ -57,7 +57,8 @@ Mystic Cave/onboarding remains Milestone 12. Swamp/Frog Kin remains Milestone 13
 
 ### Sequencing Notes
 
-- Package 1 starts with the smallest durable knowledge primitive already accepted by the progression-state model: Codex ownership.
+- Package 1 established the durable Codex knowledge primitive and player-safe lazy read/cache boundary used by later knowledge features.
+- Package 2 adds the player-facing Codex presentation without changing Codex ownership or reward semantics.
 - Dialogue is sequenced after Codex ownership/read presentation so it consumes an established knowledge primitive rather than defining one implicitly.
 - Objective persistence is established before wiring gameplay facts so progress semantics and ownership are explicit.
 - Objective reward completion follows authoritative progress wiring and must reuse the accepted reward pipeline rather than adding a parallel grant path.
