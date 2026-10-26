@@ -2,173 +2,140 @@
 
 ## Milestone 11 - Knowledge and Objectives
 
-### Milestone 11 Package 1 - Codex ownership and read-model foundation
+### Milestone 11 Package 2 - Phaser Codex surface + Camp integration
 
 **Status:** In Progress
 **Priority:** High
 
 #### Problem
 
-Milestone 10 is complete and manual UAT passed. Milestone 11 now needs its first durable knowledge primitive before dialogue or objective orchestration can be added.
-
-The accepted progression model defines Codex entries as unique collectible rewards representing meaningful retained knowledge, lore, discoveries, or important information. Current vNext has no canonical authored Codex definition/ownership/read-model slice proving that contract end to end.
+Package 1 established canonical Codex authored definitions, unique player ownership through the reward pipeline, an authoritative player-safe read contract, and strict lazy client cache support. Players still have no mounted Phaser surface for viewing discovered knowledge.
 
 #### Accepted baseline
 
 - Milestones 1-10 are complete and passed manual UAT.
-- Milestone 10 UAT acceptance is recorded through `d97bcb52c4b834cf72a68d827eac8e196c05adbb`.
-- `documentation/07-development-path/vnext-progression-state-model.md` is canonical for Codex/objective progression semantics.
-- `documentation/07-development-path/vnext-reward-unlock-model.md` owns reward finalization/application/idempotency semantics.
-- Backend/MySQL remains authoritative; authored catalogs live in canonical JSON; client state is a cache/projection of backend authority.
-- The canonical test suite is zero-skip. Prototype M11 evidence retained outside canonical discovery may be inspected for behavior but is not architectural authority.
+- Milestone 11 Package 1 is approved through correction `88ed69f62826977f37d5c5eb365913d9805dcc5f`, with review evidence recorded at `eaea0d2a497d2b4a1cf7300232ff7a5d58f47ec7`.
+- Canonical Codex definitions use stable `codex.*` IDs and player-facing `title`/`body` fields.
+- `GET /api/v1/codex` is the authoritative player-safe catalog/ownership projection: owned entries expose body text; unowned entries expose `body: null`.
+- `GameStore` already owns the strict lazy Codex cache and invalidates it on player revision changes.
+- Codex ownership/reward semantics are server authoritative and are not to be redesigned in this package.
+- The major game-wide visual/UI overhaul remains deferred.
 
 #### Purpose
 
-Implement the smallest reusable Codex foundation:
+Add the smallest complete player-facing Codex experience in Phaser and integrate it into Camp using the accepted runtime/cache architecture.
 
-1. authored Codex entry definitions with stable IDs and validation;
-2. durable per-player unique Codex ownership;
-3. Codex grant support through the accepted finalized reward pipeline;
-4. a player-safe authoritative Codex read contract that distinguishes authored catalog presentation from player ownership without exposing private reward/event configuration;
-5. strict ownership/security/idempotency behavior suitable for later dialogue and objective packages.
+The surface must let a player discover that the Codex exists, open it from Camp, distinguish discovered from undiscovered authored entries, read owned knowledge, return safely to Camp, and remain usable across the canonical responsive layouts.
 
-Do not implement dialogue selection, objective counters, or the final Phaser Codex screen in this package.
+Do not add dialogue routing, objective state, or new Codex ownership/grant mechanics.
 
 #### Required inventory before implementation
 
 Inspect and record reuse/drop decisions for:
-- accepted unique unlock reward persistence/application and duplicate behavior;
-- current reward definition/finalization/application pipeline;
-- authored-content registry/validator/client-projection conventions;
-- current API/query/controller/cache patterns for lazy player-owned collections;
-- retained prototype Codex implementation/tests, if present;
-- existing database naming/ownership/foreign-key conventions.
+- current Camp facility/navigation patterns and scene lifecycle;
+- existing Phaser collection/list/detail surfaces such as Inventory, Shop, Academy, or Warband where structurally useful;
+- `GameStore` Codex lazy cache introduced in Package 1;
+- current responsive/orientation helpers and deterministic capture fixtures;
+- current player-facing loading/error/retry patterns;
+- visual guide constraints relevant to a knowledge/catalog surface.
 
-Do not preserve prototype API/schema/UI shape merely for compatibility.
+Reuse established runtime/input/layout/cache boundaries. Do not create a second Codex store or Angular gameplay page.
 
-#### Canonical design constraints
+#### Canonical interaction requirements
 
-##### Codex semantics
+##### Camp integration
 
-- A Codex entry is a unique collectible reward and durable knowledge record.
-- Codex entries must have player-facing meaning; do not use them as arbitrary invisible story flags.
-- Duplicate Codex grants resolve to no additional ownership under the accepted unique-reward rule.
-- Do not introduce generic region-completion state, story flags, historical-event persistence, `has_seen_dialogue`, or a catch-all progression table.
+- Provide a clear Codex entry point from the mounted Phaser Camp experience.
+- The Codex is a knowledge/reference surface, not a purchase/progression mutation facility; do not invent a new unlock requirement unless an existing canonical requirement already governs access.
+- Opening and closing the Codex must preserve normal Camp/runtime state and navigation behavior.
+- Do not replace or globally redesign unrelated Camp facilities in this package.
 
-##### Authored content
+##### Codex presentation
 
-- Define Codex entries in canonical authored JSON with stable `codex.*` identity.
-- Include only the authored player-facing fields needed by the read/presentation contract plus any narrow server-private classification needed now.
-- Validate IDs, exact field shapes, references, bounds, and duplicate identities consistently with existing content validation.
-- Do not author speculative dialogue trees or objective catalogs in Package 1.
+- Load Codex through the accepted lazy `GameStore` cache/read contract.
+- Render authored entries in authoritative server order; do not maintain a client-authored Codex catalog.
+- Clearly distinguish owned/discovered entries from unowned/undiscovered entries.
+- Owned entries may show their authoritative title/body presentation.
+- Unowned entries must not reveal hidden body text or infer it from client content/assets. Their presentation may use the safe title/owned state already supplied by the server.
+- Selection/detail state is client presentation state only and must not become durable progression state.
+- Do not infer Codex ownership from combat history, unlocks, objectives, local events, or other client state.
 
-##### Persistence
+##### Loading, errors, and cache reconciliation
 
-- Persist unique ownership in a narrow player/Codex relation following existing ownership-table conventions.
-- Enforce uniqueness at the database boundary.
-- Ownership must be user-scoped and foreign ownership must never satisfy another player's read/reward state.
-- Use the repository/storage boundary; do not embed persistence in controllers/content objects.
-- Clean bootstrap/reset must create the canonical schema.
+- Opening the surface with an unloaded Codex slice must present a usable loading state while the lazy query is in flight.
+- A read failure must produce a recoverable player-facing state; retry must use the authoritative query rather than fabricate cached entries.
+- If player revision invalidates the Codex cache, the next relevant read/open must reconcile from the server.
+- Do not introduce a Codex mutation endpoint or local optimistic ownership changes.
 
-##### Reward integration
+##### Responsive behavior
 
-- Add Codex as a supported unique reward type through the existing event -> reward definition -> finalized result -> transactional application pipeline.
-- Finalized reward results must contain only the stable facts needed to replay/apply safely.
-- Exact-key retry/replay cannot create duplicate ownership, reroll, reapply, or increment revision twice.
-- A duplicate already-owned Codex reward must follow the accepted duplicate unique-reward behavior rather than throwing or inventing compensation.
-- Do not create a direct Codex-grant endpoint or bypass the reward pipeline.
-
-##### Read/API contract
-
-- Provide the smallest authoritative read contract needed for later Codex presentation.
-- Prefer established lazy-query/cache patterns rather than adding Codex to bootstrap unless canonical client architecture clearly requires otherwise.
-- Return player-safe authored presentation and ownership/discovery state only.
-- Do not expose event definitions, reward probabilities, hidden prerequisites, private dialogue routing, or future objective configuration.
-- Missing/corrupt authored or persisted references must fail closed/integrity-safe rather than silently fabricating entries.
-
-##### Client scope
-
-- Add strict frontend contract/cache support only as needed to consume the read model and prove secrecy/reconciliation boundaries.
-- Do not build the full Phaser Codex screen; that is Package 2.
-- Do not add dialogue-specific or objective-specific client state.
+- Follow the canonical Compact/Standard/Wide layout model and existing portrait rotate-device gate.
+- The list/detail presentation must remain legible with reasonable authored title/body lengths at the canonical verification viewports.
+- Scrolling or paging is acceptable where necessary; do not truncate owned knowledge in a way that makes it unreadable.
+- This package is functional presentation, not final visual polish.
 
 #### Minimum proof
 
-Use a narrow test-authored or production-appropriate Codex entry and prove:
+Prove at minimum:
 
-1. a finalized event reward can grant an unowned Codex entry transactionally;
-2. ownership persists and appears in the authoritative Codex read model after reload/re-query;
-3. the same finalized reward replay does not grant again or increment revision again;
-4. a later legitimate duplicate roll of the same unique Codex entry resolves according to the accepted duplicate-reward rule without duplicate ownership;
-5. another user does not inherit/observe that ownership;
-6. malformed/private authored facts do not reach the browser projection.
-
-Do not manufacture a production dialogue/objective merely to trigger the proof. A narrow validated fixture is preferred if no existing production event semantically grants meaningful Codex knowledge yet.
+1. Camp exposes a usable Codex entry point without disrupting existing facility navigation.
+2. Opening Codex lazily loads the authoritative slice through `GameStore`.
+3. Owned and unowned entries are visually distinguishable.
+4. Owned entry detail renders the authoritative body.
+5. Unowned entry presentation never reveals/fabricates body text.
+6. Server order is preserved.
+7. Loading state is usable and duplicate opens/reads do not create conflicting local state.
+8. Read failure is recoverable through retry.
+9. Cache invalidation/reopen reloads authoritative state after a player revision change.
+10. Returning to Camp is clean and preserves normal runtime state.
+11. Compact, Standard, and Wide deterministic captures are legible; portrait behavior remains correct if affected.
 
 #### Verification requirements
 
-Prove at minimum:
-- authored Codex structural/semantic validation, including malformed IDs/fields and duplicate/reference failures;
-- clean-schema ownership table constraints and cascade behavior;
-- repository ownership/list/read behavior and cross-player isolation;
-- reward-definition validation for Codex grants;
-- finalized Codex reward application and duplicate unique-reward semantics;
-- exact-key replay/idempotency and revision stability;
-- transaction rollback on corrupt/missing Codex references;
-- authoritative read projection after grant and reload;
-- browser contract rejects private/unknown fields;
-- existing currency/item/unit/unlock/XP reward paths remain green;
-- M1-M10 regression suite remains green;
-- no dialogue/objective/M12+ scope leakage.
+Add focused frontend/runtime tests for:
+- Camp -> Codex navigation and return;
+- lazy loading and cache reuse;
+- authoritative order;
+- owned/unowned rendering and body secrecy;
+- selection/detail behavior;
+- loading/error/retry behavior;
+- revision invalidation and authoritative reload;
+- repeated open/close lifecycle without duplicate listeners or stale state;
+- responsive layout behavior where testable without brittle pixel assertions.
 
-Run the applicable gates in `agent/QUALITY_GATES.md` and full `npm run verify:package` before review.
+Run deterministic captures for representative Codex states at Compact landscape, 1600x900 Standard, and Wide landscape. Include portrait only if the shared orientation behavior is changed or affected.
+
+Run applicable backend regression only if a shared contract is changed; Package 2 should normally consume the accepted Package 1 API unchanged.
+
+Run full `npm run verify:package` before review.
 
 #### Scope exclusions
 
-Do not add in Package 1:
-- Phaser Codex screen beyond minimal contract/cache plumbing;
-- dialogue selection/history/routing;
+Do not add in Package 2:
+- dialogue definitions, selection, history, or routing;
+- objective/bounty definitions or progress;
+- new Codex reward/grant semantics;
 - generic story flags or `has_seen_dialogue` state;
-- objective/bounty definitions or progress counters;
-- gameplay-fact objective wiring;
-- objective completion rewards;
+- direct Codex mutations;
 - Mystic Cave/onboarding;
 - Swamp/Frog Kin or production Shrine/Chaos expansion;
-- final visual redesign;
+- broad/global Camp redesign;
+- final visual overhaul;
 - Milestone 12+ work.
 
 #### Completion evidence required
 
 Report:
 - implementation SHA;
-- prototype/current-system inventory and reuse/drop decisions;
-- authored Codex representation and validation rules;
-- persistence schema/repository shape and uniqueness/ownership guarantees;
-- reward pipeline changes and duplicate semantics;
-- API/read projection and browser-secrecy proof;
-- idempotency/replay/revision behavior;
-- cross-player and corrupt-state rejection proof;
-- focused test results;
+- Camp/scene/runtime inventory and reuse/drop decisions;
+- Codex scene/surface structure and navigation lifecycle;
+- authoritative lazy-cache loading/reconciliation behavior;
+- owned/unowned secrecy and presentation behavior;
+- loading/error/retry behavior;
+- responsive layout/capture evidence;
+- focused frontend/runtime test results;
+- backend regression results if shared contracts changed;
 - full package-gate results;
 - confirmation that dialogue/objectives/M12+ were not introduced.
 
-Leave Package 1 **In Progress** for review. Do not promote Package 2.
-
-#### Package 1 implementation evidence
-
-- Inventory: reused the vNext `user_unlocks` unique-grant pattern, finalized `resolved_events` pipeline, canonical JSON validator/registry, lazy collection GET/cache convention, and strict browser parser. The retained prototype `CodexOwnershipService` uses loose type/key/source/metadata and its Angular page is outside the mounted game; neither shape was carried into the new contract.
-- Canonical `codex_entry` definitions use stable `codex.*` IDs and exact `id/type/title/body` fields. Title and body are nonempty and bounded; duplicate IDs, malformed namespaces, unknown reward references, and private extra fields fail validation. `codex.farm.mudking` is a meaningful authored knowledge entry; only a test-authored event/reward currently grants it.
-- `user_codex_ownership` contains only `(user_id, codex_id, granted_at)`, with a composite primary key, binary stable ID column, and user cascade. The repository scopes every list/read/insert by user. The local UAT database received the same additive table as the fresh baseline without modifying player rows.
-- Reward type `codex` is validated from authored definition through strict finalized facts. The reward application service locks and validates persisted ownership under the caller's transaction, finalizes one roll per authored entry, applies a new entry once, and yields `already_owned` on later legitimate duplicates. Applied exact-source replay reads the persisted result without reroll, reinsertion, or revision change; missing Codex ownership or authored references fail integrity checks.
-- `GET /api/v1/codex` requires a session and returns only ordered `id/title/body/owned` entries. Unowned bodies are null. Codex definitions are absent from the global client content projection, and strict frontend parsing rejects extra/private fields, malformed IDs, duplicates, and leaked unowned bodies. GameStore loads this slice lazily and invalidates it on player revision changes.
-- Focused backend Codex/reward/Academy/run regression batch: 118 tests, 940 assertions passed. Focused frontend Codex contract/GameStore batch: 32 tests passed, including an in-flight read invalidated by a revision change. The isolated `goblin_test` database was reset successfully from the updated baseline.
-- Full `npm run verify:package -- --continue-on-failure` passed on the final implementation: content projection revision `65586d47e65094eb3d69ead38f74e61e656f0dadd4688ca44c5ae148c4325aa2`, backend 771 tests / 5,366 assertions, frontend 501 tests, production build, bundle budget, context/docs checks, and diff whitespace. The initial aggregate exposed two preexisting exact fixture lists that needed the newly authored Codex type/table; their corrected focused suites passed 26 tests / 188 assertions before the clean full rerun.
-- No dialogue selection, objective state, Phaser Codex screen, or Milestone 12+ work was introduced. Package 1 remains In Progress for architectural review.
-
-#### Package 1 review correction evidence
-
-- Correction commit: `88ed69f62826977f37d5c5eb365913d9805dcc5f`. The Package 1 edit inserted the Codex import, controller construction, and GET route twice in `backend/public/index.php`; the review correction leaves exactly one of each. An adjacent-duplicate scan of all Package 1 changed files found no other duplicate introduced by that edit.
-- The prior package gate missed the fatal duplicate import because PHPUnit instantiated `CodexController` directly without loading the production front controller, and `verify:package` did not lint that entry point. Before correction, `php -l public/index.php` failed with `Cannot use ... CodexController ... because the name is already in use`.
-- `verify:package` now runs `php -l` on the production front controller using the existing local PHP/Docker selection. A canonical backend composition test checks unique imports, controller bindings, and HTTP method/path registrations and asserts the Codex import, binding, and GET route each occur once. After correction, `php -l` passes and the three exact source-line counts are each one.
-- Focused composition and complete Codex reward/ownership/read-model regression selection passed: 53 tests / 364 assertions, including the authenticated Codex endpoint. Full `npm run verify:package -- --continue-on-failure` passed: backend 772 tests / 5,373 assertions, frontend 501 tests, front-controller syntax, content validation, production build, bundle budget, context/docs checks, and diff whitespace.
-- Package 1 remains In Progress for review. No dialogue, objectives, Phaser Codex screen, Milestone 12 functionality, or unrelated refactoring was added.
+Leave Package 2 **In Progress** for review. Do not promote Package 3.
