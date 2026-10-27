@@ -7,7 +7,7 @@ Read this for sequencing/planning or when closing/promoting an execution package
 **Status:** Active
 
 ### Related Issues
-- Milestone 11 Package 2 - Phaser Codex surface + Camp integration
+- Milestone 11 Package 3 - Knowledge-aware dialogue contract
 
 Milestones 1-10 are complete and passed their required manual UAT.
 
@@ -46,8 +46,8 @@ Mystic Cave/onboarding remains Milestone 12. Swamp/Frog Kin remains Milestone 13
 ### Package Queue
 
 1. **Codex ownership and read-model foundation.** Approved through correction `88ed69f62826977f37d5c5eb365913d9805dcc5f`; evidence recorded at `eaea0d2a497d2b4a1cf7300232ff7a5d58f47ec7`. Establishes authored Codex definitions, unique ownership persistence/reward application, player-safe read projection, strict validation, and durable front-controller composition verification.
-2. **Phaser Codex surface + Camp integration.** Current. Present owned/discovered knowledge through the accepted runtime/cache architecture and responsive Phaser UI.
-3. **Knowledge-aware dialogue contract.** Planned. Establish authored replayable dialogue selection using meaningful Codex ownership prerequisites and Codex reward completion without generic story flags.
+2. **Phaser Codex surface + Camp integration.** Approved at `37be6990b480989b83c22645cb5fa71de7291a94` (implementation `890ae102b2deea6929859acd934848ba3a9402e5`). Establishes mounted Camp -> Codex navigation, authoritative lazy-cache presentation, owned/unowned secrecy, recoverable reads, responsive list/detail presentation, and clean return lifecycle without changing backend Codex semantics.
+3. **Knowledge-aware dialogue contract.** Current. Establish authored replayable dialogue selection using meaningful Codex ownership prerequisites and Codex reward completion without generic story flags.
 4. **Objective/bounty authored model + persistence/read contract.** Planned. Establish authored requirements and domain-owned mutable player progress/completion state.
 5. **Authoritative gameplay-fact objective progress.** Planned. Feed objective progress from accepted authoritative gameplay outcomes/events with transactional/idempotent semantics rather than client claims.
 6. **Automatic objective completion + reward finalization.** Planned. Complete objectives automatically when requirements are met and resolve rewards through the accepted event/reward pipeline exactly once.
@@ -58,8 +58,8 @@ Mystic Cave/onboarding remains Milestone 12. Swamp/Frog Kin remains Milestone 13
 ### Sequencing Notes
 
 - Package 1 established the durable Codex knowledge primitive and player-safe lazy read/cache boundary used by later knowledge features.
-- Package 2 adds the player-facing Codex presentation without changing Codex ownership or reward semantics.
-- Dialogue is sequenced after Codex ownership/read presentation so it consumes an established knowledge primitive rather than defining one implicitly.
+- Package 2 established player-facing Codex presentation without changing Codex ownership or reward semantics.
+- Package 3 now establishes dialogue as a replayable authored interaction that may consume Codex knowledge prerequisites and grant meaningful Codex knowledge, without introducing generic dialogue history/story flags.
 - Objective persistence is established before wiring gameplay facts so progress semantics and ownership are explicit.
 - Objective reward completion follows authoritative progress wiring and must reuse the accepted reward pipeline rather than adding a parallel grant path.
 - Do not begin Milestone 12 until Milestone 11 technical closure and focused manual UAT pass.
