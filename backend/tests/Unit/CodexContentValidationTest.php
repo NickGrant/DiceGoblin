@@ -13,10 +13,11 @@ final class CodexContentValidationTest extends TestCase
   public function testCanonicalEntryHasMeaningfulPresentationAndIsAbsentFromGlobalClientCatalog(): void
   {
     $content = ContentRegistry::load(dirname(__DIR__, 2) . '/content');
-    $this->assertSame('The Mudking', $content->codexEntry('codex.farm.mudking')['title']);
+    $entry = $content->codexEntry('codex.farm.mudking');
+    $this->assertNotSame('', trim($entry['title']));
     $projected = (new \DiceGoblins\Content\ClientContentProjector())->project($content);
     $this->assertArrayNotHasKey('codex_entries', $projected['content']);
-    $this->assertStringNotContainsString('The Mudking', json_encode($projected, JSON_THROW_ON_ERROR));
+    $this->assertStringNotContainsString($entry['body'], json_encode($projected, JSON_THROW_ON_ERROR));
   }
 
   public function testValidTestAuthoredCodexRewardReferencesEntry(): void
@@ -57,15 +58,7 @@ final class CodexContentValidationTest extends TestCase
   /** @return list<array<string,mixed>> */
   private function definitions(): array
   {
-    $content = ContentRegistry::load(dirname(__DIR__, 2) . '/content');
-    $definitions = [];
-    foreach (['gameplay_config', 'region', 'kin', 'unit_type', 'enemy_unit_type', 'encounter', 'ability',
-      'dice_material', 'dice_aspect', 'dice_profile', 'run_node_type', 'run_generation', 'run_modifier',
-      'unlock', 'capability', 'academy_upgrade', 'unit_promotion', 'reconstruction_recipe', 'event',
-      'reward_definition', 'item', 'shop_offer', 'codex_entry'] as $type) {
-      foreach ($content->definitionsOfType($type) as $definition) $definitions[] = $definition;
-    }
-    return $definitions;
+    return \DiceGoblins\Tests\Support\CanonicalContentFixture::definitions();
   }
 
   /** @return array<string,mixed> */

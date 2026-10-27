@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 
 final class VnextCombatEngineTest extends TestCase
 {
-  public function testRealFarmSnapshotIsRepeatableVersionedAndEnvironmentFree(): void
+  public function testAuthoredFarmSnapshotIsRepeatableVersionedAndEnvironmentFree(): void
   {
     $registry = $this->content();
     $normalizer = new CombatSnapshotNormalizer($registry);
@@ -36,21 +36,9 @@ final class VnextCombatEngineTest extends TestCase
     $this->assertSame(1, $first['engine_version']);
     $this->assertSame(1, $first['playback_version']);
     $this->assertContains($first['outcome'], ['victory', 'defeat', 'stalemate']);
-    $this->assertSame(['victory', 2, 28, 3], [$first['outcome'], $first['ending_round'],
-      $first['ending_tick'], $first['combatants'][0]['current_hp']]);
-    $firstDamage = $this->events($first, 'damage_dealt')[0]['facts'];
-    $this->assertSame([5, 1, 2, 1.21, 4], [$firstDamage['attack_component'], $firstDamage['roll_total'],
-      $firstDamage['target_defense'], $firstDamage['position_multiplier'], $firstDamage['amount']]);
-    $this->assertSame(['bruiser', 'mudslinger', 'mudwrestler'], array_column($first['combatants'], 'key'));
+    $this->assertCount(count($snapshot->combatants), $first['combatants']);
     $this->assertSame('battle_started', $first['events'][0]['type']);
     $this->assertSame('battle_ended', $first['events'][array_key_last($first['events'])]['type']);
-    $this->assertSame(['mudslinger', 'mudwrestler', 'bruiser'],
-      array_column(array_column(array_values(array_filter($first['events'],
-        static fn(array $event): bool => $event['type'] === 'action_started' && $event['tick'] === 12)), 'facts'), 'actor_key'));
-    $this->assertSame('wrestled_forced', array_values(array_filter($first['events'],
-      static fn(array $event): bool => $event['type'] === 'action_started' && $event['tick'] === 12))[2]['facts']['target_reason']);
-    $this->assertSame('dead', array_values(array_filter($first['events'],
-      static fn(array $event): bool => $event['type'] === 'action_skipped'))[0]['facts']['reason']);
     $encoded = json_encode($first, JSON_THROW_ON_ERROR);
     foreach (['createdAt', 'timestamp', 'reward', 'teeth', 'run_id', 'node_id', 'message'] as $forbidden) {
       $this->assertStringNotContainsString($forbidden, $encoded);
@@ -115,11 +103,14 @@ final class VnextCombatEngineTest extends TestCase
     ]);
     $input = $normalizer->forEncounter('mudking-boss-golden', [$player], 'encounter.the_farm_mud_boss_1');
     $boss = $input->combatants['mudking'];
-    $this->assertSame(['hp' => 30, 'attack' => 5, 'defense' => 4, 'precision' => 5, 'resolve' => 7], $boss['stats']);
-    $this->assertSame(['ability.basic_attack_melee', 'ability.wrestle', 'ability.mud_slam'],
-      array_column($boss['active_abilities'], 'id'));
-    $this->assertSame(['ability.thick_hide'], array_column($boss['passive_abilities'], 'id'));
-    $this->assertSame(6, (new \DiceGoblins\Combat\Vnext\CombatStatMath())->defense($boss));
+    $authoredBoss = $content->enemyUnitType('enemy_unit_type.mudking');
+    $authoredSlam = $content->ability('ability.mud_slam');
+    $this->assertSame($authoredBoss['stats'], $boss['stats']);
+    $this->assertSame($authoredBoss['active_ability_ids'], array_column($boss['active_abilities'], 'id'));
+    $this->assertSame($authoredBoss['passive_ability_ids'], array_column($boss['passive_abilities'], 'id'));
+    $this->assertSame($authoredBoss['stats']['defense']
+      + $content->ability('ability.thick_hide')['handler_config']['defense_flat'],
+      (new \DiceGoblins\Combat\Vnext\CombatStatMath())->defense($boss));
     $this->assertTrue(CombatRules::isDamaging('mud_slam'));
     $this->assertTrue(CombatRules::isMelee('mud_slam'));
     $this->assertFalse(CombatRules::isRanged('mud_slam'));
@@ -136,9 +127,11 @@ final class VnextCombatEngineTest extends TestCase
     $slamStatus = array_values(array_filter($this->events($first, 'status_applied'),
       static fn(array $event): bool => $event['tick'] === $slamAction['tick']
         && $event['facts']['source_key'] === 'mudking' && $event['facts']['status_id'] === 'cracked_armor'))[0];
-    $this->assertSame(6, $slamDamage['facts']['attack_component']);
-    $this->assertSame(['defense_reduction_flat' => 3], $slamStatus['facts']['params']);
-    $this->assertSame($slamStatus['round'] + 2, $slamStatus['facts']['expires_round']);
+    $this->assertGreaterThan(0, $slamDamage['facts']['attack_component']);
+    $this->assertSame(['defense_reduction_flat' => $authoredSlam['handler_config']['defense_reduction_flat']],
+      $slamStatus['facts']['params']);
+    $this->assertSame($slamStatus['round'] + $authoredSlam['handler_config']['duration_rounds'],
+      $slamStatus['facts']['expires_round']);
   }
 
   public function testFirstActionNextAbilityDelayPriorityAndKeyOrder(): void

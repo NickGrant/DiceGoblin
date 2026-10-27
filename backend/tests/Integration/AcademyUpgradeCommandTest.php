@@ -235,12 +235,8 @@ final class AcademyUpgradeCommandTest extends IntegrationTestCase
 
   private function contentWithoutGuardian(): ContentRegistry
   {
-    $original = $this->content(); $all = [];
-    foreach (['gameplay_config', 'region', 'kin', 'unit_type', 'enemy_unit_type', 'encounter', 'ability', 'dice_material', 'dice_aspect',
-      'dice_profile', 'run_node_type', 'run_generation', 'unlock', 'capability', 'academy_upgrade', 'event', 'reward_definition',
-      'item', 'shop_offer', 'codex_entry'] as $type) foreach ($original->definitionsOfType($type) as $definition) {
-        if ($definition['id'] !== 'academy_upgrade.guardian') $all[] = $definition;
-      }
+    $all = array_values(array_filter(\DiceGoblins\Tests\Support\CanonicalContentFixture::definitions(),
+      static fn(array $definition): bool => $definition['id'] !== 'academy_upgrade.guardian'));
     $root = sys_get_temp_dir() . '/dice-goblins-academy-replay-' . bin2hex(random_bytes(6));
     mkdir($root, 0777, true); $this->roots[] = $root;
     file_put_contents($root . '/all.json', json_encode(['definitions' => $all], JSON_THROW_ON_ERROR));

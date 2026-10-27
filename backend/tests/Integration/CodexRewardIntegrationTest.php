@@ -134,14 +134,7 @@ final class CodexRewardIntegrationTest extends IntegrationTestCase
 
   private function fixtureContent(): ContentRegistry
   {
-    $canonical = ContentRegistry::load(dirname(__DIR__, 2) . '/content');
-    $definitions = [];
-    foreach (['gameplay_config', 'region', 'kin', 'unit_type', 'enemy_unit_type', 'encounter', 'ability',
-      'dice_material', 'dice_aspect', 'dice_profile', 'run_node_type', 'run_generation', 'run_modifier',
-      'unlock', 'capability', 'academy_upgrade', 'unit_promotion', 'reconstruction_recipe', 'event',
-      'reward_definition', 'item', 'shop_offer', 'codex_entry'] as $type) {
-      foreach ($canonical->definitionsOfType($type) as $definition) $definitions[] = $definition;
-    }
+    $definitions = \DiceGoblins\Tests\Support\CanonicalContentFixture::definitions();
     $definitions[] = ['id' => 'reward_definition.codex_test', 'type' => 'reward_definition', 'entries' => [[
       'key' => 'discovery', 'probability_basis_points' => 10000, 'reward_type' => 'codex',
       'config' => ['codex_id' => 'codex.farm.mudking'],

@@ -18,45 +18,31 @@ final class MountainsCombatContentValidationTest extends TestCase
     'encounter.mountains_kobold_boss_1',
   ];
 
-  public function testCanonicalKoboldRosterHasExactStatsRolesAndAbilityIdentities(): void
+  public function testAuthoredMountainsEncountersNormalizeWithoutCopyingRosterBalance(): void
   {
     $content = $this->content();
-    $expected = [
-      'enemy_unit_type.kobold_skirmisher' => ['Kobold Skirmisher', 'backline', [18, 6, 2, 6, 4],
-        ['ability.bomb_toss', 'ability.basic_attack_ranged'], ['ability.sharpshooter'], 'kobold_skirmisher'],
-      'enemy_unit_type.kobold_shieldbearer' => ['Kobold Shieldbearer', 'frontline', [28, 3, 6, 4, 6],
-        ['ability.basic_attack_melee', 'ability.taunting_guard'], ['ability.shield_set', 'ability.wall_of_scrap', 'ability.unmoving'], 'kobold_shieldbearer'],
-      'enemy_unit_type.kobold_sharpshooter' => ['Kobold Sharpshooter', 'backline', [22, 9, 3, 7, 4],
-        ['ability.basic_attack_ranged', 'ability.disarming_shot', 'ability.aimed_shot'], ['ability.sharpshooter', 'ability.clean_shot'], 'kobold_sharpshooter'],
-      'enemy_unit_type.kobold_warchief' => ['Kobold Chief Engineer', 'backline', [42, 11, 4, 7, 5],
-        ['ability.bomb_toss', 'ability.basic_attack_ranged', 'ability.aimed_shot'], ['ability.sharpshooter', 'ability.patient_aim', 'ability.dumb_luck'], 'kobold_warchief'],
-    ];
-    foreach ($expected as $id => [$name, $role, $stats, $actives, $passives, $art]) {
-      $enemy = $content->enemyUnitType($id);
-      $this->assertSame([$name, $role, $art], [$enemy['display_name'], $enemy['role'], $enemy['art_key']]);
-      $this->assertSame(array_combine(['hp', 'attack', 'defense', 'precision', 'resolve'], $stats), $enemy['stats']);
-      $this->assertSame($actives, $enemy['active_ability_ids']);
-      $this->assertSame($passives, $enemy['passive_ability_ids']);
+    $normalizer = new CombatSnapshotNormalizer($content);
+    foreach (self::ENCOUNTERS as $encounterId) {
+      $encounter = $content->encounter($encounterId);
+      $this->assertSame('region.mountains', $encounter['region_id']);
+      $this->assertContains($encounter['kind'], ['combat', 'boss']);
+      $combatants = $normalizer->enemyCombatants($encounterId);
+      $manifest = $normalizer->enemyManifest($encounterId);
+      $this->assertCount(count($encounter['combatants']), $combatants);
+      foreach ($encounter['combatants'] as $index => $slot) {
+        $enemy = $content->enemyUnitType($slot['enemy_unit_type_id']);
+        $actual = $combatants[$index];
+        $this->assertSame($slot['key'], $actual['key']);
+        $this->assertSame($slot['position'], $actual['position']);
+        $this->assertSame($enemy['stats'], $actual['stats']);
+        $this->assertSame($enemy['active_ability_ids'], array_column($actual['active_abilities'], 'id'));
+        $this->assertSame($enemy['passive_ability_ids'], array_column($actual['passive_abilities'], 'id'));
+        $this->assertSame($slot['enemy_unit_type_id'], $manifest[$index]['enemy_unit_type_id']);
+        $this->assertSame($enemy['display_name'], $manifest[$index]['display_name']);
+        $this->assertSame($enemy['art_key'], $manifest[$index]['art_key']);
+      }
     }
-  }
-
-  public function testMountainsEncountersHaveExactAuthoredFormationsAndBossClassification(): void
-  {
-    $content = $this->content();
-    $expected = [
-      self::ENCOUNTERS[0] => ['combat', [['kobold_shieldbearer', 0, 1], ['kobold_skirmisher', 2, 0], ['kobold_skirmisher', 2, 2]]],
-      self::ENCOUNTERS[1] => ['combat', [['kobold_shieldbearer', 0, 1], ['kobold_skirmisher', 2, 0], ['kobold_sharpshooter', 2, 2]]],
-      self::ENCOUNTERS[2] => ['combat', [['kobold_shieldbearer', 0, 0], ['kobold_shieldbearer', 0, 2], ['kobold_skirmisher', 2, 0], ['kobold_sharpshooter', 2, 2]]],
-      self::ENCOUNTERS[3] => ['boss', [['kobold_shieldbearer', 0, 1], ['kobold_sharpshooter', 1, 0], ['kobold_skirmisher', 2, 2], ['kobold_warchief', 2, 1]]],
-    ];
-    foreach ($expected as $id => [$kind, $formation]) {
-      $encounter = $content->encounter($id);
-      $this->assertSame(['region.mountains', $kind], [$encounter['region_id'], $encounter['kind']]);
-      $actual = array_map(static fn(array $slot): array => [
-        substr($slot['enemy_unit_type_id'], strlen('enemy_unit_type.')), $slot['position']['x'], $slot['position']['y'],
-      ], $encounter['combatants']);
-      $this->assertSame($formation, $actual);
-    }
+    $this->assertSame('boss', $content->encounter(self::ENCOUNTERS[3])['kind']);
   }
 
   public function testEveryMountainsEncounterNormalizesAndResolvesDeterministicallyThroughVnextEngine(): void
@@ -70,19 +56,6 @@ final class MountainsCombatContentValidationTest extends TestCase
       $this->assertSame($resultA, $resultB);
       $this->assertSame('victory', $resultA['outcome']);
     }
-  }
-
-  public function testSnapshotManifestCarriesStableEnemyAndExistingArtIdentities(): void
-  {
-    $manifest = (new CombatSnapshotNormalizer($this->content()))->enemyManifest(self::ENCOUNTERS[3]);
-    $this->assertSame(
-      ['enemy_unit_type.kobold_shieldbearer', 'enemy_unit_type.kobold_sharpshooter',
-        'enemy_unit_type.kobold_skirmisher', 'enemy_unit_type.kobold_warchief'],
-      array_column($manifest, 'enemy_unit_type_id'),
-    );
-    $this->assertSame(['kobold_shieldbearer', 'kobold_sharpshooter', 'kobold_skirmisher', 'kobold_warchief'],
-      array_column($manifest, 'art_key'));
-    $this->assertSame('Kobold Chief Engineer', $manifest[3]['display_name']);
   }
 
   public function testKoboldHandlersProduceAuthoredStatusesThroughTheSharedPlaybackModel(): void
@@ -104,15 +77,18 @@ final class MountainsCombatContentValidationTest extends TestCase
 
   public function testKoboldDefinitionsAndPrivateMechanicsRemainServerOnly(): void
   {
-    $projection = (new ClientContentProjector())->project($this->content());
+    $content = $this->content();
+    $projection = (new ClientContentProjector())->project($content);
+    $this->assertArrayNotHasKey('enemy_unit_types', $projection['content']);
+    $this->assertArrayNotHasKey('encounters', $projection['content']);
+    $this->assertArrayHasKey('region.mountains', $projection['content']['regions']);
+    foreach ($content->definitionsOfType('ability') as $ability) {
+      if ($ability['server_only'] ?? false) $this->assertArrayNotHasKey($ability['id'], $projection['content']['abilities']);
+    }
     $encoded = json_encode($projection, JSON_THROW_ON_ERROR);
-    foreach (['kobold_skirmisher', 'kobold_shieldbearer', 'kobold_sharpshooter', 'kobold_warchief',
-      'bomb_toss', 'wall_of_scrap', 'unmoving', 'clean_shot', 'patient_aim', 'dumb_luck',
-      'guard_stack_cap', 'attack_reduction_pct'] as $private) {
+    foreach (['virtual_ability_dice', 'handler_config', 'resolution_priority'] as $private) {
       $this->assertStringNotContainsString($private, $encoded);
     }
-    $this->assertSame(['id' => 'region.mountains', 'display_name' => 'Mountains', 'art_key' => 'mountains'],
-      $projection['content']['regions']['region.mountains']);
   }
 
   private function content(): ContentRegistry

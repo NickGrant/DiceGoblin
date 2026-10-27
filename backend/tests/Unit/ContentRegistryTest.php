@@ -21,26 +21,18 @@ final class ContentRegistryTest extends TestCase
   public function testCanonicalContentLoadsAcrossFilesByStableIdentity(): void
   {
     $registry = ContentRegistry::load($this->canonicalRoot());
-
-    $this->assertSame(50, $registry->startingEnergy());
-    $this->assertSame(50, $registry->energyNormalMaximum());
-    $this->assertSame(10, $registry->runEnergyCost());
-    $this->assertSame(12.0, $registry->energyRegenerationPerHour());
-    $this->assertSame([
-      'id' => 'region.the_farm',
-      'type' => 'region',
-      'display_name' => 'The Farm',
-      'art_key' => 'farm',
-      'run_generation_id' => 'run_generation.the_farm',
-    ], $registry->definition('region.the_farm'));
-    $this->assertSame('Basic Goblin', $registry->kin('kin.goblin')['display_name']);
-    $this->assertSame('combat', $registry->runNodeType('run_node_type.combat')['encounter_kind']);
-    $this->assertSame('fixed_graph_v1', $registry->runGenerationForRegion('region.the_farm')['algorithm']);
-    $this->assertSame('region.mountains', $registry->unlock('unlock.region.mountains')['target_id']);
-    $this->assertSame('unit_type.bruiser', $registry->unlock('unlock.unit_type.bruiser')['target_id']);
-    $this->assertSame('Pig Kin', $registry->kin('kin.pig')['display_name']);
-    $this->assertSame(2, $registry->ability('ability.sleep_dart')['dice_slot_count']);
-    $this->assertSame('dice_material.cardboard', $registry->diceProfile('dice_profile.cardboard_plain')['material_id']);
+    $config = $registry->definition('config.gameplay');
+    $this->assertSame($config['starting_energy'], $registry->startingEnergy());
+    $this->assertSame($config['energy_normal_max'], $registry->energyNormalMaximum());
+    $this->assertSame($config['run_energy_cost'], $registry->runEnergyCost());
+    $this->assertSame((float)$config['energy_regeneration_per_hour'], $registry->energyRegenerationPerHour());
+    $regionId = $registry->startingRegionId();
+    $this->assertSame($config['starting_region_id'], $regionId);
+    $this->assertSame($registry->region($regionId)['run_generation_id'], $registry->runGenerationForRegion($regionId)['id']);
+    foreach (['kin.goblin' => 'kin', 'ability.sleep_dart' => 'ability',
+      'dice_profile.cardboard_plain' => 'dice_profile'] as $id => $type) {
+      $this->assertSame($type, $registry->definition($id)['type']);
+    }
     $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $registry->revision());
   }
 
@@ -161,7 +153,7 @@ final class ContentRegistryTest extends TestCase
   public function testRevisionIsIndependentOfFileOrganizationAndChangesWithCanonicalContent(): void
   {
     $canonical = ContentRegistry::load($this->canonicalRoot());
-    $definitions = $this->canonicalDefinitions($canonical);
+    $definitions = $this->canonicalDefinitions();
     $reorganized = $this->rootWithFiles([
       'everything.json' => ['definitions' => array_reverse($definitions)],
     ]);
@@ -182,7 +174,7 @@ final class ContentRegistryTest extends TestCase
 
   public function testAcademyAndCapabilityDefinitionsRejectInvalidValuesAndRelationships(): void
   {
-    $canonical = $this->canonicalDefinitions(ContentRegistry::load($this->canonicalRoot()));
+    $canonical = $this->canonicalDefinitions();
     $cases = [
       ['capability.die_size_d10', 'kind', 'unsupported', "field 'kind'"],
       ['capability.die_size_d10', 'value', 16, 'unsupported maximum die size'],
@@ -229,7 +221,7 @@ final class ContentRegistryTest extends TestCase
       $this->assertSame('unlock', $reward['entries'][0]['reward_type']);
       $this->assertSame($upgrade['grant_unlock_id'], $reward['entries'][0]['config']['unlock_id']);
     }
-    $original = $this->canonicalDefinitions($registry);
+    $original = $this->canonicalDefinitions();
     $cases = [
       ['academy_upgrade.guardian', 'event_id', 'event.missing', 'references missing event'],
       ['academy_upgrade.marksman', 'event_id', 'event.academy_guardian', 'shares Academy event'],
@@ -277,20 +269,15 @@ final class ContentRegistryTest extends TestCase
 
   private function copyCanonicalContent(): string
   {
-    $registry = ContentRegistry::load($this->canonicalRoot());
     return $this->rootWithFiles([
-      'everything.json' => ['definitions' => $this->canonicalDefinitions($registry)],
+      'everything.json' => ['definitions' => $this->canonicalDefinitions()],
     ]);
   }
 
   /** @return list<array<string,mixed>> */
-  private function canonicalDefinitions(ContentRegistry $registry): array
+  private function canonicalDefinitions(): array
   {
-    $definitions = [];
-    foreach (['gameplay_config', 'region', 'kin', 'unit_type', 'enemy_unit_type', 'encounter', 'ability', 'dice_material', 'dice_aspect', 'dice_profile', 'run_node_type', 'run_generation', 'unlock', 'capability', 'academy_upgrade', 'unit_promotion', 'reconstruction_recipe', 'event', 'reward_definition', 'item', 'shop_offer', 'codex_entry', 'dialogue'] as $type) {
-      foreach ($registry->definitionsOfType($type) as $definition) $definitions[] = $definition;
-    }
-    return $definitions;
+    return \DiceGoblins\Tests\Support\CanonicalContentFixture::definitions();
   }
 
   /** @return list<array<string,mixed>> */

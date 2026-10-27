@@ -33,9 +33,11 @@ final class ShopPurchaseCommandTest extends IntegrationTestCase
 
   public function testAcademyAccessPurchaseSpendsOnceAndReplaysFinalReceipt(): void
   {
-    $userId = $this->user(300);
-    $command = $this->command(ContentRegistry::load(dirname(__DIR__, 2) . '/content'));
-    $request = $this->request('shop_offer.academy_access', 250);
+    $content = ContentRegistry::load(dirname(__DIR__, 2) . '/content');
+    $price = $content->shopOffer('shop_offer.academy_access')['price']['amount'];
+    $userId = $this->user($price + 50);
+    $command = $this->command($content);
+    $request = $this->request('shop_offer.academy_access', $price);
     $first = $command->execute($userId, $request, 'academy-access-purchase');
     $this->assertSame(['type' => 'unlock', 'unlock_id' => 'unlock.capability.academy_access'], $first['output']);
     $this->assertSame(50, $first['spend']['balance_after']);

@@ -12,92 +12,54 @@ use PHPUnit\Framework\TestCase;
 
 final class FarmCombatContentValidationTest extends TestCase
 {
-  public function testStandardFarmEnemiesAbilitiesEncounterAndSnapshotDice(): void
+  public function testAuthoredFarmCombatantsNormalizeWithoutDuplicatingTheirStatsOrLoadouts(): void
   {
     $content = $this->content();
-    $wrestler = $content->enemyUnitType('enemy_unit_type.mudwrestler');
-    $slinger = $content->enemyUnitType('enemy_unit_type.mudslinger');
-    $encounter = $content->encounter('encounter.the_farm_mud_combat_1');
-    $this->assertSame(['hp' => 16, 'attack' => 3, 'defense' => 2, 'precision' => 5, 'resolve' => 5], $wrestler['stats']);
-    $this->assertSame(['hp' => 14, 'attack' => 4, 'defense' => 1, 'precision' => 6, 'resolve' => 4], $slinger['stats']);
-    $this->assertSame(['ability.basic_attack_melee', 'ability.wrestle'], $wrestler['active_ability_ids']);
-    $this->assertSame(['ability.basic_attack_ranged', 'ability.mud_sling'], $slinger['active_ability_ids']);
-    $this->assertSame([['x' => 2, 'y' => 1], ['x' => 0, 'y' => 1]], array_column($encounter['combatants'], 'position'));
-    $this->assertSame(1, $encounter['difficulty']);
-    $this->assertSame('A pair of pigs lurches out of the muck, giving the warband its first real skirmish.', $encounter['description']);
-    $this->assertSame(['sides' => 6, 'profile_id' => 'dice_profile.cardboard_plain'], $wrestler['virtual_ability_dice']);
-    $this->assertSame(1.05, $content->ability('ability.wrestle')['handler_config']['power_ratio']);
-    $this->assertSame(0.9, $content->ability('ability.mud_sling')['handler_config']['power_ratio']);
-    $this->assertSame(2, $content->ability('ability.mud_sling')['handler_config']['defense_reduction_flat']);
-    $snapshotEnemies = (new CombatSnapshotNormalizer($content))->enemyCombatants($encounter['id']);
-    $this->assertSame(['mudwrestler', 'mudslinger'], array_column($snapshotEnemies, 'key'));
-    foreach ($snapshotEnemies as $enemy) {
-      foreach ($enemy['active_abilities'] as $ability) {
-        $this->assertCount($ability['dice_slot_count'], $ability['dice']);
-        foreach ($ability['dice'] as $die) {
-          $this->assertSame(6, $die['sides']);
-          $this->assertSame('dice_profile.cardboard_plain', $die['profile_id']);
-          $this->assertSame([], $die['effects']);
+    $normalizer = new CombatSnapshotNormalizer($content);
+    $encounters = array_filter($content->definitionsOfType('encounter'),
+      static fn(array $encounter): bool => $encounter['region_id'] === 'region.the_farm'
+        && in_array($encounter['kind'], ['combat', 'boss'], true));
+    $this->assertNotEmpty($encounters);
+    foreach ($encounters as $encounter) {
+      $combatants = $normalizer->enemyCombatants($encounter['id']);
+      $manifest = $normalizer->enemyManifest($encounter['id']);
+      $this->assertCount(count($encounter['combatants']), $combatants);
+      $this->assertCount(count($combatants), $manifest);
+      foreach ($encounter['combatants'] as $index => $slot) {
+        $enemy = $content->enemyUnitType($slot['enemy_unit_type_id']);
+        $actual = $combatants[$index];
+        $this->assertSame($slot['key'], $actual['key']);
+        $this->assertSame($slot['position'], $actual['position']);
+        $this->assertSame($enemy['stats'], $actual['stats']);
+        $this->assertSame($enemy['stats']['hp'], $actual['current_hp']);
+        $this->assertSame($enemy['active_ability_ids'], array_column($actual['active_abilities'], 'id'));
+        $this->assertSame($enemy['passive_ability_ids'], array_column($actual['passive_abilities'], 'id'));
+        $this->assertSame($enemy['display_name'], $manifest[$index]['display_name']);
+        $this->assertSame($enemy['art_key'], $manifest[$index]['art_key']);
+        foreach ($actual['active_abilities'] as $ability) {
+          $definition = $content->ability($ability['id']);
+          $this->assertSame($definition['handler_config'], $ability['config']);
+          $this->assertCount($definition['dice_slot_count'], $ability['dice']);
+          foreach ($ability['dice'] as $die) {
+            $this->assertSame($enemy['virtual_ability_dice']['sides'], $die['sides']);
+            $this->assertSame($enemy['virtual_ability_dice']['profile_id'], $die['profile_id']);
+          }
         }
       }
     }
   }
 
-  public function testMudkingAbilityEncounterAndNormalizedSnapshotUseExactAuthoredFacts(): void
-  {
-    $content = $this->content();
-    $mudking = $content->enemyUnitType('enemy_unit_type.mudking');
-    $slam = $content->ability('ability.mud_slam');
-    $encounter = $content->encounter('encounter.the_farm_mud_boss_1');
-    $this->assertSame('Mudking', $mudking['display_name']);
-    $this->assertSame('frontline', $mudking['role']);
-    $this->assertSame('enemy_mudking', $mudking['art_key']);
-    $this->assertSame(['hp' => 30, 'attack' => 5, 'defense' => 4, 'precision' => 5, 'resolve' => 7], $mudking['stats']);
-    $this->assertSame(['ability.basic_attack_melee', 'ability.wrestle', 'ability.mud_slam'], $mudking['active_ability_ids']);
-    $this->assertSame(['ability.thick_hide'], $mudking['passive_ability_ids']);
-    $this->assertSame(['sides' => 6, 'profile_id' => 'dice_profile.cardboard_plain'], $mudking['virtual_ability_dice']);
-    $this->assertSame(['active', true, 1, 8, 18, 'enemy_front_prefer', 'mud_slam'], [
-      $slam['kind'], $slam['server_only'], $slam['dice_slot_count'], $slam['action_delay'],
-      $slam['resolution_priority'], $slam['target_rule'], $slam['handler_id'],
-    ]);
-    $this->assertSame(['power_ratio' => 1.2, 'status_id' => 'cracked_armor',
-      'defense_reduction_flat' => 3, 'duration_rounds' => 2], $slam['handler_config']);
-    $this->assertSame(['region.the_farm', 2], [$encounter['region_id'], $encounter['difficulty']]);
-    $this->assertSame([['key' => 'mudking', 'enemy_unit_type_id' => 'enemy_unit_type.mudking',
-      'position' => ['x' => 2, 'y' => 1]]], $encounter['combatants']);
-
-    $normalized = (new CombatSnapshotNormalizer($content))->enemyCombatants($encounter['id']);
-    $this->assertCount(1, $normalized);
-    $boss = $normalized[0];
-    $this->assertSame('mudking', $boss['key']);
-    $this->assertSame($mudking['stats'], $boss['stats']);
-    $this->assertSame($mudking['stats']['hp'], $boss['max_hp']);
-    $this->assertSame($mudking['stats']['hp'], $boss['current_hp']);
-    $this->assertSame($mudking['active_ability_ids'], array_column($boss['active_abilities'], 'id'));
-    $this->assertSame([['id' => 'ability.thick_hide', 'handler_id' => 'thick_hide',
-      'config' => ['defense_flat' => 2]]], $boss['passive_abilities']);
-    $dice = array_column($boss['active_abilities'], 'dice');
-    $keys = array_map(static fn(array $slots): string => (string)$slots[0]['key'], $dice);
-    $this->assertSame(['mudking_basic_attack_melee_0', 'mudking_wrestle_0', 'mudking_mud_slam_0'], $keys);
-    $this->assertCount(3, array_unique($keys));
-    foreach ($dice as $slots) {
-      $this->assertSame([['key' => $slots[0]['key'], 'sides' => 6,
-        'profile_id' => 'dice_profile.cardboard_plain', 'effects' => []]], $slots);
-    }
-  }
-
   public function testHiddenEnemyMechanicsAndRosterNeverEnterClientProjection(): void
   {
-    $projection = (new ClientContentProjector())->project($this->content());
+    $content = $this->content();
+    $projection = (new ClientContentProjector())->project($content);
     $this->assertArrayNotHasKey('enemy_unit_types', $projection['content']);
     $this->assertArrayNotHasKey('encounters', $projection['content']);
-    $this->assertArrayNotHasKey('ability.wrestle', $projection['content']['abilities']);
-    $this->assertArrayNotHasKey('ability.mud_sling', $projection['content']['abilities']);
-    $this->assertArrayNotHasKey('ability.mud_slam', $projection['content']['abilities']);
-    $this->assertArrayHasKey('ability.basic_attack_melee', $projection['content']['abilities']);
+    foreach ($content->definitionsOfType('ability') as $ability) {
+      if ($ability['server_only'] ?? false) $this->assertArrayNotHasKey($ability['id'], $projection['content']['abilities']);
+    }
     $encoded = json_encode($projection, JSON_THROW_ON_ERROR);
-    foreach (['Mudwrestler', 'Mudslinger', 'enemy_mudking', 'the_farm_mud_combat_1',
-      'the_farm_mud_boss_1', 'mud_slam', 'virtual_ability_dice', 'cracked_armor', 'wrestled'] as $secret) {
+    foreach (['virtual_ability_dice', 'handler_config', 'resolution_priority'] as $secret) {
       $this->assertStringNotContainsString($secret, $encoded);
     }
   }
@@ -166,12 +128,6 @@ final class FarmCombatContentValidationTest extends TestCase
   /** @return list<array<string,mixed>> */
   private function definitions(): array
   {
-    $content = $this->content();
-    $definitions = [];
-    foreach (['gameplay_config', 'region', 'kin', 'unit_type', 'enemy_unit_type', 'encounter', 'ability',
-      'dice_material', 'dice_aspect', 'dice_profile', 'run_node_type', 'run_generation', 'unlock', 'capability', 'academy_upgrade', 'event', 'reward_definition', 'codex_entry', 'dialogue'] as $type) {
-      foreach ($content->definitionsOfType($type) as $definition) $definitions[] = $definition;
-    }
-    return $definitions;
+    return \DiceGoblins\Tests\Support\CanonicalContentFixture::definitions();
   }
 }

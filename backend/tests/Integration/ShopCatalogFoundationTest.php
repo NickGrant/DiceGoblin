@@ -41,8 +41,10 @@ final class ShopCatalogFoundationTest extends IntegrationTestCase
 
   public function testAcademyAccessOfferIsAvailableOnceThenOwned(): void
   {
-    $userId = $this->user('Academy Offer', 300, 1);
-    $query = $this->query(ContentRegistry::load(dirname(__DIR__, 2) . '/content'));
+    $content = ContentRegistry::load(dirname(__DIR__, 2) . '/content');
+    $price = $content->shopOffer('shop_offer.academy_access')['price']['amount'];
+    $userId = $this->user('Academy Offer', $price + 50, 1);
+    $query = $this->query($content);
     $offers = array_column($query->execute($userId)['offers'], null, 'offer_id');
     $this->assertTrue($offers['shop_offer.academy_access']['available']);
     $this->assertTrue($offers['shop_offer.academy_access']['can_afford']);
@@ -54,16 +56,15 @@ final class ShopCatalogFoundationTest extends IntegrationTestCase
   public function testProductionShopReturnsCanonicalOffersWithCurrentWalletAndRevision(): void
   {
     $userId = $this->user('Canonical Shop', 13, 4);
-    $result = $this->query(ContentRegistry::load(dirname(__DIR__, 2) . '/content'))->execute($userId);
+    $content = ContentRegistry::load(dirname(__DIR__, 2) . '/content');
+    $result = $this->query($content)->execute($userId);
     $this->assertSame(13, $result['teeth']);
     $this->assertSame(4, $result['player_revision']);
-    $this->assertSame([
-      'shop_offer.academy_access', 'shop_offer.cardboard_d10', 'shop_offer.cardboard_d12', 'shop_offer.cardboard_d20',
-      'shop_offer.cardboard_d4', 'shop_offer.cardboard_d6', 'shop_offer.cardboard_d8',
-      'shop_offer.field_poultice', 'shop_offer.goblin_bannerbearer', 'shop_offer.goblin_bruiser',
-      'shop_offer.goblin_guardian', 'shop_offer.goblin_marksman', 'shop_offer.goblin_saboteur', 'shop_offer.spark_tonic',
-    ], array_column($result['offers'], 'offer_id'));
-    $this->assertFalse($result['offers'][8]['available']);
+    $this->assertEqualsCanonicalizing(array_keys($content->definitionsOfType('shop_offer')),
+      array_column($result['offers'], 'offer_id'));
+    $this->assertCount(count($content->definitionsOfType('shop_offer')), $result['offers']);
+    $offers = array_column($result['offers'], null, 'offer_id');
+    $this->assertFalse($offers['shop_offer.goblin_bruiser']['available']);
   }
 
   public function testCanonicalAcademyUnitOffersRequireTheirExactUnlock(): void

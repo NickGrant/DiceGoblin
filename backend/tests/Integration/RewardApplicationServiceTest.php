@@ -240,11 +240,7 @@ final class RewardApplicationServiceTest extends IntegrationTestCase
   {
     static $content = null;
     if ($content instanceof ContentRegistry) return $content;
-    $canonical = ContentRegistry::load(dirname(__DIR__, 2) . '/content');
-    $definitions = [];
-    foreach (['gameplay_config', 'region', 'kin', 'unit_type', 'enemy_unit_type', 'encounter', 'ability', 'dice_material', 'dice_aspect', 'dice_profile', 'run_node_type', 'run_generation', 'capability', 'unlock', 'event', 'reward_definition', 'codex_entry'] as $type) {
-      foreach ($canonical->definitionsOfType($type) as $definition) $definitions[] = $definition;
-    }
+    $definitions = \DiceGoblins\Tests\Support\CanonicalContentFixture::definitions();
     $definitions[] = ['id' => 'reward_definition.test_completion', 'type' => 'reward_definition', 'entries' => [
       ['key' => 'teeth', 'probability_basis_points' => 10000, 'reward_type' => 'currency', 'config' => ['currency_id' => 'teeth', 'amount' => 10]],
       ['key' => 'raw_chaos', 'probability_basis_points' => 10000, 'reward_type' => 'currency', 'config' => ['currency_id' => 'raw_chaos', 'amount' => 3]],

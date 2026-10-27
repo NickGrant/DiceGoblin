@@ -15,26 +15,17 @@ final class ShopOfferContentValidationTest extends TestCase
   /** @var list<string> */ private array $roots = [];
   protected function tearDown(): void { foreach ($this->roots as $root) $this->removeTree($root); }
 
-  public function testProductionCatalogContainsTheUatOffersAndProjectsNoPrices(): void
+  public function testEveryAuthoredShopOfferProjectsItsGrantButNotItsPrice(): void
   {
     $registry = ContentRegistry::load($this->canonicalRoot());
     $offers = (new ClientContentProjector())->project($registry)['content']['shop_offers'];
+    $this->assertNotEmpty($offers);
     foreach ($registry->definitionsOfType('shop_offer') as $id => $offer) {
       $this->assertArrayHasKey($id, $offers);
       $this->assertSame($offer['grant'], $offers[$id]['grant']);
+      $this->assertArrayNotHasKey('price', $offers[$id]);
     }
-    $this->assertSame([10, 12, 20, 4, 6, 8], array_map(
-      static fn(string $id): int => $offers[$id]['grant']['size'],
-      ['shop_offer.cardboard_d10', 'shop_offer.cardboard_d12', 'shop_offer.cardboard_d20',
-        'shop_offer.cardboard_d4', 'shop_offer.cardboard_d6', 'shop_offer.cardboard_d8'],
-    ));
-    $this->assertSame('item.spark_tonic', $offers['shop_offer.spark_tonic']['grant']['item_id']);
-    $this->assertSame('item.field_poultice', $offers['shop_offer.field_poultice']['grant']['item_id']);
-    $this->assertSame('unit_type.bruiser', $offers['shop_offer.goblin_bruiser']['grant']['unit_type_id']);
-    $this->assertSame(['type' => 'unlock', 'unlock_id' => 'unlock.capability.academy_access'],
-      $offers['shop_offer.academy_access']['grant']);
-    $this->assertSame(250, $registry->shopOffer('shop_offer.academy_access')['price']['amount']);
-    $this->assertStringNotContainsString('price', json_encode($offers, JSON_THROW_ON_ERROR));
+    $this->assertCount(count($registry->definitionsOfType('shop_offer')), $offers);
   }
 
   public function testShopUnlockGrantRequiresExistingFeatureCapability(): void

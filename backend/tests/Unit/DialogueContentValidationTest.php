@@ -19,7 +19,8 @@ final class DialogueContentValidationTest extends TestCase
     $this->assertSame(['codex.farm.old_paths'], $dialogue['choices'][1]['required_codex_ids']);
     $projection = (new ClientContentProjector())->project($content);
     $encoded = json_encode($projection, JSON_THROW_ON_ERROR);
-    $this->assertStringNotContainsString('The Farm Scout', $encoded);
+    $this->assertArrayNotHasKey('dialogues', $projection['content']);
+    $this->assertStringNotContainsString($dialogue['id'], $encoded);
     $this->assertStringNotContainsString('required_codex_ids', $encoded);
     $this->assertStringNotContainsString('event.dialogue_farm_scout_paths', $encoded);
   }
@@ -61,14 +62,6 @@ final class DialogueContentValidationTest extends TestCase
   /** @return list<array<string,mixed>> */
   private function definitions(): array
   {
-    $content = ContentRegistry::load(dirname(__DIR__, 2) . '/content');
-    $definitions = [];
-    foreach (['gameplay_config', 'region', 'kin', 'unit_type', 'enemy_unit_type', 'encounter', 'ability',
-      'dice_material', 'dice_aspect', 'dice_profile', 'run_node_type', 'run_generation', 'run_modifier',
-      'unlock', 'capability', 'academy_upgrade', 'unit_promotion', 'reconstruction_recipe', 'event',
-      'reward_definition', 'item', 'shop_offer', 'codex_entry', 'dialogue'] as $type) {
-      foreach ($content->definitionsOfType($type) as $definition) $definitions[] = $definition;
-    }
-    return $definitions;
+    return \DiceGoblins\Tests\Support\CanonicalContentFixture::definitions();
   }
 }

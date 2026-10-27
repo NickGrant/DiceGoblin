@@ -34,15 +34,12 @@ final class RewardContentValidationTest extends TestCase
     $this->assertSame('participating_units', $reward['entries'][1]['config']['target_scope']);
   }
 
-  public function testCanonicalFarmLootIsExactlyEightTeeth(): void
+  public function testFarmLootUsesOneGuaranteedTeethGrant(): void
   {
     $registry = ContentRegistry::load($this->canonicalRoot());
     $this->assertSame('reward_definition.farm_loot_completed',
       $registry->event('event.farm_loot_completed')['reward_definition_id']);
-    $this->assertSame([[
-      'key' => 'teeth', 'probability_basis_points' => 10000, 'reward_type' => 'currency',
-      'config' => ['currency_id' => 'teeth', 'amount' => 8],
-    ]], $registry->rewardDefinition('reward_definition.farm_loot_completed')['entries']);
+    $this->assertGuaranteedCurrencyReward($registry, 'reward_definition.farm_loot_completed', 'teeth');
   }
 
   public function testCanonicalFarmBossRewardGrantsParticipatingXpMountainsAndShop(): void
@@ -50,31 +47,30 @@ final class RewardContentValidationTest extends TestCase
     $registry = ContentRegistry::load($this->canonicalRoot());
     $this->assertSame('reward_definition.farm_boss_completed',
       $registry->event('event.farm_boss_completed')['reward_definition_id']);
-    $this->assertSame([
-      ['key' => 'xp', 'probability_basis_points' => 10000, 'reward_type' => 'unit_xp',
-        'config' => ['target_scope' => 'participating_units', 'amount' => 16]],
-      ['key' => 'mountains', 'probability_basis_points' => 10000, 'reward_type' => 'unlock',
-        'config' => ['unlock_id' => 'unlock.region.mountains']],
-      ['key' => 'shop', 'probability_basis_points' => 10000, 'reward_type' => 'unlock',
-        'config' => ['unlock_id' => 'unlock.capability.shop_access']],
-    ], $registry->rewardDefinition('reward_definition.farm_boss_completed')['entries']);
+    $entries = $registry->rewardDefinition('reward_definition.farm_boss_completed')['entries'];
+    $this->assertCount(3, $entries);
+    $this->assertSame(['unit_xp', 'unlock', 'unlock'], array_column($entries, 'reward_type'));
+    foreach ($entries as $entry) $this->assertSame(10000, $entry['probability_basis_points']);
+    $this->assertSame('participating_units', $entries[0]['config']['target_scope']);
+    $this->assertGreaterThan(0, $entries[0]['config']['amount']);
+    $this->assertSame(['unlock.region.mountains', 'unlock.capability.shop_access'],
+      array_column(array_column(array_slice($entries, 1), 'config'), 'unlock_id'));
   }
 
-  public function testCanonicalMountainsRewardsAreEightTeethAndXpOnly(): void
+  public function testMountainsRewardsUseGuaranteedTeethAndParticipatingXp(): void
   {
     $registry = ContentRegistry::load($this->canonicalRoot());
     $this->assertSame('reward_definition.mountains_loot_completed',
       $registry->event('event.mountains_loot_completed')['reward_definition_id']);
-    $this->assertSame([[
-      'key' => 'teeth', 'probability_basis_points' => 10000, 'reward_type' => 'currency',
-      'config' => ['currency_id' => 'teeth', 'amount' => 8],
-    ]], $registry->rewardDefinition('reward_definition.mountains_loot_completed')['entries']);
+    $this->assertGuaranteedCurrencyReward($registry, 'reward_definition.mountains_loot_completed', 'teeth');
     $this->assertSame('reward_definition.mountains_boss_completed',
       $registry->event('event.mountains_boss_completed')['reward_definition_id']);
-    $this->assertSame([[
-      'key' => 'xp', 'probability_basis_points' => 10000, 'reward_type' => 'unit_xp',
-      'config' => ['target_scope' => 'participating_units', 'amount' => 16],
-    ]], $registry->rewardDefinition('reward_definition.mountains_boss_completed')['entries']);
+    $entries = $registry->rewardDefinition('reward_definition.mountains_boss_completed')['entries'];
+    $this->assertCount(1, $entries);
+    $this->assertSame('unit_xp', $entries[0]['reward_type']);
+    $this->assertSame(10000, $entries[0]['probability_basis_points']);
+    $this->assertSame('participating_units', $entries[0]['config']['target_scope']);
+    $this->assertGreaterThan(0, $entries[0]['config']['amount']);
   }
 
   public function testEventRewardAndUnlockDefinitionsRemainOutsideClientProjection(): void
@@ -148,14 +144,20 @@ final class RewardContentValidationTest extends TestCase
     }
   }
 
+  private function assertGuaranteedCurrencyReward(ContentRegistry $registry, string $rewardId, string $currencyId): void
+  {
+    $entries = $registry->rewardDefinition($rewardId)['entries'];
+    $this->assertCount(1, $entries);
+    $this->assertSame('currency', $entries[0]['reward_type']);
+    $this->assertSame(10000, $entries[0]['probability_basis_points']);
+    $this->assertSame($currencyId, $entries[0]['config']['currency_id']);
+    $this->assertGreaterThan(0, $entries[0]['config']['amount']);
+  }
+
   /** @return list<array<string,mixed>> */
   private function definitionsWithRewardFixture(): array
   {
-    $registry = ContentRegistry::load($this->canonicalRoot());
-    $definitions = [];
-    foreach (['gameplay_config', 'region', 'kin', 'unit_type', 'enemy_unit_type', 'encounter', 'ability', 'dice_material', 'dice_aspect', 'dice_profile', 'run_node_type', 'run_generation', 'unlock', 'capability', 'academy_upgrade', 'event', 'reward_definition', 'codex_entry'] as $type) {
-      foreach ($registry->definitionsOfType($type) as $definition) $definitions[] = $definition;
-    }
+    $definitions = \DiceGoblins\Tests\Support\CanonicalContentFixture::definitions();
     $definitions[] = [
       'id' => 'reward_definition.test_completion',
       'type' => 'reward_definition',

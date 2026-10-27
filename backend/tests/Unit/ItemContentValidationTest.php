@@ -19,17 +19,20 @@ final class ItemContentValidationTest extends TestCase
     foreach ($this->roots as $root) $this->removeTree($root);
   }
 
-  public function testProductionCatalogContainsTheUatConsumablesAndProjectsThem(): void
+  public function testEveryAuthoredItemProjectsItsSafePublicFields(): void
   {
     $registry = ContentRegistry::load($this->canonicalRoot());
-    $this->assertSame(['item.chief_engineer_lens', 'item.field_poultice', 'item.kobold_scale',
-      'item.mudking_crown_fragment', 'item.pig_ear', 'item.spark_tonic'], array_keys($registry->definitionsOfType('item')));
-    $this->assertSame(['type' => 'unit_heal', 'amount' => 9], $registry->item('item.field_poultice')['effect']);
-    $this->assertSame(['type' => 'energy_restore', 'amount' => 12], $registry->item('item.spark_tonic')['effect']);
+    $items = $registry->definitionsOfType('item');
+    $this->assertNotEmpty($items);
     $projected = (new ClientContentProjector())->project($registry)['content']['items'];
-    $this->assertSame(array_keys($registry->definitionsOfType('item')), array_keys($projected));
-    $this->assertSame($registry->item('item.field_poultice')['effect'], $projected['item.field_poultice']['effect']);
-    $this->assertSame($registry->item('item.spark_tonic')['effect'], $projected['item.spark_tonic']['effect']);
+    $this->assertEqualsCanonicalizing(array_keys($items), array_keys($projected));
+    foreach ($items as $id => $item) {
+      $this->assertSame($item['display_name'], $projected[$id]['display_name']);
+      $this->assertSame($item['category'], $projected[$id]['category']);
+      $this->assertSame($item['effect'] ?? null, $projected[$id]['effect'] ?? null);
+      $this->assertArrayNotHasKey('source_region_id', $projected[$id]);
+      $this->assertArrayNotHasKey('victory_drops', $projected[$id]);
+    }
   }
 
   public function testValidMaterialAndConcreteConsumableLoadAndProjectOnlySafeFields(): void
