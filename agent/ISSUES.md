@@ -150,6 +150,7 @@ Leave Package 3 **In Progress** for review. Do not promote Package 4.
 
 #### Implementation evidence (review candidate)
 
+- Implementation commit: `0e928f31281b5cbb36d317c78701da99dd19188e`.
 - Inventory/reuse: the retained prototype `RunGraphGenerator` contains hard-coded dialogue placement and old Angular `DialogueService`, script registry, and run dialogue page contain seen-state behavior. Their content and UI shape were not adopted. Reused canonical `ContentRegistry`/`ContentValidator` patterns, user-scoped `UserCodexRepository`, finalized `RewardApplicationService`, HTTP auth/CSRF and idempotency conventions, and strict runtime API/GameStore cache patterns. Milestone 10 encounter interaction remains a separate run-node contract.
 - Authored `dialogue.camp.farm_scout` with stable choice IDs, bounded player-facing copy, explicit Codex prerequisites, and an event reference for the knowledge-granting choice. Validator checks exact field shapes, IDs, duplicate choices, known Codex prerequisites, and event/reward linkage to one guaranteed Codex entry. Dialogue definitions are absent from the static browser content projection.
 - Production canonical content/client projection revision: `708db08721032de44e272a0c5c2782fa0538afd17c19b4f725a9e92f1633fc1b`.
