@@ -2,132 +2,139 @@
 
 ## Milestone 11 - Knowledge and Objectives
 
-### Milestone 11 Package 3 - Knowledge-aware dialogue contract
+### Milestone 11 Package 4 - Objective/bounty authored model + persistence/read contract
 
 **Status:** In Progress
 **Priority:** High
 
 #### Problem
 
-Packages 1-2 established Codex knowledge as a durable unique reward, a player-safe authoritative read/cache contract, and a mounted Phaser Codex presentation. Milestone 11 now needs dialogue to consume that knowledge primitive without creating a parallel story/history state system.
+Packages 1-3 established durable Codex knowledge, its Phaser presentation, and replayable knowledge-aware dialogue without generic progression/history state. Milestone 11 now needs the objective/bounty domain itself before authoritative gameplay facts can update it.
 
-The accepted progression model allows meaningful dialogue to grant Codex knowledge and allows dialogue selection to depend on Codex ownership. Dialogue remains replayable: whether a line was previously viewed is not durable progression state.
+The accepted progression model requires objectives to own their mutable intermediate progress because those counters are meaningful domain state. Objective progress is not an unlock/reward and must not become a generic player progression or historical-event layer.
 
 #### Accepted baseline
 
 - Milestones 1-10 are complete and passed manual UAT.
-- Milestone 11 Package 1 is approved through correction `88ed69f62826977f37d5c5eb365913d9805dcc5f`, with evidence at `eaea0d2a497d2b4a1cf7300232ff7a5d58f47ec7`.
-- Milestone 11 Package 2 is approved at `37be6990b480989b83c22645cb5fa71de7291a94` (implementation `890ae102b2deea6929859acd934848ba3a9402e5`).
-- Codex ownership is authoritative backend state and Codex grants use the accepted finalized reward pipeline.
-- Authored catalogs belong in canonical JSON; backend selection/eligibility is authoritative; browser projections must be player-safe.
-- Do not introduce generic story flags, dialogue history, or `has_seen_dialogue` state.
+- Milestone 11 Package 1 established canonical Codex ownership/read semantics.
+- Milestone 11 Package 2 established the mounted Phaser Codex surface.
+- Milestone 11 Package 3 is approved through `47c6ace1b75832c528f4151e4988164c31f35fec` (implementation `0e928f31281b5cbb36d317c78701da99dd19188e`).
+- Package 3 dialogue is replayable, Codex-aware, reward-pipeline backed, and creates no dialogue history/story flags.
+- The Package 3 test-audit cleanup is accepted: test fixtures may consume the complete authored catalog rather than hand-maintained type inventories, while explicit accepted mechanics remain asserted.
+- `documentation/07-development-path/vnext-progression-state-model.md` is canonical for objective state semantics.
+- Backend/MySQL remains authoritative; authored catalogs live in canonical JSON; client state is a cache/projection of backend authority.
 
 #### Purpose
 
-Establish the smallest reusable knowledge-aware dialogue contract:
+Establish the smallest durable objective/bounty foundation before gameplay-event wiring:
 
-1. canonical authored dialogue definitions with stable identity and strict validation;
-2. authoritative selection/eligibility using Codex ownership where authored;
-3. replayable dialogue interaction without durable viewed/history state;
-4. meaningful dialogue completion able to grant Codex knowledge through the existing event/reward pipeline;
-5. player-safe API projection and strict client contract/cache/interaction support sufficient to prove the boundary.
+1. canonical authored objective definitions with stable identity and strict validation;
+2. narrow domain-owned per-player objective progress/completion persistence;
+3. authoritative objective read projection suitable for later Phaser presentation;
+4. explicit lifecycle/state semantics for active and completed objectives;
+5. strict ownership, corruption, and reconnect/reload behavior.
 
-This package owns the dialogue contract and lifecycle, not broad narrative content production or onboarding presentation.
+Do not wire combat/run/dialogue facts into objective progress in this package. That is Package 5. Do not finalize objective rewards in this package. That is Package 6.
 
 #### Required inventory before implementation
 
 Inspect and record reuse/drop decisions for:
-- retained prototype dialogue definitions/services/tests, if present;
-- canonical authored-content registry/validator patterns;
-- Codex ownership repository/query and reward grant pipeline from Package 1;
-- generic encounter interaction/action projection patterns from Milestone 10 where structurally useful;
-- current API/controller/idempotency conventions for authoritative mutations;
-- Phaser/runtime patterns for presenting a narrow interaction if needed for proof.
+- `documentation/07-development-path/vnext-progression-state-model.md` objective decisions;
+- retained prototype bounty/objective implementation/tests in `backend/prototype-test-evidence/` and `frontend/prototype-test-evidence/`;
+- current authored-content registry/validator patterns;
+- current narrow user-owned persistence/repository conventions;
+- current authoritative lazy read/cache conventions used by Codex and other collections;
+- accepted revision/idempotency conventions where relevant;
+- current schema/bootstrap/reset conventions.
 
-Preserve useful behavior, not prototype schema/API/UI shape.
+Prototype bounty behavior is migration evidence only. Do not preserve obsolete SQL catalog, API, claim, or Angular UI architecture.
 
 #### Canonical design constraints
 
-##### Dialogue semantics
+##### Objective semantics
 
-- Dialogue is authored replayable content, not durable progression history.
-- Do not persist `has_seen_dialogue`, viewed-line IDs, generic story flags, conversation history, or a catch-all progression record.
-- A dialogue definition may have narrow Codex ownership prerequisites when that knowledge meaningfully changes what can be said or selected.
-- Eligibility/selection is server authoritative. The client must not infer eligible dialogue from its Codex cache.
-- Replaying an eligible dialogue is allowed unless another explicit domain rule applies; viewing it once does not make it ineligible.
+- Objectives/bounties are authored gameplay goals with domain-owned mutable progress.
+- Intermediate counters belong to the objective domain because the counter itself matters.
+- Objective progress/completion is not a generic unlock, reward, story flag, historical-event log, or catch-all player progression record.
+- Do not add generic `player_progression`, `progress_flags`, `event_history`, or similar state.
+- Package 4 establishes storage/read/lifecycle semantics only; gameplay facts do not update counters yet.
 
 ##### Authored content
 
-- Define dialogue in canonical authored JSON with stable namespaced IDs and exact validated field shapes.
-- Keep the first production/test content narrow. Do not author speculative dialogue trees or broad narrative catalogs.
-- Validate all Codex prerequisite and reward/event references.
-- Prefer a small explicit dialogue/choice model over a generic scripting language.
-- Do not encode hidden routing logic in client constants.
+- Define objectives in canonical authored JSON with stable namespaced IDs and exact validated field shapes.
+- Keep the initial authored set narrow and production-appropriate or use narrowly validated fixtures where production content would be premature.
+- Requirements must be explicit enough for Package 5 to map authoritative gameplay facts without inventing a generic scripting language.
+- Validate IDs, requirement kinds/parameters, bounds, duplicate requirement identities, and all referenced authored IDs.
+- If completion reward/event references are represented now, validate them but do not apply/finalize them until Package 6.
+- Do not encode objective catalogs or requirement logic in client constants.
 
-##### Knowledge prerequisites
+##### Persistence and lifecycle
 
-- Codex prerequisite checks must use authoritative user-scoped ownership.
-- Foreign ownership must never satisfy another user's dialogue eligibility.
-- Missing/corrupt authored or persisted references fail closed.
-- Player-safe reads may expose only the dialogue/options currently authorized for that player; do not reveal hidden prerequisite identities or unavailable private branches unless canonical UX explicitly requires a safe locked presentation.
+- Persist per-player objective state in narrow objective-owned table(s), following existing user-scoped FK/cascade conventions.
+- Enforce one authoritative state record per player/objective where appropriate.
+- Store only mutable objective-domain facts needed to resume/reconcile progress and completion.
+- Completion must be represented durably and unambiguously; do not infer completed state from client counters.
+- Define how an authored objective with no persisted row is projected/initialized without silently fabricating historical progress.
+- Foreign-player state must never satisfy or leak into another player's objective projection.
+- Missing/corrupt authored references or incoherent persisted counters must fail closed/integrity-safe.
+- Clean bootstrap/reset must create the canonical schema.
 
-##### Dialogue completion and Codex rewards
+##### Read/API contract
 
-- If meaningful dialogue grants knowledge, completion must resolve the authored event/reward through the accepted finalized reward pipeline.
-- Duplicate Codex ownership follows the accepted unique-reward behavior; replaying dialogue must not create duplicate ownership or compensation.
-- Mutation retries require an idempotency key and must replay the finalized result rather than reselecting/rerolling/reapplying rewards.
-- Do not create a direct Codex grant path from dialogue.
-- Player revision changes only when accepted authoritative mutation semantics require it.
+- Provide the smallest authoritative read contract needed by later Objective presentation.
+- Prefer the established lazy-query/cache model rather than adding objectives wholesale to bootstrap unless canonical architecture requires otherwise.
+- Project only safe player-facing authored presentation plus authoritative progress/completion facts.
+- Do not expose future event-routing internals, reward probabilities/private configuration, server-only requirement wiring, or another player's state.
+- The client must not infer completion or eligibility from unrelated local gameplay state.
 
-##### API/client boundary
+##### Client scope
 
-- Provide the smallest authoritative dialogue read/interaction contract required to prove selection, replay, prerequisites, and completion.
-- Strictly parse browser responses and reject unknown/private fields.
-- Do not ship prerequisite Codex IDs, reward definitions/probabilities, hidden branches, or server-private routing configuration unless they are explicitly safe player-facing facts.
-- Client state is presentation/cache state only. It must not become the authority for eligibility, completion, or knowledge grants.
-- A full narrative/dialogue presentation overhaul is out of scope; functional Phaser integration may be narrow if needed to exercise the contract.
+- Add strict frontend contract/cache support only as needed to consume and verify the objective read model.
+- Do not build the Phaser Objectives surface; that is Package 7.
+- Do not add client-side gameplay-event progress mutation.
+- Revision/cache invalidation should follow established runtime conventions where objective state changes will eventually require reconciliation.
 
 #### Minimum proof
 
-Use narrow authored fixtures or one production-appropriate dialogue set to prove:
+Use a narrow objective fixture or production-appropriate authored objective to prove:
 
-1. a player without prerequisite knowledge receives only the dialogue/options authorized for that state;
-2. a player with the required Codex ownership receives the knowledge-aware alternative/option;
-3. another user's Codex ownership does not affect selection;
-4. completing meaningful dialogue can grant a Codex entry through the existing finalized reward pipeline;
-5. exact-key retry/replay returns the finalized result without duplicate ownership/revision mutation;
-6. replaying the dialogue later remains allowed and a duplicate Codex grant resolves under the accepted unique-reward rule;
-7. no viewed/history/story-flag persistence is created;
-8. hidden prerequisite/reward/routing configuration does not leak to the browser.
+1. authored objective definitions validate with stable IDs and explicit requirements;
+2. a player with no persisted progress receives the correct authoritative initial projection;
+3. persisted intermediate progress survives reload/re-query;
+4. completed state is durable and distinct from intermediate progress;
+5. another player's progress/completion does not affect the requesting player;
+6. malformed or incoherent persisted objective state fails safely;
+7. browser projection contains only safe authored/progress facts and rejects private/unknown fields;
+8. no combat/run/dialogue client claim can mutate objective progress in Package 4;
+9. no objective completion reward is applied yet.
 
 #### Verification requirements
 
 Prove at minimum:
-- dialogue authored-definition structural/semantic validation;
-- malformed IDs/fields and unknown Codex/event/reward references fail validation;
-- authoritative eligibility/selection for owned/unowned Codex states;
-- cross-player isolation;
-- replayability without history persistence;
-- dialogue completion -> event/reward -> Codex ownership transaction path;
-- exact-key idempotency and revision stability;
-- later legitimate duplicate completion behavior;
-- rollback/integrity behavior for corrupt references or failed reward application;
-- strict player-safe API/client projection and private-field rejection;
-- existing Codex, reward, run, combat, auth/security regressions remain green;
-- no objective/M12+ scope leakage.
+- objective authored-definition structural/semantic validation;
+- malformed IDs/fields, duplicate requirements, invalid bounds, and unknown authored references fail validation;
+- clean-schema objective persistence constraints and user cascade behavior;
+- repository read/write behavior and cross-player isolation;
+- initial/unstarted, in-progress, and completed authoritative read projections;
+- reload/reconnect persistence;
+- corrupt/missing authored reference rejection;
+- strict player-safe browser contract and private-field rejection;
+- existing Codex/dialogue/reward/run/combat/auth regressions remain green;
+- no Package 5 gameplay-fact wiring, Package 6 reward completion, Package 7 Phaser Objective screen, or M12+ scope leakage.
 
 Run applicable gates in `agent/QUALITY_GATES.md` and full `npm run verify:package` before review.
 
 #### Scope exclusions
 
-Do not add in Package 3:
-- objective/bounty definitions or progress counters;
-- gameplay-fact objective wiring;
-- objective completion rewards;
-- generic story flags, dialogue history, or `has_seen_dialogue` state;
-- a generic scripting engine;
-- broad narrative content production;
-- Mystic Cave/onboarding orchestration;
+Do not add in Package 4:
+- combat/run/dialogue gameplay-fact objective progress wiring;
+- client-authored progress mutation;
+- automatic objective completion from gameplay events;
+- objective reward finalization/application;
+- Phaser Objectives screen;
+- generic progression/history/event-log tables;
+- dialogue history/story flags;
+- Mystic Cave/onboarding;
 - Swamp/Frog Kin or production Shrine/Chaos expansion;
 - broad visual redesign;
 - Milestone 12+ work.
@@ -136,35 +143,14 @@ Do not add in Package 3:
 
 Report:
 - implementation SHA;
-- prototype/current dialogue inventory and reuse/drop decisions;
-- authored dialogue representation and validation rules;
-- authoritative selection/prerequisite behavior;
-- completion/reward/idempotency/replay semantics;
+- prototype/current objective inventory and reuse/drop decisions;
+- authored objective representation and validation rules;
+- persistence schema/repository and lifecycle semantics;
+- authoritative initial/in-progress/completed read projection;
+- ownership/corruption/reload behavior;
 - API/client projection and secrecy proof;
-- cross-player and corrupt-state rejection proof;
 - focused backend/frontend results;
 - full package-gate results;
-- confirmation that objective state/history flags/M12+ were not introduced.
+- confirmation that gameplay-fact wiring, objective rewards, Phaser Objectives UI, generic progression/history state, and M12+ were not introduced.
 
-Leave Package 3 **In Progress** for review. Do not promote Package 4.
-
-#### Implementation evidence (review candidate)
-
-- Implementation commit: `0e928f31281b5cbb36d317c78701da99dd19188e`.
-- Inventory/reuse: the retained prototype `RunGraphGenerator` contains hard-coded dialogue placement and old Angular `DialogueService`, script registry, and run dialogue page contain seen-state behavior. Their content and UI shape were not adopted. Reused canonical `ContentRegistry`/`ContentValidator` patterns, user-scoped `UserCodexRepository`, finalized `RewardApplicationService`, HTTP auth/CSRF and idempotency conventions, and strict runtime API/GameStore cache patterns. Milestone 10 encounter interaction remains a separate run-node contract.
-- Authored `dialogue.camp.farm_scout` with stable choice IDs, bounded player-facing copy, explicit Codex prerequisites, and an event reference for the knowledge-granting choice. Validator checks exact field shapes, IDs, duplicate choices, known Codex prerequisites, and event/reward linkage to one guaranteed Codex entry. Dialogue definitions are absent from the static browser content projection.
-- Production canonical content/client projection revision: `708db08721032de44e272a0c5c2782fa0538afd17c19b4f725a9e92f1633fc1b`.
-- GET `/api/v1/dialogues/:dialogueId` reads the requesting user's authoritative Codex ownership and projects only dialogue ID/title/body plus currently eligible choice IDs/labels. The hidden choice, prerequisite IDs, event/reward configuration, and response text are excluded. POST `/api/v1/dialogues/:dialogueId/complete` requires auth, CSRF, and an idempotency key; it rechecks eligibility in one transaction and applies the authored event through the finalized reward pipeline. Exact-key replay returns its receipt. A later distinct completion is allowed and yields `already_owned` for unique knowledge, with no extra revision. No dialogue viewed/history/story state or schema was introduced.
-- Runtime client strictly parses the narrow read/completion envelopes, rejects private fields, and sends the retained mutation key. GameStore advances shared player revision only for a newly granted entry and uses its existing revision change behavior to stale the authoritative Codex slice. Dialogue eligibility is never inferred from that cache.
-- Focused integration proof includes unowned/owned/foreign-player selection, authenticated read/completion, CSRF, exact replay, duplicate completion, key conflict, corrupt ownership rejection, and reward failure rollback. Content and browser tests cover reference validation and secrecy.
-- Compatibility correction: reduced-catalog fixtures in existing reward, combat, run, and registry tests now copy the Codex entry referenced by the new authored reward; full-catalog revision fixtures also copy the new dialogue definition. Focused affected backend regression: 129 tests, 506 assertions. Focused runtime browser regression (dialogue contracts plus GameStore): 35 tests passed in Chrome Headless.
-- Focused new backend suites: `DialogueContentValidationTest` 2 tests/15 assertions and `DialogueLifecycleIntegrationTest` 5 tests/50 assertions. The remaining reduced-catalog Academy fixture passed 10 tests/89 assertions after its reference correction.
-- Complete `CI=1 npm.cmd run verify:package`: **PASS** (12m 22s). Context/docs, PHP front controller syntax, canonical content, backend **779 tests/5,438 assertions**, frontend **513 tests**, production frontend build, bundle budget, and diff whitespace all passed. The first aggregate runs found only reduced-catalog test fixtures missing the newly referenced Codex entry; those fixtures were corrected and the final complete gate is green.
-- No objective definitions/state, dialogue history/seen flags, Phaser dialogue screen, or Milestone 12+ work was introduced. Package 3 remains In Progress for architectural review; Package 4 was not activated.
-
-#### Focused test-audit cleanup (before Package 4)
-
-- Replaced nine hand-maintained content-type enumeration lists in tests with one test-only loader of the complete authored JSON catalog. This prevents a new content type or reward reference from silently disappearing from reconstructed test catalogs.
-- Removed duplicated production copy, combat stats/formations, fixed reward amounts, Shop item lists/prices, and UAT item quantities from the affected content tests. Combat normalization now compares output with the authored definitions it consumed; reward checks retain guaranteed grant and required progression-unlock semantics. The Farm engine smoke test retains repeatability, versioning, event boundaries, and secrecy without locking current damage rolls or encounter balance. Synthetic combat math tests remain in place.
-- Retained explicit tests for accepted mechanics and progression relationships, including required Shop/Academy unlocks, promotion cadence, and Mountains route behavior. No production code or authored content changed; Package 4 remains inactive.
-- Focused affected backend suites: **242 tests/1,232 assertions**. Complete `CI=1 npm.cmd run verify:package`: **PASS** (17m 57s), including backend **776 tests/5,590 assertions**, frontend **513 tests**, content validation, front-controller syntax, frontend build, bundle budget, context/docs, and diff whitespace.
+Leave Package 4 **In Progress** for review. Do not promote Package 5.
