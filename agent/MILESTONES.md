@@ -7,7 +7,7 @@ Read this for sequencing/planning or when closing/promoting an execution package
 **Status:** Active
 
 ### Related Issues
-- Milestone 11 Package 3 - Knowledge-aware dialogue contract
+- Milestone 11 Package 4 - Objective/bounty authored model + persistence/read contract
 
 Milestones 1-10 are complete and passed their required manual UAT.
 
@@ -47,8 +47,8 @@ Mystic Cave/onboarding remains Milestone 12. Swamp/Frog Kin remains Milestone 13
 
 1. **Codex ownership and read-model foundation.** Approved through correction `88ed69f62826977f37d5c5eb365913d9805dcc5f`; evidence recorded at `eaea0d2a497d2b4a1cf7300232ff7a5d58f47ec7`. Establishes authored Codex definitions, unique ownership persistence/reward application, player-safe read projection, strict validation, and durable front-controller composition verification.
 2. **Phaser Codex surface + Camp integration.** Approved at `37be6990b480989b83c22645cb5fa71de7291a94` (implementation `890ae102b2deea6929859acd934848ba3a9402e5`). Establishes mounted Camp -> Codex navigation, authoritative lazy-cache presentation, owned/unowned secrecy, recoverable reads, responsive list/detail presentation, and clean return lifecycle without changing backend Codex semantics.
-3. **Knowledge-aware dialogue contract.** Current. Establish authored replayable dialogue selection using meaningful Codex ownership prerequisites and Codex reward completion without generic story flags.
-4. **Objective/bounty authored model + persistence/read contract.** Planned. Establish authored requirements and domain-owned mutable player progress/completion state.
+3. **Knowledge-aware dialogue contract.** Approved through `47c6ace1b75832c528f4151e4988164c31f35fec` (implementation `0e928f31281b5cbb36d317c78701da99dd19188e`). Establishes replayable authored dialogue, authoritative Codex-aware eligibility, finalized dialogue-to-Codex rewards, idempotent completion, strict player-safe browser contracts, and no dialogue-history/story-flag state. The accompanying test-audit cleanup reduced authored-content coupling without changing production behavior.
+4. **Objective/bounty authored model + persistence/read contract.** Current. Establish authored requirements and domain-owned mutable player progress/completion state.
 5. **Authoritative gameplay-fact objective progress.** Planned. Feed objective progress from accepted authoritative gameplay outcomes/events with transactional/idempotent semantics rather than client claims.
 6. **Automatic objective completion + reward finalization.** Planned. Complete objectives automatically when requirements are met and resolve rewards through the accepted event/reward pipeline exactly once.
 7. **Phaser Objectives surface + authoritative reconciliation.** Planned. Present active/completed objectives and progress without client-side completion inference.
@@ -59,7 +59,7 @@ Mystic Cave/onboarding remains Milestone 12. Swamp/Frog Kin remains Milestone 13
 
 - Package 1 established the durable Codex knowledge primitive and player-safe lazy read/cache boundary used by later knowledge features.
 - Package 2 established player-facing Codex presentation without changing Codex ownership or reward semantics.
-- Package 3 now establishes dialogue as a replayable authored interaction that may consume Codex knowledge prerequisites and grant meaningful Codex knowledge, without introducing generic dialogue history/story flags.
-- Objective persistence is established before wiring gameplay facts so progress semantics and ownership are explicit.
+- Package 3 established dialogue as replayable authored interaction that may consume Codex knowledge prerequisites and grant meaningful Codex knowledge, without generic dialogue history/story flags.
+- Package 4 establishes objective definitions and domain-owned progress/completion persistence/read semantics before gameplay-fact wiring is added.
 - Objective reward completion follows authoritative progress wiring and must reuse the accepted reward pipeline rather than adding a parallel grant path.
 - Do not begin Milestone 12 until Milestone 11 technical closure and focused manual UAT pass.
