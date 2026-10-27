@@ -88,6 +88,29 @@ describe('GameStore Warband cache', () => {
     expect(client.getCodex).toHaveBeenCalledTimes(2);
   });
 
+  it('reconciles dialogue knowledge revisions and invalidates the authoritative Codex slice once', async () => {
+    const store = new GameStore(); const client = api();
+    store.hydrateBootstrap(bootstrap());
+    client.getCodex.and.resolveTo([{ id: 'codex.farm.old_paths', title: 'Old Farm Paths', body: null, owned: false }]);
+    await store.loadCodex(client);
+    const granted = { dialogueId: 'dialogue.camp.farm_scout', choiceId: 'hear_paths',
+      response: 'The scout sketches a route.', knowledge: { codexId: 'codex.farm.old_paths' as const,
+        outcome: 'granted' as const }, playerRevision: 8 };
+    store.reconcileDialogueCompletion(granted);
+    expect(store.playerRevision).toBe(8);
+    expect(store.codex.status).toBe('stale');
+    store.reconcileDialogueCompletion(granted);
+    expect(store.playerRevision).toBe(8);
+    client.getCodex.and.resolveTo([{ id: 'codex.farm.old_paths', title: 'Old Farm Paths',
+      body: 'Authoritative knowledge.', owned: true }]);
+    await store.loadCodex(client);
+    expect(store.codex.data?.[0].owned).toBeTrue();
+    store.reconcileDialogueCompletion({ ...granted, knowledge: { ...granted.knowledge, outcome: 'already_owned' } });
+    expect(store.codex.status).toBe('fresh');
+    expect(() => store.reconcileDialogueCompletion({ ...granted, playerRevision: 10 }))
+      .toThrowError('Dialogue completion revision is incoherent.');
+  });
+
   it('strictly parses and retains the compact active-run bootstrap summary', () => {
     const data = { ...bootstrap(), active_run: {
       id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active',

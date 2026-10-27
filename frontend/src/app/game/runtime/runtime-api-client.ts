@@ -1,5 +1,7 @@
 import { resolveApiBaseUrl } from '../../core/config/runtime-config';
 import { CodexContractError, CodexEntry, parseCodexEnvelope } from './codex-contracts';
+import { DialogueCompletion, DialogueContractError, DialogueRead, canonicalDialogueChoiceId,
+  canonicalDialogueId, parseDialogueCompletionEnvelope, parseDialogueReadEnvelope } from './dialogue-contracts';
 import {
   SquadConfigurationPayload,
   SquadDeleteResult,
@@ -125,6 +127,25 @@ export class RuntimeApiClient {
       if (error instanceof CodexContractError) throw new RuntimeApiError('malformed-response', 200);
       throw error;
     }
+  }
+
+  async getDialogue(dialogueId: string): Promise<DialogueRead> {
+    if (!canonicalDialogueId(dialogueId)) throw new RuntimeApiError('malformed-response');
+    const value = await this.get(`/api/v1/dialogues/${encodeURIComponent(dialogueId)}`);
+    try { return parseDialogueReadEnvelope(value, dialogueId); }
+    catch (error) {
+      if (error instanceof DialogueContractError) throw new RuntimeApiError('malformed-response', 200);
+      throw error;
+    }
+  }
+
+  async completeDialogue(dialogueId: string, choiceId: string, csrfToken: string,
+    idempotencyKey: string): Promise<DialogueCompletion> {
+    if (!canonicalDialogueId(dialogueId) || !canonicalDialogueChoiceId(choiceId)
+      || idempotencyKey.trim() === '') throw new RuntimeApiError('malformed-response');
+    return this.mutate(`/api/v1/dialogues/${encodeURIComponent(dialogueId)}/complete`, 'POST', csrfToken,
+      { choice_id: choiceId }, idempotencyKey,
+      (value) => parseDialogueCompletionEnvelope(value, dialogueId, choiceId));
   }
 
   async getShop(): Promise<unknown> {
@@ -383,7 +404,7 @@ export class RuntimeApiClient {
         || error instanceof RunNodeResolutionContractError || error instanceof ShopContractError
         || error instanceof ConsumableContractError || error instanceof DiceLifecycleContractError
         || error instanceof AcademyContractError || error instanceof UnitPromotionMutationContractError
-        || error instanceof WrongMachineContractError) {
+        || error instanceof WrongMachineContractError || error instanceof DialogueContractError) {
         throw new RuntimeApiError('malformed-response', response.status);
       }
       throw error;

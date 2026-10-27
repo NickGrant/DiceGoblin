@@ -733,6 +733,19 @@ export class GameStore {
       this.setCodex({ status: 'stale', data: this.codexState.data, error: null });
   }
 
+  /** Reconciles only the revision fact carried by a dialogue completion. */
+  reconcileDialogueCompletion(result: DialogueCompletion): void {
+    const bootstrap = this.cachedBootstrap;
+    if (!bootstrap) throw new DialogueContractError('Dialogue completion requires a player bootstrap.');
+    const current = bootstrap.player.player_revision;
+    if (result.playerRevision < current || result.playerRevision === current) return;
+    if (result.knowledge?.outcome !== 'granted' || result.playerRevision !== current + 1) {
+      throw new DialogueContractError('Dialogue completion revision is incoherent.');
+    }
+    this.cachedBootstrap = Object.freeze({ ...bootstrap,
+      player: Object.freeze({ ...bootstrap.player, player_revision: result.playerRevision }) });
+  }
+
   loadWrongMachine(api: RuntimeApiClient, content: ClientContentRegistry, reload = false): Promise<void> {
     const state = this.wrongMachineState;
     if (!reload && state.status === 'fresh') return Promise.resolve();
@@ -1551,6 +1564,7 @@ import { EnergyRestoreResult, RunUnitHealResult } from './consumable-contracts';
 import { DiceSalvageResult, DiceSellResult } from './dice-lifecycle-contracts';
 import { AcademyCatalogResult, AcademyContractError, AcademyUpgradeResult } from './academy-contracts';
 import { CodexEntry } from './codex-contracts';
+import { DialogueCompletion, DialogueContractError } from './dialogue-contracts';
 import { UnitPromotionContractError, UnitPromotionOptionsResult } from './unit-promotion-contracts';
 import { UnitPromotionMutationContractError, UnitPromotionResult } from './unit-promotion-mutation-contracts';
 import { ReconstructionResult, WrongMachineCatalog, WrongMachineContractError } from './wrong-machine-contracts';

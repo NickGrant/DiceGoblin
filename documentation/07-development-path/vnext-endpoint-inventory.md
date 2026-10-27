@@ -1,7 +1,7 @@
 ---
 Title: "vNext Endpoint Inventory"
 Status: Accepted
-Last Updated: 2026-09-13
+Last Updated: 2026-10-26
 Owner: Product + Engineering
 Depends On:
   - documentation/07-development-path/vnext-api-contract-model.md
@@ -252,6 +252,15 @@ There is no ordinary `claim` endpoint. Objective completion resolves and applies
   - Returns owned Codex entry IDs and acquisition state needed by the Codex UI.
 
 There is no generic dialogue-seen mutation. Important learned knowledge is represented by unique Codex rewards. Replaying content whose Codex reward is already owned produces no duplicate reward.
+
+## Dialogue
+
+- `GET /api/v1/dialogues/:dialogueId`
+  - Authenticated read of one authored replayable dialogue. Returns its player-visible title/body and only choices currently authorized by that player's Codex ownership, in authored order. Prerequisites, event/reward definitions, and unavailable choices stay server-private.
+- `POST /api/v1/dialogues/:dialogueId/complete`
+  - CSRF-protected, idempotent completion of a selected `choice_id`. The server rechecks eligibility, resolves any authored Codex event through the finalized reward pipeline, and returns the selected response, public knowledge outcome, and player revision. A new attempt may replay the same choice; duplicate Codex ownership resolves as already owned without a new ownership row or revision increment.
+
+Dialogue completion creates no viewed/history/story-flag record. Browser dialogue reads are refreshed from authority when eligibility may have changed.
 
 ## Runs
 

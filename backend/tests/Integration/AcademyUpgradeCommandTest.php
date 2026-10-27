@@ -238,7 +238,7 @@ final class AcademyUpgradeCommandTest extends IntegrationTestCase
     $original = $this->content(); $all = [];
     foreach (['gameplay_config', 'region', 'kin', 'unit_type', 'enemy_unit_type', 'encounter', 'ability', 'dice_material', 'dice_aspect',
       'dice_profile', 'run_node_type', 'run_generation', 'unlock', 'capability', 'academy_upgrade', 'event', 'reward_definition',
-      'item', 'shop_offer'] as $type) foreach ($original->definitionsOfType($type) as $definition) {
+      'item', 'shop_offer', 'codex_entry'] as $type) foreach ($original->definitionsOfType($type) as $definition) {
         if ($definition['id'] !== 'academy_upgrade.guardian') $all[] = $definition;
       }
     $root = sys_get_temp_dir() . '/dice-goblins-academy-replay-' . bin2hex(random_bytes(6));

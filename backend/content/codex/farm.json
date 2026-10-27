@@ -5,6 +5,12 @@
       "type": "codex_entry",
       "title": "The Mudking",
       "body": "The Mudking rules the Farm's muddy paths and rallies the boars that defend them."
+    },
+    {
+      "id": "codex.farm.old_paths",
+      "type": "codex_entry",
+      "title": "Old Farm Paths",
+      "body": "The Farm scout knows dry ground between the muddy ruts. The safest route skirts the reeds before the ground rises toward the old fence."
     }
   ]
 }

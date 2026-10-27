@@ -81,6 +81,7 @@ final class ContentValidator
       'run_modifier' => $this->validateRunModifier($definition, $location),
       'unlock' => $this->validateUnlock($definition, $location),
       'codex_entry' => $this->validateCodexEntry($definition, $location),
+      'dialogue' => $this->validateDialogue($definition, $location),
       'capability' => $this->validateCapability($definition, $location),
       'academy_upgrade' => $this->validateAcademyUpgrade($definition, $location),
       'unit_promotion' => $this->validateUnitPromotion($definition, $location),
@@ -287,6 +288,22 @@ final class ContentValidator
         $this->requireReferenceType($definitions, $id, 'reward_definition_id', $definition['reward_definition_id'], 'reward_definition');
       }
 
+      if (($definition['type'] ?? null) === 'dialogue') {
+        foreach ($definition['choices'] as $choice) {
+          foreach ($choice['required_codex_ids'] as $codexId) {
+            $this->requireReferenceType($definitions, $id, 'choices.required_codex_ids', $codexId, 'codex_entry');
+          }
+          if (!array_key_exists('event_id', $choice)) continue;
+          $event = $this->requireReferenceType($definitions, $id, 'choices.event_id', $choice['event_id'], 'event');
+          $reward = $this->requireReferenceType($definitions, $choice['event_id'], 'reward_definition_id', $event['reward_definition_id'], 'reward_definition');
+          if (count($reward['entries']) !== 1 || $reward['entries'][0]['reward_type'] !== 'codex'
+            || $reward['entries'][0]['probability_basis_points'] !== 10000) {
+            throw new ContentValidationException("{$id} dialogue reward must be one guaranteed Codex entry.");
+          }
+          $this->requireReferenceType($definitions, $id, 'choices.event_id reward', $reward['entries'][0]['config']['codex_id'], 'codex_entry');
+        }
+      }
+
       if (($definition['type'] ?? null) === 'reward_definition') {
         foreach ($definition['entries'] as $entry) {
           if ($entry['reward_type'] === 'unlock') {
@@ -452,6 +469,32 @@ final class ContentValidator
     $this->requireNonEmptyString($definition, 'body', $location);
     if (mb_strlen($definition['title']) > 120 || mb_strlen($definition['body']) > 2000) {
       throw new ContentValidationException("{$location} Codex presentation exceeds its bounds.");
+    }
+  }
+
+  /** @param array<string,mixed> $definition */
+  private function validateDialogue(array $definition, string $location): void
+  {
+    $this->requireExactFieldSet($definition, ['id', 'type', 'title', 'body', 'choices'], [], $location);
+    $this->requireNamespace($definition, 'dialogue.', $location);
+    $this->requireBoundedNonEmptyString($definition, 'title', 120, $location);
+    $this->requireBoundedNonEmptyString($definition, 'body', 2000, $location);
+    $choices = $definition['choices'] ?? null;
+    if (!is_array($choices) || !array_is_list($choices) || $choices === []) {
+      throw new ContentValidationException("{$location} choices must be a non-empty ordered list.");
+    }
+    $ids = [];
+    foreach ($choices as $index => $choice) {
+      $where = "{$location} choices[{$index}]";
+      if (!is_array($choice) || array_is_list($choice)) throw new ContentValidationException("{$where} must be an object.");
+      $this->requireExactFieldSet($choice, ['id', 'label', 'response', 'required_codex_ids'], ['event_id'], $where);
+      $id = $this->requireLocalNodeKey($choice, 'id', $where);
+      if (isset($ids[$id])) throw new ContentValidationException("{$location} duplicates choice '{$id}'.");
+      $ids[$id] = true;
+      $this->requireBoundedNonEmptyString($choice, 'label', 120, $where);
+      $this->requireBoundedNonEmptyString($choice, 'response', 2000, $where);
+      $this->requireStableIdList($choice, 'required_codex_ids', 'codex.', true, $where);
+      if (array_key_exists('event_id', $choice)) $this->requireStableIdWithNamespace($choice, 'event_id', 'event.', $where);
     }
   }
 
