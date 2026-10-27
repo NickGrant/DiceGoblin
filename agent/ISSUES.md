@@ -2,152 +2,148 @@
 
 ## Milestone 11 - Knowledge and Objectives
 
-### Milestone 11 Package 2 - Phaser Codex surface + Camp integration
+### Milestone 11 Package 3 - Knowledge-aware dialogue contract
 
 **Status:** In Progress
 **Priority:** High
 
 #### Problem
 
-Package 1 established canonical Codex authored definitions, unique player ownership through the reward pipeline, an authoritative player-safe read contract, and strict lazy client cache support. Players still have no mounted Phaser surface for viewing discovered knowledge.
+Packages 1-2 established Codex knowledge as a durable unique reward, a player-safe authoritative read/cache contract, and a mounted Phaser Codex presentation. Milestone 11 now needs dialogue to consume that knowledge primitive without creating a parallel story/history state system.
+
+The accepted progression model allows meaningful dialogue to grant Codex knowledge and allows dialogue selection to depend on Codex ownership. Dialogue remains replayable: whether a line was previously viewed is not durable progression state.
 
 #### Accepted baseline
 
 - Milestones 1-10 are complete and passed manual UAT.
-- Milestone 11 Package 1 is approved through correction `88ed69f62826977f37d5c5eb365913d9805dcc5f`, with review evidence recorded at `eaea0d2a497d2b4a1cf7300232ff7a5d58f47ec7`.
-- Canonical Codex definitions use stable `codex.*` IDs and player-facing `title`/`body` fields.
-- `GET /api/v1/codex` is the authoritative player-safe catalog/ownership projection: owned entries expose body text; unowned entries expose `body: null`.
-- `GameStore` already owns the strict lazy Codex cache and invalidates it on player revision changes.
-- Codex ownership/reward semantics are server authoritative and are not to be redesigned in this package.
-- The major game-wide visual/UI overhaul remains deferred.
+- Milestone 11 Package 1 is approved through correction `88ed69f62826977f37d5c5eb365913d9805dcc5f`, with evidence at `eaea0d2a497d2b4a1cf7300232ff7a5d58f47ec7`.
+- Milestone 11 Package 2 is approved at `37be6990b480989b83c22645cb5fa71de7291a94` (implementation `890ae102b2deea6929859acd934848ba3a9402e5`).
+- Codex ownership is authoritative backend state and Codex grants use the accepted finalized reward pipeline.
+- Authored catalogs belong in canonical JSON; backend selection/eligibility is authoritative; browser projections must be player-safe.
+- Do not introduce generic story flags, dialogue history, or `has_seen_dialogue` state.
 
 #### Purpose
 
-Add the smallest complete player-facing Codex experience in Phaser and integrate it into Camp using the accepted runtime/cache architecture.
+Establish the smallest reusable knowledge-aware dialogue contract:
 
-The surface must let a player discover that the Codex exists, open it from Camp, distinguish discovered from undiscovered authored entries, read owned knowledge, return safely to Camp, and remain usable across the canonical responsive layouts.
+1. canonical authored dialogue definitions with stable identity and strict validation;
+2. authoritative selection/eligibility using Codex ownership where authored;
+3. replayable dialogue interaction without durable viewed/history state;
+4. meaningful dialogue completion able to grant Codex knowledge through the existing event/reward pipeline;
+5. player-safe API projection and strict client contract/cache/interaction support sufficient to prove the boundary.
 
-Do not add dialogue routing, objective state, or new Codex ownership/grant mechanics.
+This package owns the dialogue contract and lifecycle, not broad narrative content production or onboarding presentation.
 
 #### Required inventory before implementation
 
 Inspect and record reuse/drop decisions for:
-- current Camp facility/navigation patterns and scene lifecycle;
-- existing Phaser collection/list/detail surfaces such as Inventory, Shop, Academy, or Warband where structurally useful;
-- `GameStore` Codex lazy cache introduced in Package 1;
-- current responsive/orientation helpers and deterministic capture fixtures;
-- current player-facing loading/error/retry patterns;
-- visual guide constraints relevant to a knowledge/catalog surface.
+- retained prototype dialogue definitions/services/tests, if present;
+- canonical authored-content registry/validator patterns;
+- Codex ownership repository/query and reward grant pipeline from Package 1;
+- generic encounter interaction/action projection patterns from Milestone 10 where structurally useful;
+- current API/controller/idempotency conventions for authoritative mutations;
+- Phaser/runtime patterns for presenting a narrow interaction if needed for proof.
 
-Reuse established runtime/input/layout/cache boundaries. Do not create a second Codex store or Angular gameplay page.
+Preserve useful behavior, not prototype schema/API/UI shape.
 
-#### Canonical interaction requirements
+#### Canonical design constraints
 
-##### Camp integration
+##### Dialogue semantics
 
-- Provide a clear Codex entry point from the mounted Phaser Camp experience.
-- The Codex is a knowledge/reference surface, not a purchase/progression mutation facility; do not invent a new unlock requirement unless an existing canonical requirement already governs access.
-- Opening and closing the Codex must preserve normal Camp/runtime state and navigation behavior.
-- Do not replace or globally redesign unrelated Camp facilities in this package.
+- Dialogue is authored replayable content, not durable progression history.
+- Do not persist `has_seen_dialogue`, viewed-line IDs, generic story flags, conversation history, or a catch-all progression record.
+- A dialogue definition may have narrow Codex ownership prerequisites when that knowledge meaningfully changes what can be said or selected.
+- Eligibility/selection is server authoritative. The client must not infer eligible dialogue from its Codex cache.
+- Replaying an eligible dialogue is allowed unless another explicit domain rule applies; viewing it once does not make it ineligible.
 
-##### Codex presentation
+##### Authored content
 
-- Load Codex through the accepted lazy `GameStore` cache/read contract.
-- Render authored entries in authoritative server order; do not maintain a client-authored Codex catalog.
-- Clearly distinguish owned/discovered entries from unowned/undiscovered entries.
-- Owned entries may show their authoritative title/body presentation.
-- Unowned entries must not reveal hidden body text or infer it from client content/assets. Their presentation may use the safe title/owned state already supplied by the server.
-- Selection/detail state is client presentation state only and must not become durable progression state.
-- Do not infer Codex ownership from combat history, unlocks, objectives, local events, or other client state.
+- Define dialogue in canonical authored JSON with stable namespaced IDs and exact validated field shapes.
+- Keep the first production/test content narrow. Do not author speculative dialogue trees or broad narrative catalogs.
+- Validate all Codex prerequisite and reward/event references.
+- Prefer a small explicit dialogue/choice model over a generic scripting language.
+- Do not encode hidden routing logic in client constants.
 
-##### Loading, errors, and cache reconciliation
+##### Knowledge prerequisites
 
-- Opening the surface with an unloaded Codex slice must present a usable loading state while the lazy query is in flight.
-- A read failure must produce a recoverable player-facing state; retry must use the authoritative query rather than fabricate cached entries.
-- If player revision invalidates the Codex cache, the next relevant read/open must reconcile from the server.
-- Do not introduce a Codex mutation endpoint or local optimistic ownership changes.
+- Codex prerequisite checks must use authoritative user-scoped ownership.
+- Foreign ownership must never satisfy another user's dialogue eligibility.
+- Missing/corrupt authored or persisted references fail closed.
+- Player-safe reads may expose only the dialogue/options currently authorized for that player; do not reveal hidden prerequisite identities or unavailable private branches unless canonical UX explicitly requires a safe locked presentation.
 
-##### Responsive behavior
+##### Dialogue completion and Codex rewards
 
-- Follow the canonical Compact/Standard/Wide layout model and existing portrait rotate-device gate.
-- The list/detail presentation must remain legible with reasonable authored title/body lengths at the canonical verification viewports.
-- Scrolling or paging is acceptable where necessary; do not truncate owned knowledge in a way that makes it unreadable.
-- This package is functional presentation, not final visual polish.
+- If meaningful dialogue grants knowledge, completion must resolve the authored event/reward through the accepted finalized reward pipeline.
+- Duplicate Codex ownership follows the accepted unique-reward behavior; replaying dialogue must not create duplicate ownership or compensation.
+- Mutation retries require an idempotency key and must replay the finalized result rather than reselecting/rerolling/reapplying rewards.
+- Do not create a direct Codex grant path from dialogue.
+- Player revision changes only when accepted authoritative mutation semantics require it.
+
+##### API/client boundary
+
+- Provide the smallest authoritative dialogue read/interaction contract required to prove selection, replay, prerequisites, and completion.
+- Strictly parse browser responses and reject unknown/private fields.
+- Do not ship prerequisite Codex IDs, reward definitions/probabilities, hidden branches, or server-private routing configuration unless they are explicitly safe player-facing facts.
+- Client state is presentation/cache state only. It must not become the authority for eligibility, completion, or knowledge grants.
+- A full narrative/dialogue presentation overhaul is out of scope; functional Phaser integration may be narrow if needed to exercise the contract.
 
 #### Minimum proof
 
-Prove at minimum:
+Use narrow authored fixtures or one production-appropriate dialogue set to prove:
 
-1. Camp exposes a usable Codex entry point without disrupting existing facility navigation.
-2. Opening Codex lazily loads the authoritative slice through `GameStore`.
-3. Owned and unowned entries are visually distinguishable.
-4. Owned entry detail renders the authoritative body.
-5. Unowned entry presentation never reveals/fabricates body text.
-6. Server order is preserved.
-7. Loading state is usable and duplicate opens/reads do not create conflicting local state.
-8. Read failure is recoverable through retry.
-9. Cache invalidation/reopen reloads authoritative state after a player revision change.
-10. Returning to Camp is clean and preserves normal runtime state.
-11. Compact, Standard, and Wide deterministic captures are legible; portrait behavior remains correct if affected.
+1. a player without prerequisite knowledge receives only the dialogue/options authorized for that state;
+2. a player with the required Codex ownership receives the knowledge-aware alternative/option;
+3. another user's Codex ownership does not affect selection;
+4. completing meaningful dialogue can grant a Codex entry through the existing finalized reward pipeline;
+5. exact-key retry/replay returns the finalized result without duplicate ownership/revision mutation;
+6. replaying the dialogue later remains allowed and a duplicate Codex grant resolves under the accepted unique-reward rule;
+7. no viewed/history/story-flag persistence is created;
+8. hidden prerequisite/reward/routing configuration does not leak to the browser.
 
 #### Verification requirements
 
-Add focused frontend/runtime tests for:
-- Camp -> Codex navigation and return;
-- lazy loading and cache reuse;
-- authoritative order;
-- owned/unowned rendering and body secrecy;
-- selection/detail behavior;
-- loading/error/retry behavior;
-- revision invalidation and authoritative reload;
-- repeated open/close lifecycle without duplicate listeners or stale state;
-- responsive layout behavior where testable without brittle pixel assertions.
+Prove at minimum:
+- dialogue authored-definition structural/semantic validation;
+- malformed IDs/fields and unknown Codex/event/reward references fail validation;
+- authoritative eligibility/selection for owned/unowned Codex states;
+- cross-player isolation;
+- replayability without history persistence;
+- dialogue completion -> event/reward -> Codex ownership transaction path;
+- exact-key idempotency and revision stability;
+- later legitimate duplicate completion behavior;
+- rollback/integrity behavior for corrupt references or failed reward application;
+- strict player-safe API/client projection and private-field rejection;
+- existing Codex, reward, run, combat, auth/security regressions remain green;
+- no objective/M12+ scope leakage.
 
-Run deterministic captures for representative Codex states at Compact landscape, 1600x900 Standard, and Wide landscape. Include portrait only if the shared orientation behavior is changed or affected.
-
-Run applicable backend regression only if a shared contract is changed; Package 2 should normally consume the accepted Package 1 API unchanged.
-
-Run full `npm run verify:package` before review.
+Run applicable gates in `agent/QUALITY_GATES.md` and full `npm run verify:package` before review.
 
 #### Scope exclusions
 
-Do not add in Package 2:
-- dialogue definitions, selection, history, or routing;
-- objective/bounty definitions or progress;
-- new Codex reward/grant semantics;
-- generic story flags or `has_seen_dialogue` state;
-- direct Codex mutations;
-- Mystic Cave/onboarding;
+Do not add in Package 3:
+- objective/bounty definitions or progress counters;
+- gameplay-fact objective wiring;
+- objective completion rewards;
+- generic story flags, dialogue history, or `has_seen_dialogue` state;
+- a generic scripting engine;
+- broad narrative content production;
+- Mystic Cave/onboarding orchestration;
 - Swamp/Frog Kin or production Shrine/Chaos expansion;
-- broad/global Camp redesign;
-- final visual overhaul;
+- broad visual redesign;
 - Milestone 12+ work.
 
 #### Completion evidence required
 
 Report:
 - implementation SHA;
-- Camp/scene/runtime inventory and reuse/drop decisions;
-- Codex scene/surface structure and navigation lifecycle;
-- authoritative lazy-cache loading/reconciliation behavior;
-- owned/unowned secrecy and presentation behavior;
-- loading/error/retry behavior;
-- responsive layout/capture evidence;
-- focused frontend/runtime test results;
-- backend regression results if shared contracts changed;
+- prototype/current dialogue inventory and reuse/drop decisions;
+- authored dialogue representation and validation rules;
+- authoritative selection/prerequisite behavior;
+- completion/reward/idempotency/replay semantics;
+- API/client projection and secrecy proof;
+- cross-player and corrupt-state rejection proof;
+- focused backend/frontend results;
 - full package-gate results;
-- confirmation that dialogue/objectives/M12+ were not introduced.
+- confirmation that objective state/history flags/M12+ were not introduced.
 
-Leave Package 2 **In Progress** for review. Do not promote Package 3.
-
-#### Package 2 implementation evidence (review candidate)
-
-- Implementation commit: `890ae10` (Phaser Codex screen and Camp destination). Package remains **In Progress** for architectural review.
-- Inventory/reuse: Camp's existing destination row and GameScene navigator own entry/return; the Package 1 `GameStore` Codex slice and strict `GET /api/v1/codex` parser own authority; neighboring progression screens supplied background/button conventions and read retry patterns; `RuntimeViewport` supplies Compact/Standard/Wide safe bounds and the existing portrait gate. The visual guide's parchment/green/brass palette is used at functional fidelity. The unrouted prototype Angular Codex page was removed after replacement; no second catalog or store was kept.
-- Screen lifecycle: Camp's always available CODEX destination opens `CodexScreen` inside the persistent GameScene. Opening subscribes to the lazy shared cache and reads only when needed; Return/Escape destroy the screen subscription and restore Camp without restarting runtime. The screen keeps only selected entry and list/body page numbers locally.
-- Authority/secrecy: the server ordered entries are rendered without client sorting or authored fallback. Discovered and undiscovered rows have distinct labels/colors. Detail body is rendered only for `owned` entries with an authoritative non-null body; undiscovered detail contains only a fixed discovery message. Long list titles are abbreviated in the row while the complete server title remains in detail; body paging retains every source character.
-- Read states: first open shows Loading, failures show a retry action using `GameStore.retryCodex`, and stale revision changes reload immediately while the screen is open or on the next open. No client ownership or reward mutation was added.
-- Focused Chrome suites: 59/59 tests passed (Codex screen, Camp navigation, GameStore). This includes lazy/fresh reuse, owned/unowned secrecy, selection, error/retry, revision invalidation, subscription cleanup, and responsive bounds/body pagination.
-- Deterministic captures completed and visually reviewed: `artifacts/screenshots/m11-p2-codex-compact.png` (844x390 mobile Compact), `m11-p2-codex-standard.png` (1600x900 Standard), `m11-p2-codex-wide.png` (2560x1080 Wide), `m11-p2-codex-error.png` (read failure), and `m11-p2-camp-compact.png` (six Camp destinations). The shared portrait/orientation path was unchanged.
-- Full `npm run verify:package`: **PASS**, 7m 5s. Backend 772 tests/5,373 assertions; frontend 508 tests; PHP front-controller syntax, content validation, context/docs lint, production build, bundle budget, and diff check passed. No backend contract changed; the backend aggregate was run by the full gate.
-- Scope: no dialogue, objectives, Codex grants/rewards, M12, or other gameplay mechanics were introduced.
+Leave Package 3 **In Progress** for review. Do not promote Package 4.
