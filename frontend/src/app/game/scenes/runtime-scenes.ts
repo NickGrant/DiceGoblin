@@ -17,6 +17,7 @@ import { AcademyScreen } from '../screens/academy-screen';
 import { WrongMachineScreen } from '../screens/wrong-machine-screen';
 import { UnitPromotionScreen } from '../screens/unit-promotion-screen';
 import { CodexScreen } from '../screens/codex-screen';
+import { ObjectivesScreen } from '../screens/objectives-screen';
 import { RuntimeViewportSnapshot } from '../runtime/runtime-viewport';
 import { RuntimeApiError } from '../runtime/runtime-api-client';
 import { createRunMapLayout, createRunMapPresentation, runNodeColors } from '../runtime/run-map-model';
@@ -136,7 +137,7 @@ export class BootScene extends Phaser.Scene {
     if (next) {
       const preview = (readDebugCaptureRequest()?.scene ?? window.__DG_DEBUG__?.requestedScene ?? '').toLowerCase();
       // Capture-only navigation can inspect Warband lock presentation while real startup still routes to RunScene.
-      this.scene.start(next === RUN_SCENE_KEY && ['warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'codex',
+      this.scene.start(next === RUN_SCENE_KEY && ['warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'codex', 'objectives',
         'squad-editor', 'unit-configuration', 'unit-promotion'].includes(preview ?? '')
         ? GAME_SCENE_KEY : next);
       return;
@@ -174,10 +175,11 @@ export class GameScene extends RuntimeScene {
       openAcademy: () => void,
       openWrongMachine: () => void,
       openCodex: () => void,
+      openObjectives: () => void,
     ) => GameSceneScreen = (scene, store, viewport, openWarband, enterRun, startup, openShop, openInventory, openAcademy,
-      openWrongMachine, openCodex) => new CampScreen(
+      openWrongMachine, openCodex, openObjectives) => new CampScreen(
       scene, store, viewport, openWarband, enterRun, startup.apiClient, startup.contentRegistry,
-      () => crypto.randomUUID(), openShop, openInventory, openAcademy, openWrongMachine, openCodex,
+      () => crypto.randomUUID(), openShop, openInventory, openAcademy, openWrongMachine, openCodex, openObjectives,
     ),
     private readonly createWarbandScreen: (
       scene: Phaser.Scene,
@@ -228,6 +230,9 @@ export class GameScene extends RuntimeScene {
     private readonly createCodexScreen: (scene: Phaser.Scene, startup: RuntimeStartup, viewport: RuntimeViewport,
       back: () => void) => GameSceneScreen = (scene, startup, viewport, back) => new CodexScreen(
         scene, startup.store, startup.apiClient, viewport, back),
+    private readonly createObjectivesScreen: (scene: Phaser.Scene, startup: RuntimeStartup, viewport: RuntimeViewport,
+      back: () => void) => GameSceneScreen = (scene, startup, viewport, back) => new ObjectivesScreen(
+        scene, startup.store, startup.apiClient, viewport, back),
   ) {
     super(GAME_SCENE_KEY, runtimeState, runtimeStartup, runtimeViewport);
   }
@@ -251,6 +256,7 @@ export class GameScene extends RuntimeScene {
     const requested = debugScene.toLowerCase();
     const initialScreen: GameScreenKey = requested === 'shop' ? 'shop' : requested === 'inventory' ? 'inventory'
       : requested === 'academy' ? 'academy' : requested === 'wrong-machine' ? 'wrong-machine' : requested === 'codex' ? 'codex'
+        : requested === 'objectives' ? 'objectives'
         : requested === 'warband' || wantsSquadEditor || wantsUnitConfiguration || wantsUnitPromotion ? 'warband' : 'camp';
     this.navigator.start(initialScreen);
     this.activateScreen(initialScreen, debugTab === 'units' || debugTab === 'dice' ? debugTab : 'squads');
@@ -301,6 +307,7 @@ export class GameScene extends RuntimeScene {
   }
   showInventory(): void { this.navigator.navigate('inventory'); this.activateScreen('inventory'); }
   showCodex(): void { this.navigator.navigate('codex'); this.activateScreen('codex'); }
+  showObjectives(): void { this.navigator.navigate('objectives'); this.activateScreen('objectives'); }
   showAcademy(): void {
     if (!this.runtimeStartup.store.bootstrap?.progression.unlock_ids.includes('unlock.capability.academy_access')) return;
     this.navigator.navigate('academy'); this.activateScreen('academy');
@@ -334,7 +341,7 @@ export class GameScene extends RuntimeScene {
   }
 
   private completeBackNavigation(): void {
-    if (!['warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'codex'].includes(this.activeScreen?.key ?? '')) return;
+    if (!['warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'codex', 'objectives'].includes(this.activeScreen?.key ?? '')) return;
     this.activateScreen(this.navigator.back('camp'));
   }
 
@@ -383,11 +390,15 @@ export class GameScene extends RuntimeScene {
       this.activeScreen = this.createCodexScreen(
         this, this.runtimeStartup, this.runtimeViewport, () => this.completeBackNavigation(),
       );
+    } else if (screen === 'objectives') {
+      this.activeScreen = this.createObjectivesScreen(
+        this, this.runtimeStartup, this.runtimeViewport, () => this.completeBackNavigation(),
+      );
     } else {
       this.activeScreen = this.createCampScreen(
         this, this.runtimeStartup.store, this.runtimeViewport, () => this.showWarband(),
         () => this.scene.start(RUN_SCENE_KEY), this.runtimeStartup, () => this.showShop(), () => this.showInventory(),
-        () => this.showAcademy(), () => this.showWrongMachine(), () => this.showCodex(),
+        () => this.showAcademy(), () => this.showWrongMachine(), () => this.showCodex(), () => this.showObjectives(),
       );
     }
     (this.sys as Phaser.Scenes.Systems & { game?: Phaser.Game }).game?.canvas.parentElement

@@ -1,6 +1,6 @@
 import { RuntimeViewportSnapshot } from '../runtime/runtime-viewport';
 
-export type GameScreenKey = 'camp' | 'warband' | 'shop' | 'inventory' | 'academy' | 'wrong-machine' | 'codex'
+export type GameScreenKey = 'camp' | 'warband' | 'shop' | 'inventory' | 'academy' | 'wrong-machine' | 'codex' | 'objectives'
   | 'squad-editor' | 'unit-configuration' | 'unit-promotion';
 
 export interface GameSceneScreen {

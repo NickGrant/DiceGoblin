@@ -186,6 +186,9 @@ describe('CampScreen', () => {
     const layout = createCampLayout(viewportSnapshot(844, 390));
     expect(layout.codexButton.right).toBeLessThanOrEqual(layout.panel.right);
     expect(layout.codexButton.x).toBeGreaterThan(layout.wrongMachineButton.right);
+    expect(ui.textValues.some((value) => value.startsWith('OBJECTIVES'))).toBeTrue();
+    expect(layout.objectivesButton.x).toBeGreaterThan(layout.codexButton.right);
+    expect(layout.objectivesButton.right).toBeLessThanOrEqual(layout.panel.right);
   });
 
   it('fails visibly instead of fabricating Camp state when bootstrap is absent', () => {
@@ -526,6 +529,29 @@ describe('CampScreen', () => {
     expect(game.activeScreenKey).toBe('camp');
     expect(codex.destroy).toHaveBeenCalledTimes(1);
     expect(apiClient.getBootstrap).toHaveBeenCalledTimes(1);
+  });
+
+  it('navigates Camp to Objectives and back in the same GameScene', async () => {
+    const apiClient = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getBootstrap']);
+    apiClient.getBootstrap.and.resolveTo({ ok: true, data: bootstrap() });
+    const contentLoader = jasmine.createSpyObj<ClientContentLoader>('ClientContentLoader', ['loadProjection']);
+    contentLoader.loadProjection.and.resolveTo({ revision: 'a'.repeat(64), content: {
+      gameplay: { run_energy_cost: 10 }, regions: {}, kin: {}, unit_types: {}, abilities: {},
+      dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {}, items: {},
+      unit_promotions: {}, academy_upgrades: {}, shop_offers: {},
+    } });
+    const startup = new RuntimeStartup(apiClient, contentLoader); await startup.start();
+    const camp = jasmine.createSpyObj<GameSceneScreen>('camp', ['create', 'reflow', 'destroy'], { key: 'camp' });
+    const objectives = jasmine.createSpyObj<GameSceneScreen>('objectives', ['create', 'reflow', 'destroy'], { key: 'objectives' });
+    const game = new GameScene(new RuntimeLifecycleState(), startup, new RuntimeViewport(),
+      () => camp, undefined, undefined, undefined, undefined, undefined, undefined, undefined,
+      undefined, undefined, () => objectives);
+    game.showCamp(); game.showObjectives();
+    expect(game.activeScreenKey).toBe('objectives');
+    expect(objectives.create).toHaveBeenCalledTimes(1);
+    game.goBack();
+    expect(game.activeScreenKey).toBe('camp');
+    expect(objectives.destroy).toHaveBeenCalledTimes(1);
   });
 
   it('returns from Warband, Shop, and empty Supplies through visible Return and Escape without re-entering requestBack', async () => {
