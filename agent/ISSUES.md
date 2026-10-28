@@ -151,3 +151,13 @@ Report:
 - confirmation that no backend objective redesign, client mutation/claim authority, generic history/progression state, or M12+ work was introduced.
 
 Leave Package 7 **In Progress** for review. Do not promote Package 8.
+
+#### Package 7 implementation evidence (review candidate)
+
+- Implementation: `d3da60c` on `vnext-game-overhaul`. Camp now has a seventh Objectives destination. `GameScene` owns its mounted screen and return path; leaving destroys its container, keyboard listener, and GameStore subscription.
+- The screen calls the existing lazy `GameStore.loadObjectives`/`retryObjectives` path. Fresh cache is reused on re-entry; stale/revision changes hide old progress while reloading. GameStore's existing generation/epoch checks discard old in-flight responses. Read errors display Retry without objective data.
+- Objective order, status, title, description, category, and requirement progress come only from the strict server projection. Completed entries remain selectable. Long lists and detail text use deterministic pages with pointer/touch buttons and keyboard navigation. No claim, progress mutation, or reward reconstruction is present. The screen imports only `ObjectiveEntry`; private requirement kind/target and completion/reward wiring are absent.
+- Focused frontend: 65/65 Objectives, Camp, objective-contract, and GameStore tests passed. The final Escape-key cleanup was checked with 29/29 Objectives and Camp tests; GameScene retains Escape ownership.
+- Deterministic captures passed: Objectives at 844x390 Compact, 1600x900 Standard, 2560x1080 Wide, 390x844 portrait (`gate=active`), and 1600x900 read error; Compact Camp with the new destination also passed. Capture files are under ignored `artifacts/screenshots/m11-p7-*`.
+- Final complete `npm run verify:package`: PASS in 12m 34s, 795 backend tests / 5,759 assertions, 524 frontend tests, production build, bundle, content, syntax, context, docs, and diff checks. No backend or content files changed.
+- No backend objective redesign, client mutation/claim authority, generic history/progression state, or Milestone 12+ work was introduced. Package 7 remains In Progress for architectural review.
