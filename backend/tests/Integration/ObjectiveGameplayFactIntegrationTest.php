@@ -8,6 +8,8 @@ use DiceGoblins\Application\Commands\RunNodeResolutionIntegrityException;
 use DiceGoblins\Application\Commands\DialogueCompletionIntegrityException;
 use DiceGoblins\Application\Rewards\RewardApplicationIntegrityException;
 use DiceGoblins\Application\Objectives\ObjectiveProgressService;
+use DiceGoblins\Application\Queries\CodexQuery;
+use DiceGoblins\Application\Queries\DialogueQuery;
 use DiceGoblins\Application\Queries\ObjectiveQuery;
 use DiceGoblins\Combat\Vnext\CombatInput;
 use DiceGoblins\Combat\Vnext\CombatResolver;
@@ -45,9 +47,13 @@ final class ObjectiveGameplayFactIntegrationTest extends IntegrationTestCase
     ];
     $content = ObjectiveContentFixture::registry([$second], $objective);
     $user = $this->account($content);
+    $other = $this->account($content);
     $services = ControllerServiceFactory::buildContentAware($this->pdo, null, $content,
       $this->fixedResolver('victory'), new FixedGraphRunGenerator());
     $query = new ObjectiveQuery(new UserObjectiveRepository($this->pdo), $content);
+    $dialogueRead = new DialogueQuery(new UserCodexRepository($this->pdo), $content);
+    $this->assertSame(['hear_paths'], array_column(
+      $dialogueRead->execute($user, 'dialogue.camp.farm_scout')['choices'], 'id'));
     $run = $services['startRunCommand']->execute($user, ['region_id' => 'region.the_farm'], 'objective-run-start');
     $runId = (int)$run['run']['id'];
     $ids = array_map('intval', array_column($services['currentRunQuery']->execute($user)['run']['nodes'], 'id'));
@@ -72,6 +78,20 @@ final class ObjectiveGameplayFactIntegrationTest extends IntegrationTestCase
     $first = $dialogue->execute($user, 'dialogue.camp.farm_scout', 'hear_paths', 'objective-dialogue-one');
     $this->assertSame('granted', $first['knowledge']['outcome']);
     $this->assertSame([1, 1, 1], $this->counts($query, $user));
+    $reloadedCodex = new CodexQuery(new UserCodexRepository($this->pdo), $content);
+    $ownedKnowledge = array_values(array_filter($reloadedCodex->execute($user)['entries'],
+      static fn(array $entry): bool => $entry['id'] === $first['knowledge']['codex_id']));
+    $this->assertCount(1, $ownedKnowledge);
+    $this->assertTrue($ownedKnowledge[0]['owned']);
+    $this->assertNotNull($ownedKnowledge[0]['body']);
+    $this->assertSame(['hear_paths', 'discuss_paths'], array_column(
+      $dialogueRead->execute($user, 'dialogue.camp.farm_scout')['choices'], 'id'));
+    $foreignKnowledge = array_values(array_filter($reloadedCodex->execute($other)['entries'],
+      static fn(array $entry): bool => $entry['id'] === $first['knowledge']['codex_id']));
+    $this->assertFalse($foreignKnowledge[0]['owned']);
+    $this->assertNull($foreignKnowledge[0]['body']);
+    $this->assertSame(['hear_paths'], array_column(
+      $dialogueRead->execute($other, 'dialogue.camp.farm_scout')['choices'], 'id'));
     $this->assertSame($first, $dialogue->execute($user, 'dialogue.camp.farm_scout', 'hear_paths', 'objective-dialogue-one'));
     $this->assertSame([1, 1, 1], $this->counts($query, $user));
     $secondDialogue = $dialogue->execute($user, 'dialogue.camp.farm_scout', 'hear_paths', 'objective-dialogue-two');
@@ -79,6 +99,10 @@ final class ObjectiveGameplayFactIntegrationTest extends IntegrationTestCase
     $this->assertSame($first['player_revision'] + 1, $secondDialogue['player_revision']);
     $this->assertSame([1, 1, 2], $this->counts($query, $user));
     $this->assertSame('completed', $query->execute($user)['objectives'][0]['status']);
+    $this->assertSame('completed', (new ObjectiveQuery(new UserObjectiveRepository($this->pdo), $content))
+      ->execute($user)['objectives'][0]['status']);
+    $this->assertSame('unstarted', (new ObjectiveQuery(new UserObjectiveRepository($this->pdo), $content))
+      ->execute($other)['objectives'][0]['status']);
     $this->assertSame('1', (string)$this->scalar("SELECT COUNT(*) FROM `resolved_events` WHERE `user_id` = ? AND `source_type` = 'objective_completion'", [$user]));
     $third = $dialogue->execute($user, 'dialogue.camp.farm_scout', 'hear_paths', 'objective-dialogue-three');
     $this->assertSame($secondDialogue['player_revision'], $third['player_revision']);

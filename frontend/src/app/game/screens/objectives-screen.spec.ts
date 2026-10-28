@@ -46,7 +46,7 @@ describe('ObjectivesScreen', () => {
   it('loads lazily, preserves server order and progress/status, and reuses a fresh cache', async () => {
     const api = jasmine.createSpyObj<RuntimeApiClient>('api', ['getObjectives']);
     api.getObjectives.and.resolveTo(entries);
-    const { texts, store, screen, attributes } = setup(api);
+    const { texts, store, screen, attributes, keyboard } = setup(api);
     expect(api.getObjectives).not.toHaveBeenCalled();
     screen.create(); await store.loadObjectives(api);
     expect(api.getObjectives).toHaveBeenCalledTimes(1);
@@ -55,9 +55,15 @@ describe('ObjectivesScreen', () => {
     expect(texts).toContain('ACTIVE'); expect(texts).toContain('UNSTARTED'); expect(texts).toContain('COMPLETED');
     expect(texts.some((text) => text.includes('Victories: 2 / 3'))).toBeTrue();
     expect(texts).not.toContain('CLAIM');
-    screen.destroy(); screen.create();
+    screen.destroy(); screen.create(); screen.destroy(); screen.create();
     expect(api.getObjectives).toHaveBeenCalledTimes(1);
-    screen.destroy(); expect(attributes.has('data-objectives-status')).toBeFalse();
+    screen.destroy();
+    expect(keyboard.on).toHaveBeenCalledTimes(3);
+    expect(keyboard.off).toHaveBeenCalledTimes(3);
+    expect(attributes.has('data-objectives-status')).toBeFalse();
+    const rendered = texts.length;
+    store.markObjectivesStale();
+    expect(texts.length).toBe(rendered);
   });
 
   it('retries errors and reloads stale data without showing old progress as current', async () => {

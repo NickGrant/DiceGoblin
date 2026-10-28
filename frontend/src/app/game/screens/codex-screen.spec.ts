@@ -56,10 +56,13 @@ describe('CodexScreen', () => {
     expect(ui.texts).toContain('Authoritative Mudking knowledge.');
     expect(ui.texts).toContain('DISCOVERED');
     expect(ui.texts).toContain('UNDISCOVERED');
-    screen.destroy(); screen.create();
+    screen.destroy(); screen.create(); screen.destroy(); screen.create();
     expect(client.getCodex).toHaveBeenCalledTimes(1);
     screen.destroy();
     expect(ui.attributes.has('data-codex-status')).toBeFalse();
+    const rendered = ui.texts.length;
+    store.markCodexStale();
+    expect(ui.texts.length).toBe(rendered);
   });
 
   it('keeps undiscovered body absent and selection local', async () => {
