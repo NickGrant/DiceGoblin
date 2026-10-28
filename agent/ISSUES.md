@@ -2,137 +2,134 @@
 
 ## Milestone 11 - Knowledge and Objectives
 
-### Milestone 11 Package 6 - Automatic objective completion + reward finalization
+### Milestone 11 Package 7 - Phaser Objectives surface + authoritative reconciliation
 
 **Status:** In Progress
 **Priority:** High
 
 #### Problem
 
-Package 5 connects finalized authoritative combat, region-run, and dialogue facts to objective-owned counters. Counters saturate at their authored targets, but a fully satisfied objective intentionally remains active because automatic completion and reward finalization were deferred to this package.
+Packages 4-6 established the complete authoritative objective lifecycle: authored objectives, user-scoped mutable progress, gameplay-fact advancement, automatic completion, and canonical completion rewards. The client already has a strict lazy objective read/cache contract, but players have no Phaser surface for seeing objectives or their progress.
 
-The accepted progression model requires completed objectives to use the normal event-to-reward system. Completion must therefore become part of the authoritative objective-progress transaction without adding a manual claim endpoint, parallel reward path, or client authority.
+Package 7 must expose that accepted backend authority in the game client without creating client-side progress/completion logic or duplicating reward state.
 
 #### Accepted baseline
 
 - Milestones 1-10 are complete and passed manual UAT.
 - Milestone 11 Packages 1-3 established Codex ownership/presentation and replayable knowledge-aware dialogue.
-- Package 4 established validated authored objectives, user-scoped progress/completion persistence, and authoritative lazy read contracts.
-- Package 5 is approved through `2903f69555994e3377b3f254f8176d44990024c8` (implementation `151133f6d1e271f31893554a20fdc53d29ee83af`).
-- Package 5 progress is emitted only from authoritative finalized combat defeats, successful terminal region runs, and legitimate dialogue completions, inside the owning transaction.
-- Counters saturate at `needed`; exact-key gameplay replay does not advance them again; fully saturated objectives may temporarily remain `active` until this package.
-- `completion_event_id`, when authored, is already validated against canonical event content but is not yet applied.
-- Existing reward finalization/application, unique-reward duplicate behavior, player revision, and idempotency boundaries remain canonical.
+- Package 4 established the authoritative objective read model and lazy GameStore objective cache.
+- Package 5 connected finalized combat, successful region-run completion, and dialogue completion to objective counters.
+- Package 6 is approved through `cdaaee5f85b35557c5b249ade3b5eff72624e3bf` (implementation `c3e258cb1f4b1a23cd477b915c75fe6c4306a45f`).
+- Package 6 automatically completes satisfied objectives and applies optional completion events through the canonical reward pipeline exactly once in the owning gameplay transaction.
+- Objective read responses expose only player-safe `id`, `title`, `description`, `category`, `status`, and requirement `id`, `label`, `current`, `needed` facts. Requirement kinds/targets and completion/reward internals remain server-private.
+- The GameStore objective collection is lazy, revision-aware, and authoritative; browser code must not fabricate counters, completion, or rewards.
+- `documentation/07-development-path/vnext-phaser-client-architecture.md` is canonical for Phaser/runtime/responsive behavior; `documentation/04-ux/01-visual-design-guide.md` governs current visual direction.
 
 #### Purpose
 
-Complete the objective lifecycle by automatically finalizing a satisfied objective and applying its authored completion event/rewards exactly once inside the same authoritative transaction that produces the final qualifying progress.
+Add the smallest usable Phaser Objectives presentation integrated with Camp and the existing runtime/cache architecture.
 
-Package 6 must:
+Package 7 must:
 
-1. detect when all requirements become satisfied;
-2. durably transition the objective to completed exactly once;
-3. resolve/apply the optional authored `completion_event_id` through the accepted event/reward pipeline;
-4. preserve rollback, retry, revision, and duplicate-reward semantics across combat/run/dialogue integration points;
-5. expose the resulting completed state through the existing objective read contract without a manual claim flow.
+1. provide an Objectives entry point from Camp;
+2. present authoritative objective status and requirement progress from the existing lazy objective cache;
+3. distinguish unstarted/active/completed objectives clearly without inferring state locally;
+4. reconcile after authoritative player revision changes and recover from read errors/retries;
+5. remain usable across Compact, Standard, and Wide layouts and obey the existing portrait gameplay gate;
+6. preserve server-private objective wiring/reward configuration.
 
 #### Required inventory before implementation
 
 Inspect and record reuse/drop decisions for:
-- Package 5 `ObjectiveProgressService` and its owning gameplay transactions;
-- `user_objectives.completed_at` and repository completion behavior;
-- canonical event -> reward definition -> finalized reward -> application pipeline;
-- existing unique reward duplicate semantics for unlocks/Codex and normal stackable/currency rewards;
-- idempotency receipts for combat/run/dialogue commands;
-- player revision behavior when gameplay, objective progress, completion, and rewards change in one transaction;
-- rollback/integrity conventions for reward failures.
+- Package 2 Codex Camp navigation/surface patterns;
+- current `GameScene` mounted-surface lifecycle and return-to-Camp behavior;
+- Package 4 objective contracts, RuntimeApiClient, GameStore lazy loading, stale/in-flight handling, and strict parser tests;
+- player revision reconciliation after combat/run/dialogue mutations;
+- current responsive helpers and Compact/Standard/Wide deterministic capture conventions;
+- current visual-design guidance and existing Camp controls.
 
-Do not introduce a second objective completion authority or a client claim API.
+Prefer reuse of the Codex presentation/navigation architecture where semantically appropriate rather than introducing another client subsystem.
 
-#### Canonical completion semantics
+#### Canonical presentation semantics
 
-- An objective becomes complete automatically when all of its authored requirements have reached `needed`.
-- Completion is durable and represented by the existing objective-owned completion state; do not infer completion only from counters.
-- The transition from active to completed occurs at most once per player/objective.
-- Once completed, later qualifying gameplay facts do not advance counters, rerun completion, or reroll rewards.
-- A qualifying fact may complete multiple objectives in the same authoritative transaction; each objective finalizes independently and exactly once.
-- An objective with no `completion_event_id` still transitions to completed normally and produces no reward event.
-- If a `completion_event_id` exists, use the existing canonical event/reward pipeline. Do not directly grant currency/items/unlocks/Codex from objective code.
-- Unique reward duplicates use the existing accepted duplicate behavior; do not compensate or reroll merely because the player already owns a unique reward.
+- The Objectives surface is read-only presentation of backend authority.
+- Render objective ordering exactly as supplied by the authoritative read contract unless an existing accepted client convention explicitly requires a server-projected sort key. Do not invent gameplay-priority ordering from hidden requirement types.
+- Show each objective's player-facing title, description/category where useful, authoritative status, and requirement label/current/needed progress.
+- `unstarted`, `active`, and `completed` come from the server response. Do not derive completion by checking whether counters equal targets.
+- Completed objectives remain visible unless the accepted server projection excludes them; do not silently delete historical completed objectives client-side.
+- Do not reveal requirement kind/target IDs, completion event IDs, reward definitions/probabilities, or other server-private configuration.
+- Do not add objective claim buttons, progress controls, or reward application UI.
 
-#### Transaction, rollback, and idempotency
+#### Camp and lifecycle integration
 
-- Completion detection, durable completion marking, reward finalization/application, and the final qualifying gameplay fact must share the owning authoritative transaction.
-- If objective completion reward resolution/application fails, the gameplay mutation and objective progress/completion from that attempt must roll back according to the owning command's transaction semantics.
-- Exact-key replay of combat/run/dialogue receipts must return the existing finalized result and must not rerun objective completion or rewards.
-- A later legitimate gameplay action after completion must not reapply completion rewards.
-- Do not add a separate public idempotency key or receipt namespace solely for automatic objective completion unless the existing transaction model demonstrably cannot provide exactly-once semantics; prefer the owning gameplay receipt boundary.
-- Cross-player isolation remains mandatory.
+- Add a clear Objectives destination from Camp using the existing mounted Phaser surface/navigation conventions.
+- Entering Objectives should lazy-load through the existing GameStore objective API/cache boundary.
+- Returning to Camp must cleanly destroy Objectives-owned presentation/input objects and preserve persistent GameRuntime state.
+- Re-entering while the cache is current should reuse authoritative cached data rather than issuing unnecessary reads.
+- A stale cache caused by an accepted player revision must refresh before presenting stale progress as current.
+- Recoverable API/read failure must present a usable error/retry path without fabricating objective data.
+- Stale in-flight responses must not overwrite newer authoritative state.
 
-#### Reward finalization
+#### Reconciliation requirements
 
-- Resolve the objective's authored completion event using the same accepted event/reward-definition semantics used elsewhere.
-- Finalized reward facts must be stable within the owning command attempt/replay boundary; retries must not reroll randomized rewards.
-- Apply rewards transactionally through existing reward application services/repositories.
-- Preserve browser secrecy: objective read responses must not expose completion event IDs, reward definitions, probabilities, hidden prerequisites, or other server-private reward configuration.
-- Do not add objective-specific reward shapes to the browser unless an existing mutation response must safely report a finalized player-facing grant; keep any such projection narrow and consistent with established reward receipt conventions.
+- Combat/run/dialogue remain the mutation authorities. The Objectives screen must not subscribe to or replay gameplay facts itself.
+- After an accepted mutation changes player revision, the established GameStore revision path should invalidate objective state. Opening/reloading Objectives then retrieves the authoritative projection.
+- Exact replay/no-op mutations that do not change revision must not cause invented objective changes.
+- Objective completion rewards are reconciled through existing authoritative wallet/unlock/Codex/inventory/unit/bootstrap/current-run paths; the Objectives screen does not locally apply or reconstruct them.
+- Do not add a client objective mutation endpoint.
 
-#### Revision and client reconciliation
+#### Responsive and interaction requirements
 
-- Player revision must represent accepted authoritative state changes without double increments for one logical mutation merely because it changed objective progress, completion, and rewards together.
-- Exact replay and post-completion no-op progress must not fabricate revision changes.
-- Existing lazy objective/Codex/inventory/unlock caches should become stale through established revision/reconciliation behavior when their authoritative state changes.
-- Do not optimistically mark objectives complete or apply rewards in the browser.
-
-#### Read-model transition
-
-- After Package 6, a fully satisfied persisted objective should normally be completed in the same transaction that reaches its final target.
-- The Package 5 temporary saturated-but-active state should no longer be produced by normal gameplay after this package.
-- Retain fail-closed handling for impossible/corrupt persisted completion states. Decide explicitly whether legacy/interrupted saturated-active state is safely recoverable on the next authoritative progress evaluation or remains an integrity condition; document and test the chosen behavior.
+- Follow the accepted 1600x900 logical reference and Compact/Standard/Wide runtime classifications.
+- Verify at least the canonical viewports: 844x390 Compact, 1600x900 Standard, and 2560x1080 Wide.
+- Portrait touch-first gameplay remains blocked by the existing rotate-device gate; Package 7 must not bypass or duplicate that gate.
+- Lists/details/progress must remain readable and navigable when objective or requirement counts exceed a single screen. Use deterministic paging/scrolling/navigation consistent with existing Phaser surfaces; do not assume the initial fixture count is the production maximum.
+- Keyboard/pointer/touch behavior should follow existing mounted-surface conventions and clean up listeners on exit.
+- Visual treatment should fit the current Camp/Codex direction without attempting the deferred game-wide visual overhaul.
 
 #### Minimum proof
 
 Prove at minimum:
 
-1. the final qualifying fact automatically marks a satisfied objective completed;
-2. an objective without a completion event completes without a reward;
-3. an objective with a completion event resolves and applies rewards through the existing pipeline;
-4. exact-key replay does not rerun completion, reroll rewards, or increment revision again;
-5. later legitimate matching gameplay after completion does not reapply rewards;
-6. multiple objectives completed by one fact each finalize once;
-7. unique duplicate rewards retain accepted duplicate behavior;
-8. reward/application failure rolls back gameplay progress, objective completion, and reward writes from that attempt;
-9. another player's gameplay cannot complete or reward the requesting player's objective;
-10. authoritative objective re-query reports `completed` after commit and browser projection still hides completion-event/reward internals.
+1. Camp exposes an Objectives entry point and entering it lazy-loads the authoritative objective collection;
+2. server ordering and player-facing fields are preserved;
+3. unstarted, active, and completed objectives render distinctly from the authoritative `status` field;
+4. requirement current/needed progress renders correctly without client completion inference;
+5. completed objectives remain present and no claim/reward action is offered;
+6. current cache is reused on re-entry while revision invalidation causes an authoritative refresh;
+7. stale in-flight reads cannot overwrite newer state;
+8. read failure exposes retry and successful retry recovers;
+9. return to Camp cleans up Objectives presentation/input state;
+10. Compact, Standard, and Wide deterministic verification remains usable, and portrait behavior remains governed by the existing gate;
+11. browser/runtime code has no requirement-kind/target or completion-event/reward configuration dependency.
 
 #### Verification requirements
 
-Add focused proof for:
-- completion on each relevant gameplay boundary where the final requirement may be satisfied;
-- single- and multi-requirement objectives;
-- objectives with and without `completion_event_id`;
-- multiple objectives completing from one fact;
-- exact-key replay at combat/run/dialogue boundaries;
-- later legitimate post-completion gameplay;
-- deterministic/finalized reward replay where reward definitions can randomize;
-- duplicate unique reward behavior;
-- reward failure rollback;
-- cross-player isolation;
-- player revision changed vs unchanged behavior;
-- objective read reconciliation after completion;
-- strict browser secrecy/private-field rejection;
-- existing Codex/dialogue/reward/run/combat/auth regressions remaining green.
+Add focused frontend tests for:
+- Camp -> Objectives -> Camp navigation/lifecycle;
+- lazy first load and current-cache reuse;
+- revision-stale reload behavior;
+- stale in-flight response protection;
+- error and retry;
+- authoritative ordering/status rendering;
+- requirement progress rendering;
+- completed visibility and absence of claim/progress mutation actions;
+- multi-objective/multi-requirement overflow navigation;
+- cleanup of input/listeners/presentation on exit;
+- Compact/Standard/Wide layout behavior;
+- portrait gate compatibility;
+- strict objective contract/private-field rejection remaining green.
 
-Run applicable gates in `agent/QUALITY_GATES.md` and full `npm run verify:package` before review.
+Run applicable gates in `agent/QUALITY_GATES.md` and full `npm run verify:package` before review. Produce deterministic captures if the existing visual verification workflow supports this surface.
 
 #### Scope exclusions
 
-Do not add in Package 6:
-- manual objective claim endpoints or UI;
-- client-authored progress/completion;
-- Phaser Objectives screen (Package 7);
-- generic event-history/player-progression state;
-- new objective requirement kinds without a demonstrated current need;
+Do not add in Package 7:
+- new backend objective semantics or requirement kinds;
+- client-authored objective progress/completion;
+- manual claim APIs or buttons;
+- objective-specific reward application/reconstruction;
+- generic history/player-progression state;
 - dialogue history/story flags;
 - Mystic Cave/onboarding;
 - Swamp/Frog Kin or production Shrine/Chaos expansion;
@@ -143,26 +140,14 @@ Do not add in Package 6:
 
 Report:
 - implementation SHA;
-- completion detection/transition design;
-- event/reward pipeline reuse and any necessary finalized receipt projection;
-- exact-once/idempotency behavior across combat/run/dialogue;
-- rollback and duplicate-reward proof;
-- revision/cache reconciliation behavior;
-- saturated-active recovery/integrity decision;
-- cross-player and browser-secrecy proof;
-- focused backend/frontend results;
+- Camp/navigation and mounted-surface design;
+- objective cache/read reuse and reconciliation behavior;
+- status/progress presentation and overflow behavior;
+- error/retry and stale-read handling;
+- responsive/portrait verification;
+- proof that private objective wiring/reward configuration is absent from presentation logic;
+- focused frontend results and deterministic capture results where applicable;
 - full package-gate results;
-- confirmation that manual claims, client completion authority, Phaser Objectives UI, generic history/progression state, and M12+ were not introduced.
+- confirmation that no backend objective redesign, client mutation/claim authority, generic history/progression state, or M12+ work was introduced.
 
-Leave Package 6 **In Progress** for review. Do not promote Package 7.
-
-#### Package 6 implementation evidence (review candidate)
-
-- Implementation commit: `c3e258cb1f4b1a23cd477b915c75fe6c4306a45f`. Package remains **In Progress** for architectural review.
-- Inventory/reuse: Package 5's transaction-bound `ObjectiveProgressService`, objective-owned counters and `completed_at`, and combat/Exit/dialogue receipt-first commands remain the only progression authorities. Completion reuses `RewardApplicationService`, the canonical event/reward definition, `ResolvedEventRepository`, `RewardFinalizer`, `RewardContext`, and existing duplicate Codex/unlock behavior. Prototype claim/sync and SQL-authored bounty paths were not reused.
-- Transition: gameplay facts still saturate counters first. After each owning gameplay handler finishes its own rewards, the same transaction calls `finalizeSatisfied`: every active objective whose requirements all meet `needed` is marked completed once, then its optional `completion_event_id` is applied with source type `objective_completion` and source ID equal to the stable objective ID. Objectives without an event complete without creating a reward event. Sequential objective events rebuild wallet, unlock, and participating-unit context from current locked authoritative rows, so independent completions and currency/XP/unique grants use fresh state. No objective-specific client grant projection or claim API was added.
-- Recovery decision: a saturated `active` row left by Package 5 is safely finalized on the next authoritative progress evaluation inside a gameplay transaction, even when the matching counter itself cannot increase. The read contract still distinguishes this temporary state and rejects a completed marker with unmet requirements.
-- Exact-once/rollback: combat, terminal Exit, and dialogue exact-key replay return their stored gameplay receipts before objective logic. Later legitimate matching facts skip completed objectives. Completion reward rows are stable under `(user, event, objective_completion, objective_id)` and randomized results do not reroll. Reward errors roll back the owning combat or dialogue mutation, objective counts/marker, reward writes, and receipt together. Tests also cover separate player ownership, two objectives completed by one fact, granted/already-owned unique unlock outcomes, no-event completion, currency and participating-unit XP rewards, and browser projection secrecy.
-- Revision/reconciliation: run-node commands retain one revision increment for their gameplay mutation. Dialogue increments once when new knowledge, objective progress, or recovered completion changes player state; saturated/post-completion no-op and exact replay do not increment. The existing GameStore revision path stales lazy objective and Codex reads, while authoritative bootstrap/current-run requery supplies wallet, unlock, and unit state without locally fabricating rewards. Existing frontend parser rejects completion-event and reward internals.
-- Focused verification: objective/combat/Exit/dialogue/reward backend suites **22 tests, 197 assertions**; browser objective contract and GameStore suites **36 tests passed**. Full `npm run verify:package`: **PASS**; backend **795 tests, 5,759 assertions**; frontend **519 tests passed**; content validation, PHP front-controller syntax, LLM/context, docs lint, production frontend build, bundle budget, and diff whitespace all passed. Artifact: `artifacts/verification/package-summary.json`.
-- No manual objective claim, client completion authority, Phaser Objectives UI, generic history/progression table, or Milestone 12+ work was introduced.
+Leave Package 7 **In Progress** for review. Do not promote Package 8.
