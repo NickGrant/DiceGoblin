@@ -25,12 +25,13 @@ final class ObjectiveContentFixture
       'completion_event_id' => 'event.mountains_boss_completed'];
   }
 
-  /** @param list<array<string,mixed>> $objectives */
-  public static function registry(array $objectives = [], ?array $primary = null): ContentRegistry
+  /** @param list<array<string,mixed>> $objectives @param list<array<string,mixed>> $extraDefinitions */
+  public static function registry(array $objectives = [], ?array $primary = null, array $extraDefinitions = []): ContentRegistry
   {
     $definitions = CanonicalContentFixture::definitions();
     $definitions[] = $primary ?? self::definition();
     foreach ($objectives as $objective) $definitions[] = $objective;
+    foreach ($extraDefinitions as $definition) $definitions[] = $definition;
     $root = sys_get_temp_dir() . '/dice-goblins-objectives-' . bin2hex(random_bytes(6));
     mkdir($root, 0777, true);
     $path = $root . '/fixture.json';

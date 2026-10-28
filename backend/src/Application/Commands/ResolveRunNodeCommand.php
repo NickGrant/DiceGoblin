@@ -137,6 +137,11 @@ final class ResolveRunNodeCommand
       } elseif ($outcome->nodeCompleted) {
         $available = $this->nodes->unlockDirectOutgoingNodes($runId, $nodeId);
       }
+      if ($this->objectives !== null) {
+        $unitIds = array_map(static fn(array $row): int => (int)$row['unit_id'],
+          $this->nodes->listParticipatingUnitsForUpdate($runId));
+        $this->objectives->finalizeSatisfied($userId, $unitIds);
+      }
       $revision = $this->playerState->incrementRevision($userId);
       $response = array_merge([
         'resolution_type' => $outcome->resolutionType,

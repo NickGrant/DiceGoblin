@@ -170,7 +170,6 @@ final class ControllerServiceFactory
     $unlockRepository = new UserUnlockRepository($pdo);
     $codexRepository = new UserCodexRepository($pdo);
     $itemRepository = new UserItemRepository($pdo);
-    $objectiveProgress = new ObjectiveProgressService($pdo, new UserObjectiveRepository($pdo), $content);
     $regionAvailability = new RegionAvailabilityPolicy($content);
     $unitTypeAvailability = new UnitTypeAvailabilityPolicy($content);
     $normalUnitCreation = new NormalUnitCreationService($unitRepository, $content);
@@ -180,6 +179,8 @@ final class ControllerServiceFactory
       $pdo, $content, new RewardFinalizer(new CryptoRewardRollSource()), new ResolvedEventRepository($pdo),
       $core['playerStateRepo'], $unitRepository, $unlockRepository, $codexRepository,
     );
+    $objectiveProgress = new ObjectiveProgressService($pdo, new UserObjectiveRepository($pdo), $content,
+      $core['playerStateRepo'], $unitRepository, $unlockRepository, $rewardApplication);
     $combatNodeHandler = new CombatNodeResolutionHandler(
       $nodeResolutionRepository,
       new BattlePersistenceRepository($pdo),

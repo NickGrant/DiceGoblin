@@ -5,10 +5,19 @@ namespace DiceGoblins\Tests\Integration;
 
 use DiceGoblins\Application\Objectives\ObjectiveProgressService;
 use DiceGoblins\Application\Queries\ObjectiveQuery;
+use DiceGoblins\Application\Rewards\RewardApplicationService;
+use DiceGoblins\Content\ContentRegistry;
+use DiceGoblins\Domain\Rewards\RewardFinalizer;
+use DiceGoblins\Repositories\PlayerStateRepository;
+use DiceGoblins\Repositories\ResolvedEventRepository;
+use DiceGoblins\Repositories\UserCodexRepository;
 use DiceGoblins\Repositories\UserObjectiveRepository;
 use DiceGoblins\Repositories\UserRepository;
+use DiceGoblins\Repositories\UserUnlockRepository;
+use DiceGoblins\Repositories\WarbandUnitRepository;
 use DiceGoblins\Tests\Support\IntegrationTestCase;
 use DiceGoblins\Tests\Support\ObjectiveContentFixture;
+use DiceGoblins\Tests\Support\ScriptedRewardRollSource;
 use RuntimeException;
 
 final class ObjectiveProgressIntegrationTest extends IntegrationTestCase
@@ -19,6 +28,7 @@ final class ObjectiveProgressIntegrationTest extends IntegrationTestCase
   {
     [$first, $second] = $this->users();
     $other = ObjectiveContentFixture::definition();
+    unset($other['completion_event_id']);
     $other['id'] = 'objective.test.second_scout';
     $other['requirements'] = [
       ['id' => 'kobolds', 'label' => 'Defeat kobolds', 'kind' => 'defeat_enemy_unit_type',
@@ -28,9 +38,11 @@ final class ObjectiveProgressIntegrationTest extends IntegrationTestCase
       ['id' => 'dialogue', 'label' => 'Speak with the scout', 'kind' => 'complete_dialogue',
         'target_id' => 'dialogue.camp.farm_scout', 'needed' => 2],
     ];
-    $content = ObjectiveContentFixture::registry([$other]);
+    $primary = ObjectiveContentFixture::definition();
+    unset($primary['completion_event_id']);
+    $content = ObjectiveContentFixture::registry([$other], $primary);
     $repo = new UserObjectiveRepository($this->pdo);
-    $service = new ObjectiveProgressService($this->pdo, $repo, $content);
+    $service = $this->service($repo, $content);
     $query = new ObjectiveQuery($repo, $content);
     $this->assertSame('0', (string)$this->scalar('SELECT COUNT(*) FROM `user_objectives` WHERE `user_id` = ?', [$first]));
     $this->pdo?->beginTransaction();
@@ -42,17 +54,18 @@ final class ObjectiveProgressIntegrationTest extends IntegrationTestCase
     $this->assertFalse($service->apply($first, 'complete_region_run', 'region.the_farm'));
     $this->assertTrue($service->apply($first, 'complete_dialogue', 'dialogue.camp.farm_scout'));
     $this->assertTrue($service->apply($first, 'complete_dialogue', 'dialogue.camp.farm_scout'));
+    $this->assertTrue($service->finalizeSatisfied($first));
     $this->pdo?->commit();
     $entries = $query->execute($first)['objectives'];
     $this->assertSame([10, 1, 1], array_column($entries[0]['requirements'], 'current'));
     $this->assertSame([3, 4, 2], array_column($entries[1]['requirements'], 'current'));
-    $this->assertSame('active', $entries[1]['status']); // target-satisfied, awaiting Package 6 finalization
+    $this->assertSame('completed', $entries[1]['status']);
     $this->assertSame('unstarted', $query->execute($second)['objectives'][0]['status']);
     $this->assertSame('1', (string)$this->scalar('SELECT `player_revision` FROM `user_state` WHERE `user_id` = ?', [$first]));
 
-    $this->assertTrue($repo->markCompleted($first, 'objective.test.second_scout'));
     $this->pdo?->beginTransaction();
     $this->assertFalse($service->apply($first, 'complete_dialogue', 'dialogue.camp.farm_scout'));
+    $this->assertFalse($service->finalizeSatisfied($first));
     $this->pdo?->commit();
     $this->assertSame('completed', $query->execute($first)['objectives'][1]['status']);
   }
@@ -62,7 +75,7 @@ final class ObjectiveProgressIntegrationTest extends IntegrationTestCase
     [$user] = $this->users();
     $content = ObjectiveContentFixture::registry();
     $repo = new UserObjectiveRepository($this->pdo);
-    $service = new ObjectiveProgressService($this->pdo, $repo, $content);
+    $service = $this->service($repo, $content);
     try { $service->apply($user, 'complete_dialogue', 'dialogue.camp.farm_scout');
       $this->fail('Progress outside the owning transaction should fail.');
     } catch (RuntimeException) { $this->addToAssertionCount(1); }
@@ -92,5 +105,16 @@ final class ObjectiveProgressIntegrationTest extends IntegrationTestCase
       $ids[] = $id;
     }
     return $ids;
+  }
+
+  private function service(UserObjectiveRepository $repo, ContentRegistry $content): ObjectiveProgressService
+  {
+    $players = new PlayerStateRepository($this->pdo);
+    $units = new WarbandUnitRepository($this->pdo);
+    $unlocks = new UserUnlockRepository($this->pdo);
+    $rewards = new RewardApplicationService($this->pdo, $content,
+      new RewardFinalizer(new ScriptedRewardRollSource([])), new ResolvedEventRepository($this->pdo),
+      $players, $units, $unlocks, new UserCodexRepository($this->pdo));
+    return new ObjectiveProgressService($this->pdo, $repo, $content, $players, $units, $unlocks, $rewards);
   }
 }

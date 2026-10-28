@@ -95,7 +95,8 @@ final class CompleteDialogueCommand
         }
       }
       $objectiveChanged = $this->objectives?->apply($userId, 'complete_dialogue', $dialogueId) ?? false;
-      if ($objectiveChanged && !$revisionChanged) {
+      $objectiveCompleted = $this->objectives?->finalizeSatisfied($userId) ?? false;
+      if (($objectiveChanged || $objectiveCompleted) && !$revisionChanged) {
         if ($revision === ClientSafeInteger::MAXIMUM) throw new DialogueCompletionIntegrityException('Player revision overflow.');
         $revision = $this->players->incrementRevision($userId);
       }
