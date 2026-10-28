@@ -2,162 +2,65 @@
 
 ## Milestone 11 - Knowledge and Objectives
 
-### Milestone 11 Package 7 - Phaser Objectives surface + authoritative reconciliation
+### Milestone 11 Package 8 - Knowledge/objectives integrated verification and technical closure
 
 **Status:** In Progress
 **Priority:** High
 
 #### Problem
-
-Packages 4-6 established the complete authoritative objective lifecycle: authored objectives, user-scoped mutable progress, gameplay-fact advancement, automatic completion, and canonical completion rewards. The client already has a strict lazy objective read/cache contract, but players have no Phaser surface for seeing objectives or their progress.
-
-Package 7 must expose that accepted backend authority in the game client without creating client-side progress/completion logic or duplicating reward state.
+Packages 1-7 now implement the intended Milestone 11 knowledge/objective lifecycle: Codex ownership and presentation, knowledge-aware replayable dialogue, objective definitions and persistence, authoritative gameplay-fact progress, automatic completion/rewards, and Phaser Objectives presentation. Before manual UAT, the milestone needs an integrated closure pass across these independently approved packages. This is not a feature package.
 
 #### Accepted baseline
-
 - Milestones 1-10 are complete and passed manual UAT.
-- Milestone 11 Packages 1-3 established Codex ownership/presentation and replayable knowledge-aware dialogue.
-- Package 4 established the authoritative objective read model and lazy GameStore objective cache.
-- Package 5 connected finalized combat, successful region-run completion, and dialogue completion to objective counters.
-- Package 6 is approved through `cdaaee5f85b35557c5b249ade3b5eff72624e3bf` (implementation `c3e258cb1f4b1a23cd477b915c75fe6c4306a45f`).
-- Package 6 automatically completes satisfied objectives and applies optional completion events through the canonical reward pipeline exactly once in the owning gameplay transaction.
-- Objective read responses expose only player-safe `id`, `title`, `description`, `category`, `status`, and requirement `id`, `label`, `current`, `needed` facts. Requirement kinds/targets and completion/reward internals remain server-private.
-- The GameStore objective collection is lazy, revision-aware, and authoritative; browser code must not fabricate counters, completion, or rewards.
-- `documentation/07-development-path/vnext-phaser-client-architecture.md` is canonical for Phaser/runtime/responsive behavior; `documentation/04-ux/01-visual-design-guide.md` governs current visual direction.
+- Milestone 11 Packages 1-6 are approved as recorded in `agent/MILESTONES.md`.
+- Package 7 is approved through `cdf2886475512cdbe7d479e08bd495d4e276a3b1` (implementation `d3da60c8b8894fc4628e14d74ad7b6fe4ffcc529`).
+- Backend/MySQL remains authoritative for Codex ownership, dialogue eligibility, objective progress/completion, rewards, revision, and idempotency.
+- Phaser consumes strict player-safe projections through the existing runtime/GameStore boundaries.
+- No generic progression/history/story-flag layer is part of the accepted design.
+- Package 9 remains the focused manual UAT gate; do not mark Milestone 11 complete here.
 
 #### Purpose
+Perform technical closure of the accepted Milestone 11 implementation before manual UAT. Verify the end-to-end Codex/dialogue/objective lifecycle, persistence, retry/reconnect, revision/cache reconciliation, secrecy, reward idempotency, responsive presentation, and regression safety. Close only test/documentation/implementation gaps required by already accepted semantics.
 
-Add the smallest usable Phaser Objectives presentation integrated with Camp and the existing runtime/cache architecture.
+#### Required integrated audit
+Inventory P1-P7 against `documentation/07-development-path/vnext-progression-state-model.md`, `vnext-phaser-client-architecture.md`, `vnext-reward-unlock-model.md`, `documentation/06-testing-release/00-testing-strategy.md`, `documentation/04-ux/01-visual-design-guide.md`, and `agent/QUALITY_GATES.md`. Canonical docs remain architectural authority; source/tests are implementation evidence.
 
-Package 7 must:
-
-1. provide an Objectives entry point from Camp;
-2. present authoritative objective status and requirement progress from the existing lazy objective cache;
-3. distinguish unstarted/active/completed objectives clearly without inferring state locally;
-4. reconcile after authoritative player revision changes and recover from read errors/retries;
-5. remain usable across Compact, Standard, and Wide layouts and obey the existing portrait gameplay gate;
-6. preserve server-private objective wiring/reward configuration.
-
-#### Required inventory before implementation
-
-Inspect and record reuse/drop decisions for:
-- Package 2 Codex Camp navigation/surface patterns;
-- current `GameScene` mounted-surface lifecycle and return-to-Camp behavior;
-- Package 4 objective contracts, RuntimeApiClient, GameStore lazy loading, stale/in-flight handling, and strict parser tests;
-- player revision reconciliation after combat/run/dialogue mutations;
-- current responsive helpers and Compact/Standard/Wide deterministic capture conventions;
-- current visual-design guidance and existing Camp controls.
-
-Prefer reuse of the Codex presentation/navigation architecture where semantically appropriate rather than introducing another client subsystem.
-
-#### Canonical presentation semantics
-
-- The Objectives surface is read-only presentation of backend authority.
-- Render objective ordering exactly as supplied by the authoritative read contract unless an existing accepted client convention explicitly requires a server-projected sort key. Do not invent gameplay-priority ordering from hidden requirement types.
-- Show each objective's player-facing title, description/category where useful, authoritative status, and requirement label/current/needed progress.
-- `unstarted`, `active`, and `completed` come from the server response. Do not derive completion by checking whether counters equal targets.
-- Completed objectives remain visible unless the accepted server projection excludes them; do not silently delete historical completed objectives client-side.
-- Do not reveal requirement kind/target IDs, completion event IDs, reward definitions/probabilities, or other server-private configuration.
-- Do not add objective claim buttons, progress controls, or reward application UI.
-
-#### Camp and lifecycle integration
-
-- Add a clear Objectives destination from Camp using the existing mounted Phaser surface/navigation conventions.
-- Entering Objectives should lazy-load through the existing GameStore objective API/cache boundary.
-- Returning to Camp must cleanly destroy Objectives-owned presentation/input objects and preserve persistent GameRuntime state.
-- Re-entering while the cache is current should reuse authoritative cached data rather than issuing unnecessary reads.
-- A stale cache caused by an accepted player revision must refresh before presenting stale progress as current.
-- Recoverable API/read failure must present a usable error/retry path without fabricating objective data.
-- Stale in-flight responses must not overwrite newer authoritative state.
-
-#### Reconciliation requirements
-
-- Combat/run/dialogue remain the mutation authorities. The Objectives screen must not subscribe to or replay gameplay facts itself.
-- After an accepted mutation changes player revision, the established GameStore revision path should invalidate objective state. Opening/reloading Objectives then retrieves the authoritative projection.
-- Exact replay/no-op mutations that do not change revision must not cause invented objective changes.
-- Objective completion rewards are reconciled through existing authoritative wallet/unlock/Codex/inventory/unit/bootstrap/current-run paths; the Objectives screen does not locally apply or reconstruct them.
-- Do not add a client objective mutation endpoint.
-
-#### Responsive and interaction requirements
-
-- Follow the accepted 1600x900 logical reference and Compact/Standard/Wide runtime classifications.
-- Verify at least the canonical viewports: 844x390 Compact, 1600x900 Standard, and 2560x1080 Wide.
-- Portrait touch-first gameplay remains blocked by the existing rotate-device gate; Package 7 must not bypass or duplicate that gate.
-- Lists/details/progress must remain readable and navigable when objective or requirement counts exceed a single screen. Use deterministic paging/scrolling/navigation consistent with existing Phaser surfaces; do not assume the initial fixture count is the production maximum.
-- Keyboard/pointer/touch behavior should follow existing mounted-surface conventions and clean up listeners on exit.
-- Visual treatment should fit the current Camp/Codex direction without attempting the deferred game-wide visual overhaul.
-
-#### Minimum proof
-
+#### Integrated lifecycle proof
 Prove at minimum:
+1. dialogue -> Codex grant -> authoritative Codex read -> Codex-gated dialogue eligibility;
+2. combat/run/dialogue -> objective progress -> automatic completion -> canonical reward -> authoritative re-read;
+3. exact-key replay does not reroll/reapply knowledge, objective progress, completion, or rewards;
+4. randomized completion rewards remain stable and duplicate unique Codex/unlock rewards retain canonical duplicate behavior;
+5. multiple matching objectives progress/complete independently from one authoritative fact;
+6. failed/rolled-back gameplay or reward application leaves no partial Codex/objective/reward state;
+7. cross-player isolation holds for Codex, dialogue eligibility, objective progress/completion, and rewards.
 
-1. Camp exposes an Objectives entry point and entering it lazy-loads the authoritative objective collection;
-2. server ordering and player-facing fields are preserved;
-3. unstarted, active, and completed objectives render distinctly from the authoritative `status` field;
-4. requirement current/needed progress renders correctly without client completion inference;
-5. completed objectives remain present and no claim/reward action is offered;
-6. current cache is reused on re-entry while revision invalidation causes an authoritative refresh;
-7. stale in-flight reads cannot overwrite newer state;
-8. read failure exposes retry and successful retry recovers;
-9. return to Camp cleans up Objectives presentation/input state;
-10. Compact, Standard, and Wide deterministic verification remains usable, and portrait behavior remains governed by the existing gate;
-11. browser/runtime code has no requirement-kind/target or completion-event/reward configuration dependency.
+#### Revision, cache, reconnect, and secrecy
+Verify accepted mutations update player revision without artificial double increments; revision changes stale the appropriate lazy Codex/objective caches; current caches are reused when revision is unchanged; stale in-flight reads cannot overwrite newer state; read errors remain retryable; and reconnect/reload reconstructs durable state without client history reconstruction.
+
+Audit backend projections, strict browser parsers, GameStore state, and Phaser surfaces so they do not expose or depend on hidden dialogue prerequisite identities, objective requirement kind/target IDs, completion event IDs, reward definitions/probabilities/roll data, generic historical events, or story flags. Preserve fail-closed malformed/private-field rejection.
+
+#### Phaser/responsive closure
+Verify repeated Camp -> Codex/Objectives -> Camp lifecycle teardown without duplicate keyboard/pointer/store listeners; loading/error/retry and long-content/list pagination; Compact 844x390, Standard 1600x900, Wide 2560x1080; and portrait 390x844 through the existing rotate-device gate. Do not undertake the deferred global visual redesign.
+
+#### Closure fixes allowed
+Narrow fixes are allowed for defects in already accepted Milestone 11 semantics, missing regression coverage, lifecycle cleanup, strict parser gaps, transaction/retry defects, or stale documentation. Do not introduce new product mechanics. If a finding requires a material new architecture/product decision, stop and report it for review.
 
 #### Verification requirements
+- Add/consolidate integrated tests only where they materially improve semantic coverage; avoid redundant fixture-heavy count inflation.
+- Run focused backend suites spanning Codex, dialogue, objectives, rewards, combat/run integration, idempotency, rollback, and cross-player isolation.
+- Run focused frontend suites spanning strict contracts, GameStore revision/cache behavior, Camp navigation, Codex, Objectives, and lifecycle cleanup.
+- Run deterministic captures for representative Camp/Codex/Objectives states at canonical viewports where supported.
+- Run full `npm run verify:package`; record exact test/assertion counts and evidence policy.
+- Review changed files for accidental scope expansion and production entry-point/composition issues.
 
-Add focused frontend tests for:
-- Camp -> Objectives -> Camp navigation/lifecycle;
-- lazy first load and current-cache reuse;
-- revision-stale reload behavior;
-- stale in-flight response protection;
-- error and retry;
-- authoritative ordering/status rendering;
-- requirement progress rendering;
-- completed visibility and absence of claim/progress mutation actions;
-- multi-objective/multi-requirement overflow navigation;
-- cleanup of input/listeners/presentation on exit;
-- Compact/Standard/Wide layout behavior;
-- portrait gate compatibility;
-- strict objective contract/private-field rejection remaining green.
-
-Run applicable gates in `agent/QUALITY_GATES.md` and full `npm run verify:package` before review. Produce deterministic captures if the existing visual verification workflow supports this surface.
+#### Documentation closure
+Update canonical documentation only for real stale/gap findings exposed by the accepted implementation. Keep package evidence distinct from architectural authority. Ensure `agent/ISSUES.md`, `agent/QUALITY_GATES.md`, and affected canonical docs are consistent enough for Package 9 UAT and Milestone 12 handoff.
 
 #### Scope exclusions
-
-Do not add in Package 7:
-- new backend objective semantics or requirement kinds;
-- client-authored objective progress/completion;
-- manual claim APIs or buttons;
-- objective-specific reward application/reconstruction;
-- generic history/player-progression state;
-- dialogue history/story flags;
-- Mystic Cave/onboarding;
-- Swamp/Frog Kin or production Shrine/Chaos expansion;
-- broad visual redesign;
-- Milestone 12+ work.
+Do not add new gameplay/product mechanics, objective requirement kinds, dialogue history/story flags, manual objective claims, client-authored Codex/objective mutations, generic progression/history/event persistence, Mystic Cave/onboarding, Swamp/Frog Kin or production Shrine/Chaos expansion, broad visual redesign, or Milestone 12+ work.
 
 #### Completion evidence required
+Report audit findings and closure-fix SHAs; integrated backend lifecycle/retry/rollback/cross-player proof; integrated frontend revision/cache/navigation/lifecycle proof; secrecy audit; responsive captures; focused tests; full package gates; documentation/quality-gate updates; and confirmation that no new product mechanics, generic progression/history state, or M12+ work was introduced.
 
-Report:
-- implementation SHA;
-- Camp/navigation and mounted-surface design;
-- objective cache/read reuse and reconciliation behavior;
-- status/progress presentation and overflow behavior;
-- error/retry and stale-read handling;
-- responsive/portrait verification;
-- proof that private objective wiring/reward configuration is absent from presentation logic;
-- focused frontend results and deterministic capture results where applicable;
-- full package-gate results;
-- confirmation that no backend objective redesign, client mutation/claim authority, generic history/progression state, or M12+ work was introduced.
-
-Leave Package 7 **In Progress** for review. Do not promote Package 8.
-
-#### Package 7 implementation evidence (review candidate)
-
-- Implementation: `d3da60c` on `vnext-game-overhaul`. Camp now has a seventh Objectives destination. `GameScene` owns its mounted screen and return path; leaving destroys its container, keyboard listener, and GameStore subscription.
-- The screen calls the existing lazy `GameStore.loadObjectives`/`retryObjectives` path. Fresh cache is reused on re-entry; stale/revision changes hide old progress while reloading. GameStore's existing generation/epoch checks discard old in-flight responses. Read errors display Retry without objective data.
-- Objective order, status, title, description, category, and requirement progress come only from the strict server projection. Completed entries remain selectable. Long lists and detail text use deterministic pages with pointer/touch buttons and keyboard navigation. No claim, progress mutation, or reward reconstruction is present. The screen imports only `ObjectiveEntry`; private requirement kind/target and completion/reward wiring are absent.
-- Focused frontend: 65/65 Objectives, Camp, objective-contract, and GameStore tests passed. The final Escape-key cleanup was checked with 29/29 Objectives and Camp tests; GameScene retains Escape ownership.
-- Deterministic captures passed: Objectives at 844x390 Compact, 1600x900 Standard, 2560x1080 Wide, 390x844 portrait (`gate=active`), and 1600x900 read error; Compact Camp with the new destination also passed. Capture files are under ignored `artifacts/screenshots/m11-p7-*`.
-- Final complete `npm run verify:package`: PASS in 12m 34s, 795 backend tests / 5,759 assertions, 524 frontend tests, production build, bundle, content, syntax, context, docs, and diff checks. No backend or content files changed.
-- No backend objective redesign, client mutation/claim authority, generic history/progression state, or Milestone 12+ work was introduced. Package 7 remains In Progress for architectural review.
+Leave Package 8 **In Progress** for review. Do not activate Package 9 or mark Milestone 11 complete. Package 9 is the explicit focused manual UAT gate.
