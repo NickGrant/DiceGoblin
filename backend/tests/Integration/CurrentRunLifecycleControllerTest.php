@@ -57,8 +57,9 @@ final class CurrentRunLifecycleControllerTest extends IntegrationTestCase
     $this->assertSame((string)$runId, $run['id'] ?? null);
     $this->assertSame('region.the_farm', $run['region_id'] ?? null);
     $this->assertSame('active', $run['status'] ?? null);
-    $this->assertCount(5, $run['nodes'] ?? []);
-    $this->assertCount(4, $run['edges'] ?? []);
+    $definition = $this->content()->runGenerationForRegion('region.the_farm');
+    $this->assertCount(count($definition['nodes']), $run['nodes'] ?? []);
+    $this->assertCount(count($definition['edges']), $run['edges'] ?? []);
     $this->assertCount(5, $run['units'] ?? []);
     $bruiserState = array_values(array_filter($run['units'], static fn(array $unit): bool => $unit['unit_id'] === (string)$bruiser));
     $this->assertSame([['unit_id' => (string)$bruiser, 'current_hp' => 9]], $bruiserState);
@@ -69,9 +70,11 @@ final class CurrentRunLifecycleControllerTest extends IntegrationTestCase
     $reloadedBruiser = array_values(array_filter($reloaded['run']['units'] ?? [],
       static fn(array $unit): bool => $unit['unit_id'] === (string)$bruiser));
     $this->assertSame([['unit_id' => (string)$bruiser, 'current_hp' => 9]], $reloadedBruiser);
-    $this->assertSame([0, 1, 2, 3, 4], array_column($run['nodes'], 'node_index'));
-    $this->assertSame([0, 1, 2, 3, 4], array_column(array_column($run['nodes'], 'position'), 'column'));
-    $this->assertSame([1, 1, 1, 1, 1], array_column(array_column($run['nodes'], 'position'), 'row'));
+    $this->assertSame(range(0, count($definition['nodes']) - 1), array_column($run['nodes'], 'node_index'));
+    $this->assertSame(array_column(array_column($definition['nodes'], 'position'), 'column'),
+      array_column(array_column($run['nodes'], 'position'), 'column'));
+    $this->assertSame(array_column(array_column($definition['nodes'], 'position'), 'row'),
+      array_column(array_column($run['nodes'], 'position'), 'row'));
     $this->assertArrayNotHasKey('interaction', $run['nodes'][2]);
     $encoded = json_encode($data);
     foreach (['generated_metadata', 'run_generation_id', 'algorithm', 'local_key', 'encounter_id'] as $private) {
@@ -94,7 +97,8 @@ final class CurrentRunLifecycleControllerTest extends IntegrationTestCase
     $this->assertSame(200, $mutable['status']);
     $this->assertSame('completed', $mutable['body']['data']['run']['nodes'][0]['status'] ?? null);
     $this->assertSame((string)$battleId, $mutable['body']['data']['run']['nodes'][0]['battle_id'] ?? null);
-    $this->assertSame([null, null, null, null], array_column(array_slice($mutable['body']['data']['run']['nodes'], 1), 'battle_id'));
+    $this->assertSame(array_fill(0, count($definition['nodes']) - 1, null),
+      array_column(array_slice($mutable['body']['data']['run']['nodes'], 1), 'battle_id'));
     $this->assertArrayNotHasKey('events', $mutable['body']['data']['run']['nodes'][0]);
     $this->assertSame($nodeIds, array_column($mutable['body']['data']['run']['nodes'], 'id'));
   }
@@ -103,7 +107,7 @@ final class CurrentRunLifecycleControllerTest extends IntegrationTestCase
   {
     [$userId] = $this->fixtureAccount('current-generic-interaction');
     $runId = $this->start($userId);
-    $node = $this->row('SELECT `id` FROM `run_nodes` WHERE `run_id` = ? AND `node_index` = 2', [$runId]);
+    $node = $this->row('SELECT `id` FROM `run_nodes` WHERE `run_id` = ? AND `node_index` = 3', [$runId]);
     $nodeId = (int)$node['id'];
     $this->pdo?->prepare("UPDATE `run_nodes` SET `node_type_id` = 'run_node_type.test_interaction', `status` = 'available' WHERE `id` = ?")
       ->execute([$nodeId]);
@@ -113,8 +117,8 @@ final class CurrentRunLifecycleControllerTest extends IntegrationTestCase
     $query = new CurrentRunQuery(new RunPersistenceRepository($this->pdo),
       new PlayerStateRepository($this->pdo), $content, new \DiceGoblins\Repositories\RunModifierRepository($this->pdo));
     $read = $query->execute($userId)['run'];
-    $interaction = $read['nodes'][2]['interaction'];
-    $this->assertSame('run_node_type.test_interaction', $read['nodes'][2]['node_type_id']);
+    $interaction = $read['nodes'][3]['interaction'];
+    $this->assertSame('run_node_type.test_interaction', $read['nodes'][3]['node_type_id']);
     $this->assertSame(['encounter_id', 'title', 'body', 'prompt', 'actions'], array_keys($interaction));
     $this->assertSame('encounter.the_farm_rest', $interaction['encounter_id']);
     $this->assertSame([['id' => 'rest', 'label' => 'REST']], $interaction['actions']);
@@ -122,17 +126,17 @@ final class CurrentRunLifecycleControllerTest extends IntegrationTestCase
     $this->assertArrayNotHasKey('interaction', $read['nodes'][0]);
 
     $this->pdo?->prepare("UPDATE `run_nodes` SET `status` = 'locked' WHERE `id` = ?")->execute([$nodeId]);
-    $this->assertArrayNotHasKey('interaction', $query->execute($userId)['run']['nodes'][2]);
+    $this->assertArrayNotHasKey('interaction', $query->execute($userId)['run']['nodes'][3]);
     $this->pdo?->prepare("UPDATE `run_nodes` SET `status` = 'completed', `completed_at` = '2026-09-13 12:04:00' WHERE `id` = ?")
       ->execute([$nodeId]);
-    $this->assertArrayNotHasKey('interaction', $query->execute($userId)['run']['nodes'][2]);
+    $this->assertArrayNotHasKey('interaction', $query->execute($userId)['run']['nodes'][3]);
   }
 
   public function testRequiredPersistedNonCombatEncounterAssociationFailsIntegrityValidation(): void
   {
     [$userId] = $this->fixtureAccount('current-invalid-interaction');
     $runId = $this->start($userId);
-    $node = $this->row('SELECT `id` FROM `run_nodes` WHERE `run_id` = ? AND `node_index` = 2', [$runId]);
+    $node = $this->row('SELECT `id` FROM `run_nodes` WHERE `run_id` = ? AND `node_index` = 3', [$runId]);
     $nodeId = (int)$node['id'];
     $query = new CurrentRunQuery(new RunPersistenceRepository($this->pdo),
       new PlayerStateRepository($this->pdo), $this->content(), new \DiceGoblins\Repositories\RunModifierRepository($this->pdo));
@@ -176,10 +180,10 @@ final class CurrentRunLifecycleControllerTest extends IntegrationTestCase
       'completed Combat without battle' => [0, 'completed', false],
       'non-completed Combat with battle' => [0, 'available', true],
       'battle on Loot' => [1, 'completed', true],
-      'battle on Rest' => [2, 'completed', true],
-      'completed Boss without battle' => [3, 'completed', false],
-      'non-completed Boss with battle' => [3, 'available', true],
-      'battle on Exit' => [4, 'completed', true],
+      'battle on Rest' => [3, 'completed', true],
+      'completed Boss without battle' => [4, 'completed', false],
+      'non-completed Boss with battle' => [4, 'available', true],
+      'battle on Exit' => [5, 'completed', true],
     ];
   }
 
@@ -270,8 +274,9 @@ final class CurrentRunLifecycleControllerTest extends IntegrationTestCase
     $this->assertSame($before['energy_current'], $after['energy_current']);
     $this->assertSame($before['energy_last_regen_at'], $after['energy_last_regen_at']);
     $this->assertSame((int)$before['player_revision'] + 1, (int)$after['player_revision']);
-    $this->assertSame(5, (int)$this->scalar('SELECT COUNT(*) FROM `run_nodes` WHERE `run_id` = ?', [$runId]));
-    $this->assertSame(4, (int)$this->scalar('SELECT COUNT(*) FROM `run_edges` WHERE `run_id` = ?', [$runId]));
+    $definition = $this->content()->runGenerationForRegion('region.the_farm');
+    $this->assertSame(count($definition['nodes']), (int)$this->scalar('SELECT COUNT(*) FROM `run_nodes` WHERE `run_id` = ?', [$runId]));
+    $this->assertSame(count($definition['edges']), (int)$this->scalar('SELECT COUNT(*) FROM `run_edges` WHERE `run_id` = ?', [$runId]));
     $this->assertSame(5, (int)$this->scalar('SELECT COUNT(*) FROM `run_unit_state` WHERE `run_id` = ?', [$runId]));
 
     $this->pdo?->prepare("UPDATE `runs` SET `status` = 'completed' WHERE `id` = ?")->execute([$runId]);

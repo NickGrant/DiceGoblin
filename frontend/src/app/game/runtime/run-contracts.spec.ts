@@ -64,6 +64,24 @@ describe('run contracts', () => {
     expect(result.run?.regionId).toBe('region.the_farm');
   });
 
+  it('accepts only a player-safe available Boss conversation', () => {
+    const value: any = currentEnvelope();
+    value.data.run.nodes[3] = { ...value.data.run.nodes[3], status: 'available', completed_at: null,
+      battle_id: null, conversation: { id: 'dialogue.farm.mudking_first', title: 'The Mudking',
+        body: 'The merchant is captive.', choices: [{ id: 'challenge', label: 'Challenge' }] } };
+    value.data.run.nodes[4].status = 'locked'; value.data.run.available_node_ids = ['13'];
+    expect(parseCurrentRunEnvelope(value, content()).run?.nodes[3].conversation?.id).toBe('dialogue.farm.mudking_first');
+    for (const mutate of [
+      (copy: any) => { copy.data.run.nodes[3].conversation.choices[0].response = 'Private response'; },
+      (copy: any) => { copy.data.run.nodes[3].conversation.effect = 'private'; },
+      (copy: any) => { copy.data.run.nodes[3].status = 'locked'; copy.data.run.available_node_ids = []; },
+      (copy: any) => { copy.data.run.nodes[3].node_type_id = 'run_node_type.combat'; },
+    ]) {
+      const invalid = structuredClone(value); mutate(invalid);
+      expect(() => parseCurrentRunEnvelope(invalid, content())).toThrowError(RunContractError);
+    }
+  });
+
   it('accepts only narrow active run modifier facts', () => {
     const value: any = currentEnvelope();
     value.data.run.modifiers = [{ id: '71', modifier_id: 'modifier.test_battle_focus',

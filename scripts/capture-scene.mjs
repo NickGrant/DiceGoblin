@@ -180,7 +180,7 @@ async function installGameFixtureRoutes(page, options) {
   const battleScenes = ['battle-early', 'battle-mid', 'battle-complete', 'battle-compact', 'battle-wide', 'battle-portrait', 'battle-defeat',
     'battle-result-victory', 'battle-result-defeat', 'battle-result-stalemate', 'battle-result-compact', 'battle-result-wide', 'battle-result-error', 'battle-result-portrait'];
   const runScenes = ['run', 'run-modifier', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-branching', 'run-mountains-trails',
-    'run-loot-available', 'run-loot-result', 'run-rest-available', 'run-rest-result',
+    'run-loot-available', 'run-loot-result', 'run-rest-available', 'run-rest-result', 'run-dialogue-available', 'run-boss-first', 'run-boss-return',
     'run-hazard-available', 'run-hazard-result', 'run-contextual-initial', 'run-contextual-step', 'run-supplies'];
   if (!['camp', 'camp-portrait', 'warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'codex', 'objectives', 'unit-promotion', 'squad-editor', 'unit-configuration', ...runScenes, ...battleScenes].includes(scene)) return;
 
@@ -414,6 +414,38 @@ async function installGameFixtureRoutes(page, options) {
     let resolvedStage = ['run-rest-available', 'run-rest-result', 'run-hazard-available', 'run-hazard-result',
       'run-branching', 'run-contextual-initial', 'run-contextual-step'].includes(scene) ? 'loot' : 'combat';
     const runResponse = () => {
+      if (scene === 'run-boss-first' || scene === 'run-boss-return') {
+        const types = ['combat', 'loot', 'dialogue', 'rest', 'boss', 'exit'];
+        const nodes = types.map((type, index) => ({ id: String(501 + index), node_index: index,
+          node_type_id: `run_node_type.${type}`, status: index < 4 ? 'completed' : index === 4 ? 'available' : 'locked',
+          completed_at: index < 4 ? `2026-09-13T12:0${index + 2}:00Z` : null,
+          battle_id: index === 0 ? '601' : null, position: { column: index, row: 1 },
+          ...(index === 4 ? { conversation: { id: scene === 'run-boss-first' ? 'dialogue.farm.mudking_first' : 'dialogue.farm.mudking_return',
+            title: scene === 'run-boss-first' ? 'The Mudking' : 'The Mudking Returns',
+            body: scene === 'run-boss-first' ? 'The Mudking bars the path. Behind him, a captive merchant calls from a crooked cage.'
+              : 'Mudking recognizes the warband. The merchant is safe in Camp now, but Mudking still claims the road.',
+            choices: [{ id: 'challenge', label: scene === 'run-boss-first' ? 'Challenge the Mudking' : 'Challenge him again' }] } } : {}) }));
+        return { ok: true, data: { run: { id: '401', region_id: 'region.the_farm', squad_id: '301', status: 'active',
+          created_at: '2026-09-13T12:00:00Z', nodes,
+          edges: types.slice(0, -1).map((_, index) => ({ from_node_id: String(501 + index), to_node_id: String(502 + index) })),
+          available_node_ids: ['505'],
+          units: activeFormation.filter(Boolean).map((unit_id) => ({ unit_id, current_hp: 24 })) }, player_revision: 4 } };
+      }
+      if (scene === 'run-dialogue-available') {
+        const types = ['combat', 'loot', 'dialogue', 'rest', 'boss', 'exit'];
+        const nodes = types.map((type, index) => ({ id: String(501 + index), node_index: index,
+          node_type_id: `run_node_type.${type}`, status: index < 2 ? 'completed' : index === 2 ? 'available' : 'locked',
+          completed_at: index < 2 ? `2026-09-13T12:0${index + 2}:00Z` : null,
+          battle_id: index === 0 ? '601' : null, position: { column: index, row: 1 },
+          ...(index === 2 ? { interaction: { encounter_id: 'encounter.the_farm_scout', title: 'The Farm Scout',
+            body: "A goblin scout points toward the Farm's muddy tracks.", prompt: 'What do you ask the scout?',
+            actions: [{ id: 'hear_paths', label: 'Ask about the old paths' }] } } : {}) }));
+        return { ok: true, data: { run: { id: '401', region_id: 'region.the_farm', squad_id: '301', status: 'active',
+          created_at: '2026-09-13T12:00:00Z', nodes,
+          edges: types.slice(0, -1).map((_, index) => ({ from_node_id: String(501 + index), to_node_id: String(502 + index) })),
+          available_node_ids: ['503'],
+          units: activeFormation.filter(Boolean).map((unit_id) => ({ unit_id, current_hp: 24 })) }, player_revision: 4 } };
+      }
       if (scene === 'run-mountains-trails') {
         const types = ['combat', 'loot', 'combat', 'rest', 'combat', 'boss', 'exit', 'hazard', 'hazard', 'hazard', 'hazard', 'hazard'];
         const positions = [[0, 1], [1, 1], [2, 1], [3, 1], [5, 1], [6, 1], [7, 1], [4, 1], [3, 2], [1, 0], [4, 0], [6, 0]];
@@ -744,7 +776,7 @@ async function captureScene(options) {
           );
         }
         if (['camp', 'camp-portrait', 'warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'codex', 'objectives', 'unit-promotion', 'squad-editor', 'unit-configuration', 'run', 'run-modifier', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-branching',
-            'run-loot-available', 'run-loot-result', 'run-rest-available', 'run-rest-result',
+            'run-loot-available', 'run-loot-result', 'run-rest-available', 'run-rest-result', 'run-dialogue-available', 'run-boss-first', 'run-boss-return',
             'run-hazard-available', 'run-hazard-result', 'run-contextual-initial', 'run-contextual-step', 'run-supplies',
           'battle-early', 'battle-mid', 'battle-complete', 'battle-compact', 'battle-wide', 'battle-portrait', 'battle-defeat',
           'battle-result-victory', 'battle-result-defeat', 'battle-result-stalemate', 'battle-result-compact', 'battle-result-wide', 'battle-result-error', 'battle-result-portrait'].includes(options.scene.trim().toLowerCase())) {
@@ -752,7 +784,7 @@ async function captureScene(options) {
           const requestedGameScreen = options.scene.trim().toLowerCase();
           const gameScreen = ['warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'codex', 'objectives', 'unit-promotion', 'squad-editor', 'unit-configuration'].includes(requestedGameScreen)
             ? requestedGameScreen : requestedGameScreen.startsWith('battle-') ? 'battle'
-              : ['run', 'run-modifier', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-branching', 'run-mountains-trails', 'run-loot-available', 'run-loot-result', 'run-rest-available', 'run-rest-result', 'run-hazard-available', 'run-hazard-result', 'run-contextual-initial', 'run-contextual-step', 'run-supplies'].includes(requestedGameScreen) ? 'run' : 'camp';
+              : ['run', 'run-modifier', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-branching', 'run-mountains-trails', 'run-loot-available', 'run-loot-result', 'run-rest-available', 'run-rest-result', 'run-dialogue-available', 'run-boss-first', 'run-boss-return', 'run-hazard-available', 'run-hazard-result', 'run-contextual-initial', 'run-contextual-step', 'run-supplies'].includes(requestedGameScreen) ? 'run' : 'camp';
           await page.waitForSelector(`[data-game-screen="${gameScreen}"]`, { timeout: options.timeoutMs });
           if (gameScreen === 'warband') {
             await page.waitForSelector('[data-warband-ready="true"]', { timeout: options.timeoutMs });
@@ -816,12 +848,14 @@ async function captureScene(options) {
             await canvas.click({ position: { x: box.width * 225 / 1600,
               y: box.height * (options.height <= 599 ? 340 : 418) / 900 }, force: true });
           }
-           if (['run-loot-available', 'run-loot-result', 'run-rest-available', 'run-rest-result',
+           if (['run-loot-available', 'run-loot-result', 'run-rest-available', 'run-rest-result', 'run-dialogue-available', 'run-boss-first', 'run-boss-return',
              'run-hazard-available', 'run-hazard-result', 'run-contextual-initial', 'run-contextual-step'].includes(requestedGameScreen)) {
             const canvas = page.locator('.game-host__mount canvas'); const box = await canvas.boundingBox();
             if (!box) throw new Error('Run canvas was unavailable.');
-             const nodeX = requestedGameScreen.startsWith('run-rest-') || requestedGameScreen.startsWith('run-hazard-')
-               || requestedGameScreen.startsWith('run-contextual-') ? 800 : options.width <= 900 ? 562 : 512;
+             const nodeX = requestedGameScreen.startsWith('run-boss-') ? options.width <= 900 ? 1085 : 1180
+               : requestedGameScreen.startsWith('run-dialogue-') ? 700
+               : requestedGameScreen.startsWith('run-rest-') || requestedGameScreen.startsWith('run-hazard-')
+                 || requestedGameScreen.startsWith('run-contextual-') ? 800 : options.width <= 900 ? 562 : 512;
             await canvas.click({ position: { x: box.width * nodeX / 1600,
               y: box.height * (options.height <= 599 ? 340 : 418) / 900 }, force: true });
             if (requestedGameScreen.endsWith('-result')) {

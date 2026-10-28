@@ -24,6 +24,7 @@ export interface CombatRunNodeResolutionResult extends ResolutionBase {
 
 export interface BossRunNodeResolutionResult extends ResolutionBase {
   readonly resolutionType: 'boss';
+  readonly firstVictoryDialogueId?: string;
   readonly battle: CombatRunNodeResolutionResult['battle'];
   readonly terminalPlayerHp: Readonly<Record<string, number>>;
   readonly itemGrants?: CombatRunNodeResolutionResult['itemGrants'];
@@ -77,6 +78,15 @@ export interface ChaosRunNodeResolutionResult extends ResolutionBase {
   readonly run: ResolvedActiveRun;
 }
 
+export interface DialogueRunNodeResolutionResult extends ResolutionBase {
+  readonly resolutionType: 'dialogue';
+  readonly encounterId: string;
+  readonly actionId: string;
+  readonly response: string;
+  readonly knowledge: null | { readonly codexId: string; readonly outcome: 'granted' | 'already_owned' };
+  readonly run: ResolvedActiveRun;
+}
+
 export interface ExitRunNodeResolutionResult extends ResolutionBase {
   readonly resolutionType: 'exit';
   readonly newlyAvailableNodeIds: readonly [];
@@ -96,7 +106,7 @@ export interface InteractionStepResult {
 
 export type BattleRunNodeResolutionResult = CombatRunNodeResolutionResult | BossRunNodeResolutionResult;
 export type RunNodeResolutionResult = BattleRunNodeResolutionResult | LootRunNodeResolutionResult | RestRunNodeResolutionResult
-  | HazardRunNodeResolutionResult | ShrineRunNodeResolutionResult | ChaosRunNodeResolutionResult
+  | HazardRunNodeResolutionResult | ShrineRunNodeResolutionResult | ChaosRunNodeResolutionResult | DialogueRunNodeResolutionResult
   | InteractionStepResult | ExitRunNodeResolutionResult;
 
 const positiveIdPattern = /^[1-9][0-9]*$/;
@@ -170,6 +180,7 @@ export function parseRunNodeResolutionEnvelope(value: unknown): RunNodeResolutio
   if (data['resolution_type'] === 'hazard') return parseHazard(data);
   if (data['resolution_type'] === 'shrine') return parseShrine(data);
   if (data['resolution_type'] === 'chaos') return parseChaos(data);
+  if (data['resolution_type'] === 'dialogue') return parseDialogue(data);
   if (data['resolution_type'] === 'interaction_step') return parseInteractionStep(data);
   if (data['resolution_type'] === 'exit') return parseExit(data);
   throw new RunNodeResolutionContractError('Node resolution type is unsupported.');
@@ -262,8 +273,14 @@ function parseCombat(data: Record<string, unknown>): CombatRunNodeResolutionResu
 function parseBoss(data: Record<string, unknown>): BossRunNodeResolutionResult {
   exact(data, ['resolution_type', 'battle', 'node', 'newly_available_node_ids', 'terminal_player_hp', 'rewards', 'run', 'player_revision',
     ...(Object.hasOwn(data, 'applied_modifiers') ? ['applied_modifiers'] : []),
-    ...(Object.hasOwn(data, 'item_grants') ? ['item_grants'] : [])], 'Boss resolution data');
+    ...(Object.hasOwn(data, 'item_grants') ? ['item_grants'] : []),
+    ...(Object.hasOwn(data, 'first_victory_dialogue_id') ? ['first_victory_dialogue_id'] : [])], 'Boss resolution data');
   const facts = parseBattleFacts(data);
+  const firstVictoryDialogueId = data['first_victory_dialogue_id'];
+  if (firstVictoryDialogueId !== undefined && (facts.battle.outcome !== 'victory'
+    || typeof firstVictoryDialogueId !== 'string'
+    || !/^dialogue\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/.test(firstVictoryDialogueId)))
+    throw new RunNodeResolutionContractError('Boss first victory dialogue is invalid.');
   if (data['rewards'] === null) {
     if (facts.battle.outcome === 'victory') throw new RunNodeResolutionContractError('Boss victory rewards are missing.');
     return Object.freeze({ resolutionType: 'boss', ...facts, rewards: null });
@@ -300,8 +317,10 @@ function parseBoss(data: Record<string, unknown>): BossRunNodeResolutionResult {
     priorUnlockId = currentUnlockId;
     return Object.freeze({ unlockId: currentUnlockId, outcome: row['outcome'] });
   });
+  if (firstVictoryDialogueId !== undefined && !unlocks.some((row) => row.unlockId === 'unlock.capability.shop_access' && row.outcome === 'granted'))
+    throw new RunNodeResolutionContractError('Boss first victory dialogue requires newly granted Shop access.');
   return Object.freeze({ resolutionType: 'boss', ...facts, rewards: Object.freeze({ unitXp: Object.freeze(unitXp),
-    unlocks: Object.freeze(unlocks) }) });
+    unlocks: Object.freeze(unlocks) }), ...(firstVictoryDialogueId ? { firstVictoryDialogueId } : {}) });
 }
 
 function parseLoot(data: Record<string, unknown>): LootRunNodeResolutionResult {
@@ -420,6 +439,31 @@ function parseChaos(data: Record<string, unknown>): ChaosRunNodeResolutionResult
   if (typeof outcomeId !== 'string' || !/^[a-z][a-z0-9_]*$/.test(outcomeId))
     throw new RunNodeResolutionContractError('Chaos outcome ID is invalid.');
   return Object.freeze({ resolutionType: 'chaos', outcomeId, ...parseHpAction(data, 'Chaos') });
+}
+
+function parseDialogue(data: Record<string, unknown>): DialogueRunNodeResolutionResult {
+  exact(data, ['resolution_type', 'encounter_id', 'action_id', 'response', 'knowledge',
+    'node', 'newly_available_node_ids', 'run', 'player_revision'], 'Dialogue resolution data');
+  const encounterId = data['encounter_id']; const actionId = data['action_id']; const response = data['response'];
+  if (typeof encounterId !== 'string' || !/^encounter\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/.test(encounterId)
+    || typeof actionId !== 'string' || !/^[a-z][a-z0-9_]*$/.test(actionId)
+    || typeof response !== 'string' || response.length === 0) {
+    throw new RunNodeResolutionContractError('Dialogue result is invalid.');
+  }
+  let knowledge: DialogueRunNodeResolutionResult['knowledge'] = null;
+  if (data['knowledge'] !== null) {
+    const raw = object(data['knowledge'], 'Dialogue knowledge');
+    exact(raw, ['codex_id', 'outcome'], 'Dialogue knowledge');
+    if (typeof raw['codex_id'] !== 'string' || !/^codex\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/.test(raw['codex_id'])
+      || (raw['outcome'] !== 'granted' && raw['outcome'] !== 'already_owned')) {
+      throw new RunNodeResolutionContractError('Dialogue knowledge is invalid.');
+    }
+    knowledge = Object.freeze({ codexId: raw['codex_id'], outcome: raw['outcome'] });
+  }
+  const base = common(data);
+  return Object.freeze({ resolutionType: 'dialogue', encounterId, actionId, response, knowledge,
+    node: base.node, newlyAvailableNodeIds: base.newlyAvailableNodeIds,
+    run: activeRun(base.runValue), playerRevision: base.playerRevision });
 }
 
 function parseExit(data: Record<string, unknown>): ExitRunNodeResolutionResult {

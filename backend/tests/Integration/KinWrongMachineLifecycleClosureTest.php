@@ -47,7 +47,7 @@ final class KinWrongMachineLifecycleClosureTest extends IntegrationTestCase
 
     $farmOne = $this->completeRun($services, $userId, 'region.the_farm', 'farm-one');
     $this->assertSame([['item_id' => 'item.mudking_crown_fragment', 'quantity' => 1, 'owned_after' => 1],
-      ['item_id' => 'item.pig_ear', 'quantity' => 2, 'owned_after' => 3]], $farmOne[3]['item_grants']);
+      ['item_id' => 'item.pig_ear', 'quantity' => 2, 'owned_after' => 3]], $farmOne[4]['item_grants']);
     $this->completeRun($services, $userId, 'region.the_farm', 'farm-two');
     $mountainsOne = $this->completeRun($services, $userId, 'region.mountains', 'mountains-one');
     $this->assertSame([['item_id' => 'item.kobold_scale', 'quantity' => 1, 'owned_after' => 1]],
@@ -133,7 +133,7 @@ final class KinWrongMachineLifecycleClosureTest extends IntegrationTestCase
       $results[$index] = $services['resolveRunNodeCommand']->execute($userId, (int)$start['run']['id'],
         (int)$node['id'], 'kin-closure-node-' . $key . '-' . $index, $interaction);
     }
-    $this->assertSame('completed', $results[$regionId === 'region.mountains' ? 6 : 4]['run']['status']);
+    $this->assertSame('completed', $results[$regionId === 'region.mountains' ? 6 : 5]['run']['status']);
     ksort($results);
     return $results;
   }

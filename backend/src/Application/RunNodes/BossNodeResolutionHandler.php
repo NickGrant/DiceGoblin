@@ -6,6 +6,7 @@ namespace DiceGoblins\Application\RunNodes;
 use Closure;
 use DiceGoblins\Application\Commands\RunNodeResolutionIntegrityException;
 use DiceGoblins\Application\Rewards\RewardApplicationService;
+use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Domain\Rewards\RewardContext;
 use DiceGoblins\Repositories\RunNodeResolutionRepository;
 use DiceGoblins\Repositories\UserUnlockRepository;
@@ -23,6 +24,7 @@ final class BossNodeResolutionHandler implements RunNodeResolutionHandler
     private readonly ?Closure $afterCombat = null,
     private readonly ?Closure $afterRewards = null,
     private readonly ?BossRewardProjector $projector = null,
+    private readonly ?ContentRegistry $content = null,
   ) {}
 
   public function nodeTypeId(): string { return 'run_node_type.boss'; }
@@ -65,6 +67,14 @@ final class BossNodeResolutionHandler implements RunNodeResolutionHandler
       $result = $this->rewards->apply($userId, $eventId, 'run_node', 'run_node:' . $nodeId, $context);
 
       $facts['rewards'] = ($this->projector ?? new BossRewardProjector())->project($result, array_keys($ids));
+      if ($this->content !== null) {
+        $encounter = $this->content->encounter((string)$node['encounter_id']);
+        if (isset($encounter['first_victory_dialogue_id'])) {
+          $newAccess = array_filter($facts['rewards']['unlocks'], static fn(array $unlock): bool =>
+            $unlock['unlock_id'] === $encounter['visit_unlock_id'] && $unlock['outcome'] === 'granted');
+          if ($newAccess !== []) $facts['first_victory_dialogue_id'] = $encounter['first_victory_dialogue_id'];
+        }
+      }
       if ($this->afterRewards !== null) ($this->afterRewards)();
       return new RunNodeResolutionOutcome('boss', $facts);
     } catch (RunNodeResolutionIntegrityException $e) {

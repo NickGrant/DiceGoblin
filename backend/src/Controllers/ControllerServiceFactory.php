@@ -33,6 +33,7 @@ use DiceGoblins\Application\RunNodes\RestNodeResolutionHandler;
 use DiceGoblins\Application\RunNodes\HazardNodeResolutionHandler;
 use DiceGoblins\Application\RunNodes\ShrineNodeResolutionHandler;
 use DiceGoblins\Application\RunNodes\ChaosNodeResolutionHandler;
+use DiceGoblins\Application\RunNodes\DialogueNodeResolutionHandler;
 use DiceGoblins\Application\RunNodes\ExitNodeResolutionHandler;
 use DiceGoblins\Application\Combat\CombatSnapshotAssembler;
 use DiceGoblins\Application\Commands\UnitConfigurationSupport;
@@ -46,6 +47,7 @@ use DiceGoblins\Application\Queries\ActiveSquadQuery;
 use DiceGoblins\Application\Queries\ActiveRunSummaryQuery;
 use DiceGoblins\Application\Queries\BattlePlaybackQuery;
 use DiceGoblins\Application\Queries\CurrentRunQuery;
+use DiceGoblins\Application\Queries\DialogueQuery;
 use DiceGoblins\Application\Queries\DiceCollectionQuery;
 use DiceGoblins\Application\Queries\GameBootstrapQuery;
 use DiceGoblins\Application\Queries\ItemCollectionQuery;
@@ -259,7 +261,8 @@ final class ControllerServiceFactory
       'deleteSquadCommand' => new DeleteSquadCommand($pdo, $core['playerStateRepo'], $squadRepository, $squadCommandSupport, $activeRunPolicy),
       'renameUnitCommand' => new RenameUnitCommand($pdo, $core['playerStateRepo'], $unitRepository, $unitConfigurationSupport),
       'replaceUnitLoadoutCommand' => new ReplaceUnitLoadoutCommand($pdo, $core['playerStateRepo'], $unitRepository, $unitConfigurationSupport, $activeRunPolicy),
-      'currentRunQuery' => new CurrentRunQuery($runRepository, $core['playerStateRepo'], $content, $runModifierRepository, $itemRepository),
+      'currentRunQuery' => new CurrentRunQuery($runRepository, $core['playerStateRepo'], $content, $runModifierRepository,
+        $itemRepository, new DialogueQuery($codexRepository, $content), $unlockRepository),
       'abandonRunCommand' => new AbandonRunCommand($pdo, $core['playerStateRepo'], $runRepository, $content, new SystemClock()),
       'startRunCommand' => new StartRunCommand(
         $pdo,
@@ -283,12 +286,14 @@ final class ControllerServiceFactory
         $idempotencyRepository,
         [
           $combatNodeHandler,
-          new BossNodeResolutionHandler($combatNodeHandler, $nodeResolutionRepository, $unitRepository, $unlockRepository, $rewardApplication),
+          new BossNodeResolutionHandler($combatNodeHandler, $nodeResolutionRepository, $unitRepository, $unlockRepository,
+            $rewardApplication, null, null, null, $content),
           new LootNodeResolutionHandler($nodeResolutionRepository, $unitRepository, $unlockRepository, $rewardApplication),
           new RestNodeResolutionHandler($nodeResolutionRepository, $unitRepository, $content, new BaseLevelStatResolver()),
           new HazardNodeResolutionHandler($nodeResolutionRepository, $unitRepository, $content, new BaseLevelStatResolver()),
           new ShrineNodeResolutionHandler($nodeResolutionRepository, $unitRepository, $content, $runModifierRepository),
           new ChaosNodeResolutionHandler($nodeResolutionRepository, $unitRepository, $content),
+          new DialogueNodeResolutionHandler($content, $codexRepository, $unlockRepository, $rewardApplication, $objectiveProgress),
           new ExitNodeResolutionHandler($nodeResolutionRepository),
         ],
         new SystemClock(),

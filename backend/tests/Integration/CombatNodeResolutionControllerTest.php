@@ -135,13 +135,13 @@ final class CombatNodeResolutionControllerTest extends IntegrationTestCase
       $this->assertSame((int)$terminal['current_hp'], (int)$this->scalar(
         'SELECT `current_hp` FROM `run_unit_state` WHERE `run_id` = ? AND `unit_id` = ?', [$runId, (int)$entry['unit_id']]));
     }
-    $this->assertSame(['completed', 'available', 'locked', 'locked', 'locked'], array_column(
-      $this->rows('SELECT `status` FROM `run_nodes` WHERE `run_id` = ? ORDER BY `node_index`', [$runId]), 'status'));
+    $this->assertSame(['completed', 'available'], array_slice(array_column(
+      $this->rows('SELECT `status` FROM `run_nodes` WHERE `run_id` = ? ORDER BY `node_index`', [$runId]), 'status'), 0, 2));
     $afterState = $this->row('SELECT `energy_current`, `energy_last_regen_at`, `teeth`, `raw_chaos`, `player_revision`
       FROM `user_state` WHERE `user_id` = ?', [$userId]);
     foreach (['energy_current', 'energy_last_regen_at', 'teeth', 'raw_chaos'] as $field) $this->assertSame($beforeState[$field], $afterState[$field]);
     $current = (new CurrentRunQuery(new RunPersistenceRepository($this->pdo), new PlayerStateRepository($this->pdo), $this->content(), new \DiceGoblins\Repositories\RunModifierRepository($this->pdo)))->execute($userId);
-    $this->assertSame(['completed', 'available', 'locked', 'locked', 'locked'], array_column($current['run']['nodes'], 'status'));
+    $this->assertSame(['completed', 'available'], array_slice(array_column($current['run']['nodes'], 'status'), 0, 2));
 
     $snapshot = $this->stateSnapshot($userId, $runId);
     $replay = $this->httpResolve($userId, $runId, $nodeIds[0], 'real-resolve-key');
@@ -167,7 +167,9 @@ final class CombatNodeResolutionControllerTest extends IntegrationTestCase
       $this->assertSame('failed', $result['run']['status']);
       $this->assertSame('2026-09-15T12:34:56Z', $result['run']['ended_at']);
       $this->assertSame([], $result['newly_available_node_ids']);
-      $this->assertSame(['completed', 'locked', 'locked', 'locked', 'locked'], array_column(
+      $this->assertSame(['completed', 'locked'], array_slice(array_column(
+        $this->rows('SELECT `status` FROM `run_nodes` WHERE `run_id` = ? ORDER BY `node_index`', [$runId]), 'status'), 0, 2));
+      $this->assertNotContains('available', array_column(
         $this->rows('SELECT `status` FROM `run_nodes` WHERE `run_id` = ? ORDER BY `node_index`', [$runId]), 'status'));
       $run = $this->row('SELECT `status`, `ended_at` FROM `runs` WHERE `id` = ?', [$runId]);
       $this->assertSame(['failed', '2026-09-15 12:34:56'], [$run['status'], $run['ended_at']]);

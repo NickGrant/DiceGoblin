@@ -5,18 +5,19 @@ namespace DiceGoblins\Tests\Unit;
 
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\RunGeneration\GeneratedRunGraphValidator;
+use DiceGoblins\RunGeneration\FixedGraphRunGenerator;
 use DiceGoblins\RunGeneration\VariableTrailRunGenerator;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
 final class VariableTrailRunGeneratorTest extends TestCase
 {
-  public function testFarmRemainsItsFiveNodeFixedTutorial(): void
+  public function testFarmFixedGraphDoesNotGainVariableTrails(): void
   {
     $content = ContentRegistry::load(dirname(__DIR__, 2) . '/content');
-    $graph = (new VariableTrailRunGenerator())->generate($content->runGenerationForRegion('region.the_farm'));
-    $this->assertCount(5, $graph['nodes']);
-    $this->assertCount(4, $graph['edges']);
+    $definition = $content->runGenerationForRegion('region.the_farm');
+    $this->assertSame((new FixedGraphRunGenerator())->generate($definition),
+      (new VariableTrailRunGenerator())->generate($definition));
   }
 
   public function testMountainsProducesThreeOrFourDistinctOptionalSplitsAcrossSelections(): void

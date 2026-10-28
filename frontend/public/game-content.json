@@ -1,5 +1,5 @@
 {
-    "revision": "708db08721032de44e272a0c5c2782fa0538afd17c19b4f725a9e92f1633fc1b",
+    "revision": "e050a72e25550cabc2d3b716a813fc6e41422e35e4d189a3974bdd50225687ce",
     "content": {
         "gameplay": {
             "run_energy_cost": 10
@@ -1210,6 +1210,13 @@
                 "display_name": "Combat",
                 "description": "Fight enemies guarding the path.",
                 "icon_key": "icon_encounter_combat"
+            },
+            "run_node_type.dialogue": {
+                "id": "run_node_type.dialogue",
+                "encounter_kind": "non_combat",
+                "display_name": "Dialogue",
+                "description": "Speak with someone along the route.",
+                "icon_key": "icon_encounter_rest"
             },
             "run_node_type.exit": {
                 "id": "run_node_type.exit",

@@ -23,12 +23,13 @@ import { RuntimeApiError } from '../runtime/runtime-api-client';
 import { createRunMapLayout, createRunMapPresentation, runNodeColors } from '../runtime/run-map-model';
 import { Bounds } from '../runtime/runtime-viewport';
 import { RunNodeResolutionAttempt, RunNodeResolutionAttemptState } from '../runtime/run-node-resolution-attempt';
-import { ChaosRunNodeResolutionResult, ExitRunNodeResolutionResult, HazardRunNodeResolutionResult, InteractionStepResult, LootRunNodeResolutionResult, RestRunNodeResolutionResult, RunNodeResolutionResult, ShrineRunNodeResolutionResult } from '../runtime/run-node-resolution-contracts';
+import { ChaosRunNodeResolutionResult, DialogueRunNodeResolutionResult, ExitRunNodeResolutionResult, HazardRunNodeResolutionResult, InteractionStepResult, LootRunNodeResolutionResult, RestRunNodeResolutionResult, RunNodeResolutionResult, ShrineRunNodeResolutionResult } from '../runtime/run-node-resolution-contracts';
 import { BattlePlaybackController } from '../runtime/battle-playback-controller';
 import { BattlePlaybackResult } from '../runtime/battle-playback-contracts';
 import { battleArtTextureKey, battleColumnX, supportedBattleArtAssets } from '../runtime/battle-presentation-layout';
 import { RetainedMutationAttempt, RetainedMutationState } from '../runtime/retained-mutation-attempt';
 import { RunUnitHealResult } from '../runtime/consumable-contracts';
+import { DialogueCompletion, DialogueRead } from '../runtime/dialogue-contracts';
 
 export const BOOT_SCENE_KEY = 'BootScene';
 export const GAME_SCENE_KEY = 'GameScene';
@@ -450,7 +451,7 @@ export class GameScene extends RuntimeScene {
 }
 
 type RunSceneNodeResult = LootRunNodeResolutionResult | RestRunNodeResolutionResult | HazardRunNodeResolutionResult
-  | ShrineRunNodeResolutionResult | ChaosRunNodeResolutionResult | InteractionStepResult | ExitRunNodeResolutionResult;
+  | ShrineRunNodeResolutionResult | ChaosRunNodeResolutionResult | DialogueRunNodeResolutionResult | InteractionStepResult | ExitRunNodeResolutionResult;
 
 function isRunSceneNodeResult(result: RunNodeResolutionResult): result is RunSceneNodeResult {
   return result.resolutionType === 'loot' || result.resolutionType === 'exit' || 'encounterId' in result;
@@ -473,6 +474,10 @@ export class RunScene extends RuntimeScene {
   private selectedSupplyId: string | null = null;
   private selectedHealUnitId: string | null = null;
   private suppliesMessage = '';
+  private heardBossConversationNodeId: string | null = null;
+  private readonly bossConversationAttempt = new RetainedMutationAttempt<{
+    readonly nodeId: string; readonly dialogueId: string; readonly choiceId: string;
+  }, DialogueCompletion>();
   private readonly healAttempt = new RetainedMutationAttempt<{ readonly runId: string; readonly unitId: string; readonly itemId: string }, RunUnitHealResult>();
   constructor(
     runtimeState: RuntimeLifecycleState,
@@ -525,7 +530,8 @@ export class RunScene extends RuntimeScene {
   get nodeActionState(): RunNodeResolutionAttemptState { return this.nodeAttempt.state; }
   get routeChoicePending(): boolean {
     return this.nodeAttempt.state === 'submitting' || this.nodeAttempt.state === 'retryable'
-      || this.nodeSyncState === 'syncing';
+      || this.nodeSyncState === 'syncing' || this.bossConversationAttempt.state === 'submitting'
+      || this.bossConversationAttempt.state === 'retryable';
   }
   get resolvedNodeSyncState(): string { return this.nodeSyncState; }
   get exitReconciliationLocked(): boolean { return this.nodeResult?.resolutionType === 'exit'; }
@@ -567,6 +573,7 @@ export class RunScene extends RuntimeScene {
       || !this.runtimeStartup.store.currentRun.data?.nodes.some((node) => node.id === nodeId
         && (this.runtimeStartup.store.currentRun.data?.availableNodeIds.includes(nodeId)
           || (node.status === 'completed' && node.battleId !== null)))) return;
+    if (this.selectedNodeId !== nodeId) this.nodeMessage = '';
     this.selectedNodeId = nodeId;
     this.render();
   }
@@ -580,6 +587,7 @@ export class RunScene extends RuntimeScene {
     const bootstrap = this.runtimeStartup.store.bootstrap;
     if (!run || !node || !bootstrap
       || (node.nodeTypeId !== 'run_node_type.combat' && node.nodeTypeId !== 'run_node_type.boss')) return;
+    if (node.conversation && this.heardBossConversationNodeId !== node.id) return;
     if (node.status === 'completed' && node.battleId) {
       this.presentBattle(bootstrap.account.id, node.battleId, run.id, node.id); return;
     }
@@ -616,6 +624,31 @@ export class RunScene extends RuntimeScene {
     this.nodeMessage = outcome.kind === 'ambiguous'
       ? 'The result is uncertain. Retry with the same combat attempt.'
       : 'Combat could not be entered. The run cache was not changed.';
+    this.render();
+  }
+
+  async speakToSelectedBoss(): Promise<void> {
+    const node = this.runtimeStartup.store.currentRun.data?.nodes.find((candidate) => candidate.id === this.selectedNodeId);
+    const bootstrap = this.runtimeStartup.store.bootstrap;
+    const conversation = node?.conversation;
+    const choice = conversation?.choices[0];
+    if (!node || !bootstrap || !conversation || !choice || node.status !== 'available'
+      || this.heardBossConversationNodeId === node.id) return;
+    const request = { nodeId: node.id, dialogueId: conversation.id, choiceId: choice.id };
+    this.bossConversationAttempt.begin(`${node.id}:${conversation.id}:${choice.id}`, request);
+    this.nodeMessage = 'Speaking with the Mudking…'; this.render();
+    const outcome = await this.bossConversationAttempt.submit((value, key) =>
+      this.runtimeStartup.apiClient.completeDialogue(value.dialogueId, value.choiceId, bootstrap.session.csrf_token, key));
+    if (outcome.kind === 'success') {
+      try {
+        this.runtimeStartup.store.reconcileDialogueCompletion(outcome.result);
+        this.runtimeStartup.store.markObjectivesStale();
+        if (outcome.result.knowledge?.outcome === 'granted') this.runtimeStartup.store.markCodexStale();
+        this.heardBossConversationNodeId = node.id;
+        this.nodeMessage = outcome.result.response;
+      } catch { this.nodeMessage = 'The conversation was saved, but local state disagrees. Reload to recover.'; }
+    } else if (outcome.kind === 'ambiguous') this.nodeMessage = 'The response is uncertain. Retry the same conversation.';
+    else if (outcome.kind === 'rejected') this.nodeMessage = 'The conversation could not be completed. Try again.';
     this.render();
   }
 
@@ -683,6 +716,7 @@ export class RunScene extends RuntimeScene {
             : result.resolutionType === 'shrine'
               ? result.createdModifier ? 'Run modifier gained for the next battle.'
                 : `Shrine resolved. ${result.hpChanges.length} ${result.hpChanges.length === 1 ? 'unit' : 'units'} affected.`
+              : result.resolutionType === 'dialogue' ? result.response
               : `Chaos resolved: ${result.outcomeId}. ${result.hpChanges.length} ${result.hpChanges.length === 1 ? 'unit' : 'units'} affected.`;
       await this.syncResolvedNode(result.run.id, result.node.id);
       if (result.resolutionType === 'interaction_step' && this.runtimeStartup.contentRegistry) {
@@ -950,9 +984,12 @@ export class RunScene extends RuntimeScene {
       root.add([graphic, icon, name, status]);
     }
     const selected = layout.nodes.find((node) => node.id === this.selectedNodeId);
+    const selectedConversation = this.runtimeStartup.store.currentRun.data?.nodes.find((node) => node.id === selected?.id)?.conversation;
+    const needsConversation = !!selectedConversation && this.heardBossConversationNodeId !== selected?.id;
     const multipleActions = (selected?.interaction?.actions.length ?? 0) > 1;
     const detail = this.add.text(layout.panel.x + layout.panel.width / 2, layout.detailY,
-      selected ? `${selected.name} · ${selected.statusLabel} — ${selected.description}`
+      selected ? needsConversation ? `${selectedConversation.title} — ${selectedConversation.body}`
+        : `${selected.name} · ${selected.statusLabel} — ${selected.description}`
         : 'Select a location for details. Ready locations are not entered yet.', {
         color: '#b9d3bb', fontFamily: 'system-ui, sans-serif', fontSize: compact ? '26px' : '16px',
         align: 'center', wordWrap: { width: layout.panel.width - 160 },
@@ -966,7 +1003,12 @@ export class RunScene extends RuntimeScene {
         && selected.status === 'completed' && selected.battleId !== null;
       const submitting = this.nodeAttempt.state === 'submitting';
       const retrySync = this.nodeSyncState === 'sync-error' && this.nodeSyncIdentity?.nodeId === selected.id;
-      if (canFight || canWatch || retrySync) this.addButton(root, layout.combatButton,
+      if (needsConversation && canFight) this.addButton(root, layout.combatButton,
+        this.bossConversationAttempt.state === 'submitting' ? 'SPEAKING…'
+          : this.bossConversationAttempt.state === 'retryable' ? 'RETRY CONVERSATION'
+            : selectedConversation.choices[0]?.label ?? 'SPEAK',
+        () => void this.speakToSelectedBoss(), 0x315d68, !submitting && this.bossConversationAttempt.state !== 'submitting');
+      else if (canFight || canWatch || retrySync) this.addButton(root, layout.combatButton,
         retrySync ? 'RETRY SYNC' : canWatch ? 'WATCH / REPLAY BATTLE' : submitting ? 'RESOLVING…' : this.nodeAttempt.state === 'retryable' ? 'RETRY FIGHT'
           : selected.nodeTypeId === 'run_node_type.boss' ? 'FIGHT BOSS' : 'ENTER COMBAT',
         () => void this.activateSelectedCombat(), canWatch ? 0x315d68 : 0x8a5424, !submitting);
@@ -1107,6 +1149,12 @@ export class BattleScene extends RuntimeScene {
   private loadState: 'loading' | 'retryable' | 'integrity-error' | 'invalid-marker' | 'playing' | 'complete' = 'loading';
   private continueState: 'idle' | 'submitting' | 'error' = 'idle';
   private continueMessage = '';
+  private bossConversation: DialogueRead | null = null;
+  private bossConversationLoad: 'idle' | 'loading' | 'error' | 'ready' = 'idle';
+  private bossConversationResult: DialogueCompletion | null = null;
+  private readonly bossConversationAttempt = new RetainedMutationAttempt<{
+    readonly dialogueId: string; readonly choiceId: string;
+  }, DialogueCompletion>();
   private message = 'Loading retained playback…';
   private timer: Phaser.Time.TimerEvent | null = null;
   private unsubscribeViewport: (() => void) | null = null;
@@ -1173,6 +1221,8 @@ export class BattleScene extends RuntimeScene {
   async continueAfterBattle(): Promise<void> {
     if (this.controller?.snapshot.state !== 'complete' || this.continueState === 'submitting'
       || this.runtimeViewport.snapshot.portraitGateActive) return;
+    if (this.runtimeStartup.battlePresentation.resolution?.resolutionType === 'boss'
+      && this.runtimeStartup.battlePresentation.resolution.firstVictoryDialogueId && !this.bossConversationResult) return;
     const marker = this.runtimeStartup.battlePresentation.marker;
     const content = this.runtimeStartup.contentRegistry;
     if (!marker || !content) {
@@ -1184,7 +1234,8 @@ export class BattleScene extends RuntimeScene {
     try {
       const result = await this.runtimeStartup.apiClient.getCurrentRun(content);
       const minimumPlayerRevision = Math.max(this.controller.result.playerRevision,
-        this.runtimeStartup.battlePresentation.resolution?.playerRevision ?? 0);
+        this.runtimeStartup.battlePresentation.resolution?.playerRevision ?? 0,
+        this.bossConversationResult?.playerRevision ?? 0);
       const currentRun = this.runtimeStartup.store.reconcileBattleReturn(result, { ...marker, minimumPlayerRevision });
       this.runtimeStartup.battlePresentation.clear();
       this.continueState = 'idle'; this.continueMessage = '';
@@ -1202,6 +1253,9 @@ export class BattleScene extends RuntimeScene {
     this.loadState = 'loading';
     this.continueState = 'idle';
     this.continueMessage = '';
+    this.bossConversation = null;
+    this.bossConversationLoad = 'idle';
+    this.bossConversationResult = null;
     this.message = 'Loading retained playback…';
   }
 
@@ -1237,9 +1291,46 @@ export class BattleScene extends RuntimeScene {
     const event = this.controller.advance(); this.render();
     if (!event) return;
     const state: string = this.controller.snapshot.state;
-    if (state === 'complete') { this.loadState = 'complete'; this.host()?.setAttribute('data-battle-playback', 'complete'); return; }
+    if (state === 'complete') {
+      this.loadState = 'complete'; this.host()?.setAttribute('data-battle-playback', 'complete');
+      void this.loadBossConversation(); return;
+    }
     this.timer = this.time.delayedCall(this.controller.durationFor(event), () => { this.timer = null; this.scheduleNext(); });
     if (this.runtimeViewport.snapshot.portraitGateActive) { this.controller.pause(); this.timer.paused = true; }
+  }
+
+  private async loadBossConversation(): Promise<void> {
+    const resolution = this.runtimeStartup.battlePresentation.resolution;
+    if (resolution?.resolutionType !== 'boss' || !resolution.firstVictoryDialogueId
+      || this.bossConversationLoad === 'loading' || this.bossConversationLoad === 'ready') return;
+    this.bossConversationLoad = 'loading'; this.render();
+    try {
+      this.bossConversation = await this.runtimeStartup.apiClient.getDialogue(resolution.firstVictoryDialogueId);
+      this.bossConversationLoad = 'ready';
+    } catch {
+      this.bossConversationLoad = 'error';
+      this.continueMessage = 'The merchant conversation could not be loaded. Retry to continue safely.';
+    }
+    this.render();
+  }
+
+  async completeBossConversation(): Promise<void> {
+    const dialogue = this.bossConversation;
+    const choice = dialogue?.choices[0];
+    const bootstrap = this.runtimeStartup.store.bootstrap;
+    if (!dialogue || !choice || !bootstrap || this.bossConversationResult) return;
+    this.bossConversationAttempt.begin(dialogue.id, { dialogueId: dialogue.id, choiceId: choice.id });
+    this.continueMessage = 'Freeing the merchant…'; this.render();
+    const outcome = await this.bossConversationAttempt.submit((request, key) =>
+      this.runtimeStartup.apiClient.completeDialogue(request.dialogueId, request.choiceId, bootstrap.session.csrf_token, key));
+    if (outcome.kind === 'success') {
+      this.bossConversationResult = outcome.result;
+      this.runtimeStartup.store.markObjectivesStale();
+      if (outcome.result.knowledge?.outcome === 'granted') this.runtimeStartup.store.markCodexStale();
+      this.continueMessage = outcome.result.response;
+    } else if (outcome.kind === 'ambiguous') this.continueMessage = 'The response is uncertain. Retry the same conversation.';
+    else if (outcome.kind === 'rejected') this.continueMessage = 'The conversation could not be completed. Try again.';
+    this.render();
   }
 
   private render(): void {
@@ -1299,13 +1390,36 @@ export class BattleScene extends RuntimeScene {
       { color: '#d1c7ac', fontFamily: 'system-ui, sans-serif', fontSize: compact ? '18px' : '15px', align: 'center',
         lineSpacing: compact ? 2 : 1, wordWrap: { width: safe.width - 100 } }).setOrigin(0.5); root.add(factText);
     if (completed) {
+      const pendingMerchant = this.runtimeStartup.battlePresentation.resolution?.resolutionType === 'boss'
+        && !!this.runtimeStartup.battlePresentation.resolution.firstVictoryDialogueId && !this.bossConversationResult;
+      if (pendingMerchant && this.bossConversation) {
+        const dialogue = this.bossConversation;
+        const panel = this.add.graphics();
+        const panelWidth = Math.min(760, safe.width - 120);
+        const panelY = safe.y + (compact ? 105 : 115);
+        panel.fillStyle(0x162a32, 0.97); panel.fillRoundedRect(safe.x + (safe.width - panelWidth) / 2, panelY, panelWidth, 205, 18);
+        panel.lineStyle(3, 0xc9972b); panel.strokeRoundedRect(safe.x + (safe.width - panelWidth) / 2, panelY, panelWidth, 205, 18);
+        const story = this.add.text(safe.x + safe.width / 2, panelY + 18,
+          `${dialogue.title}\n${dialogue.body}`, { color: '#f5e8c8', fontFamily: 'Georgia, serif',
+            fontSize: compact ? '21px' : '19px', align: 'center', wordWrap: { width: panelWidth - 36 }, lineSpacing: 9 }).setOrigin(0.5, 0);
+        root.add([panel, story]);
+      }
       const feedback = this.add.text(safe.x + safe.width / 2, safe.bottom - (compact ? 105 : 108), this.continueMessage,
         { color: this.continueState === 'error' ? '#ffb0a7' : '#d1c7ac', fontFamily: 'system-ui, sans-serif',
           fontSize: compact ? '18px' : '15px', align: 'center', wordWrap: { width: Math.min(760, safe.width - 100) } }).setOrigin(0.5); root.add(feedback);
-      const enabled = this.continueState !== 'submitting' && !snapshot.portraitGateActive;
+      const enabled = this.continueState !== 'submitting' && !snapshot.portraitGateActive
+        && this.bossConversationAttempt.state !== 'submitting';
       this.addBattleButton(root, safe.x + safe.width / 2, safe.bottom - 55,
-        this.continueState === 'submitting' ? 'SYNCHRONIZING…' : this.continueState === 'error' ? 'RETRY CONTINUE' : 'CONTINUE',
-        () => void this.continueAfterBattle(), enabled);
+        pendingMerchant ? this.bossConversationLoad === 'error' ? 'RETRY CONVERSATION'
+          : this.bossConversationLoad === 'loading' ? 'LOADING CONVERSATION…'
+            : this.bossConversationAttempt.state === 'submitting' ? 'SPEAKING…'
+              : this.bossConversationAttempt.state === 'retryable' ? 'RETRY FREE MERCHANT'
+                : 'FREE MERCHANT'
+          : this.continueState === 'submitting' ? 'SYNCHRONIZING…' : this.continueState === 'error' ? 'RETRY CONTINUE' : 'CONTINUE',
+        () => { if (pendingMerchant) {
+          if (this.bossConversationLoad === 'error') void this.loadBossConversation();
+          else if (this.bossConversationLoad === 'ready') void this.completeBossConversation();
+        } else void this.continueAfterBattle(); }, enabled && (!pendingMerchant || this.bossConversationLoad !== 'loading'));
       this.host()?.setAttribute('data-battle-result', String(state.outcome));
       this.host()?.setAttribute('data-battle-continue', this.continueState);
     }

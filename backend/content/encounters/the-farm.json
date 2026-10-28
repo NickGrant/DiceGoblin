@@ -20,6 +20,10 @@
       "region_id": "region.the_farm",
       "display_name": "The Mudking",
       "description": "The Mudking bars the path beyond the Farm.",
+      "first_visit_dialogue_id": "dialogue.farm.mudking_first",
+      "return_visit_dialogue_id": "dialogue.farm.mudking_return",
+      "first_victory_dialogue_id": "dialogue.farm.mudking_merchant_freed",
+      "visit_unlock_id": "unlock.capability.shop_access",
       "difficulty": 2,
       "combatants": [
         { "key": "mudking", "enemy_unit_type_id": "enemy_unit_type.mudking", "position": { "x": 2, "y": 1 } }

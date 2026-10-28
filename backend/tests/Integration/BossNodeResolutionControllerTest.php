@@ -64,11 +64,18 @@ final class BossNodeResolutionControllerTest extends IntegrationTestCase
     $run = $services['startRunCommand']->execute($userId, ['region_id' => 'region.the_farm'], 'boss-start-key');
     $runId = (int)$run['run']['id'];
     $nodes = $this->rows('SELECT `id`, `encounter_id`, `event_id` FROM `run_nodes` WHERE `run_id` = ? ORDER BY `node_index`', [$runId]);
-    $bossId = (int)$nodes[3]['id']; $exitId = (int)$nodes[4]['id'];
+    $bossId = (int)$nodes[4]['id']; $exitId = (int)$nodes[5]['id'];
     $this->assertSame(['encounter.the_farm_mud_boss_1', 'event.farm_boss_completed'],
-      [$nodes[3]['encounter_id'], $nodes[3]['event_id']]);
-    $this->pdo?->prepare("UPDATE `run_nodes` SET `status` = CASE WHEN `node_index` = 2 THEN 'completed' WHEN `id` = ? THEN 'available' ELSE `status` END, `completed_at` = CASE WHEN `node_index` = 2 THEN UTC_TIMESTAMP() ELSE `completed_at` END WHERE `run_id` = ?")
+      [$nodes[4]['encounter_id'], $nodes[4]['event_id']]);
+    $this->pdo?->prepare("UPDATE `run_nodes` SET `status` = CASE WHEN `node_index` IN (2,3) THEN 'completed' WHEN `id` = ? THEN 'available' ELSE `status` END, `completed_at` = CASE WHEN `node_index` IN (2,3) THEN UTC_TIMESTAMP() ELSE `completed_at` END WHERE `run_id` = ?")
       ->execute([$bossId, $runId]);
+    $_SESSION['user_id'] = $userId;
+    $beforeBoss = $this->invoke(fn() => (new RunController())->current());
+    $this->assertSame(200, $beforeBoss['status'], json_encode($beforeBoss['body']));
+    $conversation = $beforeBoss['body']['data']['run']['nodes'][4]['conversation'];
+    $this->assertSame('dialogue.farm.mudking_first', $conversation['id']);
+    $this->assertSame(['id', 'title', 'body', 'choices'], array_keys($conversation));
+    $this->assertStringNotContainsString('response', json_encode($conversation, JSON_THROW_ON_ERROR));
     $unitsBefore = $this->rows('SELECT ui.`id`, ui.`level`, ui.`xp`, rus.`current_hp` FROM `unit_instances` ui
       JOIN `run_unit_state` rus ON rus.`unit_id` = ui.`id` AND rus.`run_id` = ?
       WHERE ui.`user_id` = ? ORDER BY ui.`id`', [$runId, $userId]);
@@ -77,6 +84,7 @@ final class BossNodeResolutionControllerTest extends IntegrationTestCase
     $first = $this->resolve($userId, $runId, $bossId, 'boss-resolve-key');
     $this->assertSame(200, $first['status'], json_encode($first['body']));
     $data = $first['body']['data'];
+    $this->assertSame('dialogue.farm.mudking_merchant_freed', $data['first_victory_dialogue_id']);
     $this->assertSame(['boss', 'victory', 'active'], [$data['resolution_type'], $data['battle']['outcome'], $data['run']['status']]);
     $this->assertSame([(string)$exitId], $data['newly_available_node_ids']);
     $this->assertSame($revision + 1, $data['player_revision']);
@@ -130,6 +138,24 @@ final class BossNodeResolutionControllerTest extends IntegrationTestCase
   public function mountainsOwnershipProvider(): array
   {
     return ['new unlock' => [false], 'already owned' => [true]];
+  }
+
+  public function testOwnedShopProjectsReturnBossConversationWithoutPrivateDialogueFields(): void
+  {
+    [$userId, , , $bossId] = $this->bossFixture('boss-return-dialogue');
+    $this->pdo?->prepare("INSERT INTO `user_unlocks` (`user_id`, `unlock_id`, `granted_at`) VALUES (?, 'unlock.capability.shop_access', UTC_TIMESTAMP())")
+      ->execute([$userId]);
+    $_SESSION['user_id'] = $userId;
+    $response = $this->invoke(fn() => (new RunController())->current());
+    $this->assertSame(200, $response['status'], json_encode($response['body']));
+    $nodes = array_column($response['body']['data']['run']['nodes'], null, 'id');
+    $conversation = $nodes[(string)$bossId]['conversation'];
+    $this->assertSame('dialogue.farm.mudking_return', $conversation['id']);
+    $this->assertSame(['id', 'title', 'body', 'choices'], array_keys($conversation));
+    $this->assertStringNotContainsString('response', json_encode($conversation, JSON_THROW_ON_ERROR));
+    $resolved = $this->resolve($userId, (int)$response['body']['data']['run']['id'], $bossId, 'boss-return-dialogue-resolve');
+    $this->assertSame(200, $resolved['status'], json_encode($resolved['body']));
+    $this->assertArrayNotHasKey('first_victory_dialogue_id', $resolved['body']['data']);
   }
 
   /** @dataProvider failedOutcomeProvider */
@@ -286,8 +312,8 @@ final class BossNodeResolutionControllerTest extends IntegrationTestCase
     $run = $services['startRunCommand']->execute($userId, ['region_id' => 'region.the_farm'], $token . '-start-key');
     $runId = (int)$run['run']['id'];
     $nodes = $this->rows('SELECT `id` FROM `run_nodes` WHERE `run_id` = ? ORDER BY `node_index`', [$runId]);
-    $bossId = (int)$nodes[3]['id']; $exitId = (int)$nodes[4]['id'];
-    $this->pdo?->prepare("UPDATE `run_nodes` SET `status` = CASE WHEN `node_index` = 2 THEN 'completed' WHEN `id` = ? THEN 'available' ELSE `status` END, `completed_at` = CASE WHEN `node_index` = 2 THEN UTC_TIMESTAMP() ELSE `completed_at` END WHERE `run_id` = ?")
+    $bossId = (int)$nodes[4]['id']; $exitId = (int)$nodes[5]['id'];
+    $this->pdo?->prepare("UPDATE `run_nodes` SET `status` = CASE WHEN `node_index` IN (2,3) THEN 'completed' WHEN `id` = ? THEN 'available' ELSE `status` END, `completed_at` = CASE WHEN `node_index` IN (2,3) THEN UTC_TIMESTAMP() ELSE `completed_at` END WHERE `run_id` = ?")
       ->execute([$bossId, $runId]);
     return [$userId, $fixture, $runId, $bossId, $exitId];
   }

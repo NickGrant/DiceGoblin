@@ -1,0 +1,46 @@
+{
+  "definitions": [
+    {
+      "id": "dialogue.farm.mudking_first",
+      "type": "dialogue",
+      "title": "The Mudking",
+      "body": "The Mudking bars the path. Behind him, a captive merchant calls from a crooked cage. Mudking says the road and everyone on it belong to him.",
+      "choices": [
+        {
+          "id": "challenge",
+          "label": "Challenge the Mudking",
+          "response": "Mudking raises his club and stomps into the clearing.",
+          "required_codex_ids": []
+        }
+      ]
+    },
+    {
+      "id": "dialogue.farm.mudking_merchant_freed",
+      "type": "dialogue",
+      "title": "The Merchant Is Free",
+      "body": "Mudking falls. He grumbles that the cage key is under his throne, and the merchant calls out for help.",
+      "choices": [
+        {
+          "id": "free_merchant",
+          "label": "Free the merchant",
+          "response": "You open the cage. The merchant thanks the warband and promises to bring a Shop to Camp.",
+          "required_codex_ids": []
+        }
+      ]
+    },
+    {
+      "id": "dialogue.farm.mudking_return",
+      "type": "dialogue",
+      "title": "The Mudking Returns",
+      "body": "Mudking recognizes the warband. The merchant is safe in Camp now, but Mudking still claims the road as his own.",
+      "choices": [
+        {
+          "id": "challenge",
+          "label": "Challenge him again",
+          "response": "Mudking grips his club and calls for another fight.",
+          "required_codex_ids": []
+        }
+      ]
+    }
+  ]
+}

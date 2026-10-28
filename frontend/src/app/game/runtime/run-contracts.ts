@@ -1,5 +1,6 @@
 import { ClientContentRegistry } from './client-content-registry';
 import type { GameBootstrapActiveRun, GameBootstrapEnergy } from './game-store';
+import { DialogueContractError, DialogueRead, parseDialogueReadEnvelope } from './dialogue-contracts';
 
 export class RunContractError extends Error {
   constructor(message: string) {
@@ -34,6 +35,7 @@ export interface CurrentRunNode {
   readonly battleId: string | null;
   readonly position: { readonly column: number; readonly row: number };
   readonly interaction?: RunNodeInteraction;
+  readonly conversation?: DialogueRead;
 }
 
 export interface CurrentRun {
@@ -212,8 +214,9 @@ export function parseCurrentRunEnvelope(value: unknown, content: ClientContentRe
   const nodes = raw['nodes'].map((candidate, expectedIndex): CurrentRunNode => {
     const node = record(candidate, 'Current run node');
     const hasInteraction = Object.hasOwn(node, 'interaction');
+    const hasConversation = Object.hasOwn(node, 'conversation');
     exact(node, ['id', 'node_index', 'node_type_id', 'status', 'completed_at', 'battle_id', 'position',
-      ...(hasInteraction ? ['interaction'] : [])], 'Current run node');
+      ...(hasInteraction ? ['interaction'] : []), ...(hasConversation ? ['conversation'] : [])], 'Current run node');
     const id = positiveId(node['id'], 'Node id');
     if (nodeIds.has(id) || node['node_index'] !== expectedIndex) throw new RunContractError('Run node identity/order is invalid.');
     nodeIds.add(id);
@@ -225,6 +228,17 @@ export function parseCurrentRunEnvelope(value: unknown, content: ClientContentRe
       && node['status'] === 'available';
     if (hasInteraction !== requiresInteraction) throw new RunContractError('Run node interaction availability is invalid.');
     const interaction = hasInteraction ? parseInteraction(node['interaction']) : undefined;
+    if (hasConversation && (nodeTypeId !== 'run_node_type.boss' || node['status'] !== 'available'))
+      throw new RunContractError('Run node conversation availability is invalid.');
+    const conversationRaw = hasConversation ? record(node['conversation'], 'Run node conversation') : null;
+    let conversation: DialogueRead | undefined;
+    if (conversationRaw) {
+      try { conversation = parseDialogueReadEnvelope({ ok: true, data: conversationRaw }, String(conversationRaw['id'])); }
+      catch (error) {
+        if (error instanceof DialogueContractError) throw new RunContractError('Run node conversation is invalid.');
+        throw error;
+      }
+    }
     const completedAt = nullableTimestamp(node['completed_at'], 'Node completed_at');
     if ((node['status'] === 'completed') !== (completedAt !== null)) throw new RunContractError('Run node completion state is incoherent.');
     const battleId = node['battle_id'] === null ? null : positiveId(node['battle_id'], 'Node battle_id');
@@ -237,7 +251,7 @@ export function parseCurrentRunEnvelope(value: unknown, content: ClientContentRe
     if (!Number.isSafeInteger(position['column']) || !Number.isSafeInteger(position['row'])) throw new RunContractError('Run node position is invalid.');
     return Object.freeze({ id, nodeIndex: expectedIndex, nodeTypeId, status: node['status'] as CurrentRunNodeStatus,
       completedAt, battleId, position: Object.freeze({ column: position['column'] as number, row: position['row'] as number }),
-      ...(interaction ? { interaction } : {}) });
+      ...(interaction ? { interaction } : {}), ...(conversation ? { conversation } : {}) });
   });
 
   const seenEdges = new Set<string>();

@@ -106,7 +106,6 @@ final class RunContentValidationTest extends TestCase
       $this->assertNotContains('run_node_type.shrine', array_column($generation['nodes'], 'node_type_id'));
       $this->assertNotContains(ShrineContentFixture::ENCOUNTER_ID, array_column($generation['nodes'], 'encounter_id'));
     }
-    $this->assertCount(5, $canonical->runGenerationForRegion('region.the_farm')['nodes']);
     $this->assertContains('run_node_type.hazard', array_column(
       $canonical->runGenerationForRegion('region.mountains')['nodes'], 'node_type_id'));
     $registry = ShrineContentFixture::registry();
@@ -189,15 +188,17 @@ final class RunContentValidationTest extends TestCase
 
     $this->assertSame('run_generation.the_farm', $generation['id']);
     $this->assertSame('fixed_graph_v1', $generation['algorithm']);
-    $this->assertSame(
-      ['run_node_type.combat', 'run_node_type.loot', 'run_node_type.rest', 'run_node_type.boss', 'run_node_type.exit'],
-      array_column($generation['nodes'], 'node_type_id'),
-    );
+    $byKey = array_column($generation['nodes'], null, 'key');
+    $this->assertSame('run_node_type.dialogue', $byKey['dialogue']['node_type_id']);
+    $this->assertSame('encounter.the_farm_scout', $byKey['dialogue']['encounter_id']);
+    $keys = array_column($generation['nodes'], 'key');
+    $this->assertSame(array_search('loot', $keys, true) + 1, array_search('dialogue', $keys, true));
+    $this->assertSame(array_search('dialogue', $keys, true) + 1, array_search('rest', $keys, true));
     $this->assertSame('non_combat', $registry->runNodeType('run_node_type.rest')['encounter_kind']);
     $this->assertSame('encounter.the_farm_mud_combat_1', $generation['nodes'][0]['encounter_id']);
     $this->assertSame('event.farm_loot_completed', $generation['nodes'][1]['event_id']);
-    $this->assertSame('encounter.the_farm_mud_boss_1', $generation['nodes'][3]['encounter_id']);
-    $this->assertSame('event.farm_boss_completed', $generation['nodes'][3]['event_id']);
+    $this->assertSame('encounter.the_farm_mud_boss_1', $byKey['boss']['encounter_id']);
+    $this->assertSame('event.farm_boss_completed', $byKey['boss']['event_id']);
     $this->assertSame('Combat', $registry->runNodeType('run_node_type.combat')['display_name']);
   }
 
@@ -340,8 +341,8 @@ final class RunContentValidationTest extends TestCase
       'self edge' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['edges'][0] = ['from' => 'combat', 'to' => 'combat']), 'self edge'],
       'duplicate edge' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['edges'][1] = $definition['edges'][0]), 'duplicate edge'],
       'disconnected exit' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => array_pop($definition['edges'])), 'disconnected'],
-      'missing boss' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['nodes'][3]['node_type_id'] = 'run_node_type.combat'), 'encounter kind does not match'],
-      'missing exit' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['nodes'][4]['node_type_id'] = 'run_node_type.loot'), 'exactly one run_node_type.exit'],
+      'missing boss' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['nodes'][4]['node_type_id'] = 'run_node_type.combat'), 'encounter kind does not match'],
+      'missing exit' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['nodes'][5]['node_type_id'] = 'run_node_type.loot'), 'exactly one run_node_type.exit'],
       'non-linear Farm path' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['edges'][2] = ['from' => 'rest', 'to' => 'exit']), 'disconnected'],
       'bad coordinate' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['nodes'][0]['position']['column'] = 1.5), 'position.column'],
     ];

@@ -82,11 +82,13 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
     $this->assertBattleResolution($farmCombat, $farmRunId, $farmNodeIds[0], $farmNodeIds[1]);
     $this->assertSame([['item_id' => 'item.pig_ear', 'quantity' => 1, 'owned_after' => 1]], $farmCombat['item_grants']);
     $services['resolveRunNodeCommand']->execute($userId, $farmRunId, $farmNodeIds[1], 'integrated-farm-loot');
-    $services['resolveRunNodeCommand']->execute($userId, $farmRunId, $farmNodeIds[2], 'integrated-farm-rest',
+    $services['resolveRunNodeCommand']->execute($userId, $farmRunId, $farmNodeIds[2], 'integrated-farm-scout',
+      ['encounter_id' => 'encounter.the_farm_scout', 'action_id' => 'hear_paths']);
+    $services['resolveRunNodeCommand']->execute($userId, $farmRunId, $farmNodeIds[3], 'integrated-farm-rest',
       ['encounter_id' => 'encounter.the_farm_rest', 'action_id' => 'rest']);
     $farmBoss = $services['resolveRunNodeCommand']->execute(
-      $userId, $farmRunId, $farmNodeIds[3], 'integrated-farm-boss');
-    $this->assertBattleResolution($farmBoss, $farmRunId, $farmNodeIds[3], $farmNodeIds[4], 'boss');
+      $userId, $farmRunId, $farmNodeIds[4], 'integrated-farm-boss');
+    $this->assertBattleResolution($farmBoss, $farmRunId, $farmNodeIds[4], $farmNodeIds[5], 'boss');
     $this->assertSame([['outcome' => 'granted', 'unlock_id' => 'unlock.capability.shop_access'],
       ['outcome' => 'granted', 'unlock_id' => 'unlock.region.mountains']],
       $farmBoss['rewards']['unlocks']);
@@ -95,9 +97,9 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
       ['item_id' => 'item.pig_ear', 'quantity' => 2, 'owned_after' => 3],
     ], $farmBoss['item_grants']);
     $this->assertSame($farmBoss, $services['resolveRunNodeCommand']->execute(
-      $userId, $farmRunId, $farmNodeIds[3], 'integrated-farm-boss'));
+      $userId, $farmRunId, $farmNodeIds[4], 'integrated-farm-boss'));
     $farmExit = $services['resolveRunNodeCommand']->execute(
-      $userId, $farmRunId, $farmNodeIds[4], 'integrated-farm-exit');
+      $userId, $farmRunId, $farmNodeIds[5], 'integrated-farm-exit');
     $this->assertSame('completed', $farmExit['run']['status']);
 
     $postFarm = $services['gameBootstrapQuery']->execute($userId, $now);

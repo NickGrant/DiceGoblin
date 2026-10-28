@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
 
 final class FixedGraphRunGeneratorTest extends TestCase
 {
-  public function testGeneratesExactDeterministicFarmGraphWithoutDatabaseIdentity(): void
+  public function testGeneratesDeterministicFixedGraphFromAuthoredNodesWithoutDatabaseIdentity(): void
   {
     $registry = ContentRegistry::load(dirname(__DIR__, 2) . '/content');
     $definition = $registry->runGenerationForRegion('region.the_farm');
@@ -21,19 +21,19 @@ final class FixedGraphRunGeneratorTest extends TestCase
     $second = $generator->generate($definition);
 
     $this->assertSame($first, $second);
-    $this->assertSame([
-      ['node_index' => 0, 'node_type_id' => 'run_node_type.combat', 'encounter_id' => 'encounter.the_farm_mud_combat_1', 'event_id' => null, 'status' => 'available', 'generated_metadata' => ['position' => ['column' => 0, 'row' => 1]]],
-      ['node_index' => 1, 'node_type_id' => 'run_node_type.loot', 'encounter_id' => null, 'event_id' => 'event.farm_loot_completed', 'status' => 'locked', 'generated_metadata' => ['position' => ['column' => 1, 'row' => 1]]],
-      ['node_index' => 2, 'node_type_id' => 'run_node_type.rest', 'encounter_id' => 'encounter.the_farm_rest', 'event_id' => null, 'status' => 'locked', 'generated_metadata' => ['position' => ['column' => 2, 'row' => 1]]],
-      ['node_index' => 3, 'node_type_id' => 'run_node_type.boss', 'encounter_id' => 'encounter.the_farm_mud_boss_1', 'event_id' => 'event.farm_boss_completed', 'status' => 'locked', 'generated_metadata' => ['position' => ['column' => 3, 'row' => 1]]],
-      ['node_index' => 4, 'node_type_id' => 'run_node_type.exit', 'encounter_id' => null, 'event_id' => null, 'status' => 'locked', 'generated_metadata' => ['position' => ['column' => 4, 'row' => 1]]],
-    ], $first['nodes']);
-    $this->assertSame([
-      ['from_node_index' => 0, 'to_node_index' => 1, 'generated_metadata' => null],
-      ['from_node_index' => 1, 'to_node_index' => 2, 'generated_metadata' => null],
-      ['from_node_index' => 2, 'to_node_index' => 3, 'generated_metadata' => null],
-      ['from_node_index' => 3, 'to_node_index' => 4, 'generated_metadata' => null],
-    ], $first['edges']);
+    $indexByKey = array_flip(array_column($definition['nodes'], 'key'));
+    foreach ($definition['nodes'] as $index => $authored) {
+      $this->assertSame([
+        'node_index' => $index, 'node_type_id' => $authored['node_type_id'],
+        'encounter_id' => $authored['encounter_id'] ?? null, 'event_id' => $authored['event_id'] ?? null,
+        'status' => $authored['key'] === $definition['start_node_key'] ? 'available' : 'locked',
+        'generated_metadata' => ['position' => $authored['position']],
+      ], $first['nodes'][$index]);
+    }
+    $this->assertSame(array_map(static fn(array $edge): array => [
+      'from_node_index' => $indexByKey[$edge['from']], 'to_node_index' => $indexByKey[$edge['to']],
+      'generated_metadata' => null,
+    ], $definition['edges']), $first['edges']);
     $encoded = json_encode($first, JSON_THROW_ON_ERROR);
     $this->assertStringNotContainsString('run_id', $encoded);
     $this->assertStringNotContainsString('node_id', $encoded);

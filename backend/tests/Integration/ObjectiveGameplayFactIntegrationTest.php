@@ -65,19 +65,21 @@ final class ObjectiveGameplayFactIntegrationTest extends IntegrationTestCase
     $this->assertSame($combat, $command->execute($user, $runId, $ids[0], 'objective-combat'));
     $this->assertSame([1, 0, 0], $this->counts($query, $user));
     $command->execute($user, $runId, $ids[1], 'objective-loot');
-    $command->execute($user, $runId, $ids[2], 'objective-rest',
+    $command->execute($user, $runId, $ids[2], 'objective-scout',
+      ['encounter_id' => 'encounter.the_farm_scout', 'action_id' => 'hear_paths']);
+    $command->execute($user, $runId, $ids[3], 'objective-rest',
       ['encounter_id' => 'encounter.the_farm_rest', 'action_id' => 'rest']);
-    $command->execute($user, $runId, $ids[3], 'objective-boss');
-    $this->assertSame([1, 0, 0], $this->counts($query, $user));
-    $exit = $command->execute($user, $runId, $ids[4], 'objective-exit');
+    $command->execute($user, $runId, $ids[4], 'objective-boss');
+    $this->assertSame([1, 0, 1], $this->counts($query, $user));
+    $exit = $command->execute($user, $runId, $ids[5], 'objective-exit');
     $this->assertSame('completed', $exit['run']['status']);
-    $this->assertSame([1, 1, 0], $this->counts($query, $user));
-    $this->assertSame($exit, $command->execute($user, $runId, $ids[4], 'objective-exit'));
-    $this->assertSame([1, 1, 0], $this->counts($query, $user));
+    $this->assertSame([1, 1, 1], $this->counts($query, $user));
+    $this->assertSame($exit, $command->execute($user, $runId, $ids[5], 'objective-exit'));
+    $this->assertSame([1, 1, 1], $this->counts($query, $user));
     $dialogue = $services['completeDialogueCommand'];
     $first = $dialogue->execute($user, 'dialogue.camp.farm_scout', 'hear_paths', 'objective-dialogue-one');
-    $this->assertSame('granted', $first['knowledge']['outcome']);
-    $this->assertSame([1, 1, 1], $this->counts($query, $user));
+    $this->assertSame('already_owned', $first['knowledge']['outcome']);
+    $this->assertSame([1, 1, 2], $this->counts($query, $user));
     $reloadedCodex = new CodexQuery(new UserCodexRepository($this->pdo), $content);
     $ownedKnowledge = array_values(array_filter($reloadedCodex->execute($user)['entries'],
       static fn(array $entry): bool => $entry['id'] === $first['knowledge']['codex_id']));
@@ -93,10 +95,10 @@ final class ObjectiveGameplayFactIntegrationTest extends IntegrationTestCase
     $this->assertSame(['hear_paths'], array_column(
       $dialogueRead->execute($other, 'dialogue.camp.farm_scout')['choices'], 'id'));
     $this->assertSame($first, $dialogue->execute($user, 'dialogue.camp.farm_scout', 'hear_paths', 'objective-dialogue-one'));
-    $this->assertSame([1, 1, 1], $this->counts($query, $user));
+    $this->assertSame([1, 1, 2], $this->counts($query, $user));
     $secondDialogue = $dialogue->execute($user, 'dialogue.camp.farm_scout', 'hear_paths', 'objective-dialogue-two');
     $this->assertSame('already_owned', $secondDialogue['knowledge']['outcome']);
-    $this->assertSame($first['player_revision'] + 1, $secondDialogue['player_revision']);
+    $this->assertSame($first['player_revision'], $secondDialogue['player_revision']);
     $this->assertSame([1, 1, 2], $this->counts($query, $user));
     $this->assertSame('completed', $query->execute($user)['objectives'][0]['status']);
     $this->assertSame('completed', (new ObjectiveQuery(new UserObjectiveRepository($this->pdo), $content))
@@ -166,15 +168,16 @@ final class ObjectiveGameplayFactIntegrationTest extends IntegrationTestCase
     $command = $services['resolveRunNodeCommand'];
     $command->execute($user, $runId, $ids[0], 'objective-rollback-combat');
     $command->execute($user, $runId, $ids[1], 'objective-rollback-loot');
-    $command->execute($user, $runId, $ids[2], 'objective-rollback-rest',
+    $command->execute($user, $runId, $ids[2], 'objective-rollback-scout',
+      ['encounter_id' => 'encounter.the_farm_scout', 'action_id' => 'hear_paths']);
+    $command->execute($user, $runId, $ids[3], 'objective-rollback-rest',
       ['encounter_id' => 'encounter.the_farm_rest', 'action_id' => 'rest']);
-    $this->pdo?->prepare("UPDATE `run_nodes` SET `event_id` = 'event.missing' WHERE `id` = ?")->execute([$ids[3]]);
+    $this->pdo?->prepare("UPDATE `run_nodes` SET `event_id` = 'event.missing' WHERE `id` = ?")->execute([$ids[4]]);
     try {
-      $command->execute($user, $runId, $ids[3], 'objective-rollback-boss');
+      $command->execute($user, $runId, $ids[4], 'objective-rollback-boss');
       $this->fail('Invalid Boss reward reference should fail the whole command.');
     } catch (RunNodeResolutionIntegrityException) { $this->addToAssertionCount(1); }
-    $this->assertSame('0', (string)$this->scalar('SELECT COUNT(*) FROM `battles` WHERE `run_node_id` = ?', [$ids[3]]));
-    $this->assertSame('0', (string)$this->scalar('SELECT COUNT(*) FROM `user_objectives` WHERE `user_id` = ?', [$user]));
+    $this->assertSame('0', (string)$this->scalar('SELECT COUNT(*) FROM `battles` WHERE `run_node_id` = ?', [$ids[4]]));
     $this->assertSame('0', (string)$this->scalar("SELECT COUNT(*) FROM `idempotency_requests` WHERE `user_id` = ? AND `idempotency_key` = 'objective-rollback-boss'", [$user]));
   }
 
@@ -223,14 +226,16 @@ final class ObjectiveGameplayFactIntegrationTest extends IntegrationTestCase
     $command = $services['resolveRunNodeCommand'];
     $command->execute($user, $runId, $ids[0], 'objective-completion-exit-combat');
     $command->execute($user, $runId, $ids[1], 'objective-completion-exit-loot');
-    $command->execute($user, $runId, $ids[2], 'objective-completion-exit-rest',
+    $command->execute($user, $runId, $ids[2], 'objective-completion-exit-scout',
+      ['encounter_id' => 'encounter.the_farm_scout', 'action_id' => 'hear_paths']);
+    $command->execute($user, $runId, $ids[3], 'objective-completion-exit-rest',
       ['encounter_id' => 'encounter.the_farm_rest', 'action_id' => 'rest']);
-    $command->execute($user, $runId, $ids[3], 'objective-completion-exit-boss');
+    $command->execute($user, $runId, $ids[4], 'objective-completion-exit-boss');
     $this->assertSame('unstarted', $query->execute($user)['objectives'][0]['status']);
-    $result = $command->execute($user, $runId, $ids[4], 'objective-completion-exit');
+    $result = $command->execute($user, $runId, $ids[5], 'objective-completion-exit');
     $this->assertSame('completed', $query->execute($user)['objectives'][0]['status']);
     $this->assertTrue((new UserCodexRepository($this->pdo))->owns($user, 'codex.farm.old_paths'));
-    $this->assertSame($result, $command->execute($user, $runId, $ids[4], 'objective-completion-exit'));
+    $this->assertSame($result, $command->execute($user, $runId, $ids[5], 'objective-completion-exit'));
     $this->assertSame('1', (string)$this->scalar("SELECT COUNT(*) FROM `resolved_events` WHERE `user_id` = ? AND `source_type` = 'objective_completion'", [$user]));
   }
 

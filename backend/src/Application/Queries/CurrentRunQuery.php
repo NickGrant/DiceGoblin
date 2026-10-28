@@ -11,6 +11,7 @@ use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Repositories\RunPersistenceRepository;
 use DiceGoblins\Repositories\RunModifierRepository;
 use DiceGoblins\Repositories\UserItemRepository;
+use DiceGoblins\Repositories\UserUnlockRepository;
 use JsonException;
 
 final class CurrentRunQuery
@@ -23,6 +24,8 @@ final class CurrentRunQuery
     private readonly ContentRegistry $content,
     private readonly RunModifierRepository $modifiers,
     private readonly ?UserItemRepository $items = null,
+    private readonly ?DialogueQuery $dialogues = null,
+    private readonly ?UserUnlockRepository $unlocks = null,
   ) {}
 
   /** @return array{run:?array<string,mixed>,player_revision:int} */
@@ -151,7 +154,36 @@ final class CurrentRunQuery
           || !isset($encounter['steps'][0]) || $encounter['steps'][0]['id'] !== $stepId)) {
           throw new CurrentRunIntegrityException('Run node encounter step is invalid.');
         }
+        if ($status === 'available' && $encounter['kind'] === 'boss' && isset($encounter['visit_unlock_id'])) {
+          if ($this->dialogues === null || $this->unlocks === null) {
+            throw new CurrentRunIntegrityException('Boss dialogue authority is unavailable.');
+          }
+          $dialogueId = $this->unlocks->owns($userId, $encounter['visit_unlock_id'])
+            ? $encounter['return_visit_dialogue_id'] : $encounter['first_visit_dialogue_id'];
+          try {
+            $projected['conversation'] = $this->dialogues->execute($userId, $dialogueId);
+          } catch (\Throwable $e) {
+            throw new CurrentRunIntegrityException('Boss dialogue is invalid.', 0, $e);
+          }
+        }
         if ($status === 'available' && $encounter['kind'] === 'non_combat') {
+          if (($encounter['family'] ?? null) === 'dialogue') {
+            if ($stepId !== null || $this->dialogues === null) {
+              throw new CurrentRunIntegrityException('Dialogue encounter state is invalid.');
+            }
+            try {
+              $dialogue = $this->dialogues->execute($userId, $encounter['dialogue_id']);
+            } catch (\Throwable $e) {
+              throw new CurrentRunIntegrityException('Dialogue encounter is invalid.', 0, $e);
+            }
+            $projected['interaction'] = [
+              'encounter_id' => $encounter['id'], 'title' => $dialogue['title'],
+              'body' => $dialogue['body'], 'prompt' => $encounter['prompt'],
+              'actions' => $dialogue['choices'],
+            ];
+            $mapped[] = $projected;
+            continue;
+          }
           $stage = $stepId === null ? $encounter : $encounter['steps'][0];
           $actions = $stage['actions'];
           if ($stepId === null && isset($encounter['steps'])) {

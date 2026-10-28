@@ -497,7 +497,7 @@ export class GameStore {
       this.setItems({ status: 'stale', data: this.itemInventoryState.data, error: null });
   }
 
-  reconcileResolvedRunNodePlayerState(result: LootRunNodeResolutionResult | RestRunNodeResolutionResult | HazardRunNodeResolutionResult | ShrineRunNodeResolutionResult | ChaosRunNodeResolutionResult | InteractionStepResult): void {
+  reconcileResolvedRunNodePlayerState(result: LootRunNodeResolutionResult | RestRunNodeResolutionResult | HazardRunNodeResolutionResult | ShrineRunNodeResolutionResult | ChaosRunNodeResolutionResult | DialogueRunNodeResolutionResult | InteractionStepResult): void {
     const bootstrap = this.cachedBootstrap;
     if (!bootstrap || result.playerRevision < bootstrap.player.player_revision)
       throw new RunContractError('Authoritative player revision regressed.');
@@ -515,6 +515,7 @@ export class GameStore {
         player_revision: result.playerRevision,
       }),
     });
+    if (result.resolutionType === 'dialogue' && result.knowledge?.outcome === 'granted') this.markCodexStale();
     this.setCurrentRun({ status: 'stale', data: current, error: null });
   }
 
@@ -1611,7 +1612,7 @@ import {
 } from './unit-detail-contracts';
 import { CurrentRun, CurrentRunResult, RunAbandonResult, RunContractError, RunStartResult } from './run-contracts';
 import { activeRunLock, ActiveRunLock } from './active-run-lock';
-import { ChaosRunNodeResolutionResult, ExitRunNodeResolutionResult, HazardRunNodeResolutionResult, InteractionStepResult, LootRunNodeResolutionResult, RestRunNodeResolutionResult, ShrineRunNodeResolutionResult } from './run-node-resolution-contracts';
+import { ChaosRunNodeResolutionResult, DialogueRunNodeResolutionResult, ExitRunNodeResolutionResult, HazardRunNodeResolutionResult, InteractionStepResult, LootRunNodeResolutionResult, RestRunNodeResolutionResult, ShrineRunNodeResolutionResult } from './run-node-resolution-contracts';
 import { InventoryContractError, OwnedItemStack, parseItemCollectionEnvelope } from './inventory-contracts';
 import { ShopCatalogResult, ShopContractError, ShopPurchaseResult, parseShopCatalogEnvelope } from './shop-contracts';
 import { EnergyRestoreResult, RunUnitHealResult } from './consumable-contracts';

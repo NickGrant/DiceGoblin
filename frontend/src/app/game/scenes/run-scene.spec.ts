@@ -251,6 +251,32 @@ describe('RunScene lifecycle shell', () => {
     expect(startup.store.bootstrap?.player.teeth).toBe(0);
   });
 
+  it('submits a Farm Scout choice through the generic RunScene interaction and shows its response', async () => {
+    const available = restAvailableRun();
+    const dialogueRun = { ...available, nodes: available.nodes.map((node) => node.id === '12'
+      ? { ...node, nodeTypeId: 'run_node_type.dialogue', interaction: {
+        encounterId: 'encounter.the_farm_scout', title: 'The Farm Scout', body: 'A goblin scout points toward the tracks.',
+        prompt: 'What do you ask?', actions: [{ id: 'hear_paths', label: 'Ask about the old paths' }],
+      } } : node) };
+    const { scene, startup, api } = await readyHarness(dialogueRun);
+    spyOn<any>(scene, 'render').and.stub();
+    scene.selectNode('12');
+    api.resolveRunNode.and.resolveTo({ resolutionType: 'dialogue', encounterId: 'encounter.the_farm_scout',
+      actionId: 'hear_paths', response: 'The scout sketches a route.',
+      knowledge: { codexId: 'codex.farm.old_paths', outcome: 'granted' },
+      node: { id: '12', status: 'completed', completedAt: '2026-09-16T12:02:00Z' },
+      newlyAvailableNodeIds: ['13'], run: { id: '41', status: 'active', endedAt: null }, playerRevision: 8 });
+    api.getCurrentRun.and.resolveTo({ run: bossAvailableRun(), playerRevision: 8 });
+
+    await scene.activateSelectedNonCombat();
+
+    expect(api.resolveRunNode).toHaveBeenCalledOnceWith('41', '12', 'csrf', 'run-node:fixed',
+      { encounterId: 'encounter.the_farm_scout', actionId: 'hear_paths' });
+    expect(scene.resolvedNodeSyncState).toBe('succeeded');
+    expect((scene as unknown as { nodeMessage: string }).nodeMessage).toBe('The scout sketches a route.');
+    expect(startup.store.currentRun.data?.nodes[2].status).toBe('completed');
+  });
+
   it('retains the Rest attempt and blocks reconciliation for a mismatched encounter receipt', async () => {
     const { scene, startup, api } = await readyHarness(restAvailableRun());
     spyOn<any>(scene, 'render').and.stub(); scene.selectNode('12');
@@ -443,6 +469,23 @@ describe('RunScene lifecycle shell', () => {
     expect(startup.battlePresentation.marker).toEqual(jasmine.objectContaining({ battleId: '82', runNodeId: '13' }));
     expect(staleItems).toHaveBeenCalledTimes(1);
     expect(sceneStart).toHaveBeenCalledWith(BATTLE_SCENE_KEY);
+  });
+
+  it('requires the projected Boss conversation before fighting and retains its completion attempt', async () => {
+    const run = bossAvailableRun();
+    const withConversation: CurrentRun = { ...run, nodes: run.nodes.map((node) => node.id === '13'
+      ? { ...node, conversation: { id: 'dialogue.farm.mudking_first', title: 'The Mudking',
+        body: 'The merchant is captive.', choices: [{ id: 'challenge', label: 'Challenge' }] } } : node) };
+    const { scene, api } = await readyHarness(withConversation);
+    spyOn<any>(scene, 'render').and.stub(); scene.selectNode('13');
+    await scene.activateSelectedCombat();
+    expect(api.resolveRunNode).not.toHaveBeenCalled();
+    api.completeDialogue.and.resolveTo({ dialogueId: 'dialogue.farm.mudking_first', choiceId: 'challenge',
+      response: 'Mudking raises his club.', knowledge: null, playerRevision: 8 });
+    await scene.speakToSelectedBoss();
+    expect(api.completeDialogue).toHaveBeenCalledTimes(1);
+    await scene.activateSelectedCombat();
+    expect(api.resolveRunNode).toHaveBeenCalledTimes(1);
   });
 
   it('resolves Exit once, reconciles authoritative bootstrap progression, and enters Camp', async () => {
@@ -672,7 +715,7 @@ function abandonSuccess(): abandonResult {
 }
 
 async function readyHarness(run: CurrentRun = currentRun(), createKey: () => string = () => 'run-node:fixed') {
-  const api = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getBootstrap', 'getCurrentRun', 'abandonRun', 'resolveRunNode', 'getItems', 'healRunUnit']);
+  const api = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getBootstrap', 'getCurrentRun', 'abandonRun', 'resolveRunNode', 'getItems', 'healRunUnit', 'completeDialogue']);
   const startup = new RuntimeStartup(api, {} as ClientContentLoader);
   const registry = content();
   startup.store.hydrateBootstrap(activeBootstrap(run.regionId));
@@ -749,6 +792,7 @@ function content(): ClientContentRegistry {
       'run_node_type.combat': { id: 'run_node_type.combat', display_name: 'Combat', description: 'Fight.', icon_key: 'combat' },
       'run_node_type.loot': { id: 'run_node_type.loot', display_name: 'Loot', description: 'Collect.', icon_key: 'loot' },
       'run_node_type.rest': { id: 'run_node_type.rest', display_name: 'Rest', description: 'Recover.', icon_key: 'rest' },
+      'run_node_type.dialogue': { id: 'run_node_type.dialogue', encounter_kind: 'non_combat', display_name: 'Dialogue', description: 'Speak.', icon_key: 'rest' },
       'run_node_type.hazard': { id: 'run_node_type.hazard', encounter_kind: 'non_combat', display_name: 'Hazard', description: 'Risk.', icon_key: 'hazard' },
       'run_node_type.shrine': { id: 'run_node_type.shrine', encounter_kind: 'non_combat', display_name: 'Shrine', description: 'Choose.', icon_key: 'rest' },
       'run_node_type.chaos': { id: 'run_node_type.chaos', encounter_kind: 'non_combat', display_name: 'Chaos', description: 'Risk.', icon_key: 'rest' },

@@ -184,25 +184,25 @@ final class RunStartControllerTest extends IntegrationTestCase
     $this->assertSame('active', $run['status']);
 
     $nodes = $this->rows('SELECT `id`, `node_index`, `node_type_id`, `encounter_id`, `event_id`, `status`, `generated_metadata` FROM `run_nodes` WHERE `run_id` = ? ORDER BY `node_index`', [$runId]);
-    $this->assertSame([0, 1, 2, 3, 4], array_map('intval', array_column($nodes, 'node_index')));
-    $this->assertSame(['run_node_type.combat', 'run_node_type.loot', 'run_node_type.rest', 'run_node_type.boss', 'run_node_type.exit'], array_column($nodes, 'node_type_id'));
-    $this->assertSame(['available', 'locked', 'locked', 'locked', 'locked'], array_column($nodes, 'status'));
-    $this->assertSame(['encounter.the_farm_mud_combat_1', null, 'encounter.the_farm_rest',
-      'encounter.the_farm_mud_boss_1', null], array_column($nodes, 'encounter_id'));
-    $this->assertSame([null, 'event.farm_loot_completed', null, 'event.farm_boss_completed', null], array_column($nodes, 'event_id'));
+    $definition = $this->content()->runGenerationForRegion('region.the_farm');
+    $expected = (new FixedGraphRunGenerator())->generate($definition);
+    $this->assertSame(array_column($expected['nodes'], 'node_index'), array_map('intval', array_column($nodes, 'node_index')));
+    foreach (['node_type_id', 'encounter_id', 'event_id', 'status'] as $field) {
+      $this->assertSame(array_column($expected['nodes'], $field), array_column($nodes, $field));
+    }
     foreach ($nodes as $index => $node) {
-      $this->assertEquals(['position' => ['column' => $index, 'row' => 1]], json_decode((string)$node['generated_metadata'], true));
+      $this->assertEquals($expected['nodes'][$index]['generated_metadata'], json_decode((string)$node['generated_metadata'], true));
     }
 
     $edges = $this->rows('SELECT f.`node_index` AS `from_index`, t.`node_index` AS `to_index`, e.`generated_metadata`
       FROM `run_edges` e JOIN `run_nodes` f ON f.`id` = e.`from_node_id` AND f.`run_id` = e.`run_id`
       JOIN `run_nodes` t ON t.`id` = e.`to_node_id` AND t.`run_id` = e.`run_id`
       WHERE e.`run_id` = ? ORDER BY f.`node_index`', [$runId]);
-    $this->assertSame([[0, 1], [1, 2], [2, 3], [3, 4]], array_map(
+    $this->assertSame(array_map(static fn(array $edge): array => [$edge['from_node_index'], $edge['to_node_index']], $expected['edges']), array_map(
       static fn(array $edge): array => [(int)$edge['from_index'], (int)$edge['to_index']],
       $edges,
     ));
-    $this->assertSame([null, null, null, null], array_column($edges, 'generated_metadata'));
+    $this->assertSame(array_column($expected['edges'], 'generated_metadata'), array_column($edges, 'generated_metadata'));
 
     $participants = $this->rows('SELECT `unit_id`, `current_hp` FROM `run_unit_state` WHERE `run_id` = ? ORDER BY `unit_id`', [$runId]);
     $expectedUnits = array_map('intval', [$fixture['unit_ids']['bruiser'], $fixture['unit_ids']['guardian'], $fixture['unit_ids']['marksman'], $fixture['unit_ids']['bannerbearer'], $fixture['unit_ids']['saboteur']]);

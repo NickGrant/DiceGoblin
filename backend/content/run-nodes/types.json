@@ -16,6 +16,15 @@
       "icon_key": "icon_encounter_loot"
     },
     {
+      "id": "run_node_type.dialogue",
+      "type": "run_node_type",
+      "encounter_kind": "non_combat",
+      "encounter_family": "dialogue",
+      "display_name": "Dialogue",
+      "description": "Speak with someone along the route.",
+      "icon_key": "icon_encounter_rest"
+    },
+    {
       "id": "run_node_type.rest",
       "type": "run_node_type",
       "encounter_kind": "non_combat",

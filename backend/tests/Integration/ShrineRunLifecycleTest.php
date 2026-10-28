@@ -77,8 +77,8 @@ final class ShrineRunLifecycleTest extends IntegrationTestCase
         array_column($final['units'], 'current_hp'));
       $reloaded = new PDO((string)getenv('TEST_DB_DSN'), (string)getenv('TEST_DB_USER'),
         (string)getenv('TEST_DB_PASS'), [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
-      $this->assertSame($final, (new CurrentRunQuery(new RunPersistenceRepository($reloaded),
-        new PlayerStateRepository($reloaded), $content, new \DiceGoblins\Repositories\RunModifierRepository($reloaded)))->execute($userId)['run']);
+      $this->assertSame($final, ControllerServiceFactory::buildContentAware($reloaded, null, $content)
+        ['currentRunQuery']->execute($userId)['run']);
     }
   }
 

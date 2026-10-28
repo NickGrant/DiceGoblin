@@ -113,7 +113,7 @@ final class ContentValidator
     $academyRewards = [];
     foreach ($definitions as $id => $definition) {
       if (($definition['type'] ?? null) === 'encounter' && ($definition['kind'] ?? null) === 'non_combat') {
-        foreach ($definition['actions'] as $action) {
+        foreach ($definition['actions'] ?? [] as $action) {
           if (($action['effect']['type'] ?? null) !== 'advance_step') continue;
           $item = $this->requireReferenceType($definitions, $id, 'actions.effect.item_id', $action['effect']['item_id'], 'item');
           if ($item['stackable'] !== true || $item['category'] !== 'material') {
@@ -388,6 +388,15 @@ final class ContentValidator
 
       if (($definition['type'] ?? null) === 'encounter') {
         $this->requireReferenceType($definitions, $id, 'region_id', $definition['region_id'], 'region');
+        if (isset($definition['visit_unlock_id'])) {
+          $this->requireReferenceType($definitions, $id, 'visit_unlock_id', $definition['visit_unlock_id'], 'unlock');
+          foreach (['first_visit_dialogue_id', 'return_visit_dialogue_id', 'first_victory_dialogue_id'] as $field) {
+            $this->requireReferenceType($definitions, $id, $field, $definition[$field], 'dialogue');
+          }
+        }
+        if (($definition['family'] ?? null) === 'dialogue') {
+          $this->requireReferenceType($definitions, $id, 'dialogue_id', $definition['dialogue_id'], 'dialogue');
+        }
         foreach ($definition['actions'] ?? [] as $action) {
           if (($action['effect']['type'] ?? null) === 'create_run_modifier') {
             $this->requireReferenceType($definitions, $id, 'actions.effect.modifier_id',
@@ -845,7 +854,7 @@ final class ContentValidator
       $this->requireAllowedString($definition, 'encounter_kind', ['combat', 'boss', 'non_combat'], $location);
     }
     if (array_key_exists('encounter_family', $definition)) {
-      $this->requireAllowedString($definition, 'encounter_family', ['rest', 'hazard', 'shrine', 'chaos'], $location);
+      $this->requireAllowedString($definition, 'encounter_family', ['rest', 'hazard', 'shrine', 'chaos', 'dialogue'], $location);
       if (($definition['encounter_kind'] ?? null) !== 'non_combat') {
         throw new ContentValidationException("{$location} encounter_family requires non_combat encounter_kind.");
       }
@@ -1022,6 +1031,17 @@ final class ContentValidator
   /** @param array<string,mixed> $definition */
   private function validateEncounter(array $definition, string $location): void
   {
+    if (($definition['kind'] ?? null) === 'non_combat' && ($definition['family'] ?? null) === 'dialogue') {
+      $this->requireExactFieldSet($definition,
+        ['id', 'type', 'kind', 'family', 'region_id', 'display_name', 'description', 'prompt', 'dialogue_id'], [], $location);
+      $this->requireNamespace($definition, 'encounter.', $location);
+      $this->requireStableIdWithNamespace($definition, 'region_id', 'region.', $location);
+      $this->requireStableIdWithNamespace($definition, 'dialogue_id', 'dialogue.', $location);
+      $this->requireBoundedNonEmptyString($definition, 'display_name', 128, $location);
+      $this->requireBoundedNonEmptyString($definition, 'description', 512, $location);
+      $this->requireBoundedNonEmptyString($definition, 'prompt', 256, $location);
+      return;
+    }
     if (($definition['kind'] ?? null) === 'non_combat') {
       $this->requireExactFieldSet($definition,
         ['id', 'type', 'kind', 'region_id', 'display_name', 'description', 'prompt', 'actions'], ['family', 'steps'], $location);
@@ -1119,7 +1139,17 @@ final class ContentValidator
       return;
     }
     $this->requireExactFieldSet($definition,
-      ['id', 'type', 'kind', 'region_id', 'display_name', 'description', 'difficulty', 'combatants'], [], $location);
+      ['id', 'type', 'kind', 'region_id', 'display_name', 'description', 'difficulty', 'combatants'],
+      ['first_visit_dialogue_id', 'return_visit_dialogue_id', 'first_victory_dialogue_id', 'visit_unlock_id'], $location);
+    $dialogueFields = ['first_visit_dialogue_id', 'return_visit_dialogue_id', 'first_victory_dialogue_id', 'visit_unlock_id'];
+    $present = array_intersect($dialogueFields, array_keys($definition));
+    if ($present !== [] && (count($present) !== count($dialogueFields) || $definition['kind'] !== 'boss')) {
+      throw new ContentValidationException("{$location} Boss dialogue contract is incomplete.");
+    }
+    foreach (['first_visit_dialogue_id', 'return_visit_dialogue_id', 'first_victory_dialogue_id'] as $field) {
+      if (isset($definition[$field])) $this->requireStableIdWithNamespace($definition, $field, 'dialogue.', $location);
+    }
+    if (isset($definition['visit_unlock_id'])) $this->requireStableIdWithNamespace($definition, 'visit_unlock_id', 'unlock.', $location);
     $this->requireNamespace($definition, 'encounter.', $location);
     $this->requireStableIdWithNamespace($definition, 'region_id', 'region.', $location);
     $this->requireAllowedString($definition, 'kind', ['combat', 'boss'], $location);
@@ -1454,6 +1484,7 @@ final class ContentValidator
     $expectedTypes = [
       'run_node_type.combat',
       'run_node_type.loot',
+      'run_node_type.dialogue',
       'run_node_type.rest',
       'run_node_type.boss',
       'run_node_type.exit',
@@ -1461,7 +1492,7 @@ final class ContentValidator
     $nodes = $definition['nodes'];
     $actualTypes = array_map(static fn(array $node): string => (string)$node['node_type_id'], $nodes);
     if ($actualTypes !== $expectedTypes) {
-      throw new ContentValidationException('region.the_farm generation must use the ordered combat, loot, rest, boss, exit structure.');
+      throw new ContentValidationException('region.the_farm generation must use the ordered combat, loot, dialogue, rest, boss, exit structure.');
     }
     if ((string)$definition['start_node_key'] !== (string)$nodes[0]['key']) {
       throw new ContentValidationException('region.the_farm generation must start at its combat node.');
@@ -1472,10 +1503,13 @@ final class ContentValidator
     if (($nodes[1]['event_id'] ?? null) !== 'event.farm_loot_completed') {
       throw new ContentValidationException('region.the_farm Loot node must reference its completion event.');
     }
-    if (($nodes[3]['encounter_id'] ?? null) !== 'encounter.the_farm_mud_boss_1') {
+    if (($nodes[2]['encounter_id'] ?? null) !== 'encounter.the_farm_scout') {
+      throw new ContentValidationException('region.the_farm Dialogue node must reference its scout encounter.');
+    }
+    if (($nodes[4]['encounter_id'] ?? null) !== 'encounter.the_farm_mud_boss_1') {
       throw new ContentValidationException('region.the_farm Boss node must reference its Mudking encounter.');
     }
-    if (($nodes[3]['event_id'] ?? null) !== 'event.farm_boss_completed') {
+    if (($nodes[4]['event_id'] ?? null) !== 'event.farm_boss_completed') {
       throw new ContentValidationException('region.the_farm Boss node must reference its completion event.');
     }
 

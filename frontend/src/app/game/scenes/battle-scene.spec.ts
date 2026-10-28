@@ -70,6 +70,26 @@ describe('BattleScene retained playback lifecycle', () => {
     expect(Object.keys(scene.playbackController!.result)).not.toContain('xp');
   });
 
+  it('holds first-victory return until the merchant conversation completes once', async () => {
+    const { scene, startup, api, sceneStart } = await harness(true);
+    startup.battlePresentation.retainResolution({ ...bossResolutionForPresentation(),
+      firstVictoryDialogueId: 'dialogue.farm.mudking_merchant_freed' });
+    api.getDialogue.and.resolveTo({ id: 'dialogue.farm.mudking_merchant_freed', title: 'The Merchant Is Free',
+      body: 'The merchant calls for help.', choices: [{ id: 'free_merchant', label: 'Free the merchant' }] });
+    await completePlayback(scene);
+    await scene.continueAfterBattle();
+    expect(api.getCurrentRun).not.toHaveBeenCalled();
+    await (scene as any).loadBossConversation();
+    api.completeDialogue.and.resolveTo({ dialogueId: 'dialogue.farm.mudking_merchant_freed',
+      choiceId: 'free_merchant', response: 'The merchant opens a Shop.', knowledge: null, playerRevision: 9 });
+    await scene.completeBossConversation();
+    expect(api.completeDialogue).toHaveBeenCalledTimes(1);
+    api.getCurrentRun.and.resolveTo({ run: victoryRun(), playerRevision: 9 });
+    await scene.continueAfterBattle();
+    expect(api.getCurrentRun).toHaveBeenCalledTimes(1);
+    expect(sceneStart).toHaveBeenCalledOnceWith('RunScene');
+  });
+
   it('presents an authoritative generic already-owned unlock outcome without deriving a substitute', async () => {
     const { scene, startup } = await harness(true);
     const result = bossResolutionForPresentation();
@@ -252,7 +272,7 @@ describe('BattleScene retained playback lifecycle', () => {
 
 async function harness(activeRun = false, outcome: 'victory' | 'defeat' | 'stalemate' = 'victory') {
   const api = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', [
-    'getBattlePlayback', 'getCurrentRun', 'resolveRunNode', 'getBootstrap', 'getUnits', 'getDice', 'getSquads',
+    'getBattlePlayback', 'getCurrentRun', 'resolveRunNode', 'getBootstrap', 'getUnits', 'getDice', 'getSquads', 'getDialogue', 'completeDialogue',
   ]);
   const startup = new RuntimeStartup(api, {} as ClientContentLoader); const registry = content();
   startup.store.hydrateBootstrap(bootstrap(activeRun));
