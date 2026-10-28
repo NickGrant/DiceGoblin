@@ -236,7 +236,7 @@ Bounties are a special authored objective type and do not receive a separate per
 - `GET /api/v1/objectives`
   - Package 4 returns authenticated, player-specific objective IDs, title, description, category, lifecycle status (`unstarted`, `active`, `completed`), and each requirement's ID, label, current count, and needed count.
   - An authored objective without a player row is projected as `unstarted` with zero counts; completed state requires a durable completion marker. Authored requirement routing and completion-event references remain server-private.
-  - The Package 4 production catalog is empty; a validated test-only authored objective proves the read and persistence contract. Later packages may add production objectives and authoritative fact processing.
+  - The production catalog remains empty; validated test-only authored objectives prove the read and progress contracts. Package 5 applies finalized enemy-defeat, successful region-run, and dialogue-completion facts inside their existing gameplay transactions. A fully saturated objective remains `active` until Package 6 finalizes completion and rewards.
 
 ### Command
 

@@ -150,6 +150,23 @@ describe('GameStore Warband cache', () => {
       .toThrowError('Dialogue completion revision is incoherent.');
   });
 
+  it('invalidates lazy objectives when dialogue progress advances revision without a new Codex grant', async () => {
+    const store = new GameStore(); const client = api();
+    store.hydrateBootstrap(bootstrap());
+    client.getObjectives.and.resolveTo([{ id: 'objective.test.scout', title: 'Scout', description: 'Explore.',
+      category: 'objective', status: 'active', requirements: [{ id: 'dialogue', label: 'Talk', current: 1, needed: 2 }] }]);
+    await store.loadObjectives(client);
+    const result = { dialogueId: 'dialogue.camp.farm_scout', choiceId: 'hear_paths', response: 'The scout sketches a route.',
+      knowledge: { codexId: 'codex.farm.old_paths', outcome: 'already_owned' as const }, playerRevision: 8 };
+    store.reconcileDialogueCompletion(result);
+    expect(store.playerRevision).toBe(8);
+    expect(store.objectives.status).toBe('stale');
+    store.reconcileDialogueCompletion(result);
+    expect(store.playerRevision).toBe(8);
+    expect(() => store.reconcileDialogueCompletion({ ...result, playerRevision: 10 }))
+      .toThrowError('Dialogue completion revision is incoherent.');
+  });
+
   it('strictly parses and retains the compact active-run bootstrap summary', () => {
     const data = { ...bootstrap(), active_run: {
       id: '41', region_id: 'region.the_farm', squad_id: '31', status: 'active',

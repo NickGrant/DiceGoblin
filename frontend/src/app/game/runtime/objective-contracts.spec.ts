@@ -12,6 +12,8 @@ describe('Objective browser contract', () => {
       requirements: [{ ...requirement, current: 2 }] }))[0].status).toBe('active');
     expect(parseObjectivesEnvelope(response({ ...objective, status: 'completed',
       requirements: [{ ...requirement, current: 3 }] }))[0].status).toBe('completed');
+    expect(parseObjectivesEnvelope(response({ ...objective, status: 'active',
+      requirements: [{ ...requirement, current: 3 }] }))[0].status).toBe('active');
     expect(parseObjectivesEnvelope({ ok: true, data: { objectives: [] } })).toEqual([]);
   });
 

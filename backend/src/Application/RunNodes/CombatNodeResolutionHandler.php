@@ -6,6 +6,7 @@ namespace DiceGoblins\Application\RunNodes;
 use DiceGoblins\Application\Combat\CombatSnapshotAssembler;
 use DiceGoblins\Application\Commands\CombatResolutionIntegrityException;
 use DiceGoblins\Application\Rewards\VictoryItemGrantService;
+use DiceGoblins\Application\Objectives\ObjectiveProgressService;
 use DiceGoblins\Combat\Vnext\CombatResolver;
 use DiceGoblins\Domain\Battles\CombatSeedDeriver;
 use DiceGoblins\Domain\Battles\FinalizedBattle;
@@ -25,6 +26,7 @@ final class CombatNodeResolutionHandler implements RunNodeResolutionHandler
     private readonly VictoryItemGrantService $itemGrants,
     private readonly RunModifierRepository $modifiers,
     private readonly ContentRegistry $content,
+    private readonly ?ObjectiveProgressService $objectives = null,
   ) {}
 
   public function nodeTypeId(): string { return 'run_node_type.combat'; }
@@ -77,6 +79,18 @@ final class CombatNodeResolutionHandler implements RunNodeResolutionHandler
       $hp = (int)$terminal['current_hp'];
       $this->nodes->persistUnitHp($runId, $unitId, $hp);
       $terminalHp[(string)$unitId] = $hp;
+    }
+    if ($this->objectives !== null) {
+      $defeatedByType = [];
+      foreach ($battle->manifestArray() as $participant) {
+        if ($participant['side'] !== 'enemy') continue;
+        $terminal = $terminalByKey[$participant['combatant_key']] ?? null;
+        if (!is_array($terminal)) throw new CombatResolutionIntegrityException('Terminal enemy state is unavailable.');
+        if ((int)$terminal['current_hp'] > 0) continue;
+        $typeId = $participant['enemy_unit_type_id'];
+        $defeatedByType[$typeId] = ($defeatedByType[$typeId] ?? 0) + 1;
+      }
+      foreach ($defeatedByType as $typeId => $count) $this->objectives->apply($userId, 'defeat_enemy_unit_type', $typeId, $count);
     }
     ksort($terminalHp, SORT_NUMERIC);
     $victory = $result['outcome'] === 'victory';

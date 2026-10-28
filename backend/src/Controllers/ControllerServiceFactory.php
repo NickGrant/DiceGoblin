@@ -25,6 +25,7 @@ use DiceGoblins\Application\Commands\ResolveRunNodeCommand;
 use DiceGoblins\Application\Rewards\RewardApplicationService;
 use DiceGoblins\Application\Rewards\VictoryItemDropPolicy;
 use DiceGoblins\Application\Rewards\VictoryItemGrantService;
+use DiceGoblins\Application\Objectives\ObjectiveProgressService;
 use DiceGoblins\Application\RunNodes\CombatNodeResolutionHandler;
 use DiceGoblins\Application\RunNodes\BossNodeResolutionHandler;
 use DiceGoblins\Application\RunNodes\LootNodeResolutionHandler;
@@ -78,6 +79,7 @@ use DiceGoblins\Repositories\UserRepository;
 use DiceGoblins\Repositories\UserUnlockRepository;
 use DiceGoblins\Repositories\UserCodexRepository;
 use DiceGoblins\Repositories\UserItemRepository;
+use DiceGoblins\Repositories\UserObjectiveRepository;
 use DiceGoblins\Repositories\WarbandDiceRepository;
 use DiceGoblins\Repositories\WarbandFixtureRepository;
 use DiceGoblins\Repositories\WarbandUnitRepository;
@@ -168,6 +170,7 @@ final class ControllerServiceFactory
     $unlockRepository = new UserUnlockRepository($pdo);
     $codexRepository = new UserCodexRepository($pdo);
     $itemRepository = new UserItemRepository($pdo);
+    $objectiveProgress = new ObjectiveProgressService($pdo, new UserObjectiveRepository($pdo), $content);
     $regionAvailability = new RegionAvailabilityPolicy($content);
     $unitTypeAvailability = new UnitTypeAvailabilityPolicy($content);
     $normalUnitCreation = new NormalUnitCreationService($unitRepository, $content);
@@ -184,7 +187,7 @@ final class ControllerServiceFactory
       $combatResolver ?? new CombatEngine(),
       new CombatSeedDeriver(),
       new VictoryItemGrantService(new VictoryItemDropPolicy($content), $itemRepository),
-      $runModifierRepository, $content,
+      $runModifierRepository, $content, $objectiveProgress,
     );
 
     return array_merge($core, [
@@ -230,7 +233,7 @@ final class ControllerServiceFactory
       ),
       'completeDialogueCommand' => new CompleteDialogueCommand(
         $pdo, $core['playerStateRepo'], $codexRepository, $unlockRepository,
-        $idempotencyRepository, $rewardApplication, $content,
+        $idempotencyRepository, $rewardApplication, $content, $objectiveProgress,
       ),
       'reconstructKinCommand' => new ReconstructKinCommand(
         $pdo, $core['playerStateRepo'], $idempotencyRepository, $itemRepository, $unlockRepository,
@@ -290,6 +293,7 @@ final class ControllerServiceFactory
         new SystemClock(),
         null,
         new \DiceGoblins\Application\RunNodes\ContextualEncounterStepAdvancer($content, $itemRepository, $nodeResolutionRepository),
+        $objectiveProgress,
       ),
       'provisionWarbandFixtureCommand' => new ProvisionWarbandFixtureCommand(
         $pdo,

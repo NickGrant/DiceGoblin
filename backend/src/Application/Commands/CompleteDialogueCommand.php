@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace DiceGoblins\Application\Commands;
 
 use DiceGoblins\Application\Rewards\RewardApplicationService;
+use DiceGoblins\Application\Objectives\ObjectiveProgressService;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Content\ContentValidationException;
 use DiceGoblins\Domain\Rewards\RewardContext;
@@ -27,6 +28,7 @@ final class CompleteDialogueCommand
     private readonly IdempotencyRequestRepository $receipts,
     private readonly RewardApplicationService $rewards,
     private readonly ContentRegistry $content,
+    private readonly ?ObjectiveProgressService $objectives = null,
   ) {}
 
   /** @return array{dialogue_id:string,choice_id:string,response:string,knowledge:?array{codex_id:string,outcome:string},player_revision:int} */
@@ -66,6 +68,7 @@ final class CompleteDialogueCommand
       }
       $knowledge = null;
       $revision = $state['player_revision'];
+      $revisionChanged = false;
       if (isset($choice['event_id'])) {
         $event = $this->content->event($choice['event_id']);
         $reward = $this->content->rewardDefinition($event['reward_definition_id']);
@@ -88,7 +91,13 @@ final class CompleteDialogueCommand
         if ($entry['outcome'] === 'granted') {
           if ($revision === ClientSafeInteger::MAXIMUM) throw new DialogueCompletionIntegrityException('Player revision overflow.');
           $revision = $this->players->incrementRevision($userId);
+          $revisionChanged = true;
         }
+      }
+      $objectiveChanged = $this->objectives?->apply($userId, 'complete_dialogue', $dialogueId) ?? false;
+      if ($objectiveChanged && !$revisionChanged) {
+        if ($revision === ClientSafeInteger::MAXIMUM) throw new DialogueCompletionIntegrityException('Player revision overflow.');
+        $revision = $this->players->incrementRevision($userId);
       }
       $receipt = ['dialogue_id' => $dialogueId, 'choice_id' => $choiceId,
         'response' => $choice['response'], 'knowledge' => $knowledge, 'player_revision' => $revision];

@@ -9,6 +9,7 @@ use Closure;
 use DiceGoblins\Application\RunNodes\RunNodeResolutionHandler;
 use DiceGoblins\Application\RunNodes\ActionRunNodeResolutionHandler;
 use DiceGoblins\Application\RunNodes\ContextualEncounterStepAdvancer;
+use DiceGoblins\Application\Objectives\ObjectiveProgressService;
 use DiceGoblins\Infrastructure\Clock;
 use DiceGoblins\Repositories\IdempotencyRequestRepository;
 use DiceGoblins\Repositories\PlayerStateRepository;
@@ -36,6 +37,7 @@ final class ResolveRunNodeCommand
     private readonly Clock $clock,
     private readonly ?Closure $beforeCommit = null,
     private readonly ?ContextualEncounterStepAdvancer $steps = null,
+    private readonly ?ObjectiveProgressService $objectives = null,
   ) {
     foreach ($handlers as $handler) {
       $type = $handler->nodeTypeId();
@@ -129,6 +131,7 @@ final class ResolveRunNodeCommand
         $endedAt = $this->timestamp($completedAt);
       } elseif ($outcome->runCompleted) {
         $this->nodes->completeRun($userId, $runId, $completedAt);
+        if ($this->objectives !== null) $this->objectives->apply($userId, 'complete_region_run', (string)$run['region_id']);
         $runStatus = 'completed';
         $endedAt = $this->timestamp($completedAt);
       } elseif ($outcome->nodeCompleted) {

@@ -64,7 +64,7 @@ export function parseObjectivesEnvelope(value: unknown): readonly ObjectiveEntry
       return Object.freeze({ id: requirement['id'], label: requirement['label'],
         current: requirement['current'] as number, needed: requirement['needed'] as number });
     });
-    if ((entry['status'] === 'completed') !== allMet
+    if ((entry['status'] === 'completed' && !allMet)
       || (entry['status'] === 'unstarted' && requirements.some((requirement) => requirement.current !== 0))) {
       throw new ObjectiveContractError('Objective lifecycle is incoherent.');
     }

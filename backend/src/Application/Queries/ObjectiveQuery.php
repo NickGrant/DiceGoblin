@@ -59,7 +59,7 @@ final class ObjectiveQuery
         $requirements[] = ['id' => $requirement['id'], 'label' => $requirement['label'],
           'current' => $current, 'needed' => $requirement['needed']];
       }
-      if ($state !== null && (($state['completed_at'] !== null) !== $allMet)) {
+      if ($state !== null && $state['completed_at'] !== null && !$allMet) {
         throw new RuntimeException('Persisted objective completion is incoherent.');
       }
       $status = $state === null ? 'unstarted' : ($state['completed_at'] === null ? 'active' : 'completed');

@@ -38,6 +38,7 @@ final class ObjectiveReadIntegrationTest extends IntegrationTestCase
     $repo->setCount($owner, ObjectiveContentFixture::ID, 'kobolds', 10);
     $repo->setCount($owner, ObjectiveContentFixture::ID, 'runs', 2);
     $repo->setCount($owner, ObjectiveContentFixture::ID, 'scout', 1);
+    $this->assertSame('active', $this->query()->execute($owner)['objectives'][0]['status']);
     $this->assertTrue($repo->markCompleted($owner, ObjectiveContentFixture::ID));
     $this->assertFalse($repo->markCompleted($owner, ObjectiveContentFixture::ID));
     $completed = $this->query()->execute($owner)['objectives'][0];

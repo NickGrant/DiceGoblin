@@ -778,13 +778,13 @@ export class GameStore {
       this.setObjectives({ status: 'stale', data: this.objectiveState.data, error: null });
   }
 
-  /** Reconciles only the revision fact carried by a dialogue completion. */
+  /** Reconciles the authoritative revision from dialogue knowledge or objective progress. */
   reconcileDialogueCompletion(result: DialogueCompletion): void {
     const bootstrap = this.cachedBootstrap;
     if (!bootstrap) throw new DialogueContractError('Dialogue completion requires a player bootstrap.');
     const current = bootstrap.player.player_revision;
     if (result.playerRevision < current || result.playerRevision === current) return;
-    if (result.knowledge?.outcome !== 'granted' || result.playerRevision !== current + 1) {
+    if (result.playerRevision !== current + 1) {
       throw new DialogueContractError('Dialogue completion revision is incoherent.');
     }
     this.cachedBootstrap = Object.freeze({ ...bootstrap,
