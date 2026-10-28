@@ -7,7 +7,7 @@ Read this for sequencing/planning or when closing/promoting an execution package
 **Status:** Active
 
 ### Related Issues
-- Milestone 11 Package 8 - Knowledge/objectives integrated verification and technical closure
+- Milestone 11 Package 9 - Focused manual UAT before Milestone 12
 
 Milestones 1-10 are complete and passed their required manual UAT.
 
@@ -52,8 +52,8 @@ Mystic Cave/onboarding remains Milestone 12. Swamp/Frog Kin remains Milestone 13
 5. **Authoritative gameplay-fact objective progress.** Approved through `2903f69555994e3377b3f254f8176d44990024c8` (implementation `151133f6d1e271f31893554a20fdc53d29ee83af`). Connects finalized combat defeats, successful region-run completion, and legitimate dialogue completion to objective-owned counters transactionally; counters saturate, exact-key replay does not reapply progress, revision/cache semantics remain authoritative, and no client progress endpoint or completion rewards are introduced.
 6. **Automatic objective completion + reward finalization.** Approved through `cdaaee5f85b35557c5b249ade3b5eff72624e3bf` (implementation `c3e258cb1f4b1a23cd477b915c75fe6c4306a45f`). Automatically completes satisfied objectives in the owning gameplay transaction, resolves optional completion events through the canonical reward pipeline exactly once, preserves randomized and duplicate-unique reward semantics, recovers saturated Package 5 state, and rolls completion/rewards back with failed gameplay.
 7. **Phaser Objectives surface + authoritative reconciliation.** Approved through `cdf2886475512cdbe7d479e08bd495d4e276a3b1` (implementation `d3da60c8b8894fc4628e14d74ad7b6fe4ffcc529`). Adds mounted Camp -> Objectives navigation and responsive authoritative objective presentation using the existing lazy GameStore cache, including loading/error/retry, stale-revision reconciliation, deterministic pagination, clean lifecycle teardown, and no client completion/reward authority.
-8. **Knowledge/objectives integrated verification and technical closure.** Current. Verify the complete Milestone 11 knowledge/objective lifecycle, persistence, reconnect/retry, secrecy, reward idempotency, regression safety, responsive presentation, and documentation/technical closure before manual UAT.
-9. **Focused manual UAT before Milestone 12.** Planned.
+8. **Knowledge/objectives integrated verification and technical closure.** Approved through `3834110440ca02ee747860fe7badccae9a398183` (verification implementation `63e59bacf3d5b6248cbed4aa0501a995eef1dbaf`). Integrated Codex/dialogue/objective lifecycle, replay/rollback/cross-player isolation, client cache/lifecycle/secrecy, responsive presentation, and full package gates are verified without production behavior changes.
+9. **Focused manual UAT before Milestone 12.** Current. Manually verify the player-visible Milestone 11 knowledge/objective flows before closing the milestone.
 
 ### Sequencing Notes
 
@@ -64,5 +64,5 @@ Mystic Cave/onboarding remains Milestone 12. Swamp/Frog Kin remains Milestone 13
 - Package 5 connects authoritative finalized gameplay facts to objective-owned counters transactionally without client-authored progress or reward finalization.
 - Package 6 completes satisfied objectives and applies authored completion events transactionally through the canonical reward pipeline without a manual claim path.
 - Package 7 presents authoritative objective state in Phaser and reconciles through the accepted lazy cache/revision model without adding mutation authority.
-- Package 8 is technical closure only: integrate and verify the accepted P1-P7 behavior, close documentation/test gaps, and avoid new product mechanics or Milestone 12 scope.
-- Do not begin Milestone 12 until Milestone 11 technical closure and focused manual UAT pass.
+- Package 8 technically closes the integrated P1-P7 implementation and verifies persistence, retry/replay, rollback, secrecy, cross-player isolation, responsive presentation, and regression safety.
+- Package 9 is the explicit manual UAT gate. Do not begin Milestone 12 or mark Milestone 11 complete until the user explicitly accepts UAT.
