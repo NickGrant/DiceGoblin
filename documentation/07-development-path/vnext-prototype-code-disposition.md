@@ -237,11 +237,11 @@ Preserve/adapt:
 
 Existing Angular gameplay routes/pages are not the vNext game client. Academy, Codex, Dice, Regions, Warband, Unit Detail, Squad Detail, Shop, Wrong Machine, run pages, battle-oriented page flows, and similar gameplay components should be removed after the corresponding Phaser capability replaces them.
 
-Milestone 2 verification retired the unrouted Angular Warband, Dice, Unit Detail, and Squad Detail pages, together with the page-only `DiceService` and `SquadService`. Milestone 7 Package 8 retired the replaced unrouted Angular Shop page, its page-only Shop service, and its isolated Shop-only UI components after the Phaser economy replacement was proven. Milestone 8 Package 5 retired the unrouted Angular Academy page and its page-only service after the Phaser Academy destination and focused tests were in place. Prototype Unit/Profile services and later gameplay pages remain only where they still provide evidence for unimplemented milestones; they are not part of the live `/game` composition. Backend prototype Shop and Academy code remains migration evidence for later progression work until its owning milestone or final hardening.
+Milestone 2 verification retired the unrouted Angular Warband, Dice, Unit Detail, and Squad Detail pages, together with the page-only `DiceService` and `SquadService`. Milestone 7 Package 8 retired the replaced unrouted Angular Shop page, its page-only Shop service, and its isolated Shop-only UI components after the Phaser economy replacement was proven. Milestone 8 Package 5 retired the unrouted Angular Academy page and its page-only service after the Phaser Academy destination and focused tests were in place. The Milestone 11 UAT cleanup retired the unrouted Angular home, Regions, run, Wrong Machine, and Debug pages, their page-only services, the unregistered prototype Debug controller/service, and the detached Codex prototype test evidence superseded by Phaser coverage. The live `/game` composition and the authenticated Warband UAT fixture remain separate. Backend prototype Shop and Academy code remains migration evidence for later progression work until its owning milestone or final hardening.
 
 Do not mechanically port component/service structure into Phaser. Existing pages may be inspected for useful copy, art references, interaction lessons, accessibility considerations, or edge cases.
 
-The old Angular home page should be evaluated during GameScene/Camp work: preserve public/platform responsibilities if any, but the playable Camp belongs in Phaser.
+The playable Camp belongs in Phaser; the old Angular home page was retired after GameScene replaced its route.
 
 ## Frontend Services and Utilities
 

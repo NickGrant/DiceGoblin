@@ -1,3 +1,0 @@
-# Frontend Prototype Test Evidence
-
-`codex-page.component.spec.ts` records behavior of the old Angular gameplay Codex and Objectives page for Milestone 11 review. The accepted vNext client places gameplay in Phaser, and the old page is outside the current `/game` route. This test is intentionally outside the canonical Angular spec discovery path; its exact prototype catalog counts are not a current product contract. Port useful discovery, secrecy, and objective-progress cases to the Milestone 11 Phaser/runtime tests, then remove this file. Git history preserves the original runnable path and imports.
