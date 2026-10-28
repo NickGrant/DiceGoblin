@@ -28,7 +28,8 @@ final class ObjectiveContentFixture
   /** @param list<array<string,mixed>> $objectives @param list<array<string,mixed>> $extraDefinitions */
   public static function registry(array $objectives = [], ?array $primary = null, array $extraDefinitions = []): ContentRegistry
   {
-    $definitions = CanonicalContentFixture::definitions();
+    $definitions = array_values(array_filter(CanonicalContentFixture::definitions(),
+      static fn(array $definition): bool => $definition['type'] !== 'objective'));
     $definitions[] = $primary ?? self::definition();
     foreach ($objectives as $objective) $definitions[] = $objective;
     foreach ($extraDefinitions as $definition) $definitions[] = $definition;

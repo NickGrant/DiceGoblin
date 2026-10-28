@@ -1,6 +1,36 @@
 {
   "definitions": [
     {
+      "id": "dialogue.camp.farm_scout",
+      "type": "dialogue",
+      "title": "The Farm Scout",
+      "body": "A goblin scout points toward the Farm's muddy tracks.",
+      "choices": [
+        {
+          "id": "hear_paths",
+          "label": "Ask about the old paths",
+          "response": "The scout sketches a route around the deepest mud and tells you where the ground stays firm.",
+          "required_codex_ids": [],
+          "event_id": "event.dialogue_farm_scout_paths"
+        },
+        {
+          "id": "discuss_paths",
+          "label": "Discuss the old paths",
+          "response": "You compare notes with the scout and trace the dry route together.",
+          "required_codex_ids": ["codex.farm.old_paths"]
+        }
+      ]
+    },
+    {
+      "id": "encounter.the_farm_scout",
+      "type": "encounter",
+      "kind": "non_combat",
+      "family": "dialogue",
+      "region_id": "region.the_farm",
+      "prompt": "What do you ask the scout?",
+      "dialogue_id": "dialogue.camp.farm_scout"
+    },
+    {
       "id": "dialogue.farm.mudking_first",
       "type": "dialogue",
       "title": "The Mudking",

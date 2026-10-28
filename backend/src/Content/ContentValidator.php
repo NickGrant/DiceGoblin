@@ -1033,12 +1033,10 @@ final class ContentValidator
   {
     if (($definition['kind'] ?? null) === 'non_combat' && ($definition['family'] ?? null) === 'dialogue') {
       $this->requireExactFieldSet($definition,
-        ['id', 'type', 'kind', 'family', 'region_id', 'display_name', 'description', 'prompt', 'dialogue_id'], [], $location);
+        ['id', 'type', 'kind', 'family', 'region_id', 'prompt', 'dialogue_id'], [], $location);
       $this->requireNamespace($definition, 'encounter.', $location);
       $this->requireStableIdWithNamespace($definition, 'region_id', 'region.', $location);
       $this->requireStableIdWithNamespace($definition, 'dialogue_id', 'dialogue.', $location);
-      $this->requireBoundedNonEmptyString($definition, 'display_name', 128, $location);
-      $this->requireBoundedNonEmptyString($definition, 'description', 512, $location);
       $this->requireBoundedNonEmptyString($definition, 'prompt', 256, $location);
       return;
     }

@@ -1,0 +1,43 @@
+{
+  "definitions": [
+    {
+      "id": "objective.farm.learn_the_paths",
+      "type": "objective",
+      "title": "Learn the Farm Paths",
+      "description": "Ask the Farm Scout how to cross the muddy ground.",
+      "category": "objective",
+      "requirements": [
+        {
+          "id": "scout",
+          "label": "Speak with the Farm Scout",
+          "kind": "complete_dialogue",
+          "target_id": "dialogue.camp.farm_scout",
+          "needed": 1
+        }
+      ]
+    },
+    {
+      "id": "objective.farm.clear_the_road",
+      "type": "objective",
+      "title": "Clear the Farm Road",
+      "description": "Push through the Farm and make the road safe for travel.",
+      "category": "bounty",
+      "requirements": [
+        {
+          "id": "mudwrestler",
+          "label": "Defeat a Mudwrestler",
+          "kind": "defeat_enemy_unit_type",
+          "target_id": "enemy_unit_type.mudwrestler",
+          "needed": 1
+        },
+        {
+          "id": "farm_run",
+          "label": "Complete a Farm run",
+          "kind": "complete_region_run",
+          "target_id": "region.the_farm",
+          "needed": 1
+        }
+      ]
+    }
+  ]
+}
