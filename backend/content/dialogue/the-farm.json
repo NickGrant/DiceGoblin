@@ -40,7 +40,8 @@
           "id": "challenge",
           "label": "Challenge the Mudking",
           "response": "Mudking raises his club and stomps into the clearing.",
-          "required_codex_ids": []
+          "required_codex_ids": [],
+          "event_id": "event.dialogue_mudking"
         }
       ]
     },
@@ -68,7 +69,8 @@
           "id": "challenge",
           "label": "Challenge him again",
           "response": "Mudking grips his club and calls for another fight.",
-          "required_codex_ids": []
+          "required_codex_ids": [],
+          "event_id": "event.dialogue_mudking"
         }
       ]
     }

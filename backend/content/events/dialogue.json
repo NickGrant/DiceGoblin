@@ -4,6 +4,11 @@
       "id": "event.dialogue_farm_scout_paths",
       "type": "event",
       "reward_definition_id": "reward_definition.dialogue_farm_scout_paths"
+    },
+    {
+      "id": "event.dialogue_mudking",
+      "type": "event",
+      "reward_definition_id": "reward_definition.dialogue_mudking"
     }
   ]
 }

@@ -140,6 +140,38 @@ final class DialogueLifecycleIntegrationTest extends IntegrationTestCase
     $this->assertSame(404, $this->invoke(fn() => $controller->complete('dialogue.camp.farm_scout'))['status']);
   }
 
+  public function testAuthoredDialogueKnowledgeChoicesGrantAndReplayAcrossConversations(): void
+  {
+    [$userId] = $this->users();
+    $content = $this->content();
+    $choices = [];
+    foreach ($content->definitionsOfType('dialogue') as $dialogue) {
+      foreach ($dialogue['choices'] as $choice) {
+        if (!isset($choice['event_id']) || $choice['required_codex_ids'] !== []) continue;
+        $event = $content->event($choice['event_id']);
+        $reward = $content->rewardDefinition($event['reward_definition_id']);
+        if (count($reward['entries']) !== 1 || $reward['entries'][0]['reward_type'] !== 'codex') continue;
+        $choices[] = [$dialogue['id'], $choice['id'], $reward['entries'][0]['config']['codex_id']];
+      }
+    }
+    $this->assertNotEmpty($choices);
+    $command = $this->command($content, new ScriptedRewardRollSource(array_fill(0, count($choices), 1)));
+    $codex = new UserCodexRepository($this->pdo);
+    foreach ($choices as $index => [$dialogueId, $choiceId, $codexId]) {
+      $alreadyOwned = $codex->owns($userId, $codexId);
+      $revisionBefore = (int)$this->scalar('SELECT `player_revision` FROM `user_state` WHERE `user_id` = ?', [$userId]);
+      $key = 'authored-dialogue-' . $index;
+      $result = $command->execute($userId, $dialogueId, $choiceId, $key);
+      $this->assertSame($codexId, $result['knowledge']['codex_id']);
+      $this->assertSame($alreadyOwned ? 'already_owned' : 'granted', $result['knowledge']['outcome']);
+      $this->assertTrue($codex->owns($userId, $codexId));
+      $this->assertSame($revisionBefore + ($alreadyOwned ? 0 : 1), $result['player_revision']);
+      $this->assertSame($result, $command->execute($userId, $dialogueId, $choiceId, $key));
+    }
+    $this->assertSame((string)count($choices), (string)$this->scalar(
+      'SELECT COUNT(*) FROM `resolved_events` WHERE `user_id` = ?', [$userId]));
+  }
+
   public function testFailedRewardFinalizationRollsBackReceiptAndKnowledge(): void
   {
     [$first] = $this->users();
