@@ -117,6 +117,12 @@ export interface CodexState {
   readonly error: WarbandDomainErrorKind | null;
 }
 
+export interface ObjectiveState {
+  readonly status: WarbandDomainStatus;
+  readonly data: readonly ObjectiveEntry[] | null;
+  readonly error: WarbandDomainErrorKind | null;
+}
+
 export interface WrongMachineState {
   readonly status: WarbandDomainStatus;
   readonly data: WrongMachineCatalog | null;
@@ -347,6 +353,7 @@ export class GameStore {
   private readonly shopListeners = new Set<(state: ShopState) => void>();
   private readonly academyListeners = new Set<(state: AcademyState) => void>();
   private readonly codexListeners = new Set<(state: CodexState) => void>();
+  private readonly objectiveListeners = new Set<(state: ObjectiveState) => void>();
   private readonly wrongMachineListeners = new Set<(state: WrongMachineState) => void>();
   private readonly promotionListeners = new Set<(unitId: string, state: UnitPromotionOptionsState) => void>();
   private currentRunState: CurrentRunState = Object.freeze({ status: 'not-loaded', data: null, error: null });
@@ -360,6 +367,9 @@ export class GameStore {
   private codexState: CodexState = Object.freeze({ status: 'not-loaded', data: null, error: null });
   private codexInFlight: Promise<void> | null = null;
   private codexEpoch = 0;
+  private objectiveState: ObjectiveState = Object.freeze({ status: 'not-loaded', data: null, error: null });
+  private objectiveInFlight: Promise<void> | null = null;
+  private objectiveEpoch = 0;
   private wrongMachineState: WrongMachineState = Object.freeze({ status: 'not-loaded', data: null, error: null });
   private wrongMachineInFlight: Promise<void> | null = null;
   private wrongMachineEpoch = 0;
@@ -378,7 +388,10 @@ export class GameStore {
   private set cachedBootstrap(value: GameBootstrapData | null) {
     const prior = this.bootstrapCache?.player ?? null;
     this.bootstrapCache = value;
-    if (prior && value && prior.player_revision !== value.player.player_revision) this.markCodexStale();
+    if (prior && value && prior.player_revision !== value.player.player_revision) {
+      this.markCodexStale();
+      this.markObjectivesStale();
+    }
     if (prior !== (value?.player ?? null)) {
       for (const listener of this.playerListeners) listener(value?.player ?? null);
     }
@@ -406,6 +419,7 @@ export class GameStore {
 
   get academy(): AcademyState { return this.academyState; }
   get codex(): CodexState { return this.codexState; }
+  get objectives(): ObjectiveState { return this.objectiveState; }
   get wrongMachine(): WrongMachineState { return this.wrongMachineState; }
 
   promotionOptions(unitId: string): UnitPromotionOptionsState {
@@ -452,6 +466,11 @@ export class GameStore {
   subscribeCodex(listener: (state: CodexState) => void): () => void {
     this.codexListeners.add(listener);
     return () => this.codexListeners.delete(listener);
+  }
+
+  subscribeObjectives(listener: (state: ObjectiveState) => void): () => void {
+    this.objectiveListeners.add(listener);
+    return () => this.objectiveListeners.delete(listener);
   }
 
   subscribeWrongMachine(listener: (state: WrongMachineState) => void): () => void {
@@ -731,6 +750,32 @@ export class GameStore {
     this.codexInFlight = null;
     if (this.codexState.status !== 'not-loaded')
       this.setCodex({ status: 'stale', data: this.codexState.data, error: null });
+  }
+
+  loadObjectives(api: RuntimeApiClient, reload = false): Promise<void> {
+    const state = this.objectiveState;
+    if (!reload && state.status === 'fresh') return Promise.resolve();
+    if (this.objectiveInFlight) return this.objectiveInFlight;
+    const generation = this.cacheGeneration; const epoch = this.objectiveEpoch;
+    this.setObjectives({ status: 'loading', data: state.data, error: null });
+    const promise = api.getObjectives().then((entries) => {
+      if (generation === this.cacheGeneration && epoch === this.objectiveEpoch)
+        this.setObjectives({ status: 'fresh', data: entries, error: null });
+    }).catch((error: unknown) => {
+      if (generation === this.cacheGeneration && epoch === this.objectiveEpoch)
+        this.setObjectives({ status: 'error', data: state.data, error: domainErrorKind(error) });
+    }).finally(() => { if (this.objectiveInFlight === promise) this.objectiveInFlight = null; });
+    this.objectiveInFlight = promise;
+    return promise;
+  }
+
+  retryObjectives(api: RuntimeApiClient): Promise<void> { return this.loadObjectives(api, true); }
+
+  markObjectivesStale(): void {
+    this.objectiveEpoch += 1;
+    this.objectiveInFlight = null;
+    if (this.objectiveState.status !== 'not-loaded')
+      this.setObjectives({ status: 'stale', data: this.objectiveState.data, error: null });
   }
 
   /** Reconciles only the revision fact carried by a dialogue completion. */
@@ -1230,6 +1275,9 @@ export class GameStore {
     this.codexState = Object.freeze({ status: 'not-loaded', data: null, error: null });
     this.codexInFlight = null;
     this.codexEpoch += 1;
+    this.objectiveState = Object.freeze({ status: 'not-loaded', data: null, error: null });
+    this.objectiveInFlight = null;
+    this.objectiveEpoch += 1;
     this.wrongMachineState = Object.freeze({ status: 'not-loaded', data: null, error: null });
     this.wrongMachineInFlight = null;
     this.wrongMachineEpoch += 1;
@@ -1242,6 +1290,7 @@ export class GameStore {
     for (const listener of this.shopListeners) listener(this.shopState);
     for (const listener of this.academyListeners) listener(this.academyState);
     for (const listener of this.codexListeners) listener(this.codexState);
+    for (const listener of this.objectiveListeners) listener(this.objectiveState);
     for (const listener of this.wrongMachineListeners) listener(this.wrongMachineState);
     for (const unitId of promotionIds) {
       const empty = this.promotionOptions(unitId);
@@ -1482,6 +1531,11 @@ export class GameStore {
     for (const listener of this.codexListeners) listener(this.codexState);
   }
 
+  private setObjectives(state: ObjectiveState): void {
+    this.objectiveState = Object.freeze(state);
+    for (const listener of this.objectiveListeners) listener(this.objectiveState);
+  }
+
   private setWrongMachine(state: WrongMachineState): void {
     this.wrongMachineState = Object.freeze(state);
     for (const listener of this.wrongMachineListeners) listener(this.wrongMachineState);
@@ -1564,6 +1618,7 @@ import { EnergyRestoreResult, RunUnitHealResult } from './consumable-contracts';
 import { DiceSalvageResult, DiceSellResult } from './dice-lifecycle-contracts';
 import { AcademyCatalogResult, AcademyContractError, AcademyUpgradeResult } from './academy-contracts';
 import { CodexEntry } from './codex-contracts';
+import { ObjectiveEntry } from './objective-contracts';
 import { DialogueCompletion, DialogueContractError } from './dialogue-contracts';
 import { UnitPromotionContractError, UnitPromotionOptionsResult } from './unit-promotion-contracts';
 import { UnitPromotionMutationContractError, UnitPromotionResult } from './unit-promotion-mutation-contracts';

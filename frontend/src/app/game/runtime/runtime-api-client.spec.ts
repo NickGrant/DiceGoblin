@@ -38,6 +38,22 @@ describe('RuntimeApiClient', () => {
     );
   });
 
+  it('reads objectives with session credentials and rejects private response fields', async () => {
+    const valid = { ok: true, data: { objectives: [{ id: 'objective.test.scout', title: 'Scout',
+      description: 'Explore.', category: 'objective', status: 'unstarted',
+      requirements: [{ id: 'runs', label: 'Complete runs', current: 0, needed: 2 }] }] } };
+    const fetchRequest = jasmine.createSpy<RuntimeFetch>('fetchRequest').and.resolveTo(
+      new Response(JSON.stringify(valid), { status: 200 }));
+    const client = new RuntimeApiClient(fetchRequest, '/root');
+    expect((await client.getObjectives())[0].status).toBe('unstarted');
+    expect(fetchRequest).toHaveBeenCalledOnceWith('/root/api/v1/objectives',
+      { method: 'GET', credentials: 'include', headers: { Accept: 'application/json' } });
+    fetchRequest.and.resolveTo(new Response(JSON.stringify({ ...valid,
+      data: { objectives: [{ ...valid.data.objectives[0], completion_event_id: 'event.hidden' }] } }), { status: 200 }));
+    await expectAsync(client.getObjectives()).toBeRejectedWith(
+      jasmine.objectContaining<RuntimeApiError>({ kind: 'malformed-response', status: 200 }));
+  });
+
   it('calls each lazy Warband query directly with the browser session', async () => {
     const fetchRequest = jasmine.createSpy<RuntimeFetch>('fetchRequest').and.callFake(async () =>
       new Response(JSON.stringify({ ok: true, data: {} }), { status: 200 }),

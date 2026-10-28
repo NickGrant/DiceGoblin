@@ -45,6 +45,8 @@ final class VnextDatabaseBaselineTest extends IntegrationTestCase
       'user_external_identities',
       'user_items',
       'user_local_credentials',
+      'user_objective_requirements',
+      'user_objectives',
       'user_state',
       'user_unlocks',
       'users',
@@ -86,6 +88,16 @@ final class VnextDatabaseBaselineTest extends IntegrationTestCase
       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user_codex_ownership' AND INDEX_NAME = 'PRIMARY' AND NON_UNIQUE = 0", []));
     $this->assertSame('1', (string)$this->scalar("SELECT COUNT(*) FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS
       WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'user_codex_ownership' AND CONSTRAINT_NAME = 'fk_user_codex_ownership_user'
+        AND DELETE_RULE = 'CASCADE'", []));
+    $objectiveColumns = $this->pdo?->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user_objectives' ORDER BY ORDINAL_POSITION")->fetchAll(\PDO::FETCH_COLUMN);
+    $this->assertSame(['user_id', 'objective_id', 'completed_at', 'created_at'], $objectiveColumns);
+    $requirementColumns = $this->pdo?->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user_objective_requirements' ORDER BY ORDINAL_POSITION")->fetchAll(\PDO::FETCH_COLUMN);
+    $this->assertSame(['user_id', 'objective_id', 'requirement_id', 'current_count'], $requirementColumns);
+    $this->assertSame('1', (string)$this->scalar("SELECT COUNT(*) FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS
+      WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'user_objectives' AND CONSTRAINT_NAME = 'fk_user_objectives_user'
+        AND DELETE_RULE = 'CASCADE'", []));
+    $this->assertSame('1', (string)$this->scalar("SELECT COUNT(*) FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS
+      WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'user_objective_requirements' AND CONSTRAINT_NAME = 'fk_user_objective_requirements_objective'
         AND DELETE_RULE = 'CASCADE'", []));
     $itemColumns = $this->pdo?->query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user_items' ORDER BY ORDINAL_POSITION")->fetchAll(\PDO::FETCH_COLUMN);
     $this->assertSame(['user_id', 'item_id', 'quantity'], $itemColumns);

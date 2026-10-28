@@ -234,13 +234,14 @@ Bounties are a special authored objective type and do not receive a separate per
 ### Query
 
 - `GET /api/v1/objectives`
-  - Returns player-specific objective availability, accepted/active/completed state, current numeric progress, needed progress, and relevant stable IDs.
-  - Authored descriptions, categories, and reward definitions remain in JSON.
+  - Package 4 returns authenticated, player-specific objective IDs, title, description, category, lifecycle status (`unstarted`, `active`, `completed`), and each requirement's ID, label, current count, and needed count.
+  - An authored objective without a player row is projected as `unstarted` with zero counts; completed state requires a durable completion marker. Authored requirement routing and completion-event references remain server-private.
+  - The Package 4 production catalog is empty; a validated test-only authored objective proves the read and persistence contract. Later packages may add production objectives and authoritative fact processing.
 
 ### Command
 
 - `POST /api/v1/objectives/:objectiveId/accept`
-  - Accepts an objective when the authored objective requires explicit acceptance.
+  - Reserved for an authored objective that requires explicit acceptance; Package 4 defines no such objective and exposes no accept command.
 
 There is no `sync` endpoint in the target model. Objective progress updates as authoritative gameplay occurs.
 

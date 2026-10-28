@@ -32,7 +32,7 @@ describe('GameStore Warband cache', () => {
   }
 
   function api(): jasmine.SpyObj<RuntimeApiClient> {
-    const result = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getBootstrap', 'getUnits', 'getUnitDetail', 'getDice', 'getSquads', 'getItems', 'getCodex', 'getShop', 'getCurrentRun', 'startRun', 'abandonRun', 'renameUnit', 'replaceUnitLoadout']);
+    const result = jasmine.createSpyObj<RuntimeApiClient>('RuntimeApiClient', ['getBootstrap', 'getUnits', 'getUnitDetail', 'getDice', 'getSquads', 'getItems', 'getCodex', 'getObjectives', 'getShop', 'getCurrentRun', 'startRun', 'abandonRun', 'renameUnit', 'replaceUnitLoadout']);
     result.getUnits.and.resolveTo({ ok: true, data: { units: [{ id: '11', display_name: 'Grub', unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active' }] } });
     result.getDice.and.resolveTo({ ok: true, data: { dice: [
       { id: '21', size: 6, profile_id: 'dice_profile.bone', lifecycle_status: 'active', bindings: [{ unit_id: '11', ability_id: 'ability.bash', slot_index: 0 }] },
@@ -69,6 +69,45 @@ describe('GameStore Warband cache', () => {
     expect(store.codex.data?.[0].owned).toBeTrue();
     store.clear();
     expect(store.codex.status).toBe('not-loaded');
+  });
+
+  it('keeps objectives lazy, persists a fresh read, and invalidates on revision and logout', async () => {
+    const store = new GameStore(); const client = api();
+    const entries = [{ id: 'objective.test.scout', title: 'Scout', description: 'Explore.', category: 'bounty' as const,
+      status: 'unstarted' as const, requirements: [{ id: 'kobolds', label: 'Defeat kobolds', current: 0, needed: 3 }] }];
+    client.getObjectives.and.resolveTo(entries);
+    store.hydrateBootstrap(bootstrap());
+    expect(store.objectives.status).toBe('not-loaded');
+    expect(client.getObjectives).not.toHaveBeenCalled();
+    await store.loadObjectives(client); await store.loadObjectives(client);
+    expect(store.objectives.data).toEqual(entries);
+    expect(client.getObjectives).toHaveBeenCalledTimes(1);
+    store.hydrateBootstrap({ ...bootstrap(), player: { ...bootstrap().player, player_revision: 8 } });
+    expect(store.objectives.status).toBe('stale');
+    await store.loadObjectives(client);
+    expect(client.getObjectives).toHaveBeenCalledTimes(2);
+    store.clear();
+    expect(store.objectives.status).toBe('not-loaded');
+  });
+
+  it('discards an in-flight objective read when player revision advances', async () => {
+    const store = new GameStore(); const client = api();
+    store.hydrateBootstrap(bootstrap());
+    type Entries = Awaited<ReturnType<RuntimeApiClient['getObjectives']>>;
+    let resolveOld!: (entries: Entries) => void;
+    const oldRead = new Promise<Entries>((resolve) => { resolveOld = resolve; });
+    const current: Entries = [];
+    client.getObjectives.and.returnValues(oldRead, Promise.resolve(current));
+    const first = store.loadObjectives(client);
+    store.hydrateBootstrap({ ...bootstrap(), player: { ...bootstrap().player, player_revision: 8 } });
+    const second = store.loadObjectives(client);
+    await second;
+    resolveOld([{ id: 'objective.test.old', title: 'Old', description: 'Old.', category: 'objective',
+      status: 'unstarted', requirements: [{ id: 'one', label: 'One', current: 0, needed: 1 }] }]);
+    await first;
+    expect(store.objectives.status).toBe('fresh');
+    expect(store.objectives.data).toEqual(current);
+    expect(client.getObjectives).toHaveBeenCalledTimes(2);
   });
 
   it('discards an in-flight Codex read after progression revision changes', async () => {

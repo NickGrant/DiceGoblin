@@ -82,6 +82,7 @@ final class ContentValidator
       'unlock' => $this->validateUnlock($definition, $location),
       'codex_entry' => $this->validateCodexEntry($definition, $location),
       'dialogue' => $this->validateDialogue($definition, $location),
+      'objective' => $this->validateObjective($definition, $location),
       'capability' => $this->validateCapability($definition, $location),
       'academy_upgrade' => $this->validateAcademyUpgrade($definition, $location),
       'unit_promotion' => $this->validateUnitPromotion($definition, $location),
@@ -304,6 +305,20 @@ final class ContentValidator
         }
       }
 
+      if (($definition['type'] ?? null) === 'objective') {
+        foreach ($definition['requirements'] as $requirement) {
+          $targetType = match ($requirement['kind']) {
+            'defeat_enemy_unit_type' => 'enemy_unit_type',
+            'complete_region_run' => 'region',
+            'complete_dialogue' => 'dialogue',
+          };
+          $this->requireReferenceType($definitions, $id, 'requirements.target_id', $requirement['target_id'], $targetType);
+        }
+        if (isset($definition['completion_event_id'])) {
+          $this->requireReferenceType($definitions, $id, 'completion_event_id', $definition['completion_event_id'], 'event');
+        }
+      }
+
       if (($definition['type'] ?? null) === 'reward_definition') {
         foreach ($definition['entries'] as $entry) {
           if ($entry['reward_type'] === 'unlock') {
@@ -495,6 +510,42 @@ final class ContentValidator
       $this->requireBoundedNonEmptyString($choice, 'response', 2000, $where);
       $this->requireStableIdList($choice, 'required_codex_ids', 'codex.', true, $where);
       if (array_key_exists('event_id', $choice)) $this->requireStableIdWithNamespace($choice, 'event_id', 'event.', $where);
+    }
+  }
+
+  /** @param array<string,mixed> $definition */
+  private function validateObjective(array $definition, string $location): void
+  {
+    $this->requireExactFieldSet($definition, ['id', 'type', 'title', 'description', 'category', 'requirements'], ['completion_event_id'], $location);
+    $this->requireNamespace($definition, 'objective.', $location);
+    $this->requireBoundedNonEmptyString($definition, 'title', 120, $location);
+    $this->requireBoundedNonEmptyString($definition, 'description', 2000, $location);
+    $this->requireAllowedString($definition, 'category', ['objective', 'bounty'], $location);
+    if (array_key_exists('completion_event_id', $definition)) {
+      $this->requireStableIdWithNamespace($definition, 'completion_event_id', 'event.', $location);
+    }
+    $requirements = $definition['requirements'] ?? null;
+    if (!is_array($requirements) || !array_is_list($requirements) || $requirements === []) {
+      throw new ContentValidationException("{$location} requirements must be a non-empty ordered list.");
+    }
+    $seen = [];
+    foreach ($requirements as $index => $requirement) {
+      $where = "{$location} requirements[{$index}]";
+      if (!is_array($requirement) || array_is_list($requirement)) throw new ContentValidationException("{$where} must be an object.");
+      $this->requireExactFieldSet($requirement, ['id', 'label', 'kind', 'target_id', 'needed'], [], $where);
+      $requirementId = $this->requireLocalNodeKey($requirement, 'id', $where);
+      if (isset($seen[$requirementId])) throw new ContentValidationException("{$location} has duplicate requirement '{$requirementId}'.");
+      $seen[$requirementId] = true;
+      $this->requireBoundedNonEmptyString($requirement, 'label', 120, $where);
+      $kind = $this->requireAllowedString($requirement, 'kind',
+        ['defeat_enemy_unit_type', 'complete_region_run', 'complete_dialogue'], $where);
+      $namespace = match ($kind) {
+        'defeat_enemy_unit_type' => 'enemy_unit_type.',
+        'complete_region_run' => 'region.',
+        'complete_dialogue' => 'dialogue.',
+      };
+      $this->requireStableIdWithNamespace($requirement, 'target_id', $namespace, $where);
+      $this->requireIntegerInRange($requirement, 'needed', 1, ClientSafeInteger::MAXIMUM, $where);
     }
   }
 

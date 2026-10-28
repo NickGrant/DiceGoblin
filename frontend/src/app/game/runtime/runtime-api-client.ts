@@ -1,5 +1,6 @@
 import { resolveApiBaseUrl } from '../../core/config/runtime-config';
 import { CodexContractError, CodexEntry, parseCodexEnvelope } from './codex-contracts';
+import { ObjectiveContractError, ObjectiveEntry, parseObjectivesEnvelope } from './objective-contracts';
 import { DialogueCompletion, DialogueContractError, DialogueRead, canonicalDialogueChoiceId,
   canonicalDialogueId, parseDialogueCompletionEnvelope, parseDialogueReadEnvelope } from './dialogue-contracts';
 import {
@@ -125,6 +126,15 @@ export class RuntimeApiClient {
     try { return parseCodexEnvelope(value); }
     catch (error) {
       if (error instanceof CodexContractError) throw new RuntimeApiError('malformed-response', 200);
+      throw error;
+    }
+  }
+
+  async getObjectives(): Promise<readonly ObjectiveEntry[]> {
+    const value = await this.get('/api/v1/objectives');
+    try { return parseObjectivesEnvelope(value); }
+    catch (error) {
+      if (error instanceof ObjectiveContractError) throw new RuntimeApiError('malformed-response', 200);
       throw error;
     }
   }

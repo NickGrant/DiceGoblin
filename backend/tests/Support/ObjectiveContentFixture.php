@@ -1,0 +1,39 @@
+<?php
+declare(strict_types=1);
+
+namespace DiceGoblins\Tests\Support;
+
+use DiceGoblins\Content\ContentRegistry;
+
+final class ObjectiveContentFixture
+{
+  public const ID = 'objective.test.mountains_scout';
+
+  /** @return array<string,mixed> */
+  public static function definition(): array
+  {
+    return ['id' => self::ID, 'type' => 'objective', 'title' => 'Mountains Scout',
+      'description' => 'Learn the roads through the Mountains.', 'category' => 'bounty',
+      'requirements' => [
+        ['id' => 'kobolds', 'label' => 'Defeat kobold skirmishers', 'kind' => 'defeat_enemy_unit_type',
+          'target_id' => 'enemy_unit_type.kobold_skirmisher', 'needed' => 10],
+        ['id' => 'runs', 'label' => 'Complete Mountains runs', 'kind' => 'complete_region_run',
+          'target_id' => 'region.mountains', 'needed' => 2],
+        ['id' => 'scout', 'label' => 'Speak with the Farm scout', 'kind' => 'complete_dialogue',
+          'target_id' => 'dialogue.camp.farm_scout', 'needed' => 1],
+      ],
+      'completion_event_id' => 'event.mountains_boss_completed'];
+  }
+
+  public static function registry(): ContentRegistry
+  {
+    $definitions = CanonicalContentFixture::definitions();
+    $definitions[] = self::definition();
+    $root = sys_get_temp_dir() . '/dice-goblins-objectives-' . bin2hex(random_bytes(6));
+    mkdir($root, 0777, true);
+    $path = $root . '/fixture.json';
+    file_put_contents($path, json_encode(['definitions' => $definitions], JSON_THROW_ON_ERROR));
+    try { return ContentRegistry::load($root); }
+    finally { unlink($path); rmdir($root); }
+  }
+}

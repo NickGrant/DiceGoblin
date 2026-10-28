@@ -82,6 +82,28 @@ CREATE TABLE `user_codex_ownership` (
   CONSTRAINT `fk_user_codex_ownership_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE `user_objectives` (
+  `user_id` BIGINT UNSIGNED NOT NULL,
+  `objective_id` VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `completed_at` TIMESTAMP NULL DEFAULT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`user_id`, `objective_id`),
+  CONSTRAINT `chk_user_objectives_id` CHECK (CHAR_LENGTH(`objective_id`) > 0),
+  CONSTRAINT `fk_user_objectives_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `user_objective_requirements` (
+  `user_id` BIGINT UNSIGNED NOT NULL,
+  `objective_id` VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `requirement_id` VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `current_count` BIGINT UNSIGNED NOT NULL,
+  PRIMARY KEY (`user_id`, `objective_id`, `requirement_id`),
+  CONSTRAINT `chk_user_objective_requirement_id` CHECK (CHAR_LENGTH(`requirement_id`) > 0),
+  CONSTRAINT `chk_user_objective_requirement_count` CHECK (`current_count` > 0),
+  CONSTRAINT `fk_user_objective_requirements_objective` FOREIGN KEY (`user_id`, `objective_id`)
+    REFERENCES `user_objectives` (`user_id`, `objective_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE `user_items` (
   `user_id` BIGINT UNSIGNED NOT NULL,
   `item_id` VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,

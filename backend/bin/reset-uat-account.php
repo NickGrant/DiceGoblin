@@ -56,7 +56,7 @@ try {
     if (!(bool)$state->fetchColumn()) throw new RuntimeException('Target account has no player state.');
 
     $pdo->prepare('UPDATE `user_state` SET `active_squad_id` = NULL WHERE `user_id` = ?')->execute([$userId]);
-    foreach (['idempotency_requests', 'resolved_events', 'runs', 'user_items', 'user_unlocks', 'squads',
+    foreach (['idempotency_requests', 'resolved_events', 'runs', 'user_objectives', 'user_items', 'user_unlocks', 'squads',
       'unit_instances', 'dice_instances'] as $table) {
       $pdo->prepare("DELETE FROM `$table` WHERE `user_id` = ?")->execute([$userId]);
     }
@@ -84,11 +84,12 @@ try {
       (SELECT COUNT(*) FROM `squads` WHERE `user_id` = ?) AS `squads`,
       (SELECT COUNT(*) FROM `runs` WHERE `user_id` = ?) AS `runs`,
       (SELECT COUNT(*) FROM `user_items` WHERE `user_id` = ?) AS `items`,
+      (SELECT COUNT(*) FROM `user_objectives` WHERE `user_id` = ?) AS `objectives`,
       (SELECT COUNT(*) FROM `user_unlocks` WHERE `user_id` = ?) AS `unlocks`,
       (SELECT COUNT(*) FROM `resolved_events` WHERE `user_id` = ?) AS `resolved_events`,
       (SELECT COUNT(*) FROM `idempotency_requests` WHERE `user_id` = ?) AS `idempotency_requests`
     FROM `user_state` us WHERE us.`user_id` = ?');
-  $summary->execute([$userId, $userId, $userId, $userId, $userId, $userId, $userId, $userId]);
+  $summary->execute([$userId, $userId, $userId, $userId, $userId, $userId, $userId, $userId, $userId]);
   $state = $summary->fetch(PDO::FETCH_ASSOC);
   if (!is_array($state)
     || (int)$state['teeth'] !== 0
@@ -100,6 +101,7 @@ try {
     || (int)$state['squads'] !== count($fixture['squad_ids'])
     || (int)$state['runs'] !== 0
     || (int)$state['items'] !== 0
+    || (int)$state['objectives'] !== 0
     || (int)$state['unlocks'] !== 0
     || (int)$state['resolved_events'] !== 0
     || (int)$state['idempotency_requests'] !== 0) {
@@ -117,6 +119,7 @@ try {
       'squads' => (int)$state['squads'],
       'runs' => 0,
       'items' => 0,
+      'objectives' => 0,
       'unlocks' => 0,
       'resolved_events' => 0,
       'idempotency_requests' => 0,

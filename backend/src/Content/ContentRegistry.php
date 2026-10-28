@@ -174,6 +174,12 @@ final class ContentRegistry
     return $this->definitionOfType($id, 'dialogue');
   }
 
+  /** @return array<string,mixed> */
+  public function objective(string $id): array
+  {
+    return $this->definitionOfType($id, 'objective');
+  }
+
   /** @return array<string, mixed> */
   public function academyUpgrade(string $id): array
   {
