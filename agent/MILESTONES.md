@@ -2,67 +2,62 @@
 
 Read this for sequencing/planning or when closing/promoting an execution package. Normal implementation should use `agent/ISSUES.md` instead.
 
-## Milestone 11 - Knowledge and Objectives
+## Milestone 12 - Mystic Cave and Onboarding
 
 **Status:** Active
 
 ### Related Issues
-- Milestone 11 Package 9 - Focused manual UAT before Milestone 12
+- Milestone 12 Package 1 - Canonical onboarding flow and authored-content foundation
 
-Milestones 1-10 are complete and passed their required manual UAT.
+Milestones 1-11 are complete and passed their required manual UAT.
 
-Milestone 10 closed after Package 10 manual UAT acceptance through `d97bcb52c4b834cf72a68d827eac8e196c05adbb`. The accepted Milestone 10 baseline includes authoritative exploration-frontier branching, generalized non-combat encounters, production Mountains Hazards and variable optional side trails, test-proven Shrine/Chaos families, run-scoped modifiers, contextual consumable/multi-step interactions, and generic Phaser RunScene integration. UAT corrections restored Shop/Academy progression gates, accepted finalized Combat/Boss material receipts in the client contract, and expanded Mountains route variety. Further map-generation variety is deferred.
+Milestone 10 closed after Package 10 manual UAT acceptance through `d97bcb52c4b834cf72a68d827eac8e196c05adbb`.
+
+Milestone 11 closed after Package 9 focused manual UAT acceptance on 2026-10-28. The accepted Milestone 11 baseline includes Codex ownership/read/presentation, knowledge-aware replayable dialogue, objective/bounty authored state and authoritative gameplay-fact progress, automatic completion/reward finalization, Phaser Objectives presentation, the Farm Scout and Mudking production dialogue/Codex paths added during UAT, production Farm objectives, dotted-dialogue local routing correction, and the end-of-milestone retirement of obsolete prototype code. Final cleanup verification passed at `03df62b39715e835d31d2642441b0be4186a94f8` with 689 backend tests / 5,605 assertions and 446 frontend tests. The user explicitly accepted renewed Milestone 11 UAT on 2026-10-28.
 
 The major game-wide visual/UI overhaul remains intentionally deferred.
 
 ### Outcome
 
-Establish retained player knowledge and gameplay objectives without introducing a generic progression/history system:
-- Codex entries as unique collectible rewards and durable knowledge;
-- Codex read/presentation surfaces;
-- knowledge-aware dialogue selection where meaningful dialogue grants Codex knowledge;
-- authored objectives/bounties with domain-owned mutable progress;
-- progress driven from authoritative gameplay facts/events rather than client claims;
-- automatic objective completion and rewards through the accepted event-to-reward pipeline;
-- reconnect-safe persistence and strict player-safe projection.
+Establish the fresh-player Mystic Cave onboarding slice and introduce The Whim and the Wrong Machine through normal gameplay, while reusing the accepted vNext architecture rather than creating a parallel tutorial system:
+- a canonical authored onboarding flow for a fresh player;
+- Mystic Cave as the special onboarding biome associated with The Whim and Basic Goblin establishment;
+- player-safe, reconnect-safe presentation through the existing Phaser/runtime/API boundaries;
+- provisioning/unlock consequences expressed through existing authoritative reward/unlock/player-state systems where semantically valid;
+- Wrong Machine introduction without moving its later Swamp theft/restoration gameplay into this milestone;
+- explicit transition from onboarding into the established Camp/Farm core loop.
 
-Mystic Cave/onboarding remains Milestone 12. Swamp/Frog Kin remains Milestone 13. Hardening/cutover remains Milestone 14.
+Swamp/Frog Kin and third-region parity remain Milestone 13. Hardening/cutover remains Milestone 14.
 
 ### Architectural Direction
 
-- Follow `documentation/07-development-path/vnext-progression-state-model.md` as the canonical progression/Codex/objective decision.
-- Do not create a generic `player_progression`, story-flag, historical-event, `has_seen_dialogue`, or catch-all state layer.
-- Codex entries are unique collectible rewards representing meaningful retained knowledge, lore, discoveries, or important dialogue information.
-- Important dialogue may grant Codex entries; dialogue selection may use Codex ownership as a prerequisite. Dialogues remain replayable and duplicate Codex rewards resolve through the normal unique-reward rule.
-- Objectives/bounties own their mutable intermediate progress because the counter itself matters. Objective counters are not unlocks or rewards.
-- Objective completion emits/uses the accepted event-to-reward model; completion rewards must retain existing finalization/idempotency guarantees.
-- Backend/MySQL remains authoritative for Codex ownership, objective progress/completion, eligibility, rewards, revision, and idempotency.
-- Authored definitions belong in canonical content JSON. Do not move content catalogs into SQL or client constants.
-- Client surfaces consume player-safe projections and authoritative mutation/read results; they do not infer completion from local gameplay state.
-- Reuse existing reward/unlock, authored-content, API, storage, client-cache, and idempotency boundaries where semantically valid.
-- Prototype implementation/tests are migration evidence only. Preserve useful behavior, not obsolete prototype architecture.
-- Final visual polish remains deferred; new Phaser surfaces must remain responsive and usable.
+- Follow `documentation/07-development-path/vnext-game-overhaul.md` for milestone order and `agent/CONTEXT_ROUTER.md` for narrow canonical authorities.
+- Mystic Cave is a special biome: Chaos beings/The Whim establish Basic Goblin rather than an enemy-derived kin.
+- Reuse accepted authored-content, dialogue/Codex, reward/unlock, API, storage, client-runtime, responsive, revision, and idempotency boundaries where semantically valid.
+- Do not introduce a generic tutorial-history, story-flag, `has_seen_dialogue`, generic progression, or catch-all state layer. Persist only durable state required by the actual onboarding mechanics.
+- Backend/MySQL remains authoritative for durable player state, eligibility, provisioning, unlocks/rewards, revision, and idempotency.
+- Phaser remains the gameplay client; Angular remains the host/auth/account shell.
+- Authored definitions belong in canonical content JSON rather than SQL or client constants.
+- Prototype source/tests remain migration evidence only after the Milestone 11 cleanup; do not restore retired prototype architecture to implement onboarding.
+- Wrong Machine introduction in Milestone 12 must not contradict its later Swamp provenance/restoration path. Do not implement Swamp/Frog Kin expansion early.
+- Final visual polish remains deferred; onboarding must nevertheless be responsive, legible, and usable.
 
 ### Package Queue
 
-1. **Codex ownership and read-model foundation.** Approved through correction `88ed69f62826977f37d5c5eb365913d9805dcc5f`; evidence recorded at `eaea0d2a497d2b4a1cf7300232ff7a5d58f47ec7`. Establishes authored Codex definitions, unique ownership persistence/reward application, player-safe read projection, strict validation, and durable front-controller composition verification.
-2. **Phaser Codex surface + Camp integration.** Approved at `37be6990b480989b83c22645cb5fa71de7291a94` (implementation `890ae102b2deea6929859acd934848ba3a9402e5`). Establishes mounted Camp -> Codex navigation, authoritative lazy-cache presentation, owned/unowned secrecy, recoverable reads, responsive list/detail presentation, and clean return lifecycle without changing backend Codex semantics.
-3. **Knowledge-aware dialogue contract.** Approved through `47c6ace1b75832c528f4151e4988164c31f35fec` (implementation `0e928f31281b5cbb36d317c78701da99dd19188e`). Establishes replayable authored dialogue, authoritative Codex-aware eligibility, finalized dialogue-to-Codex rewards, idempotent completion, strict player-safe browser contracts, and no dialogue-history/story-flag state. The accompanying test-audit cleanup reduced authored-content coupling without changing production behavior.
-4. **Objective/bounty authored model + persistence/read contract.** Approved through `350ec0eead1224d9cd0777cc19d574913ad8a006` (implementation `5f3212fee87af17f3361c162b1ec88fca06a47b6`). Establishes validated authored objectives, narrow user-scoped objective/requirement persistence, authoritative unstarted/active/completed read semantics, strict player-safe lazy client contracts, and fail-closed corruption handling without gameplay-fact wiring or rewards.
-5. **Authoritative gameplay-fact objective progress.** Approved through `2903f69555994e3377b3f254f8176d44990024c8` (implementation `151133f6d1e271f31893554a20fdc53d29ee83af`). Connects finalized combat defeats, successful region-run completion, and legitimate dialogue completion to objective-owned counters transactionally; counters saturate, exact-key replay does not reapply progress, revision/cache semantics remain authoritative, and no client progress endpoint or completion rewards are introduced.
-6. **Automatic objective completion + reward finalization.** Approved through `cdaaee5f85b35557c5b249ade3b5eff72624e3bf` (implementation `c3e258cb1f4b1a23cd477b915c75fe6c4306a45f`). Automatically completes satisfied objectives in the owning gameplay transaction, resolves optional completion events through the canonical reward pipeline exactly once, preserves randomized and duplicate-unique reward semantics, recovers saturated Package 5 state, and rolls completion/rewards back with failed gameplay.
-7. **Phaser Objectives surface + authoritative reconciliation.** Approved through `cdf2886475512cdbe7d479e08bd495d4e276a3b1` (implementation `d3da60c8b8894fc4628e14d74ad7b6fe4ffcc529`). Adds mounted Camp -> Objectives navigation and responsive authoritative objective presentation using the existing lazy GameStore cache, including loading/error/retry, stale-revision reconciliation, deterministic pagination, clean lifecycle teardown, and no client completion/reward authority.
-8. **Knowledge/objectives integrated verification and technical closure.** Approved through `3834110440ca02ee747860fe7badccae9a398183` (verification implementation `63e59bacf3d5b6248cbed4aa0501a995eef1dbaf`). Integrated Codex/dialogue/objective lifecycle, replay/rollback/cross-player isolation, client cache/lifecycle/secrecy, responsive presentation, and full package gates are verified without production behavior changes.
-9. **Focused manual UAT before Milestone 12.** Current. Manually verify the player-visible Milestone 11 knowledge/objective flows before closing the milestone.
+1. **Canonical onboarding flow and authored-content foundation.** Current. Inventory accepted fresh-player bootstrap/Camp/run capabilities and author the minimum Mystic Cave/Whim/Wrong Machine onboarding definitions and durable eligibility/state contract needed for later packages, without yet building the complete Phaser sequence.
+2. **Authoritative fresh-player onboarding/provisioning transaction.** Planned. Establish idempotent server-authoritative initialization/provisioning and transition state using existing reward/unlock/player-state boundaries where appropriate.
+3. **Mystic Cave interaction/dialogue sequence.** Planned. Implement the authored Whim-led onboarding interactions and any knowledge/dialogue consequences through existing dialogue/Codex contracts rather than tutorial-specific history.
+4. **Wrong Machine introduction and onboarding transition.** Planned. Introduce the Wrong Machine in the accepted narrative/mechanical role and transition the player toward Camp/Farm without implementing the later Swamp theft/restoration slice.
+5. **Phaser onboarding presentation and fresh-player routing.** Planned. Mount the responsive Mystic Cave/onboarding flow in the persistent Phaser runtime and reconcile fresh/returning player routing from authoritative state.
+6. **Mystic Cave/onboarding integrated verification and technical closure.** Planned. Verify fresh-player bootstrap, replay/reconnect/idempotency, secrecy, cross-player isolation, transition into the established core loop, and regression safety.
+7. **Focused manual UAT before Milestone 13.** Planned. Manually verify the complete fresh-player onboarding path before activating Swamp/parity work.
 
 ### Sequencing Notes
 
-- Package 1 established the durable Codex knowledge primitive and player-safe lazy read/cache boundary used by later knowledge features.
-- Package 2 established player-facing Codex presentation without changing Codex ownership or reward semantics.
-- Package 3 established dialogue as replayable authored interaction that may consume Codex knowledge prerequisites and grant meaningful Codex knowledge, without generic dialogue history/story flags.
-- Package 4 established objective definitions and domain-owned progress/completion persistence/read semantics without wiring gameplay facts.
-- Package 5 connects authoritative finalized gameplay facts to objective-owned counters transactionally without client-authored progress or reward finalization.
-- Package 6 completes satisfied objectives and applies authored completion events transactionally through the canonical reward pipeline without a manual claim path.
-- Package 7 presents authoritative objective state in Phaser and reconciles through the accepted lazy cache/revision model without adding mutation authority.
-- Package 8 technically closes the integrated P1-P7 implementation and verifies persistence, retry/replay, rollback, secrecy, cross-player isolation, responsive presentation, and regression safety.
-- Package 9 is the explicit manual UAT gate. Do not begin Milestone 12 or mark Milestone 11 complete until the user explicitly accepts UAT.
+- Package 1 must first determine what durable onboarding state is actually required from canonical mechanics and current source. Do not assume the prototype tutorial shape is authoritative.
+- Package 2 owns durable initialization/provisioning semantics and must avoid duplicate grants on retries/reconnects.
+- Package 3 should preferentially reuse the Milestone 11 dialogue/Codex primitives for meaningful Whim interactions.
+- Package 4 owns the Wrong Machine introduction only; the machine's Swamp theft/restoration and Frog Kin consequences remain Milestone 13.
+- Package 5 owns player-facing routing/presentation and must not infer authoritative onboarding completion locally.
+- Package 6 is the technical closure gate before manual UAT.
+- Package 7 is the explicit manual UAT gate. Do not begin Milestone 13 or mark Milestone 12 complete until the user explicitly accepts UAT.
