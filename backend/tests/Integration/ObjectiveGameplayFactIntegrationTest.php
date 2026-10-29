@@ -50,7 +50,7 @@ final class ObjectiveGameplayFactIntegrationTest extends IntegrationTestCase
     $services = ControllerServiceFactory::buildContentAware($this->pdo, null, $content,
       $this->fixedResolver('victory'), new FixedGraphRunGenerator());
     $query = new ObjectiveQuery(new UserObjectiveRepository($this->pdo), $content);
-    $dialogueRead = new DialogueQuery(new UserCodexRepository($this->pdo), $content);
+    $dialogueRead = $services['dialogueQuery'];
     $this->assertSame(['hear_paths'], array_column(
       $dialogueRead->execute($user, 'dialogue.camp.farm_scout')['choices'], 'id'));
     $run = $services['startRunCommand']->execute($user, ['region_id' => 'region.the_farm'], 'objective-run-start');

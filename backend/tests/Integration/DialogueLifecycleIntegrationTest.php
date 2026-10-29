@@ -8,6 +8,8 @@ use DiceGoblins\Application\Commands\DialogueCompletionException;
 use DiceGoblins\Application\Commands\DialogueCompletionIntegrityException;
 use DiceGoblins\Application\Commands\IdempotencyConflictException;
 use DiceGoblins\Application\Queries\DialogueQuery;
+use DiceGoblins\Application\Queries\OnboardingQuery;
+use DiceGoblins\Application\OnboardingDialogueGuard;
 use DiceGoblins\Application\Rewards\RewardApplicationService;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Controllers\DialogueController;
@@ -29,7 +31,7 @@ final class DialogueLifecycleIntegrationTest extends IntegrationTestCase
   {
     [$first, $second] = $this->users();
     $content = $this->content();
-    $query = new DialogueQuery(new UserCodexRepository($this->pdo), $content);
+    $query = $this->query($content);
     $before = $query->execute($first, 'dialogue.camp.farm_scout');
     $this->assertSame(['hear_paths'], array_column($before['choices'], 'id'));
     $this->assertSame(['id', 'label'], array_keys($before['choices'][0]));
@@ -79,7 +81,7 @@ final class DialogueLifecycleIntegrationTest extends IntegrationTestCase
     $this->assertNull($followup['knowledge']);
     $this->assertSame(2, $followup['player_revision']);
     $this->assertSame(['hear_paths', 'discuss_paths'], array_column(
-      (new DialogueQuery(new UserCodexRepository($this->pdo), $content))
+      $this->query($content)
         ->execute($first, 'dialogue.camp.farm_scout')['choices'], 'id'));
     $this->assertSame('0', (string)$this->scalar('SELECT COUNT(*) FROM `user_codex_ownership` WHERE `user_id` = ?', [$second]));
     try {
@@ -144,7 +146,10 @@ final class DialogueLifecycleIntegrationTest extends IntegrationTestCase
     [$userId] = $this->users();
     $content = $this->content();
     $choices = [];
+    $onboardingIds = array_map(fn(array $step): string => $content->encounter($step['encounter_id'])['dialogue_id'],
+      $content->onboardingFlow()['steps']);
     foreach ($content->definitionsOfType('dialogue') as $dialogue) {
+      if (in_array($dialogue['id'], $onboardingIds, true)) continue;
       foreach ($dialogue['choices'] as $choice) {
         if (!isset($choice['event_id']) || $choice['required_codex_ids'] !== []) continue;
         $event = $content->event($choice['event_id']);
@@ -208,6 +213,18 @@ final class DialogueLifecycleIntegrationTest extends IntegrationTestCase
     $receipts = new IdempotencyRequestRepository($this->pdo);
     $rewards = new RewardApplicationService($this->pdo, $content, new RewardFinalizer($rolls),
       new ResolvedEventRepository($this->pdo), $players, new WarbandUnitRepository($this->pdo), $unlocks, $codex);
-    return new CompleteDialogueCommand($this->pdo, $players, $codex, $unlocks, $receipts, $rewards, $content);
+    return new CompleteDialogueCommand($this->pdo, $players, $codex, $unlocks, $receipts, $rewards, $content,
+      $this->guard($content));
+  }
+
+  private function query(ContentRegistry $content): DialogueQuery
+  {
+    return new DialogueQuery(new UserCodexRepository($this->pdo), $content, $this->guard($content));
+  }
+
+  private function guard(ContentRegistry $content): OnboardingDialogueGuard
+  {
+    return new OnboardingDialogueGuard(new OnboardingQuery(new WarbandUnitRepository($this->pdo),
+      new UserCodexRepository($this->pdo), new PlayerStateRepository($this->pdo), $content), $content);
   }
 }

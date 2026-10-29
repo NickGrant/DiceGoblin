@@ -69,6 +69,39 @@ describe('RuntimeApiClient', () => {
       jasmine.objectContaining<RuntimeApiError>({ kind: 'malformed-response', status: 200 }));
   });
 
+  it('uses the authoritative onboarding dialogue ID with the existing strict dialogue APIs', async () => {
+    const current = 'dialogue.test.arrival';
+    const fetchRequest = jasmine.createSpy<RuntimeFetch>('fetchRequest').and.callFake(async (input) => {
+      const url = String(input);
+      if (url.endsWith('/api/v1/onboarding')) return new Response(JSON.stringify({ ok: true, data: {
+        status: 'required', region: { id: 'region.test_cave', display_name: 'Test Cave' }, dialogue_id: current,
+      } }), { status: 200 });
+      if (url.endsWith(`/api/v1/dialogues/${current}`)) return new Response(JSON.stringify({ ok: true, data: {
+        id: current, title: 'A voice', body: 'Listen.', choices: [{ id: 'listen', label: 'Listen' }],
+      } }), { status: 200 });
+      if (url.endsWith(`/api/v1/dialogues/${current}/complete`)) return new Response(JSON.stringify({ ok: true, data: {
+        dialogue_id: current, choice_id: 'listen', response: 'Remember.',
+        knowledge: { codex_id: 'codex.test.arrival', outcome: 'granted' }, player_revision: 2,
+      } }), { status: 200 });
+      return new Response('Not found.', { status: 404 });
+    });
+    const client = new RuntimeApiClient(fetchRequest, '/root');
+    const status = await client.getOnboarding();
+    expect(status.dialogue_id).toBe(current);
+    const read = await client.getDialogue(status.dialogue_id!);
+    expect(read.choices).toEqual([{ id: 'listen', label: 'Listen' }]);
+    const completion = await client.completeDialogue(read.id, read.choices[0].id, 'csrf', 'whim-attempt-1');
+    expect(completion.knowledge?.codexId).toBe('codex.test.arrival');
+    expect(fetchRequest.calls.allArgs().map(([url]) => url)).toEqual([
+      '/root/api/v1/onboarding', `/root/api/v1/dialogues/${current}`,
+      `/root/api/v1/dialogues/${current}/complete`,
+    ]);
+    expect(fetchRequest.calls.mostRecent().args[1]).toEqual(jasmine.objectContaining({
+      method: 'POST', credentials: 'include', body: JSON.stringify({ choice_id: 'listen' }),
+      headers: jasmine.objectContaining({ 'X-CSRF-Token': 'csrf', 'Idempotency-Key': 'whim-attempt-1' }),
+    }));
+  });
+
   it('provisions onboarding with only CSRF and an idempotency key', async () => {
     const data = { unit_id: '12', die_id: '13', active_squad_id: '14',
       player_revision: 2, onboarding_status: 'complete' };

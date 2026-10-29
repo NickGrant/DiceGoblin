@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace DiceGoblins\Application\Commands;
 
+use DiceGoblins\Application\OnboardingDialogueGuard;
 use DiceGoblins\Application\Rewards\RewardApplicationService;
 use DiceGoblins\Application\Objectives\ObjectiveProgressService;
 use DiceGoblins\Content\ContentRegistry;
@@ -28,6 +29,7 @@ final class CompleteDialogueCommand
     private readonly IdempotencyRequestRepository $receipts,
     private readonly RewardApplicationService $rewards,
     private readonly ContentRegistry $content,
+    private readonly OnboardingDialogueGuard $onboarding,
     private readonly ?ObjectiveProgressService $objectives = null,
   ) {}
 
@@ -49,6 +51,9 @@ final class CompleteDialogueCommand
         $this->requireReceipt($prior, $hash, $dialogueId, $choiceId, $userId);
         $this->pdo->commit();
         return $prior['result'];
+      }
+      if (!$this->onboarding->allows($userId, $dialogueId)) {
+        throw new DialogueCompletionException('dialogue_choice_unavailable', 404);
       }
       if ($state['teeth'] < 0 || $state['raw_chaos'] < 0 || $state['player_revision'] < 0
         || $state['player_revision'] > ClientSafeInteger::MAXIMUM) {
