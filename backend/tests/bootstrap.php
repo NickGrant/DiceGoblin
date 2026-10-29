@@ -10,6 +10,7 @@ use DiceGoblins\Core\Autoloader;
 
 require_once __DIR__ . '/../src/Core/Autoloader.php';
 Autoloader::register(__DIR__ . '/../src');
+putenv('GAME_CONTENT_ROOT=' . __DIR__ . '/Fixtures/content');
 
 /**
  * Load local test environment vars from backend/.env.test.local (if present).

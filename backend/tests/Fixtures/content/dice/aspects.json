@@ -1,0 +1,58 @@
+{
+  "definitions": [
+    {
+      "id": "dice_aspect.striking",
+      "type": "dice_aspect",
+      "display_name": "Striking",
+      "description": "+1 damage on attack rolls.",
+      "allowed_sizes": [4, 6, 8, 10, 12, 20],
+      "effect_id": "flat_damage_bonus",
+      "effect_config": { "amount": 1 }
+    },
+    {
+      "id": "dice_aspect.guarding",
+      "type": "dice_aspect",
+      "display_name": "Guarding",
+      "description": "+1 Defense while this die is equipped.",
+      "allowed_sizes": [4, 6, 8, 10, 12, 20],
+      "effect_id": "flat_defense_bonus",
+      "effect_config": { "amount": 1 }
+    },
+    {
+      "id": "dice_aspect.bulwark",
+      "type": "dice_aspect",
+      "display_name": "Bulwark",
+      "description": "+10% Defense while this die is equipped.",
+      "allowed_sizes": [4, 6, 8, 10, 12, 20],
+      "effect_id": "percent_defense_bonus",
+      "effect_config": { "amount": 0.1 }
+    },
+    {
+      "id": "dice_aspect.precise",
+      "type": "dice_aspect",
+      "display_name": "Precise",
+      "description": "+10% Attack while this die is equipped.",
+      "allowed_sizes": [4, 6, 8, 10, 12, 20],
+      "effect_id": "percent_attack_bonus",
+      "effect_config": { "amount": 0.1 }
+    },
+    {
+      "id": "dice_aspect.executioner",
+      "type": "dice_aspect",
+      "display_name": "Executioner",
+      "description": "Deal 15% more damage when the target is below half health.",
+      "allowed_sizes": [4, 6, 8, 10, 12, 20],
+      "effect_id": "wounded_target_damage_bonus",
+      "effect_config": { "health_threshold": 0.5, "damage_bonus": 0.15 }
+    },
+    {
+      "id": "dice_aspect.explosive",
+      "type": "dice_aspect",
+      "display_name": "Explosive",
+      "description": "When this die rolls its maximum, roll it again once and combine the results.",
+      "allowed_sizes": [4, 6, 8, 10, 12, 20],
+      "effect_id": "explode_on_maximum",
+      "effect_config": { "maximum_extra_rolls": 1 }
+    }
+  ]
+}

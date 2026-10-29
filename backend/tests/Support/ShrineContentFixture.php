@@ -13,7 +13,7 @@ final class ShrineContentFixture
   /** @return list<array<string,mixed>> */
   public static function definitions(): array
   {
-    $root = dirname(__DIR__, 2) . '/content';
+    $root = dirname(__DIR__, 2) . '/tests/Fixtures/content';
     $canonical = ContentRegistry::load($root);
     $definitions = [];
     $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS));

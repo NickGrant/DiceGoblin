@@ -13,6 +13,15 @@ final class ContentRegistry
     private readonly string $revision,
   ) {}
 
+  public static function loadConfigured(): self
+  {
+    $configured = getenv('GAME_CONTENT_ROOT');
+    $root = is_string($configured) && $configured !== ''
+      ? $configured : dirname(__DIR__, 2) . '/content';
+    static $loaded = [];
+    return $loaded[$root] ??= self::load($root);
+  }
+
   public static function load(string $contentRoot): self
   {
     if (!is_dir($contentRoot)) {

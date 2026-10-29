@@ -12,7 +12,6 @@ use RuntimeException;
 
 final class BattlePersistenceRepositoryTest extends IntegrationTestCase
 {
-  protected function supportsVnextBaseline(): bool { return true; }
 
   public function testRepositoryRoundTripsExactPayloadWithoutOwningTransactionOrMutatingRunState(): void
   {

@@ -13,7 +13,7 @@ final class FixedGraphRunGeneratorTest extends TestCase
 {
   public function testGeneratesDeterministicFixedGraphFromAuthoredNodesWithoutDatabaseIdentity(): void
   {
-    $registry = ContentRegistry::load(dirname(__DIR__, 2) . '/content');
+    $registry = ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content');
     $definition = $registry->runGenerationForRegion('region.the_farm');
     $generator = new FixedGraphRunGenerator();
 
@@ -42,7 +42,7 @@ final class FixedGraphRunGeneratorTest extends TestCase
 
   public function testGeneratesExactDeterministicMountainsGraph(): void
   {
-    $definition = ContentRegistry::load(dirname(__DIR__, 2) . '/content')
+    $definition = ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content')
       ->runGenerationForRegion('region.mountains');
     $graph = (new FixedGraphRunGenerator())->generate($definition);
 

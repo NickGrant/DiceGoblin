@@ -14,7 +14,7 @@ final class VariableTrailRunGeneratorTest extends TestCase
 {
   public function testFarmFixedGraphDoesNotGainVariableTrails(): void
   {
-    $content = ContentRegistry::load(dirname(__DIR__, 2) . '/content');
+    $content = ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content');
     $definition = $content->runGenerationForRegion('region.the_farm');
     $this->assertSame((new FixedGraphRunGenerator())->generate($definition),
       (new VariableTrailRunGenerator())->generate($definition));
@@ -22,7 +22,7 @@ final class VariableTrailRunGeneratorTest extends TestCase
 
   public function testMountainsProducesThreeOrFourDistinctOptionalSplitsAcrossSelections(): void
   {
-    $definition = ContentRegistry::load(dirname(__DIR__, 2) . '/content')->runGenerationForRegion('region.mountains');
+    $definition = ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content')->runGenerationForRegion('region.mountains');
     $baseCount = count($definition['nodes']);
     $topologies = [];
     foreach ([
@@ -53,7 +53,7 @@ final class VariableTrailRunGeneratorTest extends TestCase
 
   public function testOutOfRangeRandomSelectionFailsBeforePersistence(): void
   {
-    $definition = ContentRegistry::load(dirname(__DIR__, 2) . '/content')->runGenerationForRegion('region.mountains');
+    $definition = ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content')->runGenerationForRegion('region.mountains');
     $this->expectException(InvalidArgumentException::class);
     (new VariableTrailRunGenerator(choose: static fn(int $minimum, int $maximum): int => $maximum + 1))
       ->generate($definition);

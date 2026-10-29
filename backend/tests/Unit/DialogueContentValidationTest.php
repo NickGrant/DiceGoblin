@@ -13,7 +13,7 @@ final class DialogueContentValidationTest extends TestCase
 {
   public function testCanonicalDialogueAndReferencesAreValidButAbsentFromStaticClientProjection(): void
   {
-    $content = ContentRegistry::load(dirname(__DIR__, 2) . '/content');
+    $content = ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content');
     $dialogue = $content->dialogue('dialogue.camp.farm_scout');
     $this->assertSame('event.dialogue_farm_scout_paths', $dialogue['choices'][0]['event_id']);
     $this->assertSame(['codex.farm.old_paths'], $dialogue['choices'][1]['required_codex_ids']);

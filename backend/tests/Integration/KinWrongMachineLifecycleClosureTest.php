@@ -22,11 +22,10 @@ use PDO;
 /** Production-composed rewards, wallet, reconstruction, and persisted read closure for both authored Kin. */
 final class KinWrongMachineLifecycleClosureTest extends IntegrationTestCase
 {
-  protected function supportsVnextBaseline(): bool { return true; }
 
   public function testFarmAndMountainsRewardsFundBothFirstAndRepeatKinReconstructions(): void
   {
-    $content = ContentRegistry::load(dirname(__DIR__, 2) . '/content');
+    $content = ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content');
     $services = ControllerServiceFactory::buildContentAware($this->pdo, null, $content, $this->victoryResolver());
     $userId = $services['accountCreationService']->createLocal(
       'kin-closure-' . bin2hex(random_bytes(4)) . '@example.test', password_hash('test-password', PASSWORD_DEFAULT), 'Restorer');

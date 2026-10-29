@@ -15,7 +15,6 @@ final class InventoryFoundationTest extends IntegrationTestCase
 {
   private ?string $contentRoot = null;
 
-  protected function supportsVnextBaseline(): bool { return true; }
 
   protected function tearDown(): void
   {
@@ -142,7 +141,7 @@ final class InventoryFoundationTest extends IntegrationTestCase
   private function content(): ContentRegistry
   {
     if ($this->contentRoot === null) {
-      $source = dirname(__DIR__, 2) . '/content';
+      $source = dirname(__DIR__, 2) . '/tests/Fixtures/content';
       $this->contentRoot = sys_get_temp_dir() . '/dice-goblins-inventory-' . bin2hex(random_bytes(6));
       mkdir($this->contentRoot, 0777, true);
       $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($source, \FilesystemIterator::SKIP_DOTS));

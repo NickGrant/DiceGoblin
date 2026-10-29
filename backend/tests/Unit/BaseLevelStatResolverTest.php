@@ -12,7 +12,7 @@ final class BaseLevelStatResolverTest extends TestCase
 {
   public function testAuthoredBruiserAtLevelOneAndHigherLevels(): void
   {
-    $type = ContentRegistry::load(dirname(__DIR__, 2) . '/content')->unitType('unit_type.bruiser');
+    $type = ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content')->unitType('unit_type.bruiser');
     $resolver = new BaseLevelStatResolver();
     $this->assertSame(['hp' => 22, 'attack' => 5, 'defense' => 3, 'precision' => 5, 'resolve' => 5],
       $resolver->resolve($type['base_stats'], $type['growth_per_level'], 1)->toArray());

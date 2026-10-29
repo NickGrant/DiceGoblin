@@ -27,10 +27,6 @@ final class WarbandReadControllerTest extends IntegrationTestCase
   private bool $hadFixtureServerValue;
   private mixed $originalFixtureServerValue;
 
-  protected function supportsVnextBaseline(): bool
-  {
-    return true;
-  }
 
   protected function setUp(): void
   {
@@ -371,7 +367,7 @@ final class WarbandReadControllerTest extends IntegrationTestCase
     $command = new ProvisionWarbandFixtureCommand(
       $this->pdo,
       new WarbandFixtureRepository($this->pdo),
-      ContentRegistry::load(dirname(__DIR__, 2) . '/content'),
+      ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content'),
       static function(): void { throw new RuntimeException('Injected rollback check.'); },
     );
     try {
@@ -389,7 +385,7 @@ final class WarbandReadControllerTest extends IntegrationTestCase
     $otherId = $this->createAccount('uat-other@example.test', 'Untouched');
     $foreignUnit = $this->insertUnit($otherId, 'unit_type.guardian', 'kin.goblin', 'Other Unit');
     $command = new ProvisionWarbandFixtureCommand($this->pdo, new WarbandFixtureRepository($this->pdo),
-      ContentRegistry::load(dirname(__DIR__, 2) . '/content'));
+      ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content'));
 
     $first = $command->execute($userId, seedOnly: true);
     $this->assertSame('replace_owned_warband', $first['mode']);
@@ -429,7 +425,7 @@ final class WarbandReadControllerTest extends IntegrationTestCase
     $userId = $this->createAccount('uat-partial@example.test', 'UAT Partial');
     $unitId = $this->insertUnit($userId, 'unit_type.bruiser', 'kin.goblin', 'Existing');
     $command = new ProvisionWarbandFixtureCommand($this->pdo, new WarbandFixtureRepository($this->pdo),
-      ContentRegistry::load(dirname(__DIR__, 2) . '/content'));
+      ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content'));
     try {
       $command->execute($userId, seedOnly: true);
       $this->fail('Expected incomplete-Warband seeding refusal.');

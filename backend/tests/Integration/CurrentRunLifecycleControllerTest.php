@@ -24,7 +24,6 @@ use PDO;
 
 final class CurrentRunLifecycleControllerTest extends IntegrationTestCase
 {
-  protected function supportsVnextBaseline(): bool { return true; }
 
   public function testCurrentRequiresAuthenticationAndNoRunIsSuccessful(): void
   {
@@ -350,12 +349,12 @@ final class CurrentRunLifecycleControllerTest extends IntegrationTestCase
     return $stmt?->fetchAll(PDO::FETCH_ASSOC) ?: [];
   }
 
-  private function content(): ContentRegistry { return ContentRegistry::load(dirname(__DIR__, 2) . '/content'); }
+  private function content(): ContentRegistry { return ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content'); }
 
   private function contentWithTestInteractionType(): ContentRegistry
   {
     $definitions = [];
-    $source = dirname(__DIR__, 2) . '/content';
+    $source = dirname(__DIR__, 2) . '/tests/Fixtures/content';
     $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($source, \FilesystemIterator::SKIP_DOTS));
     foreach ($files as $file) {
       if (!$file->isFile() || strtolower($file->getExtension()) !== 'json') continue;

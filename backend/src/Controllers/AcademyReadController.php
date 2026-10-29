@@ -32,7 +32,7 @@ final class AcademyReadController
       return;
     }
     try {
-      $content = $this->content ?? ContentRegistry::load(dirname(__DIR__, 2) . '/content');
+      $content = $this->content ?? ContentRegistry::loadConfigured();
       $query = new AcademyQuery(new PlayerStateRepository($pdo), new UserUnlockRepository($pdo), $content);
       Response::json(['ok' => true, 'data' => $query->execute($userId)]);
     } catch (AcademyLockedException) {

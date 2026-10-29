@@ -22,7 +22,6 @@ use RuntimeException;
 
 final class RewardApplicationServiceTest extends IntegrationTestCase
 {
-  protected function supportsVnextBaseline(): bool { return true; }
 
   public function testFinalizationAndAllGrantsCommitAtomicallyWithoutRevisionEnergyOrHpMutation(): void
   {

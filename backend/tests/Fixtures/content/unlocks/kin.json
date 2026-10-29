@@ -1,0 +1,6 @@
+{
+  "definitions": [
+    {"id":"unlock.kin.pig","type":"unlock","target_type":"kin","target_id":"kin.pig"},
+    {"id":"unlock.kin.lizard_kin","type":"unlock","target_type":"kin","target_id":"kin.lizard_kin"}
+  ]
+}

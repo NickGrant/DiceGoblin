@@ -9,10 +9,6 @@ use PDOException;
 
 final class VnextWarbandPersistenceTest extends IntegrationTestCase
 {
-  protected function supportsVnextBaseline(): bool
-  {
-    return true;
-  }
 
   public function testAuthoredStableIdsAreStoredWithoutSqlCatalogsOrDerivedStats(): void
   {

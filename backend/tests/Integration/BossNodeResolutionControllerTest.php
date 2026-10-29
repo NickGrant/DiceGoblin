@@ -44,7 +44,6 @@ use RuntimeException;
 
 final class BossNodeResolutionControllerTest extends IntegrationTestCase
 {
-  protected function supportsVnextBaseline(): bool { return true; }
 
   /** @dataProvider mountainsOwnershipProvider */
   public function testFarmBossVictoryAppliesXpMountainsAndUnlocksOnlyExitExactlyOnce(bool $preOwned): void
@@ -416,7 +415,7 @@ final class BossNodeResolutionControllerTest extends IntegrationTestCase
     return is_array($row) ? $row : [];
   }
 
-  private function content(): ContentRegistry { return ContentRegistry::load(dirname(__DIR__, 2) . '/content'); }
+  private function content(): ContentRegistry { return ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content'); }
 
   /** @return array{status:int,body:array<string,mixed>} */
   private function resolve(int $userId, int $runId, int $nodeId, string $key): array

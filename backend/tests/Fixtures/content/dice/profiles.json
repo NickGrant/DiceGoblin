@@ -1,0 +1,103 @@
+{
+  "definitions": [
+    {
+      "id": "dice_profile.cardboard_plain",
+      "type": "dice_profile",
+      "display_name": "Plain Cardboard",
+      "material_id": "dice_material.cardboard",
+      "rarity": "common",
+      "aspect_ids": [],
+      "allowed_sizes": [4, 6, 8, 10, 12, 20]
+    },
+    {
+      "id": "dice_profile.wood_plain",
+      "type": "dice_profile",
+      "display_name": "Plain Wood",
+      "material_id": "dice_material.wood",
+      "rarity": "uncommon",
+      "aspect_ids": [],
+      "allowed_sizes": [4, 6, 8, 10, 12, 20]
+    },
+    {
+      "id": "dice_profile.bone_plain",
+      "type": "dice_profile",
+      "display_name": "Plain Bone",
+      "material_id": "dice_material.bone",
+      "rarity": "rare",
+      "aspect_ids": [],
+      "allowed_sizes": [4, 6, 8, 10, 12, 20]
+    },
+    {
+      "id": "dice_profile.metal_plain",
+      "type": "dice_profile",
+      "display_name": "Plain Metal",
+      "material_id": "dice_material.metal",
+      "rarity": "epic",
+      "aspect_ids": [],
+      "allowed_sizes": [4, 6, 8, 10, 12, 20]
+    },
+    {
+      "id": "dice_profile.gemstone_plain",
+      "type": "dice_profile",
+      "display_name": "Plain Gemstone",
+      "material_id": "dice_material.gemstone",
+      "rarity": "legendary",
+      "aspect_ids": [],
+      "allowed_sizes": [4, 6, 8, 10, 12, 20]
+    },
+    {
+      "id": "dice_profile.cardboard_striking",
+      "type": "dice_profile",
+      "display_name": "Striking Cardboard",
+      "material_id": "dice_material.cardboard",
+      "rarity": "common",
+      "aspect_ids": ["dice_aspect.striking"],
+      "allowed_sizes": [4, 6, 8, 10, 12, 20]
+    },
+    {
+      "id": "dice_profile.cardboard_guarding",
+      "type": "dice_profile",
+      "display_name": "Guarding Cardboard",
+      "material_id": "dice_material.cardboard",
+      "rarity": "common",
+      "aspect_ids": ["dice_aspect.guarding"],
+      "allowed_sizes": [4, 6, 8, 10, 12, 20]
+    },
+    {
+      "id": "dice_profile.wood_bulwark",
+      "type": "dice_profile",
+      "display_name": "Bulwark Wood",
+      "material_id": "dice_material.wood",
+      "rarity": "uncommon",
+      "aspect_ids": ["dice_aspect.bulwark"],
+      "allowed_sizes": [4, 6, 8, 10, 12, 20]
+    },
+    {
+      "id": "dice_profile.wood_precise",
+      "type": "dice_profile",
+      "display_name": "Precise Wood",
+      "material_id": "dice_material.wood",
+      "rarity": "uncommon",
+      "aspect_ids": ["dice_aspect.precise"],
+      "allowed_sizes": [4, 6, 8, 10, 12, 20]
+    },
+    {
+      "id": "dice_profile.bone_executioner",
+      "type": "dice_profile",
+      "display_name": "Executioner Bone",
+      "material_id": "dice_material.bone",
+      "rarity": "rare",
+      "aspect_ids": ["dice_aspect.executioner"],
+      "allowed_sizes": [4, 6, 8, 10, 12, 20]
+    },
+    {
+      "id": "dice_profile.bone_explosive",
+      "type": "dice_profile",
+      "display_name": "Explosive Bone",
+      "material_id": "dice_material.bone",
+      "rarity": "rare",
+      "aspect_ids": ["dice_aspect.explosive"],
+      "allowed_sizes": [4, 6, 8, 10, 12, 20]
+    }
+  ]
+}

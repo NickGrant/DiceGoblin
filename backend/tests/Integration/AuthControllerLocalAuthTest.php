@@ -8,10 +8,6 @@ use DiceGoblins\Tests\Support\IntegrationTestCase;
 
 final class AuthControllerLocalAuthTest extends IntegrationTestCase
 {
-  protected function supportsVnextBaseline(): bool
-  {
-    return true;
-  }
 
   protected function integrationSkipMessage(): string
   {

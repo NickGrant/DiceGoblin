@@ -24,7 +24,6 @@ use DiceGoblins\Tests\Support\ScriptedRewardRollSource;
 
 final class DialogueLifecycleIntegrationTest extends IntegrationTestCase
 {
-  protected function supportsVnextBaseline(): bool { return true; }
 
   public function testAuthoritativeChoiceProjectionAndForeignOwnershipIsolation(): void
   {
@@ -199,7 +198,7 @@ final class DialogueLifecycleIntegrationTest extends IntegrationTestCase
   }
 
   private function content(): ContentRegistry
-  { return ContentRegistry::load(dirname(__DIR__, 2) . '/content'); }
+  { return ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content'); }
 
   private function command(ContentRegistry $content, ScriptedRewardRollSource $rolls): CompleteDialogueCommand
   {

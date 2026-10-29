@@ -1,0 +1,30 @@
+{
+  "definitions": [
+    {
+      "id": "encounter.mountains_loose_scree",
+      "type": "encounter",
+      "kind": "non_combat",
+      "family": "hazard",
+      "region_id": "region.mountains",
+      "display_name": "Loose Scree",
+      "description": "The narrow trail gives way beneath the warband.",
+      "prompt": "Cross the unstable slope? One participating unit loses up to 3 HP.",
+      "actions": [
+        { "id": "cross", "label": "CROSS SLOPE", "effect": { "type": "damage_random_participating_unit", "amount": 3 } }
+      ]
+    },
+    {
+      "id": "encounter.mountains_rockfall",
+      "type": "encounter",
+      "kind": "non_combat",
+      "family": "hazard",
+      "region_id": "region.mountains",
+      "display_name": "Rockfall",
+      "description": "Stones crash across a side trail.",
+      "prompt": "Push through? Each participating unit loses up to 2 HP.",
+      "actions": [
+        { "id": "push_through", "label": "PUSH THROUGH", "effect": { "type": "damage_all_participating_units", "amount": 2 } }
+      ]
+    }
+  ]
+}

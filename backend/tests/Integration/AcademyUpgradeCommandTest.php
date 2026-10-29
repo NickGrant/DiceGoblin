@@ -27,7 +27,6 @@ use RuntimeException;
 final class AcademyUpgradeCommandTest extends IntegrationTestCase
 {
   /** @var list<string> */ private array $roots = [];
-  protected function supportsVnextBaseline(): bool { return true; }
   protected function tearDown(): void
   { parent::tearDown(); foreach ($this->roots as $root) { if (is_file($root . '/all.json')) unlink($root . '/all.json'); rmdir($root); } }
 
@@ -216,7 +215,7 @@ final class AcademyUpgradeCommandTest extends IntegrationTestCase
   /** @return array<string,mixed> */
   private function request(string $suffix, int $price): array
   { return ['upgrade_id' => 'academy_upgrade.' . $suffix, 'expected_price' => ['currency_id' => 'raw_chaos', 'amount' => $price]]; }
-  private function content(): ContentRegistry { return ContentRegistry::load(dirname(__DIR__, 2) . '/content'); }
+  private function content(): ContentRegistry { return ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content'); }
   private function command(string $now = '2026-09-28T12:00:00Z', ?\Closure $beforeCommit = null, ?ContentRegistry $content = null): UpgradeAcademyCommand
   {
     $content ??= $this->content(); $players = new PlayerStateRepository($this->pdo); $unlocks = new UserUnlockRepository($this->pdo);

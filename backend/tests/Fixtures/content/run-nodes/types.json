@@ -1,0 +1,79 @@
+{
+  "definitions": [
+    {
+      "id": "run_node_type.combat",
+      "type": "run_node_type",
+      "encounter_kind": "combat",
+      "display_name": "Combat",
+      "description": "Fight enemies guarding the path.",
+      "icon_key": "icon_encounter_combat"
+    },
+    {
+      "id": "run_node_type.loot",
+      "type": "run_node_type",
+      "display_name": "Loot",
+      "description": "Discover supplies and valuables.",
+      "icon_key": "icon_encounter_loot"
+    },
+    {
+      "id": "run_node_type.dialogue",
+      "type": "run_node_type",
+      "encounter_kind": "non_combat",
+      "encounter_family": "dialogue",
+      "display_name": "Dialogue",
+      "description": "Speak with someone along the route.",
+      "icon_key": "icon_encounter_rest"
+    },
+    {
+      "id": "run_node_type.rest",
+      "type": "run_node_type",
+      "encounter_kind": "non_combat",
+      "encounter_family": "rest",
+      "display_name": "Rest",
+      "description": "Pause to recover before pressing onward.",
+      "icon_key": "icon_encounter_rest"
+    },
+    {
+      "id": "run_node_type.hazard",
+      "type": "run_node_type",
+      "encounter_kind": "non_combat",
+      "encounter_family": "hazard",
+      "display_name": "Hazard",
+      "description": "Navigate a dangerous stretch of the route.",
+      "icon_key": "icon_encounter_combat"
+    },
+    {
+      "id": "run_node_type.shrine",
+      "type": "run_node_type",
+      "encounter_kind": "non_combat",
+      "encounter_family": "shrine",
+      "display_name": "Shrine",
+      "description": "Choose an immediate blessing.",
+      "icon_key": "icon_encounter_rest"
+    },
+    {
+      "id": "run_node_type.chaos",
+      "type": "run_node_type",
+      "encounter_kind": "non_combat",
+      "encounter_family": "chaos",
+      "display_name": "Chaos",
+      "description": "Face an unpredictable encounter.",
+      "icon_key": "icon_encounter_combat"
+    },
+    {
+      "id": "run_node_type.boss",
+      "type": "run_node_type",
+      "encounter_kind": "boss",
+      "display_name": "Boss",
+      "description": "Face the Farm's strongest guardian.",
+      "icon_key": "icon_encounter_boss"
+    },
+    {
+      "id": "run_node_type.exit",
+      "type": "run_node_type",
+      "display_name": "Exit",
+      "description": "Leave the Farm and end the run.",
+      "icon_key": "icon_home"
+    }
+  ]
+}

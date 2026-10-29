@@ -1,0 +1,13 @@
+{
+  "definitions": [
+    {
+      "id": "config.gameplay",
+      "type": "gameplay_config",
+      "starting_energy": 50,
+      "energy_normal_max": 50,
+      "energy_regeneration_per_hour": 12,
+      "run_energy_cost": 10,
+      "starting_region_id": "region.the_farm"
+    }
+  ]
+}

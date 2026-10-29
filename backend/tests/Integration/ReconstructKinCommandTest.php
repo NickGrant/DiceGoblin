@@ -27,7 +27,6 @@ use RuntimeException;
 
 final class ReconstructKinCommandTest extends IntegrationTestCase
 {
-  protected function supportsVnextBaseline(): bool { return true; }
 
   /** @dataProvider recipes */
   public function testFirstRestorationCreatesOneEligibleKinUnitAndReadSwitchesToRepeat(string $recipe, string $kin, array $items): void
@@ -230,7 +229,7 @@ final class ReconstructKinCommandTest extends IntegrationTestCase
   public function testNewReconstructedUnitDoesNotJoinAnAlreadyActiveRun(): void
   {
     [$recipe, , $items] = self::recipes()['Pig']; $userId = $this->user($items);
-    $content = ContentRegistry::load(dirname(__DIR__, 2) . '/content');
+    $content = ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content');
     (new ProvisionWarbandFixtureCommand($this->pdo, new WarbandFixtureRepository($this->pdo), $content))
       ->execute($userId);
     $services = ControllerServiceFactory::buildContentAware($this->pdo);
@@ -290,7 +289,7 @@ final class ReconstructKinCommandTest extends IntegrationTestCase
 
   private function command(?\Closure $choice = null, ?\Closure $checkpoint = null): ReconstructKinCommand
   {
-    $content = ContentRegistry::load(dirname(__DIR__, 2) . '/content');
+    $content = ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content');
     return new ReconstructKinCommand($this->pdo, new PlayerStateRepository($this->pdo),
       new IdempotencyRequestRepository($this->pdo), new UserItemRepository($this->pdo),
       new UserUnlockRepository($this->pdo), new UnitTypeAvailabilityPolicy($content),

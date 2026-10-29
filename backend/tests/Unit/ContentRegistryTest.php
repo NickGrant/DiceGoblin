@@ -264,7 +264,7 @@ final class ContentRegistryTest extends TestCase
 
   private function canonicalRoot(): string
   {
-    return dirname(__DIR__, 2) . '/content';
+    return dirname(__DIR__, 2) . '/tests/Fixtures/content';
   }
 
   private function copyCanonicalContent(): string

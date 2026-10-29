@@ -13,7 +13,6 @@ use DiceGoblins\Tests\Support\IntegrationTestCase;
 
 final class EconomyLifecycleIntegrationTest extends IntegrationTestCase
 {
-  protected function supportsVnextBaseline(): bool { return true; }
 
   public function testProductionCompositionPersistsTheCompleteEconomyLifecycleAndExactRetries(): void
   {
@@ -135,5 +134,5 @@ final class EconomyLifecycleIntegrationTest extends IntegrationTestCase
   { $stmt = $this->pdo?->prepare($sql); $stmt?->execute($parameters); return array_map('strval', $stmt?->fetchAll(\PDO::FETCH_COLUMN) ?: []); }
 
   private function content(): ContentRegistry
-  { return ContentRegistry::load(dirname(__DIR__, 2) . '/content'); }
+  { return ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content'); }
 }

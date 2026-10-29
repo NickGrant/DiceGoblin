@@ -36,7 +36,6 @@ use Throwable;
 
 final class RunStartControllerTest extends IntegrationTestCase
 {
-  protected function supportsVnextBaseline(): bool { return true; }
 
   public function testPromotionReadUsesExactActiveRunParticipationLock(): void
   {
@@ -642,7 +641,7 @@ final class RunStartControllerTest extends IntegrationTestCase
 
   private function content(): ContentRegistry
   {
-    return ContentRegistry::load(dirname(__DIR__, 2) . '/content');
+    return ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content');
   }
 
   private function setPlayerState(int $userId, int $energy, string $anchor): void

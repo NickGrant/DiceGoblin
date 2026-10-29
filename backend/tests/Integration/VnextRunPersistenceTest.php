@@ -9,10 +9,6 @@ use PDOException;
 
 final class VnextRunPersistenceTest extends IntegrationTestCase
 {
-  protected function supportsVnextBaseline(): bool
-  {
-    return true;
-  }
 
   public function testOneActiveRunInvariantIsPerUserAndAllowsTerminalHistory(): void
   {

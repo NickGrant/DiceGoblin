@@ -225,7 +225,7 @@ final class ShopOfferContentValidationTest extends TestCase
     return ContentRegistry::load($root);
   }
 
-  private function canonicalRoot(): string { return dirname(__DIR__, 2) . '/content'; }
+  private function canonicalRoot(): string { return dirname(__DIR__, 2) . '/tests/Fixtures/content'; }
   private function copyCanonicalRoot(): string
   {
     $root = sys_get_temp_dir() . '/dice-goblins-shop-' . bin2hex(random_bytes(6)); mkdir($root, 0777, true); $this->roots[] = $root;

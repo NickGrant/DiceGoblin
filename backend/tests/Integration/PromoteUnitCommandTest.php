@@ -27,7 +27,6 @@ use RuntimeException;
 final class PromoteUnitCommandTest extends IntegrationTestCase
 {
   /** @var list<string> */ private array $temporaryRoots = [];
-  protected function supportsVnextBaseline(): bool { return true; }
   protected function tearDown(): void
   {
     parent::tearDown();
@@ -261,7 +260,7 @@ final class PromoteUnitCommandTest extends IntegrationTestCase
     $fixture = (new ProvisionWarbandFixtureCommand($this->pdo, new WarbandFixtureRepository($this->pdo), $this->content()))->execute($user);
     return [$user, $fixture];
   }
-  private function content(): ContentRegistry { return ContentRegistry::load(dirname(__DIR__, 2) . '/content'); }
+  private function content(): ContentRegistry { return ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content'); }
   private function command(?\Closure $beforeCommit = null, ?ContentRegistry $content = null): PromoteUnitCommand
   {
     $content ??= $this->content(); $units = new WarbandUnitRepository($this->pdo);
@@ -292,7 +291,7 @@ final class PromoteUnitCommandTest extends IntegrationTestCase
 
   private function contentWithChangedPrice(string $promotionId, int $price): ContentRegistry
   {
-    $source = dirname(__DIR__, 2) . '/content';
+    $source = dirname(__DIR__, 2) . '/tests/Fixtures/content';
     $root = sys_get_temp_dir() . '/dice-goblins-promotion-replay-' . bin2hex(random_bytes(6));
     $this->temporaryRoots[] = $root;
     $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($source, \FilesystemIterator::SKIP_DOTS));

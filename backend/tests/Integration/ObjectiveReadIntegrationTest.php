@@ -13,7 +13,6 @@ use RuntimeException;
 
 final class ObjectiveReadIntegrationTest extends IntegrationTestCase
 {
-  protected function supportsVnextBaseline(): bool { return true; }
 
   public function testUnstartedProgressCompletedAndForeignPlayerStatesSurviveReload(): void
   {

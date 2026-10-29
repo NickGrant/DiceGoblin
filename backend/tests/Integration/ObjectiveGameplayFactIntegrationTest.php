@@ -27,7 +27,6 @@ use DiceGoblins\Tests\Support\ObjectiveContentFixture;
 
 final class ObjectiveGameplayFactIntegrationTest extends IntegrationTestCase
 {
-  protected function supportsVnextBaseline(): bool { return true; }
 
   public function testFarmCombatExitAndDialogueFactsAdvanceOnceWithinTheirReceipts(): void
   {

@@ -170,9 +170,5 @@ $router->post('/api/v1/runs/:runId/units/:unitId/heal', [$consumables, 'healRunU
 $router->get('/api/v1/battles/:battleId/playback', [$battlePlayback, 'playback']);
 $router->post('/api/v1/debug/fixtures/warband', [$warbandFixture, 'replace']);
 
-// Prototype gameplay controllers remain in source as migration evidence, but their
-// routes are intentionally not registered against the fresh vNext schema. Each
-// owning milestone will register its accepted replacement endpoints when proven.
-
 // Dispatch
 $router->dispatch();

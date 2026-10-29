@@ -20,7 +20,6 @@ use RuntimeException;
 
 final class UnitConfigurationControllerTest extends IntegrationTestCase
 {
-  protected function supportsVnextBaseline(): bool { return true; }
 
   public function testBothMutationsRequireAuthenticationAndCsrf(): void
   {
@@ -217,7 +216,7 @@ final class UnitConfigurationControllerTest extends IntegrationTestCase
   {
     [$userId, $fixture] = $this->fixtureAccount();
     $unitId = (int)$fixture['unit_ids']['saboteur'];
-    $content = ContentRegistry::load(dirname(__DIR__, 2) . '/content');
+    $content = ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content');
     $units = new WarbandUnitRepository($this->pdo);
     $dice = new WarbandDiceRepository($this->pdo);
     $playerState = new PlayerStateRepository($this->pdo);
@@ -263,7 +262,7 @@ final class UnitConfigurationControllerTest extends IntegrationTestCase
     $fixture = (new ProvisionWarbandFixtureCommand(
       $this->pdo,
       new WarbandFixtureRepository($this->pdo),
-      ContentRegistry::load(dirname(__DIR__, 2) . '/content'),
+      ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content'),
     ))->execute($userId);
     return [$userId, $fixture];
   }

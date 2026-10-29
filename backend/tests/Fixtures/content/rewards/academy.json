@@ -1,0 +1,130 @@
+{
+  "definitions": [
+    {
+      "id": "reward_definition.academy_guardian",
+      "type": "reward_definition",
+      "entries": [
+        {
+          "key": "upgrade",
+          "probability_basis_points": 10000,
+          "reward_type": "unlock",
+          "config": {
+            "unlock_id": "unlock.unit_type.guardian"
+          }
+        }
+      ]
+    },
+    {
+      "id": "reward_definition.academy_marksman",
+      "type": "reward_definition",
+      "entries": [
+        {
+          "key": "upgrade",
+          "probability_basis_points": 10000,
+          "reward_type": "unlock",
+          "config": {
+            "unlock_id": "unlock.unit_type.marksman"
+          }
+        }
+      ]
+    },
+    {
+      "id": "reward_definition.academy_bannerbearer",
+      "type": "reward_definition",
+      "entries": [
+        {
+          "key": "upgrade",
+          "probability_basis_points": 10000,
+          "reward_type": "unlock",
+          "config": {
+            "unlock_id": "unlock.unit_type.bannerbearer"
+          }
+        }
+      ]
+    },
+    {
+      "id": "reward_definition.academy_saboteur",
+      "type": "reward_definition",
+      "entries": [
+        {
+          "key": "upgrade",
+          "probability_basis_points": 10000,
+          "reward_type": "unlock",
+          "config": {
+            "unlock_id": "unlock.unit_type.saboteur"
+          }
+        }
+      ]
+    },
+    {
+      "id": "reward_definition.academy_energy_max_75",
+      "type": "reward_definition",
+      "entries": [
+        {
+          "key": "upgrade",
+          "probability_basis_points": 10000,
+          "reward_type": "unlock",
+          "config": {
+            "unlock_id": "unlock.capability.energy_max_75"
+          }
+        }
+      ]
+    },
+    {
+      "id": "reward_definition.academy_energy_max_100",
+      "type": "reward_definition",
+      "entries": [
+        {
+          "key": "upgrade",
+          "probability_basis_points": 10000,
+          "reward_type": "unlock",
+          "config": {
+            "unlock_id": "unlock.capability.energy_max_100"
+          }
+        }
+      ]
+    },
+    {
+      "id": "reward_definition.academy_die_size_d10",
+      "type": "reward_definition",
+      "entries": [
+        {
+          "key": "upgrade",
+          "probability_basis_points": 10000,
+          "reward_type": "unlock",
+          "config": {
+            "unlock_id": "unlock.capability.die_size_d10"
+          }
+        }
+      ]
+    },
+    {
+      "id": "reward_definition.academy_die_size_d12",
+      "type": "reward_definition",
+      "entries": [
+        {
+          "key": "upgrade",
+          "probability_basis_points": 10000,
+          "reward_type": "unlock",
+          "config": {
+            "unlock_id": "unlock.capability.die_size_d12"
+          }
+        }
+      ]
+    },
+    {
+      "id": "reward_definition.academy_die_size_d20",
+      "type": "reward_definition",
+      "entries": [
+        {
+          "key": "upgrade",
+          "probability_basis_points": 10000,
+          "reward_type": "unlock",
+          "config": {
+            "unlock_id": "unlock.capability.die_size_d20"
+          }
+        }
+      ]
+    }
+  ]
+}

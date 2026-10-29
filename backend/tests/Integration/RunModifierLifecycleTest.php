@@ -23,7 +23,6 @@ use PDO;
 
 final class RunModifierLifecycleTest extends IntegrationTestCase
 {
-  protected function supportsVnextBaseline(): bool { return true; }
 
   public function testSourceReloadUnrelatedLootCombatConsumptionAndExactReplays(): void
   {

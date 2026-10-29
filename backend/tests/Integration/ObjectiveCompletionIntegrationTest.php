@@ -23,7 +23,6 @@ use PDO;
 
 final class ObjectiveCompletionIntegrationTest extends IntegrationTestCase
 {
-  protected function supportsVnextBaseline(): bool { return true; }
 
   public function testOneFactCompletesMultipleObjectivesAndFinalizesRandomAndDuplicateRewardsExactlyOnce(): void
   {

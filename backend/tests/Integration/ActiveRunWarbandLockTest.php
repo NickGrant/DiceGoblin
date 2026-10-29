@@ -13,7 +13,6 @@ use DiceGoblins\Tests\Support\IntegrationTestCase;
 
 final class ActiveRunWarbandLockTest extends IntegrationTestCase
 {
-  protected function supportsVnextBaseline(): bool { return true; }
 
   public function testActiveRunLocksOnlyParticipatingCombatConfiguration(): void
   {
@@ -94,7 +93,7 @@ final class ActiveRunWarbandLockTest extends IntegrationTestCase
       password_hash('test-password', PASSWORD_DEFAULT), 'Warband Locker');
     $this->trackUserId($userId);
     $fixture = (new ProvisionWarbandFixtureCommand($this->pdo, new WarbandFixtureRepository($this->pdo),
-      ContentRegistry::load(dirname(__DIR__, 2) . '/content')))->execute($userId);
+      ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content')))->execute($userId);
     return [$userId, $fixture];
   }
 

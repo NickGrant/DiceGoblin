@@ -32,7 +32,6 @@ use RuntimeException;
 
 final class FarmLootRestNodeResolutionControllerTest extends IntegrationTestCase
 {
-  protected function supportsVnextBaseline(): bool { return true; }
 
   public function testExitCompletesFarmExactlyOnceAndBootstrapReturnsAuthoritativeCampState(): void
   {
@@ -583,5 +582,5 @@ final class FarmLootRestNodeResolutionControllerTest extends IntegrationTestCase
     $stmt = $this->pdo?->prepare($sql); $stmt?->execute($params); return $stmt?->fetchAll(PDO::FETCH_ASSOC) ?: [];
   }
 
-  private function content(): ContentRegistry { return ContentRegistry::load(dirname(__DIR__, 2) . '/content'); }
+  private function content(): ContentRegistry { return ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content'); }
 }

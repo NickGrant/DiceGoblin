@@ -181,45 +181,18 @@ final class RunContentValidationTest extends TestCase
     (new ContentValidator())->validate([['path' => 'branching-test.json',
       'document' => ['definitions' => $definitions]]]);
   }
-  public function testCanonicalFarmRunContentIsValidatedAndTyped(): void
+  public function testFarmGraphMayChangeWithoutChangingTheRunGenerationFormat(): void
   {
-    $registry = ContentRegistry::load($this->canonicalRoot());
-    $generation = $registry->runGenerationForRegion('region.the_farm');
+    $definitions = $this->canonicalDefinitions();
+    $this->mutate($definitions, 'run_generation.the_farm', static function (array &$generation): void {
+      $generation['start_node_key'] = 'opening_combat';
+      $generation['nodes'][0]['key'] = 'opening_combat';
+      $generation['edges'][0]['from'] = 'opening_combat';
+    });
 
-    $this->assertSame('run_generation.the_farm', $generation['id']);
-    $this->assertSame('fixed_graph_v1', $generation['algorithm']);
-    $byKey = array_column($generation['nodes'], null, 'key');
-    $this->assertSame('run_node_type.dialogue', $byKey['dialogue']['node_type_id']);
-    $this->assertSame('encounter.the_farm_scout', $byKey['dialogue']['encounter_id']);
-    $keys = array_column($generation['nodes'], 'key');
-    $this->assertSame(array_search('loot', $keys, true) + 1, array_search('dialogue', $keys, true));
-    $this->assertSame(array_search('dialogue', $keys, true) + 1, array_search('rest', $keys, true));
-    $this->assertSame('non_combat', $registry->runNodeType('run_node_type.rest')['encounter_kind']);
-    $this->assertSame('encounter.the_farm_mud_combat_1', $generation['nodes'][0]['encounter_id']);
-    $this->assertSame('event.farm_loot_completed', $generation['nodes'][1]['event_id']);
-    $this->assertSame('encounter.the_farm_mud_boss_1', $byKey['boss']['encounter_id']);
-    $this->assertSame('event.farm_boss_completed', $byKey['boss']['event_id']);
-    $this->assertSame('Combat', $registry->runNodeType('run_node_type.combat')['display_name']);
-  }
-
-  public function testCanonicalMountainsRunContentIncludesPathAndDeadEndHazards(): void
-  {
-    $registry = ContentRegistry::load($this->canonicalRoot());
-    $generation = $registry->runGenerationForRegion('region.mountains');
-
-    $this->assertSame('run_generation.mountains', $generation['id']);
-    $this->assertSame('combat_1', $generation['start_node_key']);
-    $byKey = array_column($generation['nodes'], null, 'key');
-    $this->assertSame('run_node_type.boss', $byKey['boss']['node_type_id']);
-    $this->assertSame('run_node_type.exit', $byKey['exit']['node_type_id']);
-    $this->assertSame('run_node_type.hazard', $byKey['loose_scree']['node_type_id']);
-    $this->assertSame('run_node_type.hazard', $byKey['rockfall']['node_type_id']);
-    $outgoing = [];
-    foreach ($generation['edges'] as $edge) $outgoing[$edge['from']][] = $edge['to'];
-    $this->assertContains('rockfall', $outgoing['combat_2']);
-    $this->assertGreaterThanOrEqual(2, count($outgoing['combat_2']));
-    $this->assertArrayNotHasKey('rockfall', $outgoing);
-    $this->assertSame([2, 3], [$generation['variable_trails']['minimum'], $generation['variable_trails']['maximum']]);
+    $validated = (new ContentValidator())->validate([['path' => 'farm-variant.json',
+      'document' => ['definitions' => $definitions]]]);
+    $this->assertSame('opening_combat', $validated['run_generation.the_farm']['start_node_key']);
   }
 
   public function testVariableTrailAuthorshipRejectsInvalidReferencesAndPlacement(): void
@@ -367,6 +340,6 @@ final class RunContentValidationTest extends TestCase
 
   private function canonicalRoot(): string
   {
-    return dirname(__DIR__, 2) . '/content';
+    return dirname(__DIR__, 2) . '/tests/Fixtures/content';
   }
 }

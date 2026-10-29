@@ -30,7 +30,7 @@ final class DialogueController
     try { $userId = $core['sessionService']->requireUserId(); }
     catch (Throwable) { $this->error('unauthorized', 'No active session.', 401); return; }
     try {
-      $content = $this->content ?? ContentRegistry::load(dirname(__DIR__, 2) . '/content');
+      $content = $this->content ?? ContentRegistry::loadConfigured();
       $result = (new DialogueQuery(new UserCodexRepository($pdo), $content))->execute($userId, (string)$dialogueId);
       Response::json(['ok' => true, 'data' => $result]);
     } catch (DialogueUnavailableException) {

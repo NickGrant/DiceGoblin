@@ -22,7 +22,6 @@ use RuntimeException;
 
 final class ObjectiveProgressIntegrationTest extends IntegrationTestCase
 {
-  protected function supportsVnextBaseline(): bool { return true; }
 
   public function testAllFactsInitializeAdvanceSaturateEveryMatchAndRespectOwnershipAndCompletion(): void
   {

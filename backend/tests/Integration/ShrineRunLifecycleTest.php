@@ -21,7 +21,6 @@ use PDO;
 
 final class ShrineRunLifecycleTest extends IntegrationTestCase
 {
-  protected function supportsVnextBaseline(): bool { return true; }
 
   public function testBothAuthoredChoicesFinalizeOnlySelectedHpEffectAndRetainFrontier(): void
   {

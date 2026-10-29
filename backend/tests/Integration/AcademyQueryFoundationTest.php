@@ -12,14 +12,13 @@ use DiceGoblins\Tests\Support\IntegrationTestCase;
 
 final class AcademyQueryFoundationTest extends IntegrationTestCase
 {
-  protected function supportsVnextBaseline(): bool { return true; }
 
   public function testAcademyReadIsLockedUntilPurchased(): void
   {
     $userId = $this->user();
     $this->pdo?->prepare('DELETE FROM `user_unlocks` WHERE `user_id` = ?')->execute([$userId]);
     $query = new AcademyQuery(new PlayerStateRepository($this->pdo), new UserUnlockRepository($this->pdo),
-      ContentRegistry::load(dirname(__DIR__, 2) . '/content'));
+      ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content'));
     $this->expectException(\DiceGoblins\Application\Queries\AcademyLockedException::class);
     $query->execute($userId);
   }
@@ -40,7 +39,7 @@ final class AcademyQueryFoundationTest extends IntegrationTestCase
     $userId = $this->user();
     $unlocks = new UserUnlockRepository($this->pdo);
     $query = new AcademyQuery(new PlayerStateRepository($this->pdo), $unlocks,
-      ContentRegistry::load(dirname(__DIR__, 2) . '/content'));
+      ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content'));
     $initial = $query->execute($userId);
     $this->assertSame(3, $initial['raw_chaos']);
     $this->assertSame(7, $initial['player_revision']);

@@ -12,10 +12,6 @@ use DiceGoblins\Tests\Support\IntegrationTestCase;
 
 final class GameBootstrapControllerTest extends IntegrationTestCase
 {
-  protected function supportsVnextBaseline(): bool
-  {
-    return true;
-  }
 
   public function testUnauthenticatedBootstrapIsRejected(): void
   {
@@ -197,7 +193,7 @@ final class GameBootstrapControllerTest extends IntegrationTestCase
   private function contentRegistry(int $normalMaximum = 50, float $regenerationPerHour = 12.0): ContentRegistry
   {
     if ($normalMaximum === 50 && $regenerationPerHour === 12.0) {
-      return ContentRegistry::load(dirname(__DIR__, 2) . '/content');
+      return ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content');
     }
 
     $root = sys_get_temp_dir() . '/dice-goblins-bootstrap-content-' . bin2hex(random_bytes(6));

@@ -30,7 +30,7 @@ final class CodexController
       return;
     }
     try {
-      $content = $this->content ?? ContentRegistry::load(dirname(__DIR__, 2) . '/content');
+      $content = $this->content ?? ContentRegistry::loadConfigured();
       $query = new CodexQuery(new UserCodexRepository($pdo), $content);
       Response::json(['ok' => true, 'data' => $query->execute($userId)]);
     } catch (Throwable) {

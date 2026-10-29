@@ -1,0 +1,11 @@
+{
+  "definitions": [
+    {
+      "id": "region.mountains",
+      "type": "region",
+      "display_name": "Mountains",
+      "art_key": "mountains",
+      "run_generation_id": "run_generation.mountains"
+    }
+  ]
+}

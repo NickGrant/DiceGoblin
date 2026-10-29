@@ -27,7 +27,6 @@ use RuntimeException;
 final class ConsumableCommandTest extends IntegrationTestCase
 {
   /** @var list<string> */ private array $roots = [];
-  protected function supportsVnextBaseline(): bool { return true; }
   protected function tearDown(): void { parent::tearDown(); foreach ($this->roots as $root) $this->removeTree($root); }
 
   public function testEnergyRestoreMaterializesRegenConsumesOnceAndExactRetrySurvivesLaterStateAndContent(): void
@@ -42,7 +41,7 @@ final class ConsumableCommandTest extends IntegrationTestCase
     $this->assertSame([1, 4], [$first['owned_quantity_after'], $first['player_revision']]);
     $this->pdo?->prepare('UPDATE `user_state` SET `energy_current` = 1 WHERE `user_id` = ?')->execute([$userId]);
     $this->pdo?->prepare('DELETE FROM `user_items` WHERE `user_id` = ?')->execute([$userId]);
-    $replay = $this->energyCommand(ContentRegistry::load(dirname(__DIR__, 2) . '/content'), '2026-09-27T12:00:00Z')
+    $replay = $this->energyCommand(ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content'), '2026-09-27T12:00:00Z')
       ->execute($userId, ['item_id' => 'item.test.spark'], 'energy-restore-key');
     $this->assertSame($first, $replay);
     $this->assertSame('4', (string)$this->scalar('SELECT `player_revision` FROM `user_state` WHERE `user_id` = ?', [$userId]));
@@ -143,7 +142,7 @@ final class ConsumableCommandTest extends IntegrationTestCase
     $this->pdo?->prepare("UPDATE `runs` SET `status` = 'completed', `ended_at` = UTC_TIMESTAMP() WHERE `id` = ?")->execute([$runId]);
     $this->pdo?->prepare('UPDATE `run_unit_state` SET `current_hp` = ? WHERE `run_id` = ? AND `unit_id` = ?')->execute([$maximum, $runId, $unitId]);
     $this->pdo?->prepare('DELETE FROM `user_items` WHERE `user_id` = ?')->execute([$userId]);
-    $replay = $this->healCommand(ContentRegistry::load(dirname(__DIR__, 2) . '/content'))
+    $replay = $this->healCommand(ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content'))
       ->execute($userId, $runId, $unitId, ['item_id' => 'item.test.heal'], 'heal-run-key');
     $this->assertSame($first, $replay);
     $this->assertSame('2', (string)$this->scalar('SELECT `player_revision` FROM `user_state` WHERE `user_id` = ?', [$userId]));
@@ -280,7 +279,7 @@ final class ConsumableCommandTest extends IntegrationTestCase
 
   private function content(int $energyAmount = 7): ContentRegistry
   {
-    $source = dirname(__DIR__, 2) . '/content'; $root = sys_get_temp_dir() . '/dice-goblins-consumables-' . bin2hex(random_bytes(6));
+    $source = dirname(__DIR__, 2) . '/tests/Fixtures/content'; $root = sys_get_temp_dir() . '/dice-goblins-consumables-' . bin2hex(random_bytes(6));
     mkdir($root, 0777, true); $this->roots[] = $root;
     $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($source, \FilesystemIterator::SKIP_DOTS));
     foreach ($files as $file) { if (!$file->isFile()) continue; $relative = substr($file->getPathname(), strlen($source) + 1); $target = $root . '/' . str_replace('\\', '/', $relative); if (!is_dir(dirname($target))) mkdir(dirname($target), 0777, true); copy($file->getPathname(), $target); }

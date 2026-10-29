@@ -13,7 +13,7 @@ use PHPUnit\Framework\TestCase;
 
 final class UnitPromotionPolicyTest extends TestCase
 {
-  private function root(): string { return dirname(__DIR__, 2) . '/content'; }
+  private function root(): string { return dirname(__DIR__, 2) . '/tests/Fixtures/content'; }
 
   public function testCanonicalGraphCadenceAndProjection(): void
   {

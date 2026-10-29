@@ -32,7 +32,7 @@ final class WrongMachineReadController
       return;
     }
     try {
-      $content = $this->content ?? ContentRegistry::load(dirname(__DIR__, 2) . '/content');
+      $content = $this->content ?? ContentRegistry::loadConfigured();
       $query = new WrongMachineQuery(new PlayerStateRepository($pdo), new UserUnlockRepository($pdo),
         new UserItemRepository($pdo), new UnitTypeAvailabilityPolicy($content), $content);
       Response::json(['ok' => true, 'data' => $query->execute($userId)]);

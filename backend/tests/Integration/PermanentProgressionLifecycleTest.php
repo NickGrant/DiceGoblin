@@ -17,7 +17,6 @@ use DiceGoblins\Tests\Support\IntegrationTestCase;
 
 final class PermanentProgressionLifecycleTest extends IntegrationTestCase
 {
-  protected function supportsVnextBaseline(): bool { return true; }
 
   public function testProductionCatalogLinksEveryPermanentProgressionDefinition(): void
   {
@@ -110,7 +109,7 @@ final class PermanentProgressionLifecycleTest extends IntegrationTestCase
     $this->assertCount(2, $second['unit']['promotion_history']);
     foreach ($first['unit']['owned_ability_ids'] as $abilityId) $this->assertContains($abilityId, $second['unit']['owned_ability_ids']);
     $this->assertSame([], $services['unitPromotionOptionsQuery']->execute($user, $unitId)['options']);
-    $reloaded = ControllerServiceFactory::buildContentAware($this->pdo, null, ContentRegistry::load(dirname(__DIR__, 2) . '/content'));
+    $reloaded = ControllerServiceFactory::buildContentAware($this->pdo, null, ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content'));
     $reloadedDetail = $reloaded['unitDetailQuery']->execute($user, $unitId);
     foreach ($second['unit'] as $key => $value) $this->assertEqualsCanonicalizing($value, $reloadedDetail[$key], $key);
     $bootstrap = $reloaded['gameBootstrapQuery']->execute($user, new DateTimeImmutable('2026-09-28T12:00:00Z'));
@@ -129,7 +128,7 @@ final class PermanentProgressionLifecycleTest extends IntegrationTestCase
     catch (IdempotencyConflictException) { $this->addToAssertionCount(1); }
   }
 
-  private function content(): ContentRegistry { return ContentRegistry::load(dirname(__DIR__, 2) . '/content'); }
+  private function content(): ContentRegistry { return ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content'); }
   private function upgradeRequest(string $suffix, int $price): array
   { return ['upgrade_id' => 'academy_upgrade.' . $suffix, 'expected_price' => ['currency_id' => 'raw_chaos', 'amount' => $price]]; }
   private function promotionRequest(string $suffix, int $price): array

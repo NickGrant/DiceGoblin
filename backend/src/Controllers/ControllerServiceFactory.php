@@ -151,7 +151,7 @@ final class ControllerServiceFactory
   ): array
   {
     $core ??= self::buildCore($pdo);
-    $content ??= ContentRegistry::load(dirname(__DIR__, 2) . '/content');
+    $content ??= ContentRegistry::loadConfigured();
     $unitRepository = new WarbandUnitRepository($pdo);
     $diceRepository = new WarbandDiceRepository($pdo);
     $squadRepository = new SquadRepository($pdo);

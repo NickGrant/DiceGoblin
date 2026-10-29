@@ -16,14 +16,13 @@ use DiceGoblins\Tests\Support\IntegrationTestCase;
 final class ShopCatalogFoundationTest extends IntegrationTestCase
 {
   /** @var list<string> */ private array $roots = [];
-  protected function supportsVnextBaseline(): bool { return true; }
   protected function tearDown(): void { parent::tearDown(); foreach ($this->roots as $root) $this->removeTree($root); }
 
   public function testShopReadIsLockedUntilFarmUnlock(): void
   {
     $userId = $this->user('Shop Gate', 300, 1);
     $this->pdo?->prepare('DELETE FROM `user_unlocks` WHERE `user_id` = ?')->execute([$userId]);
-    $query = $this->query(ContentRegistry::load(dirname(__DIR__, 2) . '/content'));
+    $query = $this->query(ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content'));
     $this->expectException(\DiceGoblins\Application\Queries\ShopLockedException::class);
     $query->execute($userId);
   }
@@ -41,7 +40,7 @@ final class ShopCatalogFoundationTest extends IntegrationTestCase
 
   public function testAcademyAccessOfferIsAvailableOnceThenOwned(): void
   {
-    $content = ContentRegistry::load(dirname(__DIR__, 2) . '/content');
+    $content = ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content');
     $price = $content->shopOffer('shop_offer.academy_access')['price']['amount'];
     $userId = $this->user('Academy Offer', $price + 50, 1);
     $query = $this->query($content);
@@ -56,7 +55,7 @@ final class ShopCatalogFoundationTest extends IntegrationTestCase
   public function testProductionShopReturnsCanonicalOffersWithCurrentWalletAndRevision(): void
   {
     $userId = $this->user('Canonical Shop', 13, 4);
-    $content = ContentRegistry::load(dirname(__DIR__, 2) . '/content');
+    $content = ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content');
     $result = $this->query($content)->execute($userId);
     $this->assertSame(13, $result['teeth']);
     $this->assertSame(4, $result['player_revision']);
@@ -70,7 +69,7 @@ final class ShopCatalogFoundationTest extends IntegrationTestCase
   public function testCanonicalAcademyUnitOffersRequireTheirExactUnlock(): void
   {
     $userId = $this->user('Academy Shop Units', 20, 2);
-    $query = $this->query(ContentRegistry::load(dirname(__DIR__, 2) . '/content'));
+    $query = $this->query(ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content'));
     $locked = array_column($query->execute($userId)['offers'], 'available', 'offer_id');
     foreach (['guardian', 'marksman', 'bannerbearer', 'saboteur'] as $unit) {
       $this->assertFalse($locked['shop_offer.goblin_' . $unit]);
@@ -222,7 +221,7 @@ final class ShopCatalogFoundationTest extends IntegrationTestCase
   }
   private function copyCanonicalRoot(): string
   {
-    $source = dirname(__DIR__, 2) . '/content'; $root = sys_get_temp_dir() . '/dice-goblins-shop-api-' . bin2hex(random_bytes(6)); mkdir($root, 0777, true); $this->roots[] = $root;
+    $source = dirname(__DIR__, 2) . '/tests/Fixtures/content'; $root = sys_get_temp_dir() . '/dice-goblins-shop-api-' . bin2hex(random_bytes(6)); mkdir($root, 0777, true); $this->roots[] = $root;
     $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($source, \FilesystemIterator::SKIP_DOTS));
     foreach ($files as $file) { if (!$file->isFile()) continue; $relative = substr($file->getPathname(), strlen($source) + 1); $target = $root . '/' . str_replace('\\', '/', $relative); if (!is_dir(dirname($target))) mkdir(dirname($target), 0777, true); copy($file->getPathname(), $target); }
     file_put_contents($root . '/shop_offers/catalog.json', json_encode(['definitions' => []], JSON_THROW_ON_ERROR));

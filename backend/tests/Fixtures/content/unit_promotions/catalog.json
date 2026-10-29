@@ -1,0 +1,224 @@
+{
+  "definitions": [
+    {
+      "id": "unit_promotion.bruiser.enforcer",
+      "type": "unit_promotion",
+      "from_unit_type_id": "unit_type.bruiser",
+      "to_unit_type_id": "unit_type.enforcer",
+      "required_level": 3,
+      "price": {
+        "currency_id": "raw_chaos",
+        "amount": 5
+      }
+    },
+    {
+      "id": "unit_promotion.bruiser.pit_fighter",
+      "type": "unit_promotion",
+      "from_unit_type_id": "unit_type.bruiser",
+      "to_unit_type_id": "unit_type.pit_fighter",
+      "required_level": 3,
+      "price": {
+        "currency_id": "raw_chaos",
+        "amount": 5
+      }
+    },
+    {
+      "id": "unit_promotion.enforcer.juggernaut",
+      "type": "unit_promotion",
+      "from_unit_type_id": "unit_type.enforcer",
+      "to_unit_type_id": "unit_type.juggernaut",
+      "required_level": 6,
+      "price": {
+        "currency_id": "raw_chaos",
+        "amount": 10
+      }
+    },
+    {
+      "id": "unit_promotion.pit_fighter.juggernaut",
+      "type": "unit_promotion",
+      "from_unit_type_id": "unit_type.pit_fighter",
+      "to_unit_type_id": "unit_type.juggernaut",
+      "required_level": 6,
+      "price": {
+        "currency_id": "raw_chaos",
+        "amount": 10
+      }
+    },
+    {
+      "id": "unit_promotion.guardian.bulwark",
+      "type": "unit_promotion",
+      "from_unit_type_id": "unit_type.guardian",
+      "to_unit_type_id": "unit_type.bulwark",
+      "required_level": 3,
+      "price": {
+        "currency_id": "raw_chaos",
+        "amount": 5
+      }
+    },
+    {
+      "id": "unit_promotion.guardian.shieldbreaker",
+      "type": "unit_promotion",
+      "from_unit_type_id": "unit_type.guardian",
+      "to_unit_type_id": "unit_type.shieldbreaker",
+      "required_level": 3,
+      "price": {
+        "currency_id": "raw_chaos",
+        "amount": 5
+      }
+    },
+    {
+      "id": "unit_promotion.bulwark.ironwall",
+      "type": "unit_promotion",
+      "from_unit_type_id": "unit_type.bulwark",
+      "to_unit_type_id": "unit_type.ironwall",
+      "required_level": 6,
+      "price": {
+        "currency_id": "raw_chaos",
+        "amount": 10
+      }
+    },
+    {
+      "id": "unit_promotion.shieldbreaker.ironwall",
+      "type": "unit_promotion",
+      "from_unit_type_id": "unit_type.shieldbreaker",
+      "to_unit_type_id": "unit_type.ironwall",
+      "required_level": 6,
+      "price": {
+        "currency_id": "raw_chaos",
+        "amount": 10
+      }
+    },
+    {
+      "id": "unit_promotion.marksman.deadeye",
+      "type": "unit_promotion",
+      "from_unit_type_id": "unit_type.marksman",
+      "to_unit_type_id": "unit_type.deadeye",
+      "required_level": 3,
+      "price": {
+        "currency_id": "raw_chaos",
+        "amount": 5
+      }
+    },
+    {
+      "id": "unit_promotion.marksman.trapper",
+      "type": "unit_promotion",
+      "from_unit_type_id": "unit_type.marksman",
+      "to_unit_type_id": "unit_type.trapper",
+      "required_level": 3,
+      "price": {
+        "currency_id": "raw_chaos",
+        "amount": 5
+      }
+    },
+    {
+      "id": "unit_promotion.deadeye.sharpshot",
+      "type": "unit_promotion",
+      "from_unit_type_id": "unit_type.deadeye",
+      "to_unit_type_id": "unit_type.sharpshot",
+      "required_level": 6,
+      "price": {
+        "currency_id": "raw_chaos",
+        "amount": 10
+      }
+    },
+    {
+      "id": "unit_promotion.trapper.sharpshot",
+      "type": "unit_promotion",
+      "from_unit_type_id": "unit_type.trapper",
+      "to_unit_type_id": "unit_type.sharpshot",
+      "required_level": 6,
+      "price": {
+        "currency_id": "raw_chaos",
+        "amount": 10
+      }
+    },
+    {
+      "id": "unit_promotion.bannerbearer.warcaller",
+      "type": "unit_promotion",
+      "from_unit_type_id": "unit_type.bannerbearer",
+      "to_unit_type_id": "unit_type.warcaller",
+      "required_level": 3,
+      "price": {
+        "currency_id": "raw_chaos",
+        "amount": 5
+      }
+    },
+    {
+      "id": "unit_promotion.bannerbearer.mascot",
+      "type": "unit_promotion",
+      "from_unit_type_id": "unit_type.bannerbearer",
+      "to_unit_type_id": "unit_type.mascot",
+      "required_level": 3,
+      "price": {
+        "currency_id": "raw_chaos",
+        "amount": 5
+      }
+    },
+    {
+      "id": "unit_promotion.warcaller.warchanter",
+      "type": "unit_promotion",
+      "from_unit_type_id": "unit_type.warcaller",
+      "to_unit_type_id": "unit_type.warchanter",
+      "required_level": 6,
+      "price": {
+        "currency_id": "raw_chaos",
+        "amount": 10
+      }
+    },
+    {
+      "id": "unit_promotion.mascot.warchanter",
+      "type": "unit_promotion",
+      "from_unit_type_id": "unit_type.mascot",
+      "to_unit_type_id": "unit_type.warchanter",
+      "required_level": 6,
+      "price": {
+        "currency_id": "raw_chaos",
+        "amount": 10
+      }
+    },
+    {
+      "id": "unit_promotion.saboteur.trickshot",
+      "type": "unit_promotion",
+      "from_unit_type_id": "unit_type.saboteur",
+      "to_unit_type_id": "unit_type.trickshot",
+      "required_level": 3,
+      "price": {
+        "currency_id": "raw_chaos",
+        "amount": 5
+      }
+    },
+    {
+      "id": "unit_promotion.saboteur.plaguehand",
+      "type": "unit_promotion",
+      "from_unit_type_id": "unit_type.saboteur",
+      "to_unit_type_id": "unit_type.plaguehand",
+      "required_level": 3,
+      "price": {
+        "currency_id": "raw_chaos",
+        "amount": 5
+      }
+    },
+    {
+      "id": "unit_promotion.trickshot.venomwright",
+      "type": "unit_promotion",
+      "from_unit_type_id": "unit_type.trickshot",
+      "to_unit_type_id": "unit_type.venomwright",
+      "required_level": 6,
+      "price": {
+        "currency_id": "raw_chaos",
+        "amount": 10
+      }
+    },
+    {
+      "id": "unit_promotion.plaguehand.venomwright",
+      "type": "unit_promotion",
+      "from_unit_type_id": "unit_type.plaguehand",
+      "to_unit_type_id": "unit_type.venomwright",
+      "required_level": 6,
+      "price": {
+        "currency_id": "raw_chaos",
+        "amount": 10
+      }
+    }
+  ]
+}

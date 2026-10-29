@@ -1,16 +1,10 @@
-import { Injectable, Injector, computed, inject, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import {
-  ProfileData,
   PasswordResetRequestResponse,
   PasswordResetRequestData,
-  ProfileResponse,
-  ProfileViewModel,
   SessionResponse,
   SessionViewModel,
-  TeamRecord,
-  UnitRecord,
-  DiceRecord,
 } from '../../models/api.models';
 import { ApiHttpService } from '../api-http/api-http.service';
 import {
@@ -19,7 +13,6 @@ import {
   isDebugCaptureGuest,
   readDebugCaptureRequest,
 } from '../../debug/debug-capture';
-import { ProfileService } from '../profile/profile.service';
 
 const DEFAULT_SESSION: SessionViewModel = {
   isAuthenticated: false,
@@ -28,47 +21,18 @@ const DEFAULT_SESSION: SessionViewModel = {
   csrfToken: null,
 };
 
-const DEFAULT_PROFILE: ProfileViewModel = {
-  energyCurrent: 0,
-  energyMax: 0,
-  softCurrency: 0,
-  activeRunId: null,
-  squadCount: 0,
-  unitCount: 0,
-  activeSquadName: null,
-};
-
 @Injectable({ providedIn: 'root' })
 export class SessionService {
   private readonly router = inject(Router);
-  private readonly injector = inject(Injector);
   private readonly sessionState = signal(DEFAULT_SESSION);
-  private readonly profileState = signal(DEFAULT_PROFILE);
-  private readonly profileDataState = signal<ProfileData | null>(null);
   private readonly loadingState = signal(false);
   private readonly errorState = signal<string | null>(null);
   private initialized = false;
   private initializePromise: Promise<void> | null = null;
 
   readonly session = this.sessionState.asReadonly();
-  readonly profile = this.profileState.asReadonly();
-  readonly profileData = this.profileDataState.asReadonly();
   readonly isLoading = this.loadingState.asReadonly();
   readonly error = this.errorState.asReadonly();
-  readonly hasActiveRun = computed(() => !!this.profileState().activeRunId);
-  readonly squadUnitCap = computed(() => this.profileDataState()?.squad_unit_cap ?? 4);
-  readonly featureUnlocks = computed(() => this.profileDataState()?.feature_unlocks ?? []);
-  readonly unitTypeUnlocks = computed(() => this.profileDataState()?.unit_type_unlocks ?? []);
-  readonly lineageUnlocks = computed(() => this.profileDataState()?.lineage_unlocks ?? []);
-  readonly shopUnlocked = computed(() => this.featureUnlocks().includes('shop'));
-  readonly academyUnlocked = computed(() => this.featureUnlocks().includes('academy'));
-  readonly wrongMachineUnlocked = computed(() => this.featureUnlocks().includes('wrong_machine'));
-  readonly activeSquad = computed<TeamRecord | null>(
-    () => this.profileDataState()?.squads.find((squad) => squad.is_active) ?? null,
-  );
-  readonly units = computed<UnitRecord[]>(() => this.profileDataState()?.units ?? []);
-  readonly squads = computed<TeamRecord[]>(() => this.profileDataState()?.squads ?? []);
-  readonly dice = computed<DiceRecord[]>(() => this.profileDataState()?.dice ?? []);
   private readonly debugCaptureRequest = readDebugCaptureRequest();
 
   constructor(private readonly apiHttp: ApiHttpService) {
@@ -162,35 +126,6 @@ export class SessionService {
     await this.router.navigateByUrl('/game');
   }
 
-  async refreshProfile(options?: { force?: boolean }): Promise<void> {
-    try {
-      const profile = await this.profileService.getProfile({
-        force: options?.force,
-        allowStaleOnError: !options?.force,
-      });
-      this.profileDataState.set(profile.ok ? profile.data : null);
-      this.profileState.set(this.mapProfile(profile));
-      this.errorState.set(null);
-    } catch (error) {
-      this.errorState.set(error instanceof Error ? error.message : 'Unable to reach the API.');
-    }
-  }
-
-  async runProfileMutation<T>(operation: () => Promise<T>, options?: { force?: boolean }): Promise<T> {
-    const response = await operation();
-    await this.refreshProfile({ force: options?.force ?? true });
-    return response;
-  }
-
-  invalidateProfileCache(): void {
-    this.profileService.invalidateProfileCache();
-  }
-
-  /** Retained only for disconnected prototype gameplay helpers. */
-  private get profileService(): ProfileService {
-    return this.injector.get(ProfileService);
-  }
-
   private async refreshInternal(options?: { skipAuthRecovery?: boolean; suppressErrors?: boolean }): Promise<void> {
     this.loadingState.set(true);
     if (!options?.suppressErrors) {
@@ -205,10 +140,6 @@ export class SessionService {
       const mappedSession = this.mapSession(session);
       this.sessionState.set(mappedSession);
 
-      if (!mappedSession.isAuthenticated) {
-        this.profileDataState.set(null);
-        this.profileState.set(DEFAULT_PROFILE);
-      }
     } catch (error) {
       if (!options?.suppressErrors) {
         this.errorState.set(error instanceof Error ? error.message : 'Unable to reach the API.');
@@ -222,8 +153,6 @@ export class SessionService {
     this.initialized = false;
     this.initializePromise = null;
     this.sessionState.set(DEFAULT_SESSION);
-    this.profileState.set(DEFAULT_PROFILE);
-    this.profileDataState.set(null);
     this.errorState.set(null);
     await this.router.navigateByUrl('/login');
   }
@@ -250,29 +179,9 @@ export class SessionService {
     };
   }
 
-  private mapProfile(profile: ProfileResponse): ProfileViewModel {
-    if (!profile.ok) {
-      return DEFAULT_PROFILE;
-    }
-
-    const activeSquad = profile.data?.squads?.find((squad) => squad.is_active);
-
-    return {
-      energyCurrent: profile.data?.energy?.current ?? 0,
-      energyMax: profile.data?.energy?.max ?? 0,
-      softCurrency: profile.data?.currency?.soft ?? 0,
-      activeRunId: profile.data?.active_run?.run_id?.toString() ?? null,
-      squadCount: profile.data?.squads?.length ?? 0,
-      unitCount: profile.data?.units?.length ?? 0,
-      activeSquadName: activeSquad?.name ?? null,
-    };
-  }
-
   private applyDebugCaptureState(): boolean {
     if (isDebugCaptureGuest(this.debugCaptureRequest)) {
       this.sessionState.set(DEFAULT_SESSION);
-      this.profileState.set(DEFAULT_PROFILE);
-      this.profileDataState.set(null);
       this.loadingState.set(false);
       this.errorState.set(null);
       return true;
@@ -283,8 +192,6 @@ export class SessionService {
     }
 
     this.sessionState.set(createDebugCaptureSession(this.debugCaptureRequest));
-    this.profileDataState.set(null);
-    this.profileState.set(DEFAULT_PROFILE);
     this.loadingState.set(false);
     this.errorState.set(null);
     return true;

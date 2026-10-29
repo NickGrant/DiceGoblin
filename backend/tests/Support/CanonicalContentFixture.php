@@ -9,13 +9,15 @@ use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use RuntimeException;
 
-/** Reads complete authored definitions for tests that mutate or extend the production catalog. */
+/** Reads the frozen authored test catalog so behavior tests do not depend on production content edits. */
 final class CanonicalContentFixture
 {
   /** @return list<array<string,mixed>> */
   public static function definitions(): array
   {
-    $root = dirname(__DIR__, 2) . '/content';
+    static $loaded = null;
+    if ($loaded !== null) return $loaded;
+    $root = dirname(__DIR__, 2) . '/tests/Fixtures/content';
     $paths = [];
     foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS)) as $file) {
       if ($file->isFile() && strtolower($file->getExtension()) === 'json') $paths[] = $file->getPathname();
@@ -33,6 +35,6 @@ final class CanonicalContentFixture
       }
       foreach ($document['definitions'] as $definition) $definitions[] = $definition;
     }
-    return $definitions;
+    return $loaded = $definitions;
   }
 }

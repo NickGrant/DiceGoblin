@@ -14,7 +14,7 @@ final class ReconstructionContentValidationTest extends TestCase
 {
   public function testProductionPigAndLizardRecipesUseOneValidatedModel(): void
   {
-    $registry = ContentRegistry::load(dirname(__DIR__, 2) . '/content');
+    $registry = ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content');
     foreach ([
       ['reconstruct_pig_kin', 'pig', 'pig_ear', 'mudking_crown_fragment'],
       ['reconstruct_lizard_kin', 'lizard_kin', 'kobold_scale', 'chief_engineer_lens'],
@@ -40,7 +40,7 @@ final class ReconstructionContentValidationTest extends TestCase
 
   public function testInvalidRecipeReferencesAndRequirementsFail(): void
   {
-    $recipe = ContentRegistry::load(dirname(__DIR__, 2) . '/content')
+    $recipe = ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content')
       ->reconstructionRecipe('reconstruction_recipe.reconstruct_pig_kin');
     $cases = [
       [array_replace($recipe, ['kin_id' => 'kin.missing']), 'missing kin'],
@@ -65,7 +65,7 @@ final class ReconstructionContentValidationTest extends TestCase
 
   public function testDuplicateKinRecipeFails(): void
   {
-    $duplicate = ContentRegistry::load(dirname(__DIR__, 2) . '/content')
+    $duplicate = ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content')
       ->reconstructionRecipe('reconstruction_recipe.reconstruct_pig_kin');
     $duplicate['id'] = 'reconstruction_recipe.pig_duplicate';
     $this->expectException(ContentValidationException::class);
@@ -75,7 +75,7 @@ final class ReconstructionContentValidationTest extends TestCase
 
   public function testCyclicRecipePrerequisitesAndIncompatibleMaterialSourcesFail(): void
   {
-    $registry = ContentRegistry::load(dirname(__DIR__, 2) . '/content');
+    $registry = ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content');
     $pig = $registry->reconstructionRecipe('reconstruction_recipe.reconstruct_pig_kin');
     $lizard = $registry->reconstructionRecipe('reconstruction_recipe.reconstruct_lizard_kin');
     $pig['prerequisite_unlock_ids'][] = 'unlock.kin.lizard_kin';
@@ -95,7 +95,7 @@ final class ReconstructionContentValidationTest extends TestCase
 
   public function testWrongMachineUnlockCannotBeRetargetedToAnUnrelatedCapability(): void
   {
-    $unlock = ContentRegistry::load(dirname(__DIR__, 2) . '/content')
+    $unlock = ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content')
       ->unlock('unlock.capability.wrong_machine_access');
     $unlock['target_id'] = 'capability.die_size_d10';
     $this->expectException(ContentValidationException::class);
@@ -105,7 +105,7 @@ final class ReconstructionContentValidationTest extends TestCase
 
   public function testAuthoredVictoryDropsResolveOnlyForMatchingRegionKindAndEnemy(): void
   {
-    $drops = new VictoryItemDropPolicy(ContentRegistry::load(dirname(__DIR__, 2) . '/content'));
+    $drops = new VictoryItemDropPolicy(ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content'));
     $this->assertSame([['item_id' => 'item.kobold_scale', 'quantity' => 1]],
       $drops->grants('encounter.mountains_kobold_combat_1'));
     $this->assertSame([['item_id' => 'item.chief_engineer_lens', 'quantity' => 1]],
@@ -126,7 +126,7 @@ final class ReconstructionContentValidationTest extends TestCase
 
   public function testVictoryDropReferencesMustExistAndBeReachable(): void
   {
-    $registry = ContentRegistry::load(dirname(__DIR__, 2) . '/content');
+    $registry = ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content');
     $scale = $registry->item('item.kobold_scale');
     $lens = $registry->item('item.chief_engineer_lens');
     $missingEnemy = $scale;
@@ -163,7 +163,7 @@ final class ReconstructionContentValidationTest extends TestCase
    */
   private function documents(array $replacements = [], array $extra = []): array
   {
-    $root = dirname(__DIR__, 2) . '/content'; $documents = [];
+    $root = dirname(__DIR__, 2) . '/tests/Fixtures/content'; $documents = [];
     $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS));
     foreach ($files as $file) {
       if (!$file->isFile() || strtolower($file->getExtension()) !== 'json') continue;

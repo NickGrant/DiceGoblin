@@ -109,5 +109,5 @@ final class EnemyCombatContentContractTest extends TestCase
   }
 
   private function content(): ContentRegistry
-  { return ContentRegistry::load(dirname(__DIR__, 2) . '/content'); }
+  { return ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content'); }
 }

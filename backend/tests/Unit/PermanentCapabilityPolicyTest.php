@@ -11,7 +11,7 @@ final class PermanentCapabilityPolicyTest extends TestCase
 {
   public function testCapabilitiesRequireExactAuthoredUnlocksAndRespectProfileSizes(): void
   {
-    $content = ContentRegistry::load(dirname(__DIR__, 2) . '/content');
+    $content = ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content');
     $policy = new PermanentCapabilityPolicy($content);
     $profile = ['allowed_sizes' => [4, 6, 8, 10, 12, 20]];
     $this->assertSame(50, $policy->energyNormalMaximum([]));

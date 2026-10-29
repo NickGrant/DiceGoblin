@@ -9,7 +9,6 @@ use DiceGoblins\Tests\Support\IntegrationTestCase;
 
 final class WrongMachineReadFoundationTest extends IntegrationTestCase
 {
-  protected function supportsVnextBaseline(): bool { return true; }
 
   public function testEndpointRequiresAuthentication(): void
   {

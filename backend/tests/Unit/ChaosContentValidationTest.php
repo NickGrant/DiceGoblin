@@ -14,7 +14,7 @@ final class ChaosContentValidationTest extends TestCase
 {
   public function testTestOnlyChaosValidatesWithoutProductionRegionOrCatalogLeak(): void
   {
-    $canonical = ContentRegistry::load(dirname(__DIR__, 2) . '/content');
+    $canonical = ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content');
     foreach (['region.the_farm', 'region.mountains'] as $regionId) {
       $nodes = $canonical->runGenerationForRegion($regionId)['nodes'];
       $this->assertNotContains('run_node_type.chaos', array_column($nodes, 'node_type_id'));

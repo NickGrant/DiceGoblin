@@ -23,12 +23,11 @@ use PDO;
 
 final class BranchingRunLifecycleTest extends IntegrationTestCase
 {
-  protected function supportsVnextBaseline(): bool { return true; }
 
   /** @dataProvider routeChoices */
   public function testPersistedExplorationFrontierIsReplaySafeAndReconnectSafe(int $choice, bool $deadEnd): void
   {
-    $content = ContentRegistry::load(dirname(__DIR__, 2) . '/content');
+    $content = ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content');
     $services = ControllerServiceFactory::buildContentAware($this->pdo, null, null, $this->victoryResolver());
     $userId = $services['accountCreationService']->createLocal(
       'branch-' . $choice . '-' . bin2hex(random_bytes(4)) . '@example.test',

@@ -10,7 +10,6 @@ use DiceGoblins\Tests\Support\IntegrationTestCase;
 
 final class SquadCommandControllerTest extends IntegrationTestCase
 {
-  protected function supportsVnextBaseline(): bool { return true; }
 
   public function testEveryMutationRequiresAuthenticationAndCsrf(): void
   {

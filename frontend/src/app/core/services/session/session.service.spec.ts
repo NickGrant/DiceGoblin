@@ -1,13 +1,11 @@
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { ApiHttpService } from '../api-http/api-http.service';
-import { ProfileService } from '../profile/profile.service';
 import { SessionService } from './session.service';
 
 describe('SessionService', () => {
   let service: SessionService;
   let apiHttp: jasmine.SpyObj<ApiHttpService>;
-  let profileService: jasmine.SpyObj<ProfileService>;
   let router: jasmine.SpyObj<Router>;
   let registeredAuthRecovery: {
     refreshSession: (failingPath: string) => Promise<boolean>;
@@ -28,7 +26,6 @@ describe('SessionService', () => {
     apiHttp.registerAuthRecovery.and.callFake((handlers) => {
       registeredAuthRecovery = handlers;
     });
-    profileService = jasmine.createSpyObj<ProfileService>('ProfileService', ['getProfile', 'invalidateProfileCache']);
     router = jasmine.createSpyObj<Router>('Router', ['navigateByUrl']);
     router.navigateByUrl.and.resolveTo(true);
 
@@ -36,7 +33,6 @@ describe('SessionService', () => {
       providers: [
         SessionService,
         { provide: ApiHttpService, useValue: apiHttp },
-        { provide: ProfileService, useValue: profileService },
         { provide: Router, useValue: router },
       ],
     });
@@ -50,8 +46,6 @@ describe('SessionService', () => {
     await service.refresh();
 
     expect(service.session().displayName).toBe('Nick');
-    expect(service.profile().activeRunId).toBeNull();
-    expect(profileService.getProfile).not.toHaveBeenCalled();
   });
 
   it('resets to defaults for unauthenticated sessions', async () => {
@@ -60,7 +54,6 @@ describe('SessionService', () => {
     await service.refresh();
 
     expect(service.session().isAuthenticated).toBeFalse();
-    expect(service.profile().activeRunId).toBeNull();
   });
 
   it('treats ok session responses with authenticated false as anonymous', async () => {
@@ -70,7 +63,6 @@ describe('SessionService', () => {
 
     expect(service.session().isAuthenticated).toBeFalse();
     expect(service.session().displayName).toBe('Visitor');
-    expect(profileService.getProfile).not.toHaveBeenCalled();
   });
 
   it('shares the same in-flight initialize request across concurrent callers', async () => {
@@ -89,7 +81,6 @@ describe('SessionService', () => {
     await Promise.all([first, second]);
 
     expect(apiHttp.get).toHaveBeenCalledTimes(1);
-    expect(profileService.getProfile).not.toHaveBeenCalled();
   });
 
   it('stores a readable error when refresh throws', async () => {
@@ -107,7 +98,6 @@ describe('SessionService', () => {
     await service.logout();
 
     expect(service.session().displayName).toBe('Visitor');
-    expect(service.profile().softCurrency).toBe(0);
     expect(router.navigateByUrl).toHaveBeenCalledWith('/login');
   });
 
@@ -123,7 +113,6 @@ describe('SessionService', () => {
       { skipAuthRecovery: true },
     );
     expect(service.session().isAuthenticated).toBeTrue();
-    expect(profileService.getProfile).not.toHaveBeenCalled();
     expect(router.navigateByUrl).toHaveBeenCalledWith('/game');
   });
 
@@ -138,7 +127,6 @@ describe('SessionService', () => {
       { email: 'player@example.test', password: 'secret-pass', display_name: 'Nick' },
       { skipAuthRecovery: true },
     );
-    expect(profileService.getProfile).not.toHaveBeenCalled();
     expect(router.navigateByUrl).toHaveBeenCalledWith('/game');
   });
 
@@ -172,7 +160,6 @@ describe('SessionService', () => {
       { token: 'token', password: 'new-password' },
       { skipAuthRecovery: true },
     );
-    expect(profileService.getProfile).not.toHaveBeenCalled();
     expect(router.navigateByUrl).toHaveBeenCalledWith('/game');
   });
 
@@ -183,7 +170,6 @@ describe('SessionService', () => {
 
     expect(recovered).toBeTrue();
     expect(apiHttp.get).toHaveBeenCalledWith('/api/v1/session', { skipAuthRecovery: true });
-    expect(profileService.getProfile).not.toHaveBeenCalled();
   });
 
   it('clears session state when auth recovery confirms expiry', async () => {

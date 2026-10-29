@@ -27,7 +27,6 @@ use PDO;
 
 final class ChaosRunLifecycleTest extends IntegrationTestCase
 {
-  protected function supportsVnextBaseline(): bool { return true; }
 
   public function testBothServerSelectedOutcomesFinalizeOnceAndRetainTheFrontier(): void
   {

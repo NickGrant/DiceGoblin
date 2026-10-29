@@ -10,10 +10,6 @@ use PDOException;
 
 final class RewardPersistenceFoundationTest extends IntegrationTestCase
 {
-  protected function supportsVnextBaseline(): bool
-  {
-    return true;
-  }
 
   public function testUnlockRepositoryProvidesSortedIsolatedIdempotentOwnershipPrimitives(): void
   {

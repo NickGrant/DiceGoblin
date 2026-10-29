@@ -22,7 +22,6 @@ use RuntimeException;
 
 final class DiceLifecycleCommandTest extends IntegrationTestCase
 {
-  protected function supportsVnextBaseline(): bool { return true; }
 
   public function testSellAndSalvageCreditWalletTransitionRecordAndRemoveFromActiveCollection(): void
   {
@@ -171,7 +170,7 @@ final class DiceLifecycleCommandTest extends IntegrationTestCase
       new IdempotencyRequestRepository($this->pdo), new ActiveRunConfigurationPolicy($runs), $this->content(), $beforeCommit);
   }
 
-  private function content(): ContentRegistry { return ContentRegistry::load(dirname(__DIR__, 2) . '/content'); }
+  private function content(): ContentRegistry { return ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content'); }
 
   private function user(int $teeth = 0, int $rawChaos = 0, int $revision = 1): int
   {

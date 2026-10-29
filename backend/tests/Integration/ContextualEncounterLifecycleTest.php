@@ -30,7 +30,6 @@ use DiceGoblins\Infrastructure\SystemClock;
 
 final class ContextualEncounterLifecycleTest extends IntegrationTestCase
 {
-  protected function supportsVnextBaseline(): bool { return true; }
 
   public function testContextualStepConsumesOnceSurvivesReloadAndFinalizesOnce(): void
   {

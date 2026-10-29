@@ -1,0 +1,55 @@
+{
+  "definitions": [
+    {
+      "id": "run_generation.the_farm",
+      "type": "run_generation",
+      "algorithm": "fixed_graph_v1",
+      "start_node_key": "combat",
+      "nodes": [
+        {
+          "key": "combat",
+          "node_type_id": "run_node_type.combat",
+          "encounter_id": "encounter.the_farm_mud_combat_1",
+          "position": { "column": 0, "row": 1 }
+        },
+        {
+          "key": "loot",
+          "node_type_id": "run_node_type.loot",
+          "event_id": "event.farm_loot_completed",
+          "position": { "column": 1, "row": 1 }
+        },
+        {
+          "key": "dialogue",
+          "node_type_id": "run_node_type.dialogue",
+          "encounter_id": "encounter.the_farm_scout",
+          "position": { "column": 2, "row": 1 }
+        },
+        {
+          "key": "rest",
+          "node_type_id": "run_node_type.rest",
+          "encounter_id": "encounter.the_farm_rest",
+          "position": { "column": 3, "row": 1 }
+        },
+        {
+          "key": "boss",
+          "node_type_id": "run_node_type.boss",
+          "encounter_id": "encounter.the_farm_mud_boss_1",
+          "event_id": "event.farm_boss_completed",
+          "position": { "column": 4, "row": 1 }
+        },
+        {
+          "key": "exit",
+          "node_type_id": "run_node_type.exit",
+          "position": { "column": 5, "row": 1 }
+        }
+      ],
+      "edges": [
+        { "from": "combat", "to": "loot" },
+        { "from": "loot", "to": "dialogue" },
+        { "from": "dialogue", "to": "rest" },
+        { "from": "rest", "to": "boss" },
+        { "from": "boss", "to": "exit" }
+      ]
+    }
+  ]
+}

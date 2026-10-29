@@ -1,0 +1,14 @@
+{
+  "definitions": [
+    {
+      "id": "event.mountains_loot_completed",
+      "type": "event",
+      "reward_definition_id": "reward_definition.mountains_loot_completed"
+    },
+    {
+      "id": "event.mountains_boss_completed",
+      "type": "event",
+      "reward_definition_id": "reward_definition.mountains_boss_completed"
+    }
+  ]
+}

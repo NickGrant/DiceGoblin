@@ -446,10 +446,6 @@ final class ContentValidator
       }
     }
 
-    $farm = $definitions['region.the_farm'] ?? null;
-    if (is_array($farm)) {
-      $this->validateFarmGenerationStructure($definitions[(string)$farm['run_generation_id']]);
-    }
   }
 
   /** @param array<string, mixed> $definition */
@@ -1470,53 +1466,6 @@ final class ContentValidator
     }
     if ($adjacency[$exitKeys[0]] !== []) {
       throw new ContentValidationException("{$id} exit node must be terminal.");
-    }
-  }
-
-  /** @param array<string, mixed> $definition */
-  private function validateFarmGenerationStructure(array $definition): void
-  {
-    if (array_key_exists('variable_trails', $definition)) {
-      throw new ContentValidationException('region.the_farm generation must remain fixed.');
-    }
-    $expectedTypes = [
-      'run_node_type.combat',
-      'run_node_type.loot',
-      'run_node_type.dialogue',
-      'run_node_type.rest',
-      'run_node_type.boss',
-      'run_node_type.exit',
-    ];
-    $nodes = $definition['nodes'];
-    $actualTypes = array_map(static fn(array $node): string => (string)$node['node_type_id'], $nodes);
-    if ($actualTypes !== $expectedTypes) {
-      throw new ContentValidationException('region.the_farm generation must use the ordered combat, loot, dialogue, rest, boss, exit structure.');
-    }
-    if ((string)$definition['start_node_key'] !== (string)$nodes[0]['key']) {
-      throw new ContentValidationException('region.the_farm generation must start at its combat node.');
-    }
-    if (($nodes[0]['encounter_id'] ?? null) !== 'encounter.the_farm_mud_combat_1') {
-      throw new ContentValidationException('region.the_farm first combat node must reference its standard mud encounter.');
-    }
-    if (($nodes[1]['event_id'] ?? null) !== 'event.farm_loot_completed') {
-      throw new ContentValidationException('region.the_farm Loot node must reference its completion event.');
-    }
-    if (($nodes[2]['encounter_id'] ?? null) !== 'encounter.the_farm_scout') {
-      throw new ContentValidationException('region.the_farm Dialogue node must reference its scout encounter.');
-    }
-    if (($nodes[4]['encounter_id'] ?? null) !== 'encounter.the_farm_mud_boss_1') {
-      throw new ContentValidationException('region.the_farm Boss node must reference its Mudking encounter.');
-    }
-    if (($nodes[4]['event_id'] ?? null) !== 'event.farm_boss_completed') {
-      throw new ContentValidationException('region.the_farm Boss node must reference its completion event.');
-    }
-
-    $expectedEdges = [];
-    for ($index = 0; $index < count($nodes) - 1; $index++) {
-      $expectedEdges[] = ['from' => (string)$nodes[$index]['key'], 'to' => (string)$nodes[$index + 1]['key']];
-    }
-    if ($definition['edges'] !== $expectedEdges) {
-      throw new ContentValidationException('region.the_farm generation must be one connected linear path through boss to exit.');
     }
   }
 

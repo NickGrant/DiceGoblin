@@ -1,0 +1,44 @@
+{
+  "definitions": [
+    {
+      "id": "dice_material.cardboard",
+      "type": "dice_material",
+      "display_name": "Cardboard",
+      "description": "A humble die cut from layered card and stubborn optimism.",
+      "art_key": "cardboard",
+      "allowed_sizes": [4, 6, 8, 10, 12, 20]
+    },
+    {
+      "id": "dice_material.wood",
+      "type": "dice_material",
+      "display_name": "Wood",
+      "description": "A dependable carved die with a warm, worn finish.",
+      "art_key": "wood",
+      "allowed_sizes": [4, 6, 8, 10, 12, 20]
+    },
+    {
+      "id": "dice_material.bone",
+      "type": "dice_material",
+      "display_name": "Bone",
+      "description": "A pale die carved from something best left unidentified.",
+      "art_key": "bone",
+      "allowed_sizes": [4, 6, 8, 10, 12, 20]
+    },
+    {
+      "id": "dice_material.metal",
+      "type": "dice_material",
+      "display_name": "Metal",
+      "description": "A heavy die that lands with an authoritative clunk.",
+      "art_key": "metal",
+      "allowed_sizes": [4, 6, 8, 10, 12, 20]
+    },
+    {
+      "id": "dice_material.gemstone",
+      "type": "dice_material",
+      "display_name": "Gemstone",
+      "description": "A brilliant cut-stone die coveted by serious goblin rollers.",
+      "art_key": "gemstone",
+      "allowed_sizes": [4, 6, 8, 10, 12, 20]
+    }
+  ]
+}

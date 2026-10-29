@@ -12,7 +12,7 @@ final class CodexContentValidationTest extends TestCase
 {
   public function testCanonicalEntryHasMeaningfulPresentationAndIsAbsentFromGlobalClientCatalog(): void
   {
-    $content = ContentRegistry::load(dirname(__DIR__, 2) . '/content');
+    $content = ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content');
     $entry = $content->codexEntry('codex.farm.mudking');
     $this->assertNotSame('', trim($entry['title']));
     $projected = (new \DiceGoblins\Content\ClientContentProjector())->project($content);

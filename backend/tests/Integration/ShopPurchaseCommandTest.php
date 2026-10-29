@@ -28,12 +28,11 @@ use RuntimeException;
 final class ShopPurchaseCommandTest extends IntegrationTestCase
 {
   /** @var list<string> */ private array $roots = [];
-  protected function supportsVnextBaseline(): bool { return true; }
   protected function tearDown(): void { parent::tearDown(); foreach ($this->roots as $root) $this->removeTree($root); }
 
   public function testAcademyAccessPurchaseSpendsOnceAndReplaysFinalReceipt(): void
   {
-    $content = ContentRegistry::load(dirname(__DIR__, 2) . '/content');
+    $content = ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content');
     $price = $content->shopOffer('shop_offer.academy_access')['price']['amount'];
     $userId = $this->user($price + 50);
     $command = $this->command($content);
@@ -81,7 +80,7 @@ final class ShopPurchaseCommandTest extends IntegrationTestCase
     $this->assertSame(2, $first['player_revision']);
 
     $normalizedReplay = ['expected_price' => ['amount' => 7, 'currency_id' => 'teeth'], 'offer_id' => 'shop_offer.item'];
-    $replay = $this->command(ContentRegistry::load(dirname(__DIR__, 2) . '/content'))
+    $replay = $this->command(ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content'))
       ->execute($userId, $normalizedReplay, 'purchase-item-key');
     $this->assertSame($first, $replay);
     $this->assertSame($first, $this->command($this->content(99))->execute($userId, $request, 'purchase-item-key'));
@@ -138,7 +137,7 @@ final class ShopPurchaseCommandTest extends IntegrationTestCase
     foreach ([
       [$this->content(), 6, $this->request('shop_offer.item', 7), 'insufficient_teeth'],
       [$this->content(), 10, $this->request('shop_offer.item', 8), 'shop_offer_changed'],
-      [ContentRegistry::load(dirname(__DIR__, 2) . '/content'), 10, $this->request('shop_offer.item', 7), 'shop_offer_not_found'],
+      [ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content'), 10, $this->request('shop_offer.item', 7), 'shop_offer_not_found'],
     ] as $index => [$content, $teeth, $request, $code]) {
       $userId = $this->user($teeth);
       try { $this->command($content)->execute($userId, $request, 'purchase-fail-' . $index); $this->fail('Expected purchase failure.'); }
@@ -239,7 +238,7 @@ final class ShopPurchaseCommandTest extends IntegrationTestCase
     foreach ([
       [new ShopCatalogController($this->content()), $this->request('shop_offer.item', 7), 'api-insufficient', 409, 'insufficient_teeth'],
       [new ShopCatalogController($this->content()), $this->request('shop_offer.item', 8), 'api-changed', 409, 'shop_offer_changed'],
-      [new ShopCatalogController(ContentRegistry::load(dirname(__DIR__, 2) . '/content')), $this->request('shop_offer.item', 7), 'api-missing', 404, 'shop_offer_not_found'],
+      [new ShopCatalogController(ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content')), $this->request('shop_offer.item', 7), 'api-missing', 404, 'shop_offer_not_found'],
     ] as [$controller, $request, $key, $status, $code]) {
       $_SERVER['HTTP_IDEMPOTENCY_KEY'] = $key; $this->setJsonBody($request);
       $response = $this->invoke(fn() => $controller->purchase());
@@ -338,7 +337,7 @@ final class ShopPurchaseCommandTest extends IntegrationTestCase
   }
   private function content(int $itemPrice = 7): ContentRegistry
   {
-    $source = dirname(__DIR__, 2) . '/content'; $root = sys_get_temp_dir() . '/dice-goblins-purchase-' . bin2hex(random_bytes(6));
+    $source = dirname(__DIR__, 2) . '/tests/Fixtures/content'; $root = sys_get_temp_dir() . '/dice-goblins-purchase-' . bin2hex(random_bytes(6));
     mkdir($root, 0777, true); $this->roots[] = $root;
     $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($source, \FilesystemIterator::SKIP_DOTS));
     foreach ($files as $file) { if (!$file->isFile()) continue; $relative = substr($file->getPathname(), strlen($source) + 1); $target = $root . '/' . str_replace('\\', '/', $relative); if (!is_dir(dirname($target))) mkdir(dirname($target), 0777, true); copy($file->getPathname(), $target); }

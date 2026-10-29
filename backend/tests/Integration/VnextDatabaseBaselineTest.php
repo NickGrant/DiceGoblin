@@ -15,10 +15,6 @@ use DiceGoblins\Tests\Support\IntegrationTestCase;
 
 final class VnextDatabaseBaselineTest extends IntegrationTestCase
 {
-  protected function supportsVnextBaseline(): bool
-  {
-    return true;
-  }
 
   public function testBaselineContainsOnlyAcceptedPackageTablesAndColumns(): void
   {
@@ -261,6 +257,6 @@ final class VnextDatabaseBaselineTest extends IntegrationTestCase
 
   private function contentRegistry(): ContentRegistry
   {
-    return ContentRegistry::load(dirname(__DIR__, 2) . '/content');
+    return ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content');
   }
 }

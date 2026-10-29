@@ -641,7 +641,7 @@ final class VnextCombatEngineTest extends TestCase
     ];
   }
 
-  private function content(): ContentRegistry { return ContentRegistry::load(dirname(__DIR__, 3) . '/content'); }
+  private function content(): ContentRegistry { return ContentRegistry::load(dirname(__DIR__, 3) . '/tests/Fixtures/content'); }
 
   /** @return array{hp:int,attack:int,defense:int,precision:int,resolve:int} */
   private function stats(int $hp, int $attack, int $defense, int $precision = 5, int $resolve = 5): array

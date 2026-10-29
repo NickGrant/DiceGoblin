@@ -1,0 +1,28 @@
+{
+  "definitions": [
+    {
+      "id": "reward_definition.dialogue_farm_scout_paths",
+      "type": "reward_definition",
+      "entries": [
+        {
+          "key": "knowledge",
+          "probability_basis_points": 10000,
+          "reward_type": "codex",
+          "config": { "codex_id": "codex.farm.old_paths" }
+        }
+      ]
+    },
+    {
+      "id": "reward_definition.dialogue_mudking",
+      "type": "reward_definition",
+      "entries": [
+        {
+          "key": "knowledge",
+          "probability_basis_points": 10000,
+          "reward_type": "codex",
+          "config": { "codex_id": "codex.farm.mudking" }
+        }
+      ]
+    }
+  ]
+}

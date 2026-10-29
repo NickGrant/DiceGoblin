@@ -119,7 +119,7 @@ final class WarbandContentValidationTest extends TestCase
 
   public function testTypedRegistryHelperRejectsWrongDefinitionType(): void
   {
-    $registry = ContentRegistry::load(dirname(__DIR__, 2) . '/content');
+    $registry = ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content');
     $this->expectException(ContentValidationException::class);
     $this->expectExceptionMessage("is not type 'kin'");
     $registry->kin('region.the_farm');

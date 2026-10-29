@@ -21,7 +21,6 @@ use DiceGoblins\Tests\Support\ScriptedRewardRollSource;
 
 final class CodexRewardIntegrationTest extends IntegrationTestCase
 {
-  protected function supportsVnextBaseline(): bool { return true; }
 
   public function testCleanSchemaHasUniqueUserScopedOwnershipAndCascade(): void
   {
@@ -92,7 +91,7 @@ final class CodexRewardIntegrationTest extends IntegrationTestCase
   public function testCodexEndpointRequiresSessionRedactsUnownedBodyAndRejectsCorruptOwnership(): void
   {
     [$first, $second] = $this->users();
-    $content = ContentRegistry::load(dirname(__DIR__, 2) . '/content');
+    $content = ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content');
     $controller = new CodexController($content);
     $unauthorized = $this->invoke(fn() => $controller->catalog());
     $this->assertSame(401, $unauthorized['status']);

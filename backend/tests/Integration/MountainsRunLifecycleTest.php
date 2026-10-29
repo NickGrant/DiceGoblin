@@ -52,7 +52,6 @@ use PDO;
 
 final class MountainsRunLifecycleTest extends IntegrationTestCase
 {
-  protected function supportsVnextBaseline(): bool { return true; }
 
   public function testAuthoredMountainsRunUsesSharedResolutionAndTerminalLifecycle(): void
   {
@@ -510,5 +509,5 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
     return $stmt?->fetchAll(PDO::FETCH_ASSOC) ?: [];
   }
 
-  private function content(): ContentRegistry { return ContentRegistry::load(dirname(__DIR__, 2) . '/content'); }
+  private function content(): ContentRegistry { return ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content'); }
 }

@@ -1,0 +1,10 @@
+{
+  "definitions": [
+    {
+      "id": "unlock.region.mountains",
+      "type": "unlock",
+      "target_type": "region",
+      "target_id": "region.mountains"
+    }
+  ]
+}
