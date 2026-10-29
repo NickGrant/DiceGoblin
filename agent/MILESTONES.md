@@ -7,7 +7,7 @@ Read this for sequencing/planning or when closing/promoting an execution package
 **Status:** Active
 
 ### Related Issues
-- Milestone 12 Package 1 - Canonical onboarding flow and authored-content foundation
+- Milestone 12 Package 2 - Authoritative fresh-player onboarding/provisioning transaction
 
 Milestones 1-11 are complete and passed their required manual UAT.
 
@@ -44,8 +44,8 @@ Swamp/Frog Kin and third-region parity remain Milestone 13. Hardening/cutover re
 
 ### Package Queue
 
-1. **Canonical onboarding flow and authored-content foundation.** Current. Inventory accepted fresh-player bootstrap/Camp/run capabilities and author the minimum Mystic Cave/Whim/Wrong Machine onboarding definitions and durable eligibility/state contract needed for later packages, without yet building the complete Phaser sequence.
-2. **Authoritative fresh-player onboarding/provisioning transaction.** Planned. Establish idempotent server-authoritative initialization/provisioning and transition state using existing reward/unlock/player-state boundaries where appropriate.
+1. **Canonical onboarding flow and authored-content foundation.** Approved through correction evidence `3f7ab2ac9450faa4087108111844d67f2cc4123a` (implementation `4d2e32c68fa3accba7c4f4d93467015806bc17c2`, canonical-content correction `fb6414d12848ae37b3150a8cf9a35dbabffcec24`).
+2. **Authoritative fresh-player onboarding/provisioning transaction.** Current. Establish idempotent server-authoritative initialization/provisioning and transition state using existing reward/unlock/player-state boundaries where appropriate.
 3. **Mystic Cave interaction/dialogue sequence.** Planned. Implement the authored Whim-led onboarding interactions and any knowledge/dialogue consequences through existing dialogue/Codex contracts rather than tutorial-specific history.
 4. **Wrong Machine introduction and onboarding transition.** Planned. Introduce the Wrong Machine in the accepted narrative/mechanical role and transition the player toward Camp/Farm without implementing the later Swamp theft/restoration slice.
 5. **Phaser onboarding presentation and fresh-player routing.** Planned. Mount the responsive Mystic Cave/onboarding flow in the persistent Phaser runtime and reconcile fresh/returning player routing from authoritative state.
@@ -54,7 +54,7 @@ Swamp/Frog Kin and third-region parity remain Milestone 13. Hardening/cutover re
 
 ### Sequencing Notes
 
-- Package 1 must first determine what durable onboarding state is actually required from canonical mechanics and current source. Do not assume the prototype tutorial shape is authoritative.
+- Package 1 established the accepted onboarding state model: ordered meaningful Codex knowledge for in-progress state, `ready_to_provision` when all onboarding knowledge is owned but no unit exists, and any owned unit as the durable completion marker for the current vNext lifecycle. Mystic Cave has no normal run generator; Basic Goblin establishment is not kin restoration; Wrong Machine onboarding is knowledge-only and location-neutral, with later Swamp provenance/access preserved.
 - Package 2 owns durable initialization/provisioning semantics and must avoid duplicate grants on retries/reconnects.
 - Package 3 should preferentially reuse the Milestone 11 dialogue/Codex primitives for meaningful Whim interactions.
 - Package 4 owns the Wrong Machine introduction only; the machine's Swamp theft/restoration and Frog Kin consequences remain Milestone 13.
