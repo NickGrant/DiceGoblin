@@ -42,6 +42,22 @@ final class OnboardingContentValidationTest extends TestCase
     (new ContentValidator())->validate([['path' => 'test.json', 'document' => ['definitions' => $definitions]]]);
   }
 
+  public function testOnboardingDialogueCannotGrantMachineAccessInsteadOfKnowledge(): void
+  {
+    $definitions = CanonicalContentFixture::definitions();
+    foreach ($definitions as &$definition) {
+      if ($definition['id'] !== 'reward_definition.mystic_cave.wrong_machine') continue;
+      $definition['entries'][0]['reward_type'] = 'unlock';
+      $definition['entries'][0]['config'] = ['unlock_id' => 'unlock.capability.wrong_machine_access'];
+      break;
+    }
+    unset($definition);
+
+    $this->expectException(ContentValidationException::class);
+    $this->expectExceptionMessage('dialogue reward must be one guaranteed Codex entry');
+    (new ContentValidator())->validate([['path' => 'test.json', 'document' => ['definitions' => $definitions]]]);
+  }
+
   public function invalidFlow(): array
   {
     return [
