@@ -1,7 +1,7 @@
 ---
 Title: "vNext Testing Strategy"
 Status: Canonical
-Last Updated: 2026-09-10
+Last Updated: 2026-10-29
 Owner: QA + Engineering
 Depends On:
   - agent/QUALITY_GATES.md
@@ -12,7 +12,7 @@ Tags: [testing, vnext]
 
 # vNext Testing Strategy
 
-Verification should live at the architectural layer that owns the behavior and should grow with each walking slice.
+Verification should live at the architectural layer that owns the behavior and should grow with each walking slice. The regression suite optimizes for behavior protection, diagnostic value, and execution cost rather than assertion or test counts.
 
 ## Persistent Gates
 - **Fresh database:** vNext must repeatedly prove that a clean database can be created and boot the implemented slice without prototype migration history or a developer's accumulated state.
@@ -24,6 +24,20 @@ Verification should live at the architectural layer that owns the behavior and s
 - **Responsive:** important Phaser screens are reviewed at Compact landscape, 1600x900 reference, and Wide landscape compositions. Portrait mobile verifies the rotate-device gate and preserved runtime state.
 - **Combat/run generation:** deterministic algorithms retain focused regression/simulation coverage as they are migrated.
 - **Documentation:** references and accepted contracts remain consistent with implementation changes.
+
+## Test Value Rules
+
+Every test should protect a distinct behavior or boundary. Prefer the narrowest layer that can prove the contract.
+
+- **Do not test application data as behavior.** Functional tests must not fail merely because a balance value, display name, flexible catalog membership, reward amount, or other authored content changes. Use small purpose-built fixture definitions containing only the data required by the behavior under test.
+- **Validate authored content separately.** Canonical content validation may prove schema, semantic invariants, cross-references, stable IDs, and explicitly accepted product contracts. It should not duplicate command/query behavior tests or freeze flexible content through exhaustive lists and counts.
+- **Avoid redundant cross-layer coverage.** Exhaustive combinations belong at the owning unit/service layer. Controller/API integration tests should focus on transport, authentication/authorization, validation boundaries, persistence/transaction behavior, response envelopes, and one representative happy path where lower-level behavior is already covered.
+- **Keep integration tests focused.** A test should have one primary reason to fail. Avoid scenarios that simultaneously verify unrelated rewards, progression, content composition, persistence, and response formatting when those contracts can be isolated.
+- **Assert the contract, not incidental representation.** Prefer required fields, stable IDs, semantic invariants, and persisted effects over complete payload equality, incidental ordering, exact flexible catalog counts, or unrelated fields.
+- **Keep mocks and fixtures slim.** Add only the definitions and persisted rows necessary to exercise the behavior. Reusing the full canonical content tree is acceptable only when the integration boundary itself is canonical-content loading or when a smaller registry cannot represent the contract without recreating production internals.
+- **Retain expensive integration coverage when it buys boundary confidence.** Security/ownership failures, transaction rollback, idempotency, persistence boundaries, and true walking-slice contracts are high-value even when slower.
+
+When two tests protect the same failure mode, keep the narrower/faster test unless the broader test proves a separate integration boundary.
 
 ## Walking-Slice Rule
 A milestone is not complete because its isolated backend or frontend layer exists. Its exit criterion must pass through the real client/server/storage path described by the roadmap.
