@@ -25,8 +25,19 @@
 - Local Docker suite:
   - `npm run test:backend:docker`
 
+## Test authoring rules
+- Test behavior, not current application content. Do not pin flexible catalog membership, display names, balance values, reward amounts, or incidental ordering in functional tests.
+- Prefer small purpose-built content fixtures and persisted rows. A test should contain only the data needed to exercise its contract.
+- Put exhaustive behavior combinations at the owning unit/service layer. Integration tests should earn their cost by proving an API, security, transaction, persistence, or cross-boundary contract.
+- Keep one primary reason to fail per test. Split or remove scenarios that assert multiple independent systems when narrower coverage already protects those systems.
+- Avoid duplicate controller/service assertions. At the controller layer, assert the envelope/boundary and representative result rather than repeating every lower-level field assertion.
+- Canonical authored-content checks belong in content validation unless an exact authored shape is itself an accepted product contract.
+
+See `documentation/06-testing-release/00-testing-strategy.md` for the canonical policy.
+
 ## Notes
 - `DatabaseTestCase` wraps each test in a transaction and rolls back after each test.
+- `IntegrationTestCase` is used where application code owns transactions; track created users so teardown can remove their cascaded state efficiently.
 - Use SQL fixtures under `backend/tests/Fixtures/`.
 - Reset the test database by loading `backend/migrations/vnext_baseline.sql` into the Docker `goblin_test` database.
 - The canonical PHPUnit suite discovers current vNext `*Test.php` files under `backend/tests/`. It runs against the fresh vNext baseline without permanent prototype-schema skips. Retained pre-vNext migration evidence for unfinished Milestones 11-13 lives in `backend/prototype-test-evidence/` and is intentionally outside discovery; port useful cases to current tests when those milestones replace the behavior.
