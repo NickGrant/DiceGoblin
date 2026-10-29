@@ -1,6 +1,7 @@
 import { resolveApiBaseUrl } from '../../core/config/runtime-config';
 import { CodexContractError, CodexEntry, parseCodexEnvelope } from './codex-contracts';
-import { OnboardingContractError, OnboardingStatus, parseOnboardingEnvelope } from './onboarding-contracts';
+import { OnboardingContractError, OnboardingStatus, OnboardingProvisionResult,
+  parseOnboardingEnvelope, parseOnboardingProvisionEnvelope } from './onboarding-contracts';
 import { ObjectiveContractError, ObjectiveEntry, parseObjectivesEnvelope } from './objective-contracts';
 import { DialogueCompletion, DialogueContractError, DialogueRead, canonicalDialogueChoiceId,
   canonicalDialogueId, parseDialogueCompletionEnvelope, parseDialogueReadEnvelope } from './dialogue-contracts';
@@ -84,6 +85,12 @@ export class RuntimeApiClient {
       if (error instanceof OnboardingContractError) throw new RuntimeApiError('malformed-response', 200);
       throw error;
     }
+  }
+
+  async provisionOnboarding(csrfToken: string, idempotencyKey: string): Promise<OnboardingProvisionResult> {
+    if (idempotencyKey.trim() === '') throw new RuntimeApiError('malformed-response');
+    return this.mutate('/api/v1/onboarding/provision', 'POST', csrfToken, undefined, idempotencyKey,
+      parseOnboardingProvisionEnvelope);
   }
 
   async getUnits(): Promise<unknown> {
@@ -424,7 +431,8 @@ export class RuntimeApiClient {
         || error instanceof RunNodeResolutionContractError || error instanceof ShopContractError
         || error instanceof ConsumableContractError || error instanceof DiceLifecycleContractError
         || error instanceof AcademyContractError || error instanceof UnitPromotionMutationContractError
-        || error instanceof WrongMachineContractError || error instanceof DialogueContractError) {
+        || error instanceof WrongMachineContractError || error instanceof DialogueContractError
+        || error instanceof OnboardingContractError) {
         throw new RuntimeApiError('malformed-response', response.status);
       }
       throw error;

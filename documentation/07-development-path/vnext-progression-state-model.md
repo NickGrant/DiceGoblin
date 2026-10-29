@@ -142,6 +142,8 @@ Owning any unit instance is the durable completion marker for the current vNext 
 
 The Mystic Cave region has an authored identity but no ordinary run generator. Its flow references `kin.goblin` for Basic Goblin establishment, not a kin restoration recipe, and the existing Wrong Machine capability only as an introduction identity. Actual Wrong Machine access and its later Swamp provenance remain governed by the established unlock/reconstruction systems. No tutorial flag, story-history table, or new account bootstrap path is needed.
 
+When all authored onboarding knowledge is owned and no unit exists, one idempotent server transaction provisions the flow's authored starting Warband: a tier-one Basic Goblin unit, its configured active ability and bound die, and a one-unit active squad. The unit ownership completion marker, squad activation, player revision, and finalized receipt commit together. A new request after completion cannot provision again; exact-key replay returns the stored result.
+
 ## Bounties and Objectives
 
 Bounties and objectives are intentionally separate from unlock/Codex progression because their intermediate state matters.

@@ -1,4 +1,4 @@
-import { parseOnboardingEnvelope } from './onboarding-contracts';
+import { parseOnboardingEnvelope, parseOnboardingProvisionEnvelope } from './onboarding-contracts';
 
 describe('Onboarding read contract', () => {
   const valid = { ok: true, data: { status: 'required',
@@ -20,5 +20,21 @@ describe('Onboarding read contract', () => {
     ]) {
       expect(() => parseOnboardingEnvelope({ ok: true, data })).toThrow();
     }
+  });
+});
+
+describe('Onboarding provisioning contract', () => {
+  const valid = { ok: true, data: { unit_id: '12', die_id: '13', active_squad_id: '14',
+    player_revision: 2, onboarding_status: 'complete' as const } };
+
+  it('accepts only the authoritative completion receipt', () => {
+    expect(parseOnboardingProvisionEnvelope(valid)).toEqual(valid.data);
+    for (const data of [
+      { ...valid.data, machine_capability_id: 'capability.secret' },
+      { ...valid.data, starting_warband: {} },
+      { ...valid.data, unit_id: '0' },
+      { ...valid.data, player_revision: 0 },
+      { ...valid.data, onboarding_status: 'ready_to_provision' },
+    ]) expect(() => parseOnboardingProvisionEnvelope({ ok: true, data })).toThrow();
   });
 });

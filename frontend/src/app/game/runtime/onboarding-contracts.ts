@@ -4,6 +4,14 @@ export interface OnboardingStatus {
   readonly dialogue_id: string | null;
 }
 
+export interface OnboardingProvisionResult {
+  readonly unit_id: string;
+  readonly die_id: string;
+  readonly active_squad_id: string;
+  readonly player_revision: number;
+  readonly onboarding_status: 'complete';
+}
+
 export class OnboardingContractError extends Error {
   constructor() { super('Onboarding response is malformed.'); this.name = 'OnboardingContractError'; }
 }
@@ -37,4 +45,21 @@ export function parseOnboardingEnvelope(value: unknown): OnboardingStatus {
   return Object.freeze({ status: status as OnboardingStatus['status'],
     region: Object.freeze({ id: region['id'], display_name: region['display_name'] }),
     dialogue_id: dialogueId as string | null });
+}
+
+export function parseOnboardingProvisionEnvelope(value: unknown): OnboardingProvisionResult {
+  if (!record(value) || !exact(value, ['ok', 'data']) || value['ok'] !== true
+    || !record(value['data']) || !exact(value['data'],
+      ['unit_id', 'die_id', 'active_squad_id', 'player_revision', 'onboarding_status'])) {
+    throw new OnboardingContractError();
+  }
+  const data = value['data'];
+  for (const key of ['unit_id', 'die_id', 'active_squad_id']) {
+    if (typeof data[key] !== 'string' || !/^[1-9][0-9]*$/.test(data[key])) throw new OnboardingContractError();
+  }
+  if (!Number.isSafeInteger(data['player_revision']) || (data['player_revision'] as number) < 1
+    || data['onboarding_status'] !== 'complete') throw new OnboardingContractError();
+  return Object.freeze({ unit_id: data['unit_id'] as string, die_id: data['die_id'] as string,
+    active_squad_id: data['active_squad_id'] as string, player_revision: data['player_revision'] as number,
+    onboarding_status: 'complete' });
 }

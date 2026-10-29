@@ -139,6 +139,7 @@ $router->get('/api/v1/health', [$api, 'health']);
 $router->get('/api/v1/session', [$api, 'session']);
 $router->get('/api/v1/game/bootstrap', [$gameBootstrap, 'bootstrap']);
 $router->get('/api/v1/onboarding', [$onboarding, 'status']);
+$router->post('/api/v1/onboarding/provision', [$onboarding, 'provision']);
 $router->get('/api/v1/items', [$inventory, 'items']);
 $router->get('/api/v1/codex', [$codex, 'catalog']);
 $router->get('/api/v1/objectives', [$objectives, 'catalog']);

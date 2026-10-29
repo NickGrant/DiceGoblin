@@ -51,6 +51,7 @@
       "type": "onboarding_flow",
       "region_id": "region.mystic_cave",
       "starting_kin_id": "kin.goblin",
+      "starting_warband": {"unit_type_id": "unit_type.bruiser", "ability_id": "ability.basic_attack_melee", "dice_profile_id": "dice_profile.cardboard_plain", "die_size": 6, "squad_name": "Warband"},
       "machine_capability_id": "capability.wrong_machine_access",
       "steps": [
         {"encounter_id": "encounter.mystic_cave.whim_arrival", "knowledge_id": "codex.mystic_cave.whim_arrival"},

@@ -418,6 +418,16 @@ final class ContentValidator
         if ($kin['id'] !== 'kin.goblin') {
           throw new ContentValidationException("{$id} must establish Basic Goblin without Kin restoration.");
         }
+        $starting = $definition['starting_warband'];
+        $unitType = $this->requireReferenceType($definitions, $id, 'starting_warband.unit_type_id', $starting['unit_type_id'], 'unit_type');
+        $ability = $this->requireReferenceType($definitions, $id, 'starting_warband.ability_id', $starting['ability_id'], 'ability');
+        $profile = $this->requireReferenceType($definitions, $id, 'starting_warband.dice_profile_id', $starting['dice_profile_id'], 'dice_profile');
+        if ($unitType['tier'] !== 1 || !in_array($ability['id'], $unitType['ability_ids'], true)
+          || $ability['kind'] !== 'active' || $ability['dice_slot_count'] !== 1
+          || !in_array($starting['die_size'], [4, 6, 8], true)
+          || !in_array($starting['die_size'], $profile['allowed_sizes'], true)) {
+          throw new ContentValidationException("{$id} starting Warband configuration is invalid.");
+        }
         $machine = $this->requireReferenceType($definitions, $id, 'machine_capability_id', $definition['machine_capability_id'], 'capability');
         if ($machine['id'] !== 'capability.wrong_machine_access' || $machine['kind'] !== 'feature_access') {
           throw new ContentValidationException("{$id} must reference the existing Wrong Machine identity.");
@@ -561,11 +571,19 @@ final class ContentValidator
   private function validateOnboardingFlow(array $definition, string $location): void
   {
     $this->requireExactFieldSet($definition,
-      ['id', 'type', 'region_id', 'starting_kin_id', 'machine_capability_id', 'steps'], [], $location);
+      ['id', 'type', 'region_id', 'starting_kin_id', 'starting_warband', 'machine_capability_id', 'steps'], [], $location);
     $this->requireNamespace($definition, 'onboarding.', $location);
     foreach (['region_id' => 'region.', 'starting_kin_id' => 'kin.', 'machine_capability_id' => 'capability.'] as $field => $namespace) {
       $this->requireStableIdWithNamespace($definition, $field, $namespace, $location);
     }
+    $starting = $definition['starting_warband'];
+    if (!is_array($starting) || array_is_list($starting)) throw new ContentValidationException("{$location} starting Warband must be an object.");
+    $this->requireExactFieldSet($starting, ['unit_type_id', 'ability_id', 'dice_profile_id', 'die_size', 'squad_name'], [], $location);
+    foreach (['unit_type_id' => 'unit_type.', 'ability_id' => 'ability.', 'dice_profile_id' => 'dice_profile.'] as $field => $namespace) {
+      $this->requireStableIdWithNamespace($starting, $field, $namespace, $location);
+    }
+    $this->requireIntegerInRange($starting, 'die_size', 4, 20, $location);
+    $this->requireBoundedNonEmptyString($starting, 'squad_name', 64, $location);
     $steps = $definition['steps'];
     if (!is_array($steps) || !array_is_list($steps) || $steps === []) {
       throw new ContentValidationException("{$location} steps must be a non-empty ordered list.");

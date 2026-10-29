@@ -69,6 +69,23 @@ describe('RuntimeApiClient', () => {
       jasmine.objectContaining<RuntimeApiError>({ kind: 'malformed-response', status: 200 }));
   });
 
+  it('provisions onboarding with only CSRF and an idempotency key', async () => {
+    const data = { unit_id: '12', die_id: '13', active_squad_id: '14',
+      player_revision: 2, onboarding_status: 'complete' };
+    const fetchRequest = jasmine.createSpy<RuntimeFetch>('fetchRequest').and.resolveTo(
+      new Response(JSON.stringify({ ok: true, data }), { status: 200 }));
+    const client = new RuntimeApiClient(fetchRequest, '/root');
+    expect((await client.provisionOnboarding('csrf', 'attempt-123')).unit_id).toBe('12');
+    expect(fetchRequest).toHaveBeenCalledOnceWith('/root/api/v1/onboarding/provision', {
+      method: 'POST', credentials: 'include', headers: {
+        Accept: 'application/json', 'X-CSRF-Token': 'csrf', 'Idempotency-Key': 'attempt-123',
+      },
+    });
+    fetchRequest.and.resolveTo(new Response(JSON.stringify({ ok: true, data: { ...data, steps: [] } }), { status: 200 }));
+    await expectAsync(client.provisionOnboarding('csrf', 'attempt-123')).toBeRejectedWith(
+      jasmine.objectContaining<RuntimeApiError>({ kind: 'malformed-response', status: 200 }));
+  });
+
   it('calls each lazy Warband query directly with the browser session', async () => {
     const fetchRequest = jasmine.createSpy<RuntimeFetch>('fetchRequest').and.callFake(async () =>
       new Response(JSON.stringify({ ok: true, data: {} }), { status: 200 }),

@@ -22,7 +22,7 @@ final class OnboardingContentValidationTest extends TestCase
     $projected = (new ClientContentProjector())->project($content);
     $encoded = json_encode($projected, JSON_THROW_ON_ERROR);
     foreach (['onboarding.mystic_cave', 'region.mystic_cave', 'dialogue.mystic_cave',
-      'codex.mystic_cave', 'reward_definition.mystic_cave', 'capability.wrong_machine_access'] as $private) {
+      'codex.mystic_cave', 'reward_definition.mystic_cave', 'capability.wrong_machine_access', 'starting_warband'] as $private) {
       $this->assertStringNotContainsString($private, $encoded);
     }
   }
@@ -55,6 +55,20 @@ final class OnboardingContentValidationTest extends TestCase
 
     $this->expectException(ContentValidationException::class);
     $this->expectExceptionMessage('dialogue reward must be one guaranteed Codex entry');
+    (new ContentValidator())->validate([['path' => 'test.json', 'document' => ['definitions' => $definitions]]]);
+  }
+
+  public function testStartingWarbandRequiresAnEquippableAuthoredAbility(): void
+  {
+    $definitions = CanonicalContentFixture::definitions();
+    foreach ($definitions as &$definition) {
+      if ($definition['id'] !== 'onboarding.mystic_cave') continue;
+      $definition['starting_warband']['ability_id'] = 'ability.thick_hide';
+      break;
+    }
+    unset($definition);
+    $this->expectException(ContentValidationException::class);
+    $this->expectExceptionMessage('starting Warband configuration is invalid');
     (new ContentValidator())->validate([['path' => 'test.json', 'document' => ['definitions' => $definitions]]]);
   }
 
