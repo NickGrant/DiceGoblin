@@ -1,0 +1,61 @@
+{
+  "definitions": [
+    {
+      "id": "region.mystic_cave",
+      "type": "region",
+      "display_name": "Mystic Cave",
+      "art_key": "mystic_cave"
+    },
+    {
+      "id": "codex.mystic_cave.whim_arrival",
+      "type": "codex_entry",
+      "title": "The Whim's Welcome",
+      "body": "The Whim says goblins spring from possibility, and that this new warchief may give them a future of their own."
+    },
+    {
+      "id": "codex.mystic_cave.wrong_machine",
+      "type": "codex_entry",
+      "title": "The Wrong Machine",
+      "body": "The Wrong Machine can rebuild goblins from Raw Chaos. Knowing of it does not mean it is within reach."
+    },
+    {
+      "id": "reward_definition.mystic_cave.whim_arrival",
+      "type": "reward_definition",
+      "entries": [{"key": "knowledge", "probability_basis_points": 10000, "reward_type": "codex", "config": {"codex_id": "codex.mystic_cave.whim_arrival"}}]
+    },
+    {"id": "event.mystic_cave.whim_arrival", "type": "event", "reward_definition_id": "reward_definition.mystic_cave.whim_arrival"},
+    {
+      "id": "reward_definition.mystic_cave.wrong_machine",
+      "type": "reward_definition",
+      "entries": [{"key": "knowledge", "probability_basis_points": 10000, "reward_type": "codex", "config": {"codex_id": "codex.mystic_cave.wrong_machine"}}]
+    },
+    {"id": "event.mystic_cave.wrong_machine", "type": "event", "reward_definition_id": "reward_definition.mystic_cave.wrong_machine"},
+    {
+      "id": "dialogue.mystic_cave.whim_arrival",
+      "type": "dialogue",
+      "title": "A Voice in the Cave",
+      "body": "A calm voice greets you from the cave's shifting light. It calls itself the Whim and says you are a goblin with a chance to choose what comes next.",
+      "choices": [{"id": "listen", "label": "Listen to the Whim", "response": "The Whim tells you that goblins are born from possibility, then invites you to make something of it.", "required_codex_ids": [], "event_id": "event.mystic_cave.whim_arrival"}]
+    },
+    {
+      "id": "dialogue.mystic_cave.wrong_machine",
+      "type": "dialogue",
+      "title": "A Machine with a Name",
+      "body": "The Whim points toward an old device in the cave and names it the Wrong Machine. It can rebuild goblins from Raw Chaos, though it will not stay here forever.",
+      "choices": [{"id": "remember", "label": "Remember the machine", "response": "You remember its name and purpose. The Whim makes no promise that you can use it yet.", "required_codex_ids": ["codex.mystic_cave.whim_arrival"], "event_id": "event.mystic_cave.wrong_machine"}]
+    },
+    {"id": "encounter.mystic_cave.whim_arrival", "type": "encounter", "kind": "non_combat", "family": "dialogue", "region_id": "region.mystic_cave", "prompt": "Will you listen?", "dialogue_id": "dialogue.mystic_cave.whim_arrival"},
+    {"id": "encounter.mystic_cave.wrong_machine", "type": "encounter", "kind": "non_combat", "family": "dialogue", "region_id": "region.mystic_cave", "prompt": "What is the Wrong Machine?", "dialogue_id": "dialogue.mystic_cave.wrong_machine"},
+    {
+      "id": "onboarding.mystic_cave",
+      "type": "onboarding_flow",
+      "region_id": "region.mystic_cave",
+      "starting_kin_id": "kin.goblin",
+      "machine_capability_id": "capability.wrong_machine_access",
+      "steps": [
+        {"encounter_id": "encounter.mystic_cave.whim_arrival", "knowledge_id": "codex.mystic_cave.whim_arrival"},
+        {"encounter_id": "encounter.mystic_cave.wrong_machine", "knowledge_id": "codex.mystic_cave.wrong_machine"}
+      ]
+    }
+  ]
+}

@@ -10,6 +10,13 @@ final class WarbandUnitRepository
 {
   public function __construct(private readonly PDO $pdo) {}
 
+  public function hasAnyForUser(int $userId): bool
+  {
+    $stmt = $this->pdo->prepare('SELECT 1 FROM `unit_instances` WHERE `user_id` = ? LIMIT 1');
+    $stmt->execute([$userId]);
+    return $stmt->fetchColumn() !== false;
+  }
+
   /** @return array{id:string,display_name:string,unit_type_id:string,kin_id:string,level:int,xp:int,lifecycle_status:string} */
   public function createActive(int $userId, string $unitTypeId, string $kinId, string $displayName): array
   {

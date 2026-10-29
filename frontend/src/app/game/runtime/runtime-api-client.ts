@@ -1,5 +1,6 @@
 import { resolveApiBaseUrl } from '../../core/config/runtime-config';
 import { CodexContractError, CodexEntry, parseCodexEnvelope } from './codex-contracts';
+import { OnboardingContractError, OnboardingStatus, parseOnboardingEnvelope } from './onboarding-contracts';
 import { ObjectiveContractError, ObjectiveEntry, parseObjectivesEnvelope } from './objective-contracts';
 import { DialogueCompletion, DialogueContractError, DialogueRead, canonicalDialogueChoiceId,
   canonicalDialogueId, parseDialogueCompletionEnvelope, parseDialogueReadEnvelope } from './dialogue-contracts';
@@ -74,6 +75,15 @@ export class RuntimeApiClient {
 
   async getBootstrap(): Promise<unknown> {
     return this.get('/api/v1/game/bootstrap');
+  }
+
+  async getOnboarding(): Promise<OnboardingStatus> {
+    const value = await this.get('/api/v1/onboarding');
+    try { return parseOnboardingEnvelope(value); }
+    catch (error) {
+      if (error instanceof OnboardingContractError) throw new RuntimeApiError('malformed-response', 200);
+      throw error;
+    }
   }
 
   async getUnits(): Promise<unknown> {

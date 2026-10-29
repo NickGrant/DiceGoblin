@@ -54,6 +54,21 @@ describe('RuntimeApiClient', () => {
       jasmine.objectContaining<RuntimeApiError>({ kind: 'malformed-response', status: 200 }));
   });
 
+  it('reads only the current onboarding step and rejects authored internals', async () => {
+    const valid = { ok: true, data: { status: 'required',
+      region: { id: 'region.test_cave', display_name: 'Test Cave' }, dialogue_id: 'dialogue.test.arrival' } };
+    const fetchRequest = jasmine.createSpy<RuntimeFetch>('fetchRequest').and.resolveTo(
+      new Response(JSON.stringify(valid), { status: 200 }));
+    const client = new RuntimeApiClient(fetchRequest, '/root');
+    expect((await client.getOnboarding()).status).toBe('required');
+    expect(fetchRequest).toHaveBeenCalledOnceWith('/root/api/v1/onboarding',
+      { method: 'GET', credentials: 'include', headers: { Accept: 'application/json' } });
+    fetchRequest.and.resolveTo(new Response(JSON.stringify({ ...valid,
+      data: { ...valid.data, knowledge_id: 'codex.hidden' } }), { status: 200 }));
+    await expectAsync(client.getOnboarding()).toBeRejectedWith(
+      jasmine.objectContaining<RuntimeApiError>({ kind: 'malformed-response', status: 200 }));
+  });
+
   it('calls each lazy Warband query directly with the browser session', async () => {
     const fetchRequest = jasmine.createSpy<RuntimeFetch>('fetchRequest').and.callFake(async () =>
       new Response(JSON.stringify({ ok: true, data: {} }), { status: 200 }),

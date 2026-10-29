@@ -81,6 +81,8 @@ Large or screen-specific data should be loaded on demand by game domain rather t
 
 Expected query domains include:
 
+- current onboarding eligibility and next player-visible dialogue for fresh players
+
 - units
 - dice
 - squads

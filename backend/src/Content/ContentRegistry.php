@@ -184,6 +184,12 @@ final class ContentRegistry
   }
 
   /** @return array<string,mixed> */
+  public function onboardingFlow(): array
+  {
+    return $this->definitionOfType('onboarding.mystic_cave', 'onboarding_flow');
+  }
+
+  /** @return array<string,mixed> */
   public function objective(string $id): array
   {
     return $this->definitionOfType($id, 'objective');

@@ -134,6 +134,14 @@ This removes the need for a generic `has_seen_dialogue` or story-history table f
 
 Codex entries should only be used this way when the completed conversation represents meaningful information worth recording. If future branching narrative requires remembering arbitrary choices that do not map naturally to knowledge or unlocks, a dedicated narrative-state model can be introduced at that time.
 
+## Mystic Cave Onboarding State
+
+Mystic Cave onboarding is an authored, ordered set of Whim conversations. Each completed conversation grants meaningful Codex knowledge through the existing dialogue event/reward transaction. The current step is the first authored knowledge entry the player does not own. An out-of-order owned entry is an integrity failure, not an alternate route.
+
+Owning any unit instance is the durable completion marker for the current vNext unit lifecycle. Starting unit provisioning must be one atomic operation that creates the Basic Goblin roster and its required equipment/squad before this marker can become visible. Existing returning players with units therefore remain in the normal Camp/core loop without a knowledge backfill. A new player with no units and no onboarding knowledge is at arrival; a player with some knowledge and no units can resume the next conversation; a player with all authored knowledge but no units is ready for provisioning. Unit ownership does not imply Wrong Machine access.
+
+The Mystic Cave region has an authored identity but no ordinary run generator. Its flow references `kin.goblin` for Basic Goblin establishment, not a kin restoration recipe, and the existing Wrong Machine capability only as an introduction identity. Actual Wrong Machine access and its later Swamp provenance remain governed by the established unlock/reconstruction systems. No tutorial flag, story-history table, or new account bootstrap path is needed.
+
 ## Bounties and Objectives
 
 Bounties and objectives are intentionally separate from unlock/Codex progression because their intermediate state matters.

@@ -82,6 +82,7 @@ final class ContentValidator
       'unlock' => $this->validateUnlock($definition, $location),
       'codex_entry' => $this->validateCodexEntry($definition, $location),
       'dialogue' => $this->validateDialogue($definition, $location),
+      'onboarding_flow' => $this->validateOnboardingFlow($definition, $location),
       'objective' => $this->validateObjective($definition, $location),
       'capability' => $this->validateCapability($definition, $location),
       'academy_upgrade' => $this->validateAcademyUpgrade($definition, $location),
@@ -408,6 +409,44 @@ final class ContentValidator
         }
       }
 
+      if (($definition['type'] ?? null) === 'onboarding_flow') {
+        $region = $this->requireReferenceType($definitions, $id, 'region_id', $definition['region_id'], 'region');
+        if (isset($region['run_generation_id'])) {
+          throw new ContentValidationException("{$id} onboarding region must not be a normal playable run.");
+        }
+        $kin = $this->requireReferenceType($definitions, $id, 'starting_kin_id', $definition['starting_kin_id'], 'kin');
+        if ($kin['id'] !== 'kin.goblin') {
+          throw new ContentValidationException("{$id} must establish Basic Goblin without Kin restoration.");
+        }
+        $machine = $this->requireReferenceType($definitions, $id, 'machine_capability_id', $definition['machine_capability_id'], 'capability');
+        if ($machine['id'] !== 'capability.wrong_machine_access' || $machine['kind'] !== 'feature_access') {
+          throw new ContentValidationException("{$id} must reference the existing Wrong Machine identity.");
+        }
+        $priorKnowledge = [];
+        foreach ($definition['steps'] as $step) {
+          $encounter = $this->requireReferenceType($definitions, $id, 'steps.encounter_id', $step['encounter_id'], 'encounter');
+          if ($encounter['region_id'] !== $region['id'] || $encounter['kind'] !== 'non_combat'
+            || ($encounter['family'] ?? null) !== 'dialogue') {
+            throw new ContentValidationException("{$id} step encounter must be a dialogue in its region.");
+          }
+          $this->requireReferenceType($definitions, $id, 'steps.knowledge_id', $step['knowledge_id'], 'codex_entry');
+          $dialogue = $this->requireReferenceType($definitions, $id, 'steps.encounter_id.dialogue_id', $encounter['dialogue_id'], 'dialogue');
+          $grantsKnowledge = false;
+          foreach ($dialogue['choices'] as $choice) {
+            if (!isset($choice['event_id'])) continue;
+            $event = $this->requireReferenceType($definitions, $id, 'steps.dialogue.event_id', $choice['event_id'], 'event');
+            $reward = $this->requireReferenceType($definitions, $id, 'steps.dialogue.reward_definition_id', $event['reward_definition_id'], 'reward_definition');
+            foreach ($reward['entries'] as $entry) {
+              if ($entry['reward_type'] === 'codex' && $entry['probability_basis_points'] === 10000
+                && $entry['config']['codex_id'] === $step['knowledge_id']
+                && array_diff($priorKnowledge, $choice['required_codex_ids']) === []) $grantsKnowledge = true;
+            }
+          }
+          if (!$grantsKnowledge) throw new ContentValidationException("{$id} step dialogue cannot grant its completion knowledge.");
+          $priorKnowledge[] = $step['knowledge_id'];
+        }
+      }
+
       if (($definition['type'] ?? null) === 'dice_profile') {
         $materialId = $definition['material_id'];
         $material = $this->requireReferenceType($definitions, $id, 'material_id', $materialId, 'dice_material');
@@ -515,6 +554,34 @@ final class ContentValidator
       $this->requireBoundedNonEmptyString($choice, 'response', 2000, $where);
       $this->requireStableIdList($choice, 'required_codex_ids', 'codex.', true, $where);
       if (array_key_exists('event_id', $choice)) $this->requireStableIdWithNamespace($choice, 'event_id', 'event.', $where);
+    }
+  }
+
+  /** @param array<string,mixed> $definition */
+  private function validateOnboardingFlow(array $definition, string $location): void
+  {
+    $this->requireExactFieldSet($definition,
+      ['id', 'type', 'region_id', 'starting_kin_id', 'machine_capability_id', 'steps'], [], $location);
+    $this->requireNamespace($definition, 'onboarding.', $location);
+    foreach (['region_id' => 'region.', 'starting_kin_id' => 'kin.', 'machine_capability_id' => 'capability.'] as $field => $namespace) {
+      $this->requireStableIdWithNamespace($definition, $field, $namespace, $location);
+    }
+    $steps = $definition['steps'];
+    if (!is_array($steps) || !array_is_list($steps) || $steps === []) {
+      throw new ContentValidationException("{$location} steps must be a non-empty ordered list.");
+    }
+    $encounters = []; $knowledge = [];
+    foreach ($steps as $index => $step) {
+      $where = "{$location} steps[{$index}]";
+      if (!is_array($step) || array_is_list($step)) throw new ContentValidationException("{$where} must be an object.");
+      $this->requireExactFieldSet($step, ['encounter_id', 'knowledge_id'], [], $where);
+      $this->requireStableIdWithNamespace($step, 'encounter_id', 'encounter.', $where);
+      $this->requireStableIdWithNamespace($step, 'knowledge_id', 'codex.', $where);
+      if (isset($encounters[$step['encounter_id']]) || isset($knowledge[$step['knowledge_id']])) {
+        throw new ContentValidationException("{$location} duplicates onboarding step identity.");
+      }
+      $encounters[$step['encounter_id']] = true;
+      $knowledge[$step['knowledge_id']] = true;
     }
   }
 

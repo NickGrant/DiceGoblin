@@ -26,6 +26,7 @@ use DiceGoblins\Controllers\WarbandFixtureController;
 use DiceGoblins\Controllers\RunController;
 use DiceGoblins\Controllers\BattlePlaybackController;
 use DiceGoblins\Controllers\ConsumableController;
+use DiceGoblins\Controllers\OnboardingController;
 
 require_once __DIR__ . '/../src/Core/Autoloader.php';
 Autoloader::register(__DIR__ . '/../src');
@@ -122,6 +123,7 @@ $warbandFixture = new WarbandFixtureController();
 $runs = new RunController();
 $battlePlayback = new BattlePlaybackController();
 $consumables = new ConsumableController();
+$onboarding = new OnboardingController();
 
 // Auth
 $router->get('/auth/discord/start', [$auth, 'discordStart']);
@@ -136,6 +138,7 @@ $router->post('/api/v1/auth/logout', [$auth, 'logout']);
 $router->get('/api/v1/health', [$api, 'health']);
 $router->get('/api/v1/session', [$api, 'session']);
 $router->get('/api/v1/game/bootstrap', [$gameBootstrap, 'bootstrap']);
+$router->get('/api/v1/onboarding', [$onboarding, 'status']);
 $router->get('/api/v1/items', [$inventory, 'items']);
 $router->get('/api/v1/codex', [$codex, 'catalog']);
 $router->get('/api/v1/objectives', [$objectives, 'catalog']);

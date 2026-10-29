@@ -89,6 +89,8 @@ Expected bootstrap state includes:
 
 Bootstrap does not need to include every unit, die, saved squad, Codex entry, objective, Shop offer, Academy option, Wrong Machine recipe, run graph, or battle playback record.
 
+`GET /api/v1/onboarding` is a narrow authenticated read for the Mystic Cave flow. It returns the authoritative status (`required`, `in_progress`, `ready_to_provision`, or `complete`), the player-visible region identity/name, and only the currently eligible dialogue ID when a dialogue is next. The authored step list, encounter IDs, knowledge prerequisites, reward definitions, and Wrong Machine capability reference remain server-side. Later Phaser routing reads this contract; Package 1 does not alter game navigation.
+
 ## Units
 
 ### Queries
