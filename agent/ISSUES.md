@@ -2,80 +2,73 @@
 
 ## Milestone 12 - Mystic Cave and Onboarding
 
-### Milestone 12 Package 3 - Mystic Cave interaction/dialogue sequence
+### Milestone 12 Package 4 - Wrong Machine introduction and onboarding transition
 
 **Status:** In Progress
 **Priority:** High
 
 #### Problem
-Packages 1-2 established the authoritative onboarding state model, authored Mystic Cave/Whim knowledge sequence, and atomic Basic Goblin starting-Warband provisioning transaction. The authored onboarding steps are not yet a complete executable interaction sequence. Package 3 must connect the Whim-led Mystic Cave conversations to the accepted dialogue/Codex authority so a fresh player can advance from `required` through `in_progress` to `ready_to_provision` using normal authoritative interactions, without tutorial-specific history or client-authored progression.
+Packages 1-3 established the canonical Mystic Cave onboarding state model, atomic Basic Goblin starting-Warband provisioning, and an executable ordered Whim dialogue/Codex sequence. The player can now progress authoritatively from `required` through `in_progress` to `ready_to_provision`, then provision the valid starting Warband and become `complete`. Package 4 must ensure the Wrong Machine is introduced in its accepted narrative/mechanical role and that the completed onboarding state has an explicit authoritative transition toward the established Camp/Farm core loop, without granting physical Wrong Machine access or implementing its later Swamp theft/restoration slice.
 
 #### Accepted baseline
 - Package 1 is approved through correction evidence `3f7ab2ac9450faa4087108111844d67f2cc4123a` (implementation `4d2e32c68fa3accba7c4f4d93467015806bc17c2`, correction `fb6414d12848ae37b3150a8cf9a35dbabffcec24`).
 - Package 2 is approved through evidence `ba0eecb88cc1ac1a0925c8dc49ab0ca836914a02` (implementation `7661b012aeb5eb58a99c751d0d1eaf6157e89fae`).
-- `GET /api/v1/onboarding` is authoritative for `required`, `in_progress`, `ready_to_provision`, and `complete`, with the current dialogue identity exposed only when a conversation remains.
-- `onboarding.mystic_cave` owns the ordered authored steps; each step references a dialogue encounter and meaningful Codex knowledge.
-- Dialogue completion already provides authenticated, CSRF-protected, idempotent event/reward application and Codex ownership through the accepted Milestone 11 pipeline.
-- Out-of-order onboarding knowledge is an integrity failure, not an alternate route.
-- Wrong Machine onboarding is knowledge-only and location-neutral; access/recovery and Swamp/Frog Kin remain later progression.
-- Package 2 provisioning is only legal at `ready_to_provision`; Package 3 must not bypass or duplicate it.
-- Phaser onboarding presentation/routing remains Package 5.
+- Package 3 is approved through evidence `2ef9aeca75280b7279c5f4bea4ae6260bcd7932a` (implementation `978db58e030b00f339574778ad8a7ce6072a31a4`).
+- `GET /api/v1/onboarding` is authoritative for onboarding state; unit ownership is the durable completion marker.
+- The authored Wrong Machine onboarding dialogue teaches its identity and Raw Chaos reconstruction purpose through a conjured image. Knowledge does not grant possession or access.
+- `codex.mystic_cave.wrong_machine` is meaningful retained knowledge and remains location-neutral.
+- `capability.wrong_machine_access` is a distinct later capability and must not be granted during Mystic Cave onboarding.
+- Package 2 provisioning creates the minimum valid Basic Goblin Warband and active squad atomically; it does not grant kin restoration or Wrong Machine access.
+- Farm is the established first normal playable region after onboarding. Mystic Cave has no normal run generator.
+- Phaser presentation/routing remains Package 5; Package 4 should establish authoritative transition semantics and contracts, not build the final scene/UI.
+- Wrong Machine Swamp provenance, physical acquisition/recovery, Frog Kin restoration, and Swamp gameplay remain later progression/Milestone 13.
 
 #### Purpose
-Make the authored Mystic Cave Whim conversation sequence executable through existing authoritative dialogue/Codex mechanics. A fresh player should be able to complete the currently required conversation, receive its meaningful knowledge once, re-read authoritative onboarding state, and advance to the next authored conversation or `ready_to_provision`. This package owns interaction/API semantics and browser-safe contracts only, not the final Phaser presentation.
+Close the server/content transition between the completed Mystic Cave onboarding lifecycle and the existing Camp/Farm core loop while preserving the Wrong Machine boundary. Confirm or implement the minimum authoritative state/projection needed so a later Phaser router can distinguish ongoing onboarding from a player who should enter normal Camp/Farm play. Keep the Wrong Machine introduction knowledge-only: the player may know what it is and why it matters, but does not yet own, access, or operate it.
 
-#### Canonical Package 3 semantics
-1. **Onboarding chooses the conversation.** The authoritative onboarding read determines which authored dialogue is currently eligible. Do not let the client choose an arbitrary onboarding step or infer sequence progression locally.
-2. **Reuse dialogue authority.** Execute onboarding conversations through the accepted dialogue completion/event/reward/Codex pipeline wherever semantically valid. Do not create an onboarding-specific knowledge-grant path.
-3. **Ordered progression.** Completing the current step grants its authored meaningful Codex entry. The next onboarding read must advance to the next missing ordered step. Completing the final knowledge step must yield `ready_to_provision` while no unit exists.
-4. **Replay and idempotency.** Exact-key replay must return the accepted stored result without duplicate Codex grants or revision changes. Ordinary dialogue replay behavior may remain available where canonical dialogue semantics allow it, but it must not skip onboarding order or fabricate progress.
-5. **Eligibility is server-side.** Attempts to complete a future/out-of-order onboarding dialogue must fail closed even if a caller knows its stable ID. Do not rely solely on hidden client presentation to enforce order.
-6. **Revision/reconciliation.** Newly granted knowledge advances player revision according to the accepted dialogue mutation semantics. Responses/read state must give later clients enough authoritative information to refresh onboarding/Codex state without optimistic knowledge inference.
-7. **Safe projection.** Do not expose hidden prerequisite IDs, reward definitions, event routing, future onboarding steps, or private authored sequence data through browser contracts. The browser may know only the current player-safe interaction/presentation required for the active step.
-8. **Provisioning remains separate.** Package 3 stops at `ready_to_provision`. Do not automatically create the Warband from dialogue completion or merge the Package 2 mutation into the dialogue pipeline.
-9. **Wrong Machine boundary.** The Wrong Machine conversation may teach its name/purpose and grant its Codex knowledge, but cannot grant physical access/capability or move Swamp mechanics forward.
-10. **No tutorial history.** Do not add `has_seen_dialogue`, tutorial flags, generic story/history events, or another progression store.
+#### Canonical Package 4 semantics
+1. **Knowledge is not access.** The Wrong Machine introduction may teach name, purpose, and future relevance, but Mystic Cave completion must not grant `capability.wrong_machine_access`, physical possession, reconstruction authority, or any equivalent access state.
+2. **Preserve Swamp provenance.** Do not place the physical Wrong Machine in Mystic Cave, invent a Mystic-Cave-to-Swamp relocation, or implement the later theft/recovery sequence. The onboarding content remains location-neutral about physical possession while later canonical Swamp provenance is preserved.
+3. **Authoritative transition.** Once provisioning commits and onboarding reads `complete`, the backend/runtime contract must provide enough authoritative information for Package 5 to route the player into the established normal Camp/Farm lifecycle without client-local tutorial flags or inferred completion.
+4. **No duplicate completion state.** Prefer the already accepted unit-ownership/onboarding read semantics. Do not add a separate `onboarding_complete`, tutorial-history, story flag, or generic progression marker merely for routing.
+5. **Normal core-loop eligibility.** A newly completed onboarding player must satisfy the existing authoritative prerequisites needed to enter Camp and start the Farm flow. Reuse the active squad/Warband and existing Farm availability/run-start rules rather than adding onboarding exceptions.
+6. **Returning players remain normal.** Existing players already classified `complete` must continue to route to normal gameplay without knowledge backfill or new transition mutations.
+7. **Reconnect-safe.** A reload/reconnect after final dialogue, after provisioning, or after completion must derive the same state from durable backend authority. No transient server/session flag may be required to know whether the player belongs in onboarding or Camp.
+8. **Safe projection.** Expose only player-safe transition information needed by the later runtime. Do not expose future Swamp location/mechanics, hidden capability requirements, authored reward/event internals, or private onboarding sequence data.
+9. **Reuse accepted APIs where sufficient.** If `GET /api/v1/onboarding` plus existing bootstrap already provide all required transition authority, prove that composition rather than creating a redundant transition endpoint.
+10. **No premature Phaser work.** Do not implement the Package 5 onboarding scene/router. Browser contract/runtime helpers may be added only where necessary to make the authoritative transition consumable later.
 
-#### Implementation guidance
-Prefer a narrow onboarding interaction endpoint or server-side eligibility guard that composes `OnboardingQuery` with the existing dialogue query/completion command, rather than duplicating dialogue execution. If existing dialogue endpoints can safely enforce onboarding order with a small shared eligibility extension, that is also acceptable. Keep transaction ownership and idempotency consistent with existing dialogue semantics.
-
-The client contract should be strict and player-safe. Package 5 will own Phaser scene/UI routing; Package 3 should only add the API/runtime primitives needed to execute the authoritative interaction sequence.
+#### Required review/inventory
+Inspect the current onboarding read, Package 2 provisioning receipt, game bootstrap, available-region projection, active-squad projection, Farm run-start eligibility, Wrong Machine capability/unlock/reconstruction boundaries, and relevant canonical lore/progression docs. Determine whether any production behavior is actually missing or whether Package 4 can primarily close and verify the accepted transition contract. Prefer verification/documentation over new state when existing authority is sufficient.
 
 #### Minimum proof
-1. A brand-new player at `required` can retrieve/execute only the first authored Whim conversation.
-2. Successful first completion grants the expected Codex knowledge once and changes onboarding to `in_progress` with the second conversation current.
-3. The second conversation cannot be completed before the first knowledge exists.
-4. Successful final knowledge completion changes onboarding to `ready_to_provision`, not `complete`.
-5. Exact-key replay cannot duplicate knowledge or revision effects.
-6. Invalid/future dialogue IDs and malformed/private data fail closed.
-7. Cross-player knowledge cannot affect another player's onboarding eligibility.
-8. Reconnect/re-read derives the same current step solely from durable Codex ownership.
-9. Wrong Machine interaction grants knowledge only and no access capability.
-10. Existing non-onboarding dialogue behavior remains unchanged.
-11. Package 2 provisioning remains separately gated at `ready_to_provision`.
-12. Browser-safe contracts reveal no future step sequence, hidden prerequisite IDs, event/reward internals, or generic history state.
+1. Before final onboarding knowledge, the player remains in an onboarding state and cannot be mistaken for completed solely by client-local state.
+2. After final knowledge but before provisioning, the player is `ready_to_provision`, not normal-complete.
+3. Successful Package 2 provisioning changes authoritative onboarding to `complete` and existing bootstrap exposes the valid active starting squad/normal gameplay state needed for Camp/Farm.
+4. The newly provisioned player can satisfy existing Farm run-start eligibility without an onboarding-specific bypass.
+5. Reload/reconnect after completion yields the same `complete` + normal bootstrap state.
+6. Existing returning players remain `complete` and normal-play eligible without onboarding knowledge backfill.
+7. Wrong Machine Codex knowledge may be owned while `capability.wrong_machine_access` remains absent.
+8. Mystic Cave completion cannot invoke Wrong Machine reconstruction or otherwise obtain physical machine functionality.
+9. No Swamp/Frog Kin mechanics or physical Wrong Machine placement are introduced.
+10. Browser-safe contracts expose no future/private transition or capability internals.
+11. No tutorial/history/completion flag or parallel transition state is added.
+12. Existing Camp/Farm/bootstrap/run behavior remains regression-safe.
 
 #### Verification
-Add focused backend integration tests for first-step execution, ordered advancement, future-step rejection, final transition to `ready_to_provision`, exact-key replay, revision behavior, cross-player isolation, malformed/corrupt state, and regression of ordinary dialogue. Add strict frontend contract/API tests for any new interaction surface. Run all applicable `agent/QUALITY_GATES.md` checks and full `npm run verify:package -- --continue-on-failure`.
+Add or extend focused integration tests for the final-dialogue -> `ready_to_provision` -> provision -> `complete` lifecycle, bootstrap reconciliation after provisioning, reconnect/read-back, returning-player behavior, Farm run-start eligibility, Wrong Machine knowledge-without-access, and rejection/inaccessibility of reconstruction before the later capability is earned. Add strict browser-contract tests only if a transition projection changes. Run all applicable `agent/QUALITY_GATES.md` checks and full `npm run verify:package -- --continue-on-failure`.
 
 #### Scope exclusions
-- automatic or dialogue-coupled starting-Warband provisioning;
-- Phaser Mystic Cave/onboarding UI or routing;
-- Wrong Machine physical access/reconstruction/theft/recovery;
+- Phaser Mystic Cave/onboarding scene or routing implementation;
+- physical Wrong Machine possession/access/reconstruction during onboarding;
+- Wrong Machine theft/recovery or relocation narrative;
 - Swamp/Frog Kin implementation;
-- tutorial/history/story flags or generic progression;
+- new tutorial/history/story/completion flags;
+- generic progression state;
 - broad visual redesign;
 - Milestone 13+ work.
 
 #### Completion evidence required
-Record implementation SHA; exact reuse/composition of dialogue/Codex authority; interaction endpoint/contract and server-side order enforcement; first-to-final step lifecycle; Codex/revision/idempotency behavior; reconnect and cross-player evidence; safe-projection/secrecy proof; ordinary-dialogue regression evidence; confirmation Package 2 provisioning remains separate and Wrong Machine remains knowledge-only; focused tests; and full package-gate results.
+Record implementation SHA; inventory/conclusion on whether existing onboarding + bootstrap contracts already provide the transition authority; any narrow content/API/runtime changes; end-to-end final knowledge -> provisioning -> complete/bootstrap/Farm evidence; reconnect and returning-player evidence; explicit proof Wrong Machine knowledge does not grant access/reconstruction; confirmation Swamp provenance remains deferred; focused tests; full package gates; and confirmation no duplicate completion/history state or Package 5/M13 work was introduced.
 
-Leave Package 3 **In Progress** for architectural review. Do not promote Package 4 automatically from the coding agent.
-
-#### Package 3 implementation evidence (`978db58e030b00f339574778ad8a7ce6072a31a4`)
-
-- `OnboardingDialogueGuard` recognizes only dialogue identities referenced by the authored onboarding flow and derives their current eligibility from `OnboardingQuery`. The existing `GET /api/v1/onboarding` selects the current dialogue; the existing authenticated `GET /api/v1/dialogues/:dialogueId` returns its narrow visible title/body/choice IDs and labels. A known future or past onboarding dialogue returns unavailable even when its stable ID is supplied directly. No new interaction endpoint or client-selected step was introduced.
-- The existing CSRF-protected `POST /api/v1/dialogues/:dialogueId/complete` remains the mutation owner. Its `CompleteDialogueCommand` checks the finalized idempotency receipt first, then checks onboarding eligibility inside the same player-state-locked transaction before applying its existing event/reward/Codex pipeline. Exact-key replay therefore works after the current step advances without another grant or revision increment. Non-onboarding dialogue retains the existing path. The browser runtime composes the authoritative onboarding read with the existing strict dialogue read/completion contracts; it does not infer future steps or author knowledge.
-- Integration proof: a fresh player reads only the first Whim dialogue, first completion grants its authored Codex entry and advances revision 1→2, a re-read yields the second dialogue, final completion grants its knowledge and advances revision 2→3, and a re-read yields `ready_to_provision`. Exact-key repeats return identical receipts; new-key past-step and future-step attempts fail. A second player remains at the first step despite the first player's knowledge. Out-of-order persisted knowledge fails closed. No unit, unlock, Wrong Machine access, or Swamp gameplay is granted by dialogue; Package 2 provisioning remains a separate mutation.
-- Focused onboarding/dialogue/objective/provisioning regression: 26 tests / 255 assertions. Frontend API composition and strict contract suite: 452 tests. Complete `npm run verify:package -- --continue-on-failure` passed in 4m52s: 708 backend tests / 5,739 assertions; 452 frontend tests; LLM/context, docs lint, PHP front-controller syntax, production content validation, frontend build, bundle budget, and diff whitespace all passed. No authored-content revision was needed.
-- No tutorial/history flags, alternate knowledge store, automatic provisioning, Phaser onboarding UI, physical Wrong Machine access, Swamp/Frog Kin, or Milestone 13 work was added. Package 3 remains In Progress for architectural review; Package 4 is not activated.
+Leave Package 4 **In Progress** for architectural review. Do not promote Package 5 automatically from the coding agent.
