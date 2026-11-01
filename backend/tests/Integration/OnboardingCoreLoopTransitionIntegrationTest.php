@@ -63,7 +63,7 @@ final class OnboardingCoreLoopTransitionIntegrationTest extends IntegrationTestC
 
     $bootstrap = $this->services($content)['gameBootstrapQuery']->execute($userId, $now);
     $this->assertSame($provision['body']['data']['active_squad_id'], $bootstrap['active_squad']['id']);
-    $this->assertCount(1, $bootstrap['active_squad']['units']);
+    $this->assertCount(4, $bootstrap['active_squad']['units']);
     $this->assertContains('region.the_farm', $bootstrap['progression']['available_region_ids']);
     $this->assertNotContains('unlock.capability.wrong_machine_access', $bootstrap['progression']['unlock_ids']);
     $this->assertSame($bootstrap, $this->services($content)['gameBootstrapQuery']->execute($userId, $now));

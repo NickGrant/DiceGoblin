@@ -66,18 +66,24 @@ final class ProvisionStartingWarbandCommand
       }
       $starting = $this->content->onboardingFlow()['starting_warband'];
       $kinId = $this->content->onboardingFlow()['starting_kin_id'];
-      $unit = $this->unitCreation->create($userId, $starting['unit_type_id'], $kinId);
-      $die = $this->dice->createActive($userId, $starting['die_size'], $starting['dice_profile_id']);
-      $this->units->replaceLoadout((int)$unit['id'], [[
-        'ability_id' => $starting['ability_id'], 'dice_instance_ids' => [(int)$die['id']],
-      ]]);
+      $unitIds = []; $dieIds = []; $formation = [];
+      foreach ($starting['units'] as $member) {
+        $unit = $this->unitCreation->create($userId, $member['unit_type_id'], $kinId);
+        $die = $this->dice->createActive($userId, $member['die_size'], $member['dice_profile_id']);
+        $this->units->replaceLoadout((int)$unit['id'], [[
+          'ability_id' => $member['ability_id'], 'dice_instance_ids' => [(int)$die['id']],
+        ]]);
+        $unitIds[] = (string)$unit['id'];
+        $dieIds[] = (string)$die['id'];
+        $formation[$member['position']] = (int)$unit['id'];
+      }
       $squadId = $this->squads->create($userId, $starting['squad_name']);
-      $this->squads->replaceFormation($squadId, [0 => (int)$unit['id']]);
+      $this->squads->replaceFormation($squadId, $formation);
       $revision = $this->playerState->setActiveSquadAndIncrementRevision($userId, $squadId);
       if ($revision !== $state['player_revision'] + 1 || $revision > ClientSafeInteger::MAXIMUM) {
         throw new RuntimeException('Player revision transition is incoherent.');
       }
-      $result = ['unit_id' => $unit['id'], 'die_id' => $die['id'],
+      $result = ['unit_ids' => $unitIds, 'die_ids' => $dieIds,
         'active_squad_id' => (string)$squadId, 'player_revision' => $revision,
         'onboarding_status' => 'complete'];
       $this->idempotency->insertFinalized($userId, $key, self::OPERATION, $requestHash, $result);
@@ -100,16 +106,24 @@ final class ProvisionStartingWarbandCommand
   private function validateResult(array $result): void
   {
     $keys = array_keys($result); sort($keys, SORT_STRING);
-    if ($keys !== ['active_squad_id', 'die_id', 'onboarding_status', 'player_revision', 'unit_id']
+    if ($keys !== ['active_squad_id', 'die_ids', 'onboarding_status', 'player_revision', 'unit_ids']
       || ($result['onboarding_status'] ?? null) !== 'complete'
       || !is_int($result['player_revision'] ?? null) || $result['player_revision'] < 1
-      || $result['player_revision'] > ClientSafeInteger::MAXIMUM) {
+      || $result['player_revision'] > ClientSafeInteger::MAXIMUM
+      || !is_array($result['unit_ids']) || !array_is_list($result['unit_ids'])
+      || !is_array($result['die_ids']) || !array_is_list($result['die_ids'])
+      || count($result['unit_ids']) < 1 || count($result['unit_ids']) !== count($result['die_ids'])
+      || count($result['unit_ids']) > 9) {
       throw new RuntimeException('Persisted onboarding receipt is invalid.');
     }
-    foreach (['unit_id', 'die_id', 'active_squad_id'] as $field) {
-      if (!is_string($result[$field]) || preg_match('/^[1-9][0-9]*$/D', $result[$field]) !== 1) {
+    foreach ([$result['active_squad_id'], ...$result['unit_ids'], ...$result['die_ids']] as $id) {
+      if (!is_string($id) || preg_match('/^[1-9][0-9]*$/D', $id) !== 1) {
         throw new RuntimeException('Persisted onboarding receipt is invalid.');
       }
+    }
+    if (count(array_unique($result['unit_ids'])) !== count($result['unit_ids'])
+      || count(array_unique($result['die_ids'])) !== count($result['die_ids'])) {
+      throw new RuntimeException('Persisted onboarding receipt is invalid.');
     }
   }
 }

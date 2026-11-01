@@ -5,8 +5,8 @@ export interface OnboardingStatus {
 }
 
 export interface OnboardingProvisionResult {
-  readonly unit_id: string;
-  readonly die_id: string;
+  readonly unit_ids: readonly string[];
+  readonly die_ids: readonly string[];
   readonly active_squad_id: string;
   readonly player_revision: number;
   readonly onboarding_status: 'complete';
@@ -50,16 +50,24 @@ export function parseOnboardingEnvelope(value: unknown): OnboardingStatus {
 export function parseOnboardingProvisionEnvelope(value: unknown): OnboardingProvisionResult {
   if (!record(value) || !exact(value, ['ok', 'data']) || value['ok'] !== true
     || !record(value['data']) || !exact(value['data'],
-      ['unit_id', 'die_id', 'active_squad_id', 'player_revision', 'onboarding_status'])) {
+      ['unit_ids', 'die_ids', 'active_squad_id', 'player_revision', 'onboarding_status'])) {
     throw new OnboardingContractError();
   }
   const data = value['data'];
-  for (const key of ['unit_id', 'die_id', 'active_squad_id']) {
-    if (typeof data[key] !== 'string' || !/^[1-9][0-9]*$/.test(data[key])) throw new OnboardingContractError();
-  }
+  const ids = (key: 'unit_ids' | 'die_ids'): readonly string[] => {
+    const list = data[key];
+    if (!Array.isArray(list) || list.length < 1 || list.length > 9
+      || !list.every((id) => typeof id === 'string' && /^[1-9][0-9]*$/.test(id))
+      || new Set(list).size !== list.length) throw new OnboardingContractError();
+    return Object.freeze([...list]);
+  };
+  const unitIds = ids('unit_ids');
+  const dieIds = ids('die_ids');
+  if (unitIds.length !== dieIds.length || typeof data['active_squad_id'] !== 'string'
+    || !/^[1-9][0-9]*$/.test(data['active_squad_id'])) throw new OnboardingContractError();
   if (!Number.isSafeInteger(data['player_revision']) || (data['player_revision'] as number) < 1
     || data['onboarding_status'] !== 'complete') throw new OnboardingContractError();
-  return Object.freeze({ unit_id: data['unit_id'] as string, die_id: data['die_id'] as string,
+  return Object.freeze({ unit_ids: unitIds, die_ids: dieIds,
     active_squad_id: data['active_squad_id'] as string, player_revision: data['player_revision'] as number,
     onboarding_status: 'complete' });
 }

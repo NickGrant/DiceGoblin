@@ -5,6 +5,8 @@
 ### Milestone 12 Package 7 - Focused manual UAT before Milestone 13
 
 **Status:** In Progress
+
+The user accepted UAT as good enough on 2026-10-31. The review agent will review and promote this package; keep this issue active until that handoff.
 **Priority:** High
 
 #### Problem
@@ -50,3 +52,9 @@ Record the user's explicit UAT acceptance and date in `agent/MILESTONES.md`, mar
 
 #### On failure
 Record the observed defect(s), keep Package 7/Milestone 12 active, and create the narrow correction package/work needed to address those defects. Re-run applicable automated verification and the affected UAT steps before requesting acceptance again.
+
+#### UAT defect 1: starting Warband formation
+The first fresh-account UAT reached Camp with only one Bruiser in a back corner. The intended starting Warband is four units: two Bruisers in front positions 2 and 5, and two Marksmen in back positions 0 and 3. Correct the authored onboarding roster, atomic provisioning, client receipt contract, and affected validation/tests. Keep Package 7 active until the user retests provisioning and the Camp/Farm path from a fresh account.
+
+#### UAT defect 2: generated unit names
+The corrected starting Warband appeared with unit type labels as unit names. Onboarding already uses the shared normal unit creation service; that service assigned the authored unit type display name to every new unit. Generate a personal name in that shared boundary so onboarding, shop purchases, and Kin reconstruction all follow one naming path. Keep Package 7 active until the user confirms the starting Warband names during UAT.

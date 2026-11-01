@@ -17,6 +17,9 @@ final class OnboardingContentValidationTest extends TestCase
     $content = ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content');
     $flow = $content->onboardingFlow();
     $this->assertSame('kin.goblin', $flow['starting_kin_id']);
+    $this->assertSame(['unit_type.bruiser', 'unit_type.bruiser', 'unit_type.marksman', 'unit_type.marksman'],
+      array_column($flow['starting_warband']['units'], 'unit_type_id'));
+    $this->assertSame([2, 5, 0, 3], array_column($flow['starting_warband']['units'], 'position'));
     $this->assertSame('region.mystic_cave', $flow['region_id']);
     $this->assertNotEmpty($flow['steps']);
     $projected = (new ClientContentProjector())->project($content);
@@ -63,13 +66,32 @@ final class OnboardingContentValidationTest extends TestCase
     $definitions = CanonicalContentFixture::definitions();
     foreach ($definitions as &$definition) {
       if ($definition['id'] !== 'onboarding.mystic_cave') continue;
-      $definition['starting_warband']['ability_id'] = 'ability.thick_hide';
+      $definition['starting_warband']['units'][0]['ability_id'] = 'ability.thick_hide';
       break;
     }
     unset($definition);
     $this->expectException(ContentValidationException::class);
-    $this->expectExceptionMessage('starting Warband configuration is invalid');
+    $this->expectExceptionMessage('starting_warband.units[0] configuration is invalid');
     (new ContentValidator())->validate([['path' => 'test.json', 'document' => ['definitions' => $definitions]]]);
+  }
+
+  public function testStartingWarbandRejectsDuplicateAndWrongColumnPositions(): void
+  {
+    foreach ([2, 1] as $badPosition) {
+      $definitions = CanonicalContentFixture::definitions();
+      foreach ($definitions as &$definition) {
+        if ($definition['id'] !== 'onboarding.mystic_cave') continue;
+        $definition['starting_warband']['units'][2]['position'] = $badPosition;
+        break;
+      }
+      unset($definition);
+      try {
+        (new ContentValidator())->validate([['path' => 'test.json', 'document' => ['definitions' => $definitions]]]);
+        $this->fail('Invalid starting position was accepted.');
+      } catch (ContentValidationException) {
+        $this->addToAssertionCount(1);
+      }
+    }
   }
 
   public function invalidFlow(): array

@@ -9,6 +9,15 @@ use RuntimeException;
 
 final class NormalUnitCreationService
 {
+  private const GIVEN_NAMES = [
+    'Bram', 'Brik', 'Dreg', 'Fen', 'Grit', 'Hob', 'Kip', 'Mog',
+    'Nix', 'Pip', 'Rusk', 'Snik', 'Tarn', 'Vex', 'Wick', 'Zog',
+  ];
+  private const BYNAMES = [
+    'Ash', 'Briar', 'Cinder', 'Flint', 'Gorse', 'Moss', 'Pebble', 'Reed',
+    'Scrap', 'Soot', 'Stone', 'Thorn', 'Twig', 'Wattle', 'Whistle', 'Wisp',
+  ];
+
   public function __construct(
     private readonly WarbandUnitRepository $units,
     private readonly ContentRegistry $content,
@@ -19,9 +28,9 @@ final class NormalUnitCreationService
   {
     $unitType = $this->content->unitType($unitTypeId);
     $this->content->kin($kinId);
-    $name = $unitType['display_name'] ?? null;
+    $typeName = $unitType['display_name'] ?? null;
     $abilityIds = $unitType['ability_ids'] ?? null;
-    if (!is_string($name) || trim($name) === '' || strlen(trim($name)) > 128
+    if (!is_string($typeName) || trim($typeName) === '' || strlen(trim($typeName)) > 128
       || !is_array($abilityIds) || !array_is_list($abilityIds) || $abilityIds === []) {
       throw new RuntimeException('Authored normal unit configuration is invalid.');
     }
@@ -30,7 +39,9 @@ final class NormalUnitCreationService
       if (!is_string($abilityId) || isset($seen[$abilityId])) throw new RuntimeException('Authored unit abilities are invalid.');
       $this->content->ability($abilityId); $seen[$abilityId] = true;
     }
-    $unit = $this->units->createActive($userId, $unitTypeId, $kinId, trim($name));
+    $name = self::GIVEN_NAMES[random_int(0, count(self::GIVEN_NAMES) - 1)] . ' '
+      . self::BYNAMES[random_int(0, count(self::BYNAMES) - 1)];
+    $unit = $this->units->createActive($userId, $unitTypeId, $kinId, $name);
     $this->units->insertOwnedAbilities((int)$unit['id'], array_values($abilityIds));
     return $unit;
   }

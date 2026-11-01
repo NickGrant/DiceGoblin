@@ -103,12 +103,12 @@ describe('RuntimeApiClient', () => {
   });
 
   it('provisions onboarding with only CSRF and an idempotency key', async () => {
-    const data = { unit_id: '12', die_id: '13', active_squad_id: '14',
+    const data = { unit_ids: ['12', '15', '16', '17'], die_ids: ['13', '18', '19', '20'], active_squad_id: '14',
       player_revision: 2, onboarding_status: 'complete' };
     const fetchRequest = jasmine.createSpy<RuntimeFetch>('fetchRequest').and.resolveTo(
       new Response(JSON.stringify({ ok: true, data }), { status: 200 }));
     const client = new RuntimeApiClient(fetchRequest, '/root');
-    expect((await client.provisionOnboarding('csrf', 'attempt-123')).unit_id).toBe('12');
+    expect((await client.provisionOnboarding('csrf', 'attempt-123')).unit_ids).toEqual(data.unit_ids);
     expect(fetchRequest).toHaveBeenCalledOnceWith('/root/api/v1/onboarding/provision', {
       method: 'POST', credentials: 'include', headers: {
         Accept: 'application/json', 'X-CSRF-Token': 'csrf', 'Idempotency-Key': 'attempt-123',

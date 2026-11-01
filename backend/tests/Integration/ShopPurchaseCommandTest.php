@@ -267,8 +267,10 @@ final class ShopPurchaseCommandTest extends IntegrationTestCase
     $request = $this->request('shop_offer.unit', 13); $command = $this->command($content);
     $first = $command->execute($userId, $request, 'purchase-unit-key');
     $unit = $first['output']['unit']; $unitId = (int)$unit['id'];
-    $this->assertSame(['Bruiser', 'unit_type.bruiser', 'kin.goblin', 1, 0, 'active'], [
-      $unit['display_name'], $unit['unit_type_id'], $unit['kin_id'], $unit['level'], $unit['xp'], $unit['lifecycle_status'],
+    $this->assertMatchesRegularExpression('/^[A-Z][a-z]+ [A-Z][a-z]+$/', $unit['display_name']);
+    $this->assertNotSame('Bruiser', $unit['display_name']);
+    $this->assertSame(['unit_type.bruiser', 'kin.goblin', 1, 0, 'active'], [
+      $unit['unit_type_id'], $unit['kin_id'], $unit['level'], $unit['xp'], $unit['lifecycle_status'],
     ]);
     $expectedAbilities = $content->unitType('unit_type.bruiser')['ability_ids'];
     $stmt = $this->pdo?->prepare('SELECT `ability_id` FROM `unit_abilities` WHERE `unit_id` = ? ORDER BY `unlocked_at`, `ability_id`');

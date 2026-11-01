@@ -34,30 +34,43 @@ final class OnboardingProvisionIntegrationTest extends IntegrationTestCase
     $this->assertSame('complete', $this->query()->execute($user)['status']);
     $this->assertSame($first, $this->command()->execute($user, [], 'onboard-ready-1'));
     $this->assertSame(2, (new PlayerStateRepository($this->pdo))->getPlayerState($user)['player_revision']);
-    $this->assertSame(1, (int)$this->scalar('SELECT COUNT(*) FROM unit_instances WHERE user_id = ?', [$user]));
-    $this->assertSame(1, (int)$this->scalar('SELECT COUNT(*) FROM dice_instances WHERE user_id = ?', [$user]));
+    $this->assertSame(4, (int)$this->scalar('SELECT COUNT(*) FROM unit_instances WHERE user_id = ?', [$user]));
+    $this->assertSame(4, (int)$this->scalar('SELECT COUNT(*) FROM dice_instances WHERE user_id = ?', [$user]));
     $this->assertSame(1, (int)$this->scalar('SELECT COUNT(*) FROM squads WHERE user_id = ?', [$user]));
-    $this->assertSame(1, (int)$this->scalar('SELECT COUNT(*) FROM squad_units WHERE squad_id = ?', [(int)$first['active_squad_id']]));
-    $unit = (new UnitDetailQuery(new WarbandUnitRepository($this->pdo), $this->content()))
-      ->execute($user, (int)$first['unit_id']);
-    $this->assertSame('kin.goblin', $unit['kin_id']);
-    $this->assertSame('unit_type.bruiser', $unit['unit_type_id']);
-    $this->assertCount(1, $unit['ability_loadout']);
-    $this->assertCount(1, $unit['dice_bindings']);
-    $this->assertSame($first['die_id'], $unit['dice_bindings'][0]['dice_instance_id']);
+    $this->assertSame(4, (int)$this->scalar('SELECT COUNT(*) FROM squad_units WHERE squad_id = ?', [(int)$first['active_squad_id']]));
+    $this->assertCount(4, $first['unit_ids']);
+    $this->assertCount(4, $first['die_ids']);
+    $expected = $this->content()->onboardingFlow()['starting_warband']['units'];
+    $detail = new UnitDetailQuery(new WarbandUnitRepository($this->pdo), $this->content());
+    foreach ($expected as $index => $member) {
+      $unit = $detail->execute($user, (int)$first['unit_ids'][$index]);
+      $this->assertSame('kin.goblin', $unit['kin_id']);
+      $this->assertSame($member['unit_type_id'], $unit['unit_type_id']);
+      $this->assertNotSame($this->content()->unitType($member['unit_type_id'])['display_name'], $unit['display_name']);
+      $this->assertMatchesRegularExpression('/^[A-Z][a-z]+ [A-Z][a-z]+$/', $unit['display_name']);
+      $this->assertCount(1, $unit['ability_loadout']);
+      $this->assertSame($member['ability_id'], $unit['ability_loadout'][0]['ability_id']);
+      $this->assertCount(1, $unit['dice_bindings']);
+      $this->assertSame($first['die_ids'][$index], $unit['dice_bindings'][0]['dice_instance_id']);
+      $this->assertSame((int)$first['unit_ids'][$index], (int)$this->scalar(
+        'SELECT unit_id FROM squad_units WHERE squad_id = ? AND position = ?',
+        [(int)$first['active_squad_id'], $member['position']],
+      ));
+    }
     $this->assertSame(0, (int)$this->scalar('SELECT COUNT(*) FROM user_unlocks WHERE user_id = ?', [$user]));
-    $this->assertSame(0, (int)$this->scalar('SELECT COUNT(*) FROM unit_promotions WHERE unit_id = ?', [(int)$first['unit_id']]));
+    $this->assertSame(0, (int)$this->scalar('SELECT COUNT(*) FROM unit_promotions WHERE unit_id IN (?, ?, ?, ?)',
+      array_map('intval', $first['unit_ids'])));
     $this->assertSame(0, (int)$this->scalar('SELECT COUNT(*) FROM unit_instances WHERE user_id = ?', [$other]));
     $this->assertSame(0, (int)$this->scalar('SELECT COUNT(*) FROM dice_instances WHERE user_id = ?', [$other]));
 
     $this->ready($other);
     $otherReceipt = $this->command()->execute($other, [], 'onboard-ready-1');
-    $this->assertNotSame($first['unit_id'], $otherReceipt['unit_id']);
+    $this->assertNotSame($first['unit_ids'], $otherReceipt['unit_ids']);
     $this->assertSame('complete', $this->query()->execute($other)['status']);
 
     try { $this->command()->execute($user, [], 'onboard-ready-2'); $this->fail('Expected a distinct key to reject completion.'); }
     catch (OnboardingProvisionException $e) { $this->assertSame('onboarding_not_ready', $e->errorCode); }
-    $this->assertSame(1, (int)$this->scalar('SELECT COUNT(*) FROM unit_instances WHERE user_id = ?', [$user]));
+    $this->assertSame(4, (int)$this->scalar('SELECT COUNT(*) FROM unit_instances WHERE user_id = ?', [$user]));
     $this->assertSame(1, (int)$this->scalar('SELECT COUNT(*) FROM idempotency_requests WHERE user_id = ?', [$user]));
     $services = ControllerServiceFactory::buildContentAware($this->pdo,
       ControllerServiceFactory::buildCore($this->pdo), $this->content());
@@ -110,7 +123,7 @@ final class OnboardingProvisionIntegrationTest extends IntegrationTestCase
     $this->setJsonBody([]);
     $response = $this->invoke(fn() => $controller->provision());
     $this->assertSame(200, $response['status']);
-    $this->assertEqualsCanonicalizing(['unit_id', 'die_id', 'active_squad_id', 'player_revision', 'onboarding_status'],
+    $this->assertEqualsCanonicalizing(['unit_ids', 'die_ids', 'active_squad_id', 'player_revision', 'onboarding_status'],
       array_keys($response['body']['data']));
     $encoded = json_encode($response['body'], JSON_THROW_ON_ERROR);
     foreach (['knowledge_id', 'encounter_id', 'reward_definition', 'machine_capability_id', 'starting_warband'] as $private) {

@@ -4,7 +4,9 @@ Read this for sequencing/planning or when closing/promoting an execution package
 
 ## Milestone 12 - Mystic Cave and Onboarding
 
-**Status:** Active
+**Status:** Complete
+
+The user accepted Package 7 UAT as good enough on 2026-10-31. Package review/promotion remains pending; Milestone 13 has not been activated.
 
 ### Related Issues
 - Milestone 12 Package 7 - Focused manual UAT before Milestone 13
@@ -50,7 +52,7 @@ Swamp/Frog Kin and third-region parity remain Milestone 13. Hardening/cutover re
 4. **Wrong Machine introduction and onboarding transition.** Approved through evidence `045c5446b7bb6c016c530461e040ab38177706f0` (implementation `1f1be8cffa6492960befb9c680294e464175da49`).
 5. **Phaser onboarding presentation and fresh-player routing.** Approved through evidence `fc1c5cff8888a0e5a8b3b717077958dec061f2d0` (implementation `11b27b5cd646733b498b8f9f6f84e9fbe052ef5d`).
 6. **Mystic Cave/onboarding integrated verification and technical closure.** Approved through evidence `7c8f2e66df222d1035bba0ae33eb5cbb44220b94` (technical-closure implementation `3f148166a247df80e8839ac48d4b71488f6610de`).
-7. **Focused manual UAT before Milestone 13.** Current. Manually verify the complete fresh-player onboarding path before activating Swamp/parity work.
+7. **Focused manual UAT before Milestone 13.** User accepted UAT as good enough on 2026-10-31 after correction of the four-unit starting formation and generated unit names. Package review/promotion remains pending; Milestone 13 has not been activated.
 
 ### Sequencing Notes
 

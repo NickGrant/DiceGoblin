@@ -51,7 +51,7 @@ describe('OnboardingFlow', () => {
       response: 'Remembered.', knowledge: { codexId: 'codex.mystic_cave.whim_arrival', outcome: 'granted' },
       playerRevision: 2 }), Promise.resolve({ dialogueId: machine.id, choiceId: 'remember', response: 'Remembered.',
       knowledge: { codexId: 'codex.mystic_cave.wrong_machine', outcome: 'granted' }, playerRevision: 3 }));
-    api.provisionOnboarding.and.resolveTo({ unit_id: '11', die_id: '21', active_squad_id: '31',
+    api.provisionOnboarding.and.resolveTo({ unit_ids: ['11', '12', '13', '14'], die_ids: ['21', '22', '23', '24'], active_squad_id: '31',
       player_revision: 4, onboarding_status: 'complete' });
 
     expect((await flow.refresh()).kind).toBe('dialogue');
@@ -125,7 +125,7 @@ describe('OnboardingFlow', () => {
     api.getBootstrap.and.returnValues(Promise.resolve({ ok: true, data: bootstrap(1) }),
       Promise.resolve({ ok: true, data: bootstrap(1) }), Promise.resolve({ ok: true, data: bootstrap(2, true) }));
     api.provisionOnboarding.and.returnValues(Promise.reject(new RuntimeApiError('network')),
-      Promise.resolve({ unit_id: '11', die_id: '21', active_squad_id: '31', player_revision: 2,
+      Promise.resolve({ unit_ids: ['11', '12', '13', '14'], die_ids: ['21', '22', '23', '24'], active_squad_id: '31', player_revision: 2,
         onboarding_status: 'complete' }));
     expect((await flow.refresh()).kind).toBe('provision');
     expect(api.provisionOnboarding).not.toHaveBeenCalled();

@@ -419,14 +419,19 @@ final class ContentValidator
           throw new ContentValidationException("{$id} must establish Basic Goblin without Kin restoration.");
         }
         $starting = $definition['starting_warband'];
-        $unitType = $this->requireReferenceType($definitions, $id, 'starting_warband.unit_type_id', $starting['unit_type_id'], 'unit_type');
-        $ability = $this->requireReferenceType($definitions, $id, 'starting_warband.ability_id', $starting['ability_id'], 'ability');
-        $profile = $this->requireReferenceType($definitions, $id, 'starting_warband.dice_profile_id', $starting['dice_profile_id'], 'dice_profile');
-        if ($unitType['tier'] !== 1 || !in_array($ability['id'], $unitType['ability_ids'], true)
-          || $ability['kind'] !== 'active' || $ability['dice_slot_count'] !== 1
-          || !in_array($starting['die_size'], [4, 6, 8], true)
-          || !in_array($starting['die_size'], $profile['allowed_sizes'], true)) {
-          throw new ContentValidationException("{$id} starting Warband configuration is invalid.");
+        foreach ($starting['units'] as $index => $member) {
+          $where = "starting_warband.units[{$index}]";
+          $unitType = $this->requireReferenceType($definitions, $id, "{$where}.unit_type_id", $member['unit_type_id'], 'unit_type');
+          $ability = $this->requireReferenceType($definitions, $id, "{$where}.ability_id", $member['ability_id'], 'ability');
+          $profile = $this->requireReferenceType($definitions, $id, "{$where}.dice_profile_id", $member['dice_profile_id'], 'dice_profile');
+          if ($unitType['tier'] !== 1 || !in_array($ability['id'], $unitType['ability_ids'], true)
+            || $ability['kind'] !== 'active' || $ability['dice_slot_count'] !== 1
+            || !in_array($member['die_size'], [4, 6, 8], true)
+            || !in_array($member['die_size'], $profile['allowed_sizes'], true)
+            || ($unitType['role'] === 'frontline' && $member['position'] % 3 !== 2)
+            || ($unitType['role'] === 'backline' && $member['position'] % 3 !== 0)) {
+            throw new ContentValidationException("{$id} {$where} configuration is invalid.");
+          }
         }
         $machine = $this->requireReferenceType($definitions, $id, 'machine_capability_id', $definition['machine_capability_id'], 'capability');
         if ($machine['id'] !== 'capability.wrong_machine_access' || $machine['kind'] !== 'feature_access') {
@@ -578,12 +583,25 @@ final class ContentValidator
     }
     $starting = $definition['starting_warband'];
     if (!is_array($starting) || array_is_list($starting)) throw new ContentValidationException("{$location} starting Warband must be an object.");
-    $this->requireExactFieldSet($starting, ['unit_type_id', 'ability_id', 'dice_profile_id', 'die_size', 'squad_name'], [], $location);
-    foreach (['unit_type_id' => 'unit_type.', 'ability_id' => 'ability.', 'dice_profile_id' => 'dice_profile.'] as $field => $namespace) {
-      $this->requireStableIdWithNamespace($starting, $field, $namespace, $location);
-    }
-    $this->requireIntegerInRange($starting, 'die_size', 4, 20, $location);
+    $this->requireExactFieldSet($starting, ['squad_name', 'units'], [], $location);
     $this->requireBoundedNonEmptyString($starting, 'squad_name', 64, $location);
+    $members = $starting['units'];
+    if (!is_array($members) || !array_is_list($members) || count($members) < 1 || count($members) > 9) {
+      throw new ContentValidationException("{$location} starting Warband units must be a list of 1 to 9 members.");
+    }
+    $positions = [];
+    foreach ($members as $index => $member) {
+      $where = "{$location} starting_warband.units[{$index}]";
+      if (!is_array($member) || array_is_list($member)) throw new ContentValidationException("{$where} must be an object.");
+      $this->requireExactFieldSet($member, ['unit_type_id', 'ability_id', 'dice_profile_id', 'die_size', 'position'], [], $where);
+      foreach (['unit_type_id' => 'unit_type.', 'ability_id' => 'ability.', 'dice_profile_id' => 'dice_profile.'] as $field => $namespace) {
+        $this->requireStableIdWithNamespace($member, $field, $namespace, $where);
+      }
+      $this->requireIntegerInRange($member, 'die_size', 4, 20, $where);
+      $this->requireIntegerInRange($member, 'position', 0, 8, $where);
+      if (isset($positions[$member['position']])) throw new ContentValidationException("{$where} position is duplicated.");
+      $positions[$member['position']] = true;
+    }
     $steps = $definition['steps'];
     if (!is_array($steps) || !array_is_list($steps) || $steps === []) {
       throw new ContentValidationException("{$location} steps must be a non-empty ordered list.");

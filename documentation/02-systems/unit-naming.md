@@ -15,7 +15,7 @@ Tags: [systems, units, naming]
 Owned unit instances may have a player-visible name. Names survive promotion because promotion changes the existing unit rather than replacing its identity.
 
 ## vNext Rules
-- A newly created unit receives a valid display name when it is materialized.
+- A newly created unit receives a generated personal display name when it is materialized through normal unit creation, including onboarding, shop purchases, and Kin reconstruction.
 - The player may rename an owned unit outside restrictions imposed by authoritative gameplay state.
 - Rename is a narrow unit command and returns the authoritative updated unit state plus `player_revision` when persistent state changes.
 - Name validation is server-authoritative.

@@ -43,6 +43,8 @@ final class ReconstructKinCommandTest extends IntegrationTestCase
     $this->assertSame([$recipe, 'first_restoration', 'unit_type.guardian', $kin], [
       $receipt['recipe_id'], $receipt['mode'], $receipt['unit']['unit_type_id'], $receipt['unit']['kin_id'],
     ]);
+    $this->assertMatchesRegularExpression('/^[A-Z][a-z]+ [A-Z][a-z]+$/', $receipt['unit']['display_name']);
+    $this->assertNotSame('Guardian', $receipt['unit']['display_name']);
     $this->assertSame(['raw_chaos', 5, 12, 7], [
       $receipt['spend']['currency_id'], $receipt['spend']['amount'],
       $receipt['spend']['balance_before'], $receipt['spend']['balance_after'],
