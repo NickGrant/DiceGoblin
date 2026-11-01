@@ -18,6 +18,7 @@ import { WrongMachineScreen } from '../screens/wrong-machine-screen';
 import { UnitPromotionScreen } from '../screens/unit-promotion-screen';
 import { CodexScreen } from '../screens/codex-screen';
 import { ObjectivesScreen } from '../screens/objectives-screen';
+import { OnboardingScreen } from '../screens/onboarding-screen';
 import { RuntimeViewportSnapshot } from '../runtime/runtime-viewport';
 import { RuntimeApiError } from '../runtime/runtime-api-client';
 import { createRunMapLayout, createRunMapPresentation, runNodeColors } from '../runtime/run-map-model';
@@ -30,14 +31,16 @@ import { battleArtTextureKey, battleColumnX, supportedBattleArtAssets } from '..
 import { RetainedMutationAttempt, RetainedMutationState } from '../runtime/retained-mutation-attempt';
 import { RunUnitHealResult } from '../runtime/consumable-contracts';
 import { DialogueCompletion, DialogueRead } from '../runtime/dialogue-contracts';
+import { OnboardingView } from '../runtime/onboarding-flow';
 
 export const BOOT_SCENE_KEY = 'BootScene';
+export const ONBOARDING_SCENE_KEY = 'OnboardingScene';
 export const GAME_SCENE_KEY = 'GameScene';
 export const RUN_SCENE_KEY = 'RunScene';
 export const BATTLE_SCENE_KEY = 'BattleScene';
 
 export type GameplaySceneKey =
-  typeof GAME_SCENE_KEY | typeof RUN_SCENE_KEY | typeof BATTLE_SCENE_KEY;
+  typeof ONBOARDING_SCENE_KEY | typeof GAME_SCENE_KEY | typeof RUN_SCENE_KEY | typeof BATTLE_SCENE_KEY;
 
 /**
  * A deliberately small runtime-owned marker used to verify that scene changes
@@ -133,9 +136,19 @@ export class BootScene extends Phaser.Scene {
     const state = await this.runtimeStartup.start();
     if (!this.scene.isActive(BOOT_SCENE_KEY)) return;
 
-    const next = nextSceneForStartup(state, this.runtimeStartup.store.bootstrap?.active_run !== null,
+    let onboarding: OnboardingView | null = null;
+    if (state.status === 'ready') {
+      onboarding = await this.runtimeStartup.onboarding.refresh();
+      if (!this.scene.isActive(BOOT_SCENE_KEY)) return;
+    }
+
+    const next = nextSceneForOnboarding(state, onboarding, this.runtimeStartup.store.bootstrap?.active_run !== null,
       this.runtimeStartup.battlePresentation.marker !== null);
     if (next) {
+      if (next === ONBOARDING_SCENE_KEY) {
+        this.scene.start(next);
+        return;
+      }
       const preview = (readDebugCaptureRequest()?.scene ?? window.__DG_DEBUG__?.requestedScene ?? '').toLowerCase();
       // Capture-only navigation can inspect Warband lock presentation while real startup still routes to RunScene.
       this.scene.start(next === RUN_SCENE_KEY && ['warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'codex', 'objectives',
@@ -151,6 +164,30 @@ export class BootScene extends Phaser.Scene {
         ?.setInteractive({ useHandCursor: true })
         .once('pointerup', () => window.location.reload());
     }
+  }
+}
+
+export class OnboardingScene extends RuntimeScene {
+  private screen: OnboardingScreen | null = null;
+
+  constructor(runtimeState: RuntimeLifecycleState, runtimeStartup: RuntimeStartup, runtimeViewport: RuntimeViewport) {
+    super(ONBOARDING_SCENE_KEY, runtimeState, runtimeStartup, runtimeViewport);
+  }
+
+  create(): void {
+    (this.sys as Phaser.Scenes.Systems & { game?: Phaser.Game }).game?.canvas.parentElement
+      ?.setAttribute('data-game-screen', 'onboarding');
+    this.screen = new OnboardingScreen(this, this.runtimeViewport, this.runtimeStartup.onboarding, () => {
+      const next = nextSceneForStartup(this.runtimeStartup.state,
+        this.runtimeStartup.store.bootstrap?.active_run !== null,
+        this.runtimeStartup.battlePresentation.marker !== null) ?? GAME_SCENE_KEY;
+      this.scene.start(next);
+    });
+    this.screen.create();
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.screen?.destroy();
+      this.screen = null;
+    });
   }
 }
 
@@ -1442,6 +1479,17 @@ export function nextSceneForStartup(
   return state.status === 'ready' ? (hasBattlePresentation ? BATTLE_SCENE_KEY : hasActiveRun ? RUN_SCENE_KEY : GAME_SCENE_KEY) : null;
 }
 
+export function nextSceneForOnboarding(
+  state: RuntimeStartupSnapshot,
+  onboarding: OnboardingView | null,
+  hasActiveRun = false,
+  hasBattlePresentation = false,
+): GameplaySceneKey | null {
+  if (state.status !== 'ready') return null;
+  if (onboarding?.kind !== 'complete') return ONBOARDING_SCENE_KEY;
+  return nextSceneForStartup(state, hasActiveRun, hasBattlePresentation);
+}
+
 export function startupMessage(state: RuntimeStartupSnapshot): string {
   if (state.status === 'content-mismatch') {
     return 'An update is required before playing. Click to reload.';
@@ -1463,6 +1511,7 @@ export function createRuntimeScenes(
 ): Phaser.Scene[] {
   return [
     new BootScene(runtimeState, runtimeStartup, runtimeViewport),
+    new OnboardingScene(runtimeState, runtimeStartup, runtimeViewport),
     new GameScene(runtimeState, runtimeStartup, runtimeViewport),
     new RunScene(runtimeState, runtimeStartup, runtimeViewport),
     new BattleScene(runtimeState, runtimeStartup, runtimeViewport),

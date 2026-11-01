@@ -2,7 +2,8 @@ import { ClientContentLoadError, ClientContentLoader } from './client-content-re
 import { GameStore } from './game-store';
 import { RuntimeApiClient, RuntimeApiError } from './runtime-api-client';
 import { RuntimeStartup } from './runtime-startup';
-import { GAME_SCENE_KEY, RUN_SCENE_KEY, nextSceneForStartup, startupMessage } from '../scenes/runtime-scenes';
+import { GAME_SCENE_KEY, ONBOARDING_SCENE_KEY, RUN_SCENE_KEY,
+  nextSceneForOnboarding, nextSceneForStartup, startupMessage } from '../scenes/runtime-scenes';
 
 describe('RuntimeStartup', () => {
   it('routes ready startup directly to RunScene only when bootstrap reports an active run', () => {
@@ -311,5 +312,17 @@ describe('RuntimeStartup', () => {
     expect(second).toBe(third);
     expect(contentLoader.loadProjection).toHaveBeenCalledTimes(1);
     expect(apiClient.getBootstrap).toHaveBeenCalledTimes(1);
+  });
+
+  it('routes authoritative onboarding before normal Camp or active-run scenes', () => {
+    const ready = { status: 'ready' } as const;
+    expect(nextSceneForOnboarding(ready, { kind: 'loading' })).toBe(ONBOARDING_SCENE_KEY);
+    expect(nextSceneForOnboarding(ready, { kind: 'error', message: 'Retry' })).toBe(ONBOARDING_SCENE_KEY);
+    expect(nextSceneForOnboarding(ready, { kind: 'provision', status: {
+      status: 'ready_to_provision', region: { id: 'region.mystic_cave', display_name: 'Mystic Cave' },
+      dialogue_id: null }, message: null })).toBe(ONBOARDING_SCENE_KEY);
+    expect(nextSceneForOnboarding(ready, { kind: 'complete' })).toBe(GAME_SCENE_KEY);
+    expect(nextSceneForOnboarding(ready, { kind: 'complete' }, true)).toBe(RUN_SCENE_KEY);
+    expect(nextSceneForOnboarding({ status: 'loading' }, { kind: 'complete' })).toBeNull();
   });
 });

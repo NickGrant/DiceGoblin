@@ -7,6 +7,7 @@ import {
 import { BootstrapContractError, GameStore, parseGameBootstrapEnvelope } from './game-store';
 import { RuntimeApiClient, RuntimeApiError } from './runtime-api-client';
 import { BattlePresentationState } from './battle-presentation';
+import { OnboardingFlow } from './onboarding-flow';
 
 export type RuntimeStartupFailureReason =
   | 'client-content-request'
@@ -30,6 +31,7 @@ export type RuntimeStartupSnapshot =
 /** One-shot startup coordinator and owner of runtime-lifetime startup services. */
 export class RuntimeStartup {
   readonly store: GameStore;
+  readonly onboarding: OnboardingFlow;
   private currentState: RuntimeStartupSnapshot = { status: 'loading' };
   private activeContentRegistry: ClientContentRegistry | null = null;
   private startupPromise: Promise<RuntimeStartupSnapshot> | null = null;
@@ -42,6 +44,7 @@ export class RuntimeStartup {
     readonly battlePresentation: BattlePresentationState = new BattlePresentationState(),
   ) {
     this.store = store;
+    this.onboarding = new OnboardingFlow(apiClient, store);
   }
 
   get state(): RuntimeStartupSnapshot {
@@ -63,6 +66,7 @@ export class RuntimeStartup {
 
   dispose(): void {
     this.disposed = true;
+    this.onboarding.dispose();
     this.activeContentRegistry = null;
     this.store.clear();
     this.currentState = { status: 'failure', reason: 'runtime-disposed' };

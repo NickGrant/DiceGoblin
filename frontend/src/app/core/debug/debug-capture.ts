@@ -25,6 +25,9 @@ const DEFAULT_DISPLAY_NAME = 'Debug Goblin';
 const DEFAULT_USER_ID = 'debug-user';
 
 const DEBUG_SCENE_ROUTE_ALIASES: Record<string, string> = {
+  onboarding: '/game',
+  'onboarding-progress': '/game',
+  'onboarding-ready': '/game',
   camp: '/game',
   'camp-portrait': '/game',
   warband: '/game',

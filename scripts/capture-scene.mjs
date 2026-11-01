@@ -182,7 +182,11 @@ async function installGameFixtureRoutes(page, options) {
   const runScenes = ['run', 'run-modifier', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-branching', 'run-mountains-trails',
     'run-loot-available', 'run-loot-result', 'run-rest-available', 'run-rest-result', 'run-dialogue-available', 'run-boss-first', 'run-boss-return',
     'run-hazard-available', 'run-hazard-result', 'run-contextual-initial', 'run-contextual-step', 'run-supplies'];
-  if (!['camp', 'camp-portrait', 'warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'codex', 'objectives', 'unit-promotion', 'squad-editor', 'unit-configuration', ...runScenes, ...battleScenes].includes(scene)) return;
+  const onboardingScenes = ['onboarding', 'onboarding-progress', 'onboarding-ready'];
+  const onboardingState = scene === 'onboarding-ready' ? 'ready_to_provision'
+    : scene === 'onboarding-progress' ? 'in_progress' : 'required';
+  const isOnboardingScene = onboardingScenes.includes(scene);
+  if (!['camp', 'camp-portrait', 'warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'codex', 'objectives', 'unit-promotion', 'squad-editor', 'unit-configuration', ...onboardingScenes, ...runScenes, ...battleScenes].includes(scene)) return;
 
   if (battleScenes.includes(scene)) {
     await page.addInitScript(({ accountId }) => sessionStorage.setItem('dice-goblins:battle-presentation:v1', JSON.stringify({
@@ -191,6 +195,25 @@ async function installGameFixtureRoutes(page, options) {
   }
 
   const projection = JSON.parse(await readFile(path.resolve(process.cwd(), 'frontend/public/game-content.json'), 'utf8'));
+  const onboardingDefinitions = JSON.parse(await readFile(path.resolve(process.cwd(), 'backend/content/onboarding/mystic-cave.json'), 'utf8')).definitions;
+  const currentDialogueId = onboardingState === 'in_progress'
+    ? 'dialogue.mystic_cave.wrong_machine' : 'dialogue.mystic_cave.whim_arrival';
+  await page.route('**/api/v1/onboarding', (route) => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({ ok: true, data: {
+      status: isOnboardingScene ? onboardingState : 'complete',
+      region: { id: 'region.mystic_cave', display_name: 'Mystic Cave' },
+      dialogue_id: isOnboardingScene && onboardingState !== 'ready_to_provision' ? currentDialogueId : null,
+    } }),
+  }));
+  if (isOnboardingScene && onboardingState !== 'ready_to_provision') {
+    const dialogue = onboardingDefinitions.find((entry) => entry.id === currentDialogueId);
+    await page.route(`**/api/v1/dialogues/${currentDialogueId}`, (route) => route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ ok: true, data: { id: dialogue.id, title: dialogue.title, body: dialogue.body,
+        choices: dialogue.choices.map((choice) => ({ id: choice.id, label: choice.label })) } }),
+    }));
+  }
   projection.content.items = {
     ...projection.content.items,
     'item.capture.ore': { id: 'item.capture.ore', display_name: 'Raw Scrap', description: 'Useful material with no direct action.', category: 'material', rarity: 'common', icon_key: 'capture_ore', stackable: true },
@@ -237,22 +260,22 @@ async function installGameFixtureRoutes(page, options) {
             next_regeneration_at: null,
             fully_regenerated_at: null,
           },
-          player_revision: 3,
+          player_revision: isOnboardingScene ? onboardingState === 'required' ? 1 : onboardingState === 'in_progress' ? 2 : 3 : 3,
         },
         session: { authenticated: true, csrf_token: 'debug-csrf-token' },
         server_time: '2026-09-11T00:00:00Z',
         content_revision: revision,
         progression: {
-          unlock_ids: [...(options.progressionState === 'locked' ? []
+          unlock_ids: [...(isOnboardingScene || options.progressionState === 'locked' ? []
             : ['unlock.region.mountains', 'unlock.capability.wrong_machine_access', 'unlock.capability.shop_access']),
             ...(scene === 'academy' || options.progressionState === 'owned'
               ? ['unlock.capability.academy_access'] : []),
             ...(scene === 'wrong-machine' && options.progressionState === 'owned'
               ? ['unlock.kin.pig', 'unlock.kin.lizard_kin'] : [])],
-          available_region_ids: options.progressionState === 'locked'
+          available_region_ids: isOnboardingScene || options.progressionState === 'locked'
             ? ['region.the_farm'] : ['region.the_farm', 'region.mountains'],
         },
-        active_squad: {
+        active_squad: isOnboardingScene ? null : {
           id: '301', name: 'Bogbreakers', is_active: true, formation: activeFormation,
           units: unitRows.filter((unit) => activeFormation.includes(unit.id)),
         },
@@ -775,7 +798,7 @@ async function captureScene(options) {
             { timeout: options.timeoutMs },
           );
         }
-        if (['camp', 'camp-portrait', 'warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'codex', 'objectives', 'unit-promotion', 'squad-editor', 'unit-configuration', 'run', 'run-modifier', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-branching',
+        if (['camp', 'camp-portrait', 'warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'codex', 'objectives', 'unit-promotion', 'squad-editor', 'unit-configuration', 'onboarding', 'onboarding-progress', 'onboarding-ready', 'run', 'run-modifier', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-branching',
             'run-loot-available', 'run-loot-result', 'run-rest-available', 'run-rest-result', 'run-dialogue-available', 'run-boss-first', 'run-boss-return',
             'run-hazard-available', 'run-hazard-result', 'run-contextual-initial', 'run-contextual-step', 'run-supplies',
           'battle-early', 'battle-mid', 'battle-complete', 'battle-compact', 'battle-wide', 'battle-portrait', 'battle-defeat',
@@ -783,7 +806,7 @@ async function captureScene(options) {
           await page.waitForSelector('.game-host__mount canvas', { timeout: options.timeoutMs });
           const requestedGameScreen = options.scene.trim().toLowerCase();
           const gameScreen = ['warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'codex', 'objectives', 'unit-promotion', 'squad-editor', 'unit-configuration'].includes(requestedGameScreen)
-            ? requestedGameScreen : requestedGameScreen.startsWith('battle-') ? 'battle'
+            ? requestedGameScreen : requestedGameScreen.startsWith('onboarding') ? 'onboarding' : requestedGameScreen.startsWith('battle-') ? 'battle'
               : ['run', 'run-modifier', 'run-abandon', 'run-portrait', 'run-combat-available', 'run-branching', 'run-mountains-trails', 'run-loot-available', 'run-loot-result', 'run-rest-available', 'run-rest-result', 'run-dialogue-available', 'run-boss-first', 'run-boss-return', 'run-hazard-available', 'run-hazard-result', 'run-contextual-initial', 'run-contextual-step', 'run-supplies'].includes(requestedGameScreen) ? 'run' : 'camp';
           await page.waitForSelector(`[data-game-screen="${gameScreen}"]`, { timeout: options.timeoutMs });
           if (gameScreen === 'warband') {

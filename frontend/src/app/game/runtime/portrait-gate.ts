@@ -59,7 +59,7 @@ export class PortraitGate {
       textShadow: '0 3px 0 #3a2a1a',
     });
     const detail = document.createElement('p');
-    detail.textContent = 'Rotate your device to landscape to return to Camp.';
+    detail.textContent = 'Rotate your device to landscape to continue your game.';
     Object.assign(detail.style, {
       margin: '0',
       color: '#f5e8c8',
