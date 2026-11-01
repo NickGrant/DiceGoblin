@@ -48,10 +48,10 @@ Milestone 13 then owns Swamp content, the first combat encounters with Archivist
 ### Package Queue
 
 1. **Opening progression implementation audit.** Current. Trace the actual fresh-player path from M12 onboarding through Farm and Mountains against the canonical story document. Inventory current authored content, unlock/reward ownership, dialogue presentation, Shop availability, region availability, first-victory behavior, Phaser routing, and tests. Produce a concrete discrepancy/correction plan; make no broad production rewrite merely to match an assumed design.
-2. **Farm/Tooth Collector progression correction.** Planned, subject to Package 1 findings. Ensure first Mudking victory rescues the Tooth Collector and unlocks Shop/economy access through accepted permanent progression authority, while preserving repeat Farm behavior and existing dialogue/Codex/objective systems.
-3. **Post-Farm Whim and Mountains unlock correction.** Planned, subject to Package 1 findings. Add or correct the player-facing Whim beat that establishes the missing Wrong Machine search and unlocks Mountains without introducing generic story flags.
-4. **Mountains narrative and Archivist introduction.** Planned, subject to Package 1 findings. Ensure Mountains continue the Wrong Machine trail, stage the first direct player/Archivist conversation there, and do not introduce Archivist combat troops before Swamp.
-5. **Mountains boss and Swamp handoff.** Planned, subject to Package 1 findings. Ensure first Mountains boss victory establishes that the Machine moved to the Swamps and unlocks Swamps, while leaving `capability.wrong_machine_access` unavailable.
+2. **Farm access and Tooth Collector rescue correction.** Planned from Package 1 audit. Make Farm's onboarding grant a durable region unlock; author the Whim's rescue mission and name the Tooth Collector. Preserve the first Mudking victory's existing Shop unlock, make the rescue/follow-up reload safe, and retain repeat Farm behavior.
+3. **Post-Farm Whim and Mountains unlock correction.** Planned from Package 1 audit. Remove the Mountains unlock from the Farm boss; add a server-gated Camp Whim beat after rescue that establishes the Wrong Machine search and grants Mountains through existing reward/unlock authority.
+4. **Mountains trail and Archivist introduction.** Planned from Package 1 audit. Add the Wrong Machine trail and first direct Archivist dialogue through the existing run dialogue/Codex path. Retain kobold-only combat before Swamp.
+5. **Mountains boss and visible Swamp handoff.** Planned from Package 1 audit. Make first boss victory establish the Machine's movement and grant a Swamp region unlock. Show Swamps as unlocked while entry waits for Milestone 13 gameplay; leave Wrong Machine access locked and add no Swamp run or enemies.
 6. **Integrated opening-arc verification and technical closure.** Planned. Prove fresh-account and returning/reload flows across Mystic Cave -> Farm -> Tooth Collector/Shop -> Whim -> Mountains -> Archivist -> Mountains boss -> Swamp available, including idempotency/reconnect/revision/secrecy and regression coverage.
 7. **Focused manual UAT before M13.** Planned. Manually verify the corrected opening progression and explicitly accept the handoff state before reactivating M13.
 
@@ -64,7 +64,7 @@ At M12.5 completion, a fresh player who follows the canonical opening path must 
 - the Tooth Collector has been rescued and Shop access is available;
 - the Whim has directed the player toward the Wrong Machine and Mountains are available;
 - the player has directly encountered/conversed with The Archivist in Mountains;
-- the Mountains boss has revealed/established the Wrong Machine's movement to Swamps and Swamps are available;
+- the Mountains boss has revealed/established the Wrong Machine's movement to Swamps, which is visible and unlocked while run entry waits for Milestone 13 gameplay;
 - `capability.wrong_machine_access` is still absent;
 - no Frog Kin reconstruction has occurred;
 - no Archivist/Order combat troops have been encountered as part of the canonical opening path;

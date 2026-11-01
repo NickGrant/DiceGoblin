@@ -135,3 +135,6 @@ At minimum explicitly answer:
 Record the audit implementation/evidence SHA if files are changed; exact current source/content paths inspected; the canonical-beat discrepancy inventory; relevant focused test commands/results; recommended corrections and package ownership; any proposed consolidation/splitting of Packages 2-5; and explicit confirmation that no M13 implementation or generic story-state architecture was introduced.
 
 Leave Package 1 **In Progress** for architectural review. Do not activate Package 2 automatically from the coding agent.
+
+#### Package 1 audit evidence
+The implementation audit and canonical-beat discrepancy matrix are in [m12-5-opening-progression-audit.md](../documentation/07-development-path/m12-5-opening-progression-audit.md). It traces the current branch at `193634880f2b53a1122ce309bd47f0d8bce88c80` through registration, onboarding, Farm, Shop, Mountains, client routing, rewards, and tests. Focused backend proof passed: 38 tests and 443 assertions. Packages 2-5 are narrowed in `agent/MILESTONES.md` from the observed gaps. The user clarified that the Swamps must be visible and unlocked at the M13 handoff while run entry waits for M13; the canonical story wording records that decision. No M13 gameplay or generic story-state architecture was introduced. Package 1 remains In Progress for architectural review.

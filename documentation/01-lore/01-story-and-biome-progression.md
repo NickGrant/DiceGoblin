@@ -62,7 +62,7 @@ The Mountains continue the search for the Wrong Machine. The kobolds provide the
 
 During the Mountains chapter, the player speaks directly with The Archivist for the first time. This is the Archivist's introduction to the player-facing story: The Archivist becomes aware of the returned goblins and can begin treating the player as an anomaly or threat, but the player does not yet fight the Archivist's troops here as part of the opening escalation.
 
-The player also learns that the Wrong Machine has already been moved. Defeating the Mountains boss establishes that it was taken to the Swamps and unlocks the Swamps as the next destination.
+The player also learns that the Wrong Machine has already been moved. Defeating the Mountains boss establishes that it was taken to the Swamps and unlocks the Swamps as the next destination. At the Milestone 13 handoff, the Swamps are visible and unlocked, while entering a Swamp run waits for Milestone 13 gameplay.
 
 Canonical consequences:
 - the Mountains contain the player's first direct conversation with The Archivist;
