@@ -3,11 +3,15 @@ declare(strict_types=1);
 
 use DiceGoblins\Application\Commands\ProvisionWarbandFixtureCommand;
 use DiceGoblins\Application\Commands\WarbandFixtureEnvironment;
+use DiceGoblins\Application\Queries\OnboardingQuery;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Core\Autoloader;
 use DiceGoblins\Core\Db;
 use DiceGoblins\Core\Env;
+use DiceGoblins\Repositories\PlayerStateRepository;
+use DiceGoblins\Repositories\UserCodexRepository;
 use DiceGoblins\Repositories\WarbandFixtureRepository;
+use DiceGoblins\Repositories\WarbandUnitRepository;
 
 require_once __DIR__ . '/../src/Core/Autoloader.php';
 Autoloader::register(__DIR__ . '/../src');
@@ -17,12 +21,14 @@ try {
     throw new RuntimeException('UAT account reset is disabled in this environment.');
   }
 
-  $options = getopt('', ['user-id:', 'display-name:', 'confirm-reset']);
+  $options = getopt('', ['user-id:', 'display-name:', 'confirm-reset', 'fresh-onboarding']);
   $hasUserId = isset($options['user-id']);
   $hasDisplayName = isset($options['display-name']);
-  if ($hasUserId === $hasDisplayName || !isset($options['confirm-reset']) || count($argv) !== 3) {
+  $freshOnboarding = isset($options['fresh-onboarding']);
+  if ($hasUserId === $hasDisplayName || !isset($options['confirm-reset'])
+    || count($argv) !== ($freshOnboarding ? 4 : 3)) {
     throw new RuntimeException(
-      'Usage: php bin/reset-uat-account.php (--user-id=3 or --display-name=Nick) --confirm-reset',
+      'Usage: php bin/reset-uat-account.php (--user-id=3 or --display-name=Nick) --confirm-reset [--fresh-onboarding]',
     );
   }
 
@@ -60,6 +66,9 @@ try {
       'unit_instances', 'dice_instances'] as $table) {
       $pdo->prepare("DELETE FROM `$table` WHERE `user_id` = ?")->execute([$userId]);
     }
+    if ($freshOnboarding) {
+      $pdo->prepare('DELETE FROM `user_codex_ownership` WHERE `user_id` = ?')->execute([$userId]);
+    }
     $reset = $pdo->prepare('UPDATE `user_state`
       SET `teeth` = 0, `raw_chaos` = 0, `energy_current` = ?, `energy_last_regen_at` = UTC_TIMESTAMP(),
         `active_squad_id` = NULL, `player_revision` = 1
@@ -72,7 +81,7 @@ try {
     throw $error;
   }
 
-  $fixture = (new ProvisionWarbandFixtureCommand(
+  $fixture = $freshOnboarding ? null : (new ProvisionWarbandFixtureCommand(
     $pdo,
     new WarbandFixtureRepository($pdo),
     $content,
@@ -81,7 +90,9 @@ try {
   $summary = $pdo->prepare('SELECT us.`teeth`, us.`raw_chaos`, us.`energy_current`, us.`active_squad_id`,
       us.`player_revision`,
       (SELECT COUNT(*) FROM `unit_instances` WHERE `user_id` = ?) AS `units`,
+      (SELECT COUNT(*) FROM `dice_instances` WHERE `user_id` = ?) AS `dice`,
       (SELECT COUNT(*) FROM `squads` WHERE `user_id` = ?) AS `squads`,
+      (SELECT COUNT(*) FROM `user_codex_ownership` WHERE `user_id` = ?) AS `codex_entries`,
       (SELECT COUNT(*) FROM `runs` WHERE `user_id` = ?) AS `runs`,
       (SELECT COUNT(*) FROM `user_items` WHERE `user_id` = ?) AS `items`,
       (SELECT COUNT(*) FROM `user_objectives` WHERE `user_id` = ?) AS `objectives`,
@@ -89,16 +100,24 @@ try {
       (SELECT COUNT(*) FROM `resolved_events` WHERE `user_id` = ?) AS `resolved_events`,
       (SELECT COUNT(*) FROM `idempotency_requests` WHERE `user_id` = ?) AS `idempotency_requests`
     FROM `user_state` us WHERE us.`user_id` = ?');
-  $summary->execute([$userId, $userId, $userId, $userId, $userId, $userId, $userId, $userId, $userId]);
+  $summary->execute(array_fill(0, 11, $userId));
   $state = $summary->fetch(PDO::FETCH_ASSOC);
+  $onboarding = (new OnboardingQuery(
+    new WarbandUnitRepository($pdo),
+    new UserCodexRepository($pdo),
+    new PlayerStateRepository($pdo),
+    $content,
+  ))->execute($userId);
   if (!is_array($state)
     || (int)$state['teeth'] !== 0
     || (int)$state['raw_chaos'] !== 0
     || (int)$state['energy_current'] !== $content->startingEnergy()
-    || (string)$state['active_squad_id'] !== (string)$fixture['active_squad_id']
-    || (int)$state['player_revision'] !== 2
-    || (int)$state['units'] !== count($fixture['unit_ids'])
-    || (int)$state['squads'] !== count($fixture['squad_ids'])
+    || (string)$state['active_squad_id'] !== ($freshOnboarding ? '' : (string)$fixture['active_squad_id'])
+    || (int)$state['player_revision'] !== ($freshOnboarding ? 1 : 2)
+    || (int)$state['units'] !== ($freshOnboarding ? 0 : count($fixture['unit_ids']))
+    || (int)$state['squads'] !== ($freshOnboarding ? 0 : count($fixture['squad_ids']))
+    || ($freshOnboarding && ((int)$state['dice'] !== 0 || (int)$state['codex_entries'] !== 0))
+    || $onboarding['status'] !== ($freshOnboarding ? 'required' : 'complete')
     || (int)$state['runs'] !== 0
     || (int)$state['items'] !== 0
     || (int)$state['objectives'] !== 0
@@ -110,20 +129,24 @@ try {
 
   fwrite(STDOUT, json_encode([
     'account' => ['id' => (string)$userId, 'display_name' => (string)$account['display_name']],
+    'mode' => $freshOnboarding ? 'fresh_onboarding' : 'fixture',
     'fixture' => $fixture,
     'verified_state' => [
       'teeth' => 0,
       'raw_chaos' => 0,
       'energy' => $content->startingEnergy(),
       'units' => (int)$state['units'],
+      'dice' => (int)$state['dice'],
       'squads' => (int)$state['squads'],
+      'codex_entries' => (int)$state['codex_entries'],
       'runs' => 0,
       'items' => 0,
       'objectives' => 0,
       'unlocks' => 0,
       'resolved_events' => 0,
       'idempotency_requests' => 0,
-      'player_revision' => 2,
+      'player_revision' => $freshOnboarding ? 1 : 2,
+      'onboarding_status' => $onboarding['status'],
     ],
   ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES) . PHP_EOL);
 } catch (Throwable $error) {
