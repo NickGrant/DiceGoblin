@@ -2,14 +2,14 @@
 
 Read this for sequencing/planning or when closing/promoting an execution package. Normal implementation should use `agent/ISSUES.md` instead.
 
-## Milestone 13 - Swamp and Parity Audit
+## Milestone 12.5 - Opening Narrative Progression Alignment
 
 **Status:** Active
 
 ### Related Issues
-- Milestone 13 Package 1 - Canonical Swamp and Frogmen authored-content foundation
+- Milestone 12.5 Package 1 - Opening progression implementation audit
 
-Milestones 1-12 are complete and passed their required manual UAT.
+Milestones 1-12 are complete and passed their required manual UAT. Milestone 13 planning exists but implementation has not started and is deferred until Milestone 12.5 is complete.
 
 Milestone 10 closed after Package 10 manual UAT acceptance through `d97bcb52c4b834cf72a68d827eac8e196c05adbb`.
 
@@ -17,48 +17,73 @@ Milestone 11 closed after Package 9 focused manual UAT acceptance on 2026-10-31.
 
 Milestone 12 closed after Package 7 focused manual UAT acceptance on 2026-10-31. Packages 1-6 established and technically closed the authoritative Mystic Cave onboarding lifecycle. UAT then identified and corrected two concrete presentation/gameplay defects: the starting Warband now provisions four authored Basic Goblins in valid frontline/backline positions rather than one unit, and normal unit creation now assigns generated personal names rather than unit-type labels. The user explicitly accepted the corrected UAT on 2026-10-31. Accepted UAT corrections are through `c40959b37fe2d08a4b01fc8673b103a5ab8fe2b9`.
 
+After M12 acceptance, the opening campaign sequence was clarified and recorded canonically in `documentation/01-lore/01-story-and-biome-progression.md`. Because Farm and Mountains were implemented before that narrative sequence became canonical, this milestone aligns the existing opening progression before Swamp/M13 work begins. This does not reopen or invalidate M12's accepted onboarding architecture.
+
 The major game-wide visual/UI overhaul remains intentionally deferred.
 
 ### Outcome
 
-Make the Swamps/frogmen/Frog Kin the third playable authored region and use it as the repeatability/parity proof for the completed vNext gameplay architecture:
-- canonical Swamp region, Frogmen enemies, encounters, boss, rewards, knowledge, and progression authored through current JSON/content boundaries;
-- a complete Swamp run through the same authoritative graph, combat, event/reward, persistence, reconnect, and terminal lifecycle used by Farm and Mountains;
-- first defeat of the Swamp boss grants `capability.wrong_machine_access`, representing recovery/unlock of the Wrong Machine for normal reconstruction gameplay; repeat boss defeats must not duplicate this permanent unlock;
-- Frog Kin integrated through the accepted Kin/Wrong Machine reconstruction architecture rather than a parallel lineage system;
-- intentional use of the encounter-depth systems already introduced for Shrine/Chaos/hazard/multi-step interactions where appropriate for Swamp design;
-- explicit audit of preserved prototype gameplay behavior, retaining only behavior still intended for vNext and recording durable decisions canonically;
-- third-region proof that no Farm-, Mountains-, or Swamp-specific architectural branch is required.
+Align the implemented Mystic Cave -> Farm -> Mountains handoff with the canonical opening story before Swamp development begins:
+- Mystic Cave establishes the Basic Goblin Warband and Farm access;
+- first Mudking victory rescues the Tooth Collector and makes the Shop available;
+- the post-Farm Whim beat sends the player after the missing Wrong Machine and unlocks Mountains;
+- Mountains continue the Wrong Machine trail and contain the player's first direct conversation with The Archivist;
+- first Mountains boss victory establishes that the Wrong Machine has moved to the Swamps and unlocks Swamps;
+- the handoff into M13 leaves the Wrong Machine unavailable, the Archivist already introduced, and Archivist troops not yet encountered.
 
-Hardening/cutover remains Milestone 14. Island through Savanna and The Library remain future content production rather than vNext-overhaul prerequisites.
+Milestone 13 then owns Swamp content, the first combat encounters with Archivist/Order troops, Swamp boss recovery of the Wrong Machine, Frog Kin integration, first reconstruction follow-up, broader-map opening, and the third-region parity proof.
 
 ### Architectural Direction
 
-- Follow `documentation/07-development-path/vnext-game-overhaul.md` for milestone order and `agent/CONTEXT_ROUTER.md` for narrow canonical authorities.
-- `documentation/07-development-path/01-base-game-content-roster.md` canonically assigns Swamps -> Frogmen -> Frog Kin. Transitional content documents are design references only until their details are authored into canonical JSON.
-- Reuse accepted region/run graph, combat, event/reward, Codex/dialogue/objective, Kin/Wrong Machine, economy, progression, API, storage, Phaser runtime, responsive, revision, and idempotency boundaries.
+- `documentation/01-lore/01-story-and-biome-progression.md` is the canonical authority for opening story order and story-gated progression.
+- Follow `agent/CONTEXT_ROUTER.md` for architecture authorities. Reuse accepted reward/unlock, dialogue/Codex, region/run, API, storage, Phaser runtime, revision, and idempotency boundaries.
 - Backend/MySQL remains authoritative for durable player state and mutations. Phaser remains the gameplay client; Angular remains the host/auth/account shell.
 - Authored definitions belong in canonical content JSON rather than SQL or client constants.
-- The Wrong Machine is a canonical Swamp progression reward: defeating the Swamp boss for the first time grants `capability.wrong_machine_access`. Mystic Cave onboarding only introduces the Machine as knowledge/future relevance and must not grant access. The first-boss reward must use the accepted permanent unlock/reward/idempotency model so later defeats are safe no-ops for the unique capability.
-- Do not introduce a region-specific service/controller/state model when the accepted generic region/run architecture can express the behavior.
-- Final game-wide visual polish remains deferred; new Swamp surfaces/assets must still be usable and responsive.
+- Preserve the accepted M12 onboarding architecture. Do not add generic `story_progress`, chapter counters, `has_seen_dialogue`, tutorial-history, or a catch-all progression store.
+- Prefer the smallest durable result already represented by accepted progression concepts: permanent region/system/capability unlocks, unique rewards, Codex knowledge where genuinely player-facing, and replayable/eligible dialogue.
+- Player-facing narrative transitions matter. Do not collapse every story beat into invisible boss rewards merely because the resulting durable unlock can be granted transactionally.
+- Exact implementation package boundaries after Package 1 must be based on the audit of current source/content, not assumptions from older prototype behavior or chat history.
+- Do not begin M13 implementation until M12.5 manual UAT is explicitly accepted.
 
 ### Package Queue
 
-1. **Canonical Swamp and Frogmen authored-content foundation.** Current. Establish the current Swamp region identity, Frogmen enemy/combat roster, boss identity, authored progression relationships, and the minimum canonical content required for later Swamp packages without implementing the full run lifecycle early. This package may author the Wrong Machine capability reward identity/reference needed by the boss lifecycle, but must not grant it yet.
-2. **Swamp run graph and encounter-depth content.** Planned. Author the branch-capable Swamp graph and region-appropriate Combat/Loot/Rest/Hazard/Shrine/Chaos/dialogue interactions through the accepted generic node architecture.
-3. **Swamp boss, terminal rewards, and progression lifecycle.** Planned. Complete authoritative boss/Exit behavior, finalized rewards, region progression consequences, reconnect/idempotency, and normal terminal reconciliation. The first successful Swamp boss defeat grants `capability.wrong_machine_access`; repeat defeats do not duplicate the permanent unlock.
-4. **Frog Kin and Wrong Machine integration.** Planned. Add Frog Kin to the accepted reconstruction/lineage model and make reconstruction available through the Wrong Machine capability earned from the first Swamp boss defeat; do not create a second machine-access grant path.
-5. **Phaser Swamp presentation and third-region routing.** Planned. Ensure Camp/Run/Battle/dialogue/encounter presentation handles the third region through existing runtime boundaries with responsive and reconnect-safe behavior.
-6. **Preserved-gameplay parity audit.** Planned. Compare the implemented vNext core loop against intentionally preserved gameplay rules and identify only concrete missing behavior that belongs before cutover; record durable keep/change/drop decisions in canonical repository documentation.
-7. **Swamp/parity integrated verification and technical closure.** Planned. Prove the third-region lifecycle, Frog Kin integration, Wrong Machine first-boss unlock, secrecy/security, idempotency/reconnect behavior, responsive presentation, and absence of region-specific architectural forks.
-8. **Focused manual UAT before Milestone 14.** Planned. Manually verify the complete Swamp/Frog Kin/Wrong Machine unlock path and accepted parity corrections before hardening/cutover begins.
+1. **Opening progression implementation audit.** Current. Trace the actual fresh-player path from M12 onboarding through Farm and Mountains against the canonical story document. Inventory current authored content, unlock/reward ownership, dialogue presentation, Shop availability, region availability, first-victory behavior, Phaser routing, and tests. Produce a concrete discrepancy/correction plan; make no broad production rewrite merely to match an assumed design.
+2. **Farm/Tooth Collector progression correction.** Planned, subject to Package 1 findings. Ensure first Mudking victory rescues the Tooth Collector and unlocks Shop/economy access through accepted permanent progression authority, while preserving repeat Farm behavior and existing dialogue/Codex/objective systems.
+3. **Post-Farm Whim and Mountains unlock correction.** Planned, subject to Package 1 findings. Add or correct the player-facing Whim beat that establishes the missing Wrong Machine search and unlocks Mountains without introducing generic story flags.
+4. **Mountains narrative and Archivist introduction.** Planned, subject to Package 1 findings. Ensure Mountains continue the Wrong Machine trail, stage the first direct player/Archivist conversation there, and do not introduce Archivist combat troops before Swamp.
+5. **Mountains boss and Swamp handoff.** Planned, subject to Package 1 findings. Ensure first Mountains boss victory establishes that the Machine moved to the Swamps and unlocks Swamps, while leaving `capability.wrong_machine_access` unavailable.
+6. **Integrated opening-arc verification and technical closure.** Planned. Prove fresh-account and returning/reload flows across Mystic Cave -> Farm -> Tooth Collector/Shop -> Whim -> Mountains -> Archivist -> Mountains boss -> Swamp available, including idempotency/reconnect/revision/secrecy and regression coverage.
+7. **Focused manual UAT before M13.** Planned. Manually verify the corrected opening progression and explicitly accept the handoff state before reactivating M13.
+
+Package count and boundaries may be consolidated after Package 1 if the audit proves some planned corrections are already correct or can be safely delivered together. Do not create work solely to preserve this provisional package count.
+
+### Required Handoff State to Milestone 13
+
+At M12.5 completion, a fresh player who follows the canonical opening path must be able to reach a state where:
+- the Basic Goblin Warband exists and Farm is available;
+- the Tooth Collector has been rescued and Shop access is available;
+- the Whim has directed the player toward the Wrong Machine and Mountains are available;
+- the player has directly encountered/conversed with The Archivist in Mountains;
+- the Mountains boss has revealed/established the Wrong Machine's movement to Swamps and Swamps are available;
+- `capability.wrong_machine_access` is still absent;
+- no Frog Kin reconstruction has occurred;
+- no Archivist/Order combat troops have been encountered as part of the canonical opening path;
+- no broader post-Swamp map opening has occurred.
+
+### Deferred Milestone 13 Plan
+
+Milestone 13 remains the Swamp and parity milestone after M12.5 acceptance. Its already-set canonical constraints remain valid:
+- Swamps -> Frogmen -> Frog Kin;
+- Swamp contains the first combat encounters with Archivist/Order troops;
+- first successful Swamp boss defeat grants `capability.wrong_machine_access` as the permanent Wrong Machine recovery/unlock;
+- Frog Kin uses the accepted Wrong Machine reconstruction architecture;
+- first successful Wrong Machine use leads to new Whim dialogue that opens the broader map;
+- Swamp remains the third-region repeatability/parity proof through generic architecture.
 
 ### Sequencing Notes
 
-- Milestone 12 established server-authoritative onboarding with no tutorial-history state. The accepted starting Warband is four Basic Goblins: two Bruisers in frontline positions 2 and 5 and two Marksmen in backline positions 0 and 3, each with its authored basic ability and compatible cardboard d6. Unit creation uses the shared normal creation boundary and generates personal names for onboarding, Shop acquisition, and Kin reconstruction.
-- Mystic Cave Wrong Machine knowledge does not grant `capability.wrong_machine_access`, physical possession, reconstruction authority, or Swamp progression. The canonical grant point is the first successful Swamp boss defeat in Package 3, using the existing permanent unlock/reward model.
-- Swamps are the third-region repeatability proof, not an invitation to fork region architecture. Any apparent need for Swamp-specific infrastructure must be justified against the accepted generic run/event/combat/content systems before implementation.
-- Shrine and Chaos node vocabulary was intentionally left test-only until Swamp content required it; Package 2 is the natural place to promote only the semantics actually used by the authored Swamp graph.
-- Package 6 owns the explicit parity audit. Do not use prototype implementation shape as authority; use it only as behavioral evidence and reconcile any retained behavior into current canonical docs/content.
-- Package 8 is the explicit manual UAT gate. Do not begin Milestone 14 or mark Milestone 13 complete until the user explicitly accepts UAT.
+- M12.5 is a correction/alignment milestone created after the opening story became explicit. It does not retroactively mark M12 UAT as failed.
+- M13 Package 1 was planned but the coding agent had not started it when M12.5 was inserted. No M13 implementation needs to be unwound.
+- Package 1 must consult current source/tests as implementation evidence and current canonical docs as requirements. Prototype material is historical evidence only.
+- Do not promote directly from Package 1 audit into speculative fixes without recording the actual discrepancies and updating later package scopes if needed.
+- Package 7 is the explicit manual UAT gate. Do not reactivate M13 until the user explicitly accepts M12.5 UAT.
