@@ -1,60 +1,71 @@
 # Active Execution Issue
 
-## Milestone 12 - Mystic Cave and Onboarding
+## Milestone 13 - Swamp and Parity Audit
 
-### Milestone 12 Package 7 - Focused manual UAT before Milestone 13
+### Milestone 13 Package 1 - Canonical Swamp and Frogmen authored-content foundation
 
 **Status:** In Progress
-
-The user accepted UAT as good enough on 2026-10-31. The review agent will review and promote this package; keep this issue active until that handoff.
 **Priority:** High
 
 #### Problem
-Packages 1-6 have implemented and technically closed the Milestone 12 Mystic Cave onboarding slice. Automated verification now covers real local registration, authoritative onboarding progression, dialogue/Codex grants, explicit starting-Warband provisioning, reconnect/idempotency/stale-response/cross-player boundaries, responsive Phaser presentation, Camp transition, and normal Farm run eligibility. The remaining milestone gate is focused manual UAT of the actual player-facing fresh-player experience.
+Milestone 12 is complete after accepted fresh-player onboarding UAT and its focused corrections. The next vNext proof is the Swamps: the canonical third biome, with Frogmen as its native enemy family and Frog Kin as its associated lineage. Farm and Mountains already prove the generic region/run/combat architecture at two regions, while Milestones 7-12 added economy, permanent progression, Kin/Wrong Machine, branch-capable encounter depth, Codex/dialogue/objectives, and onboarding. Before implementing the complete Swamp run, Package 1 must establish a current canonical authored-content foundation that composes those accepted systems without reviving prototype-specific architecture or prematurely fixing later package behavior.
 
 #### Accepted baseline
-- Package 1 is approved through correction evidence `3f7ab2ac9450faa4087108111844d67f2cc4123a`.
-- Package 2 is approved through evidence `ba0eecb88cc1ac1a0925c8dc49ab0ca836914a02`.
-- Package 3 is approved through evidence `2ef9aeca75280b7279c5f4bea4ae6260bcd7932a`.
-- Package 4 is approved through evidence `045c5446b7bb6c016c530461e040ab38177706f0`.
-- Package 5 is approved through evidence `fc1c5cff8888a0e5a8b3b717077958dec061f2d0`.
-- Package 6 is approved through evidence `7c8f2e66df222d1035bba0ae33eb5cbb44220b94` (technical-closure implementation `3f148166a247df80e8839ac48d4b71488f6610de`).
-- Package 6 found no production architecture defect; its only implementation change strengthened the integrated lifecycle test to begin from real local registration/session/CSRF state.
-- Backend authority, Phaser routing, Wrong Machine knowledge/access separation, and normal Farm eligibility are technically closed and must not be redesigned during UAT absent a demonstrated defect.
-- Milestone 13 must not begin until the user explicitly accepts this UAT gate.
+- Milestone 12 UAT was explicitly accepted by the user on 2026-10-31 after corrections through `c40959b37fe2d08a4b01fc8673b103a5ab8fe2b9`.
+- `documentation/07-development-path/01-base-game-content-roster.md` canonically assigns Swamps -> Frogmen -> Frog Kin.
+- `documentation/03-content/06-biomes-and-regions.md` is transitional design reference: it identifies Swamps as the third parity/repeatability region but explicitly says prototype tuning, unlock scenes, dialogue-seen state, and historical Wrong Machine custody/recovery logic are not canonical merely because older material contained them.
+- Farm and Mountains use the accepted generic authored region/run/combat/event/reward architecture. Swamp must not introduce a region-specific backend or client architecture.
+- Milestone 10 established branch-capable run graphs and the node vocabulary needed for deeper encounters. Shrine and Chaos remained test-only pending real Swamp content.
+- Milestone 11 established Codex/dialogue/objective authority. Use it where Swamp content needs knowledge or conversation; do not add generic story/history flags.
+- Milestone 9 established the Kin/Wrong Machine reconstruction architecture. Package 4 of this milestone owns Frog Kin and any current Swamp/Wrong Machine integration; Package 1 may author references/identities needed for that later work but must not implement reconstruction or machine access early.
+- Mystic Cave onboarding knowledge does not grant `capability.wrong_machine_access`, physical machine possession, reconstruction authority, or Swamp progression.
+- Backend/MySQL remains authoritative; Phaser is the gameplay client; Angular is the host/auth/account shell; authored definitions belong in canonical JSON.
 
 #### Purpose
-Manually exercise the fresh-player onboarding experience as a player would encounter it and confirm that the accepted technical behavior is understandable, usable, correctly sequenced, and transitions cleanly into the existing Camp/Farm loop. Record concrete defects or acceptance; do not broaden UAT into deferred visual polish or Milestone 13 content.
+Establish the minimum canonical Swamp/Frogmen content model needed for later Milestone 13 packages: region identity and availability relationship, Frogmen enemy/combat roster, boss identity, safe authored references, and any foundational rewards/knowledge/progression identities that must exist before the run graph can be authored. This package should make the content registry understand the third region and its combatants without pretending the full Swamp lifecycle is already playable.
 
-#### Manual UAT path
-1. Start from a genuinely fresh local test account/player with no owned units or onboarding Codex knowledge.
-2. Enter the game and confirm the player is taken to the Mystic Cave onboarding rather than Camp.
-3. Confirm the first Whim interaction is readable and clearly presents the initial onboarding context.
-4. Complete the first interaction and confirm the second Whim/Wrong Machine interaction appears through normal progression without an unexpected route or duplicate action.
-5. Confirm the Wrong Machine is introduced as knowledge/future relevance only; the presentation must not imply that the player owns it, can operate it, or knows a physical Mystic Cave location for it.
-6. Complete the final knowledge interaction and confirm the game presents a distinct explicit Basic Goblin establishment/provisioning action rather than silently provisioning during dialogue.
-7. Trigger provisioning and confirm the player transitions into the normal Camp experience with the starting Basic Goblin Warband available.
-8. Confirm the new player can enter/start the Farm through the normal existing flow without an onboarding-specific bypass or obvious broken state.
-9. Reload/re-enter at least once during onboarding (preferably after the first dialogue) and confirm the correct current interaction resumes.
-10. If practical, reload at the ready-to-provision step and confirm provisioning remains pending and explicit.
-11. Reload after completion and confirm the player enters normal gameplay rather than seeing Mystic Cave again.
-12. Confirm a pre-existing/returning player with units continues directly to normal gameplay and is not forced through onboarding/backfill.
-13. Check the experience at a normal desktop viewport and one compact/mobile-landscape viewport for legibility and usable controls. Confirm portrait touch orientation shows the rotate-device gate without losing the onboarding state after rotation/reload.
-14. During the path, note any confusing copy, missing feedback, unusable control, broken route, duplicate grant/action, stale screen, or visible deferred Swamp/Wrong Machine functionality.
+#### Canonical Package 1 semantics
+1. **Canonical allocation.** Swamps are the third ordinary region; Frogmen are its native enemy family; Frog Kin is its associated lineage. Preserve those identities consistently across authored content and player-safe projections.
+2. **Generic region architecture.** Express Swamp through the same region/content/enemy/combat schemas used by Farm and Mountains. No Swamp-specific controller/service/repository/state table or Phaser ownership.
+3. **Frogmen combat foundation.** Author a coherent minimum Frogmen roster and boss through the existing enemy/combat definitions, including deterministic abilities/stats/formations required for later Combat/Boss nodes. Prefer the approved/current content vocabulary and validate all references.
+4. **Not playable yet.** Package 1 must not expose Swamp as a startable complete region until the run graph, encounters, terminal lifecycle, and progression consequences are implemented in later packages. If a region definition must exist now, gate availability through existing authoritative unlock/content semantics rather than client hiding.
+5. **Progression identities, not premature mechanics.** Author only reward/unlock/Codex/dialogue/capability identities that later Swamp packages concretely require. Do not grant them or invent a new progression layer in Package 1.
+6. **Wrong Machine boundary.** Do not make historical prototype custody/recovery behavior canonical by accident. Do not grant `capability.wrong_machine_access`, reconstruction, physical possession, or machine recovery here. If later Swamp gameplay requires a durable custody/access decision, Package 4 will resolve and record it against current architecture.
+7. **Frog Kin boundary.** Frog Kin identity/reference may be authored where required for validation, but reconstruction recipes, first-unlock behavior, deterministic repeats, and player-facing machine integration belong to Package 4.
+8. **Encounter-depth boundary.** Shrine/Chaos/Hazard/dialogue node semantics and the complete Swamp graph belong to Package 2. Package 1 may provide referenced content primitives only when required by the authored-content schema.
+9. **Safe projection.** Browser-facing content must reveal only the same class of player-safe region/enemy/combat information already accepted for Farm/Mountains. Do not expose hidden rewards, future graph topology, private progression prerequisites, or deferred Wrong Machine mechanics.
+10. **No prototype authority.** Prototype source/content may be inspected as behavioral/design evidence only. Any retained Frogmen roster, boss, naming, tuning, or flavor must be reconciled with current canonical docs and authored JSON rather than copied because it existed before.
+11. **Visual scope discipline.** Reuse existing placeholder/accepted asset fallbacks as necessary. Final Frogmen art and the broad visual overhaul are not Package 1 blockers unless current content validation requires an asset identity.
+12. **Test value discipline.** Add structural/semantic and deterministic combat tests that prove reusable behavior and reference integrity. Avoid content-literal assertion sprawl that duplicates JSON catalogs; production structural gates should own production content validity.
 
-#### Acceptance criteria
-UAT passes when the user confirms the complete fresh-player path is understandable and functional from Mystic Cave through Camp/Farm, interrupted/reloaded onboarding resumes correctly, provisioning is explicit, returning players bypass onboarding, Wrong Machine presentation remains knowledge-only, and no blocking usability/routing/state defects are observed.
+#### Required implementation inventory
+Before changing content, inspect current Farm and Mountains region definitions, enemy/combat authored schemas, boss definitions, unlock/availability relationships, safe content projection, deterministic combat adapters, production content validation, and any existing Frogmen/Frog Kin placeholders. Use `agent/CONTEXT_ROUTER.md` to load only the canonical architecture/system documents needed for decisions.
 
-Minor visual polish that is clearly part of the deferred broad visual overhaul does not block acceptance unless it makes the onboarding unreadable or unusable. Any functional, authority, sequencing, retry/reload, or misleading Wrong Machine defect blocks acceptance and should be corrected before Milestone 12 closes.
+#### Minimum proof
+1. Production content validates with a canonical Swamp region identity and Frogmen family references.
+2. Frogmen combatants and the Swamp boss resolve through existing enemy/combat schemas without special-case backend code.
+3. Representative Frogmen encounters can be deterministically adapted/simulated through the existing combat engine using fixture or focused authored definitions.
+4. Swamp is not prematurely startable as a complete region from normal player state.
+5. No Package 1 path grants Frog Kin, Wrong Machine access/reconstruction, physical machine state, or later Swamp terminal rewards.
+6. Player-safe projections do not leak future Swamp graph topology, hidden rewards/prerequisites, or deferred machine mechanics.
+7. Farm and Mountains content/combat validation remains unchanged/regression-safe.
+8. Production structural/content gates, focused backend tests, frontend contract tests if affected, and the full applicable package verification pass.
 
-#### On acceptance
-Record the user's explicit UAT acceptance and date in `agent/MILESTONES.md`, mark Milestone 12 complete, and activate Milestone 13 according to the canonical vNext development path. Do not close the milestone or begin Milestone 13 before explicit user acceptance.
+#### Verification
+Run focused authored-content validation and combat/reference tests for the new Swamp/Frogmen foundation. Add negative validation cases for malformed references/roles/formations where the existing schema does not already cover them. Run applicable `agent/QUALITY_GATES.md` checks and full `npm run verify:package -- --continue-on-failure`. If browser contracts change, include strict frontend parser/contract coverage and confirm no private authored fields are projected.
 
-#### On failure
-Record the observed defect(s), keep Package 7/Milestone 12 active, and create the narrow correction package/work needed to address those defects. Re-run applicable automated verification and the affected UAT steps before requesting acceptance again.
+#### Scope exclusions
+- complete Swamp run graph or startable Swamp lifecycle;
+- production Shrine/Chaos/Hazard node behavior beyond primitives required by content validation;
+- Swamp boss/Exit terminal reward application and next-region consequences;
+- Frog Kin reconstruction recipe or first/repeat reconstruction behavior;
+- Wrong Machine physical custody/access/recovery/reconstruction changes;
+- Phaser Swamp routing/presentation work beyond contract changes strictly required by the foundation;
+- broad visual redesign or final Frogmen asset production;
+- parity audit itself;
+- Milestone 14 hardening/cutover.
 
-#### UAT defect 1: starting Warband formation
-The first fresh-account UAT reached Camp with only one Bruiser in a back corner. The intended starting Warband is four units: two Bruisers in front positions 2 and 5, and two Marksmen in back positions 0 and 3. Correct the authored onboarding roster, atomic provisioning, client receipt contract, and affected validation/tests. Keep Package 7 active until the user retests provisioning and the Camp/Farm path from a fresh account.
+#### Completion evidence required
+Record implementation SHA; canonical content files/identities added or changed; Farm/Mountains patterns reused; Frogmen roster/boss and deterministic combat proof; region availability/non-playability proof; safe-projection result; explicit confirmation that Frog Kin and Wrong Machine mechanics were not advanced; focused test counts; production content revision if applicable; and full package-gate results.
 
-#### UAT defect 2: generated unit names
-The corrected starting Warband appeared with unit type labels as unit names. Onboarding already uses the shared normal unit creation service; that service assigned the authored unit type display name to every new unit. Generate a personal name in that shared boundary so onboarding, shop purchases, and Kin reconstruction all follow one naming path. Keep Package 7 active until the user confirms the starting Warband names during UAT.
+Leave Package 1 **In Progress** for architectural review. Do not activate Package 2 automatically from the coding agent.
