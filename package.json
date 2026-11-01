@@ -7,6 +7,7 @@
     "backlog:validate": "node scripts/validate-backlog.mjs",
     "bundle:check": "node scripts/check-frontend-bundle-size.mjs",
     "capture:scene": "node scripts/capture-scene.mjs",
+    "capture:onboarding:matrix": "node scripts/capture-onboarding-matrix.mjs",
     "content:build": "php backend/bin/validate-content.php --write",
     "content:validate": "php backend/bin/validate-content.php",
     "docs:lint": "node scripts/lint-doc-headers.mjs",
