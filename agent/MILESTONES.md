@@ -7,9 +7,11 @@ Read this for sequencing/planning or when closing/promoting an execution package
 **Status:** Active
 
 ### Related Issues
-- Milestone 12.5 Package 1 - Opening progression implementation audit
+- Milestone 12.5 Package 2 - Farm access and Tooth Collector rescue correction
 
 Milestones 1-12 are complete and passed their required manual UAT. Milestone 13 planning exists but implementation has not started and is deferred until Milestone 12.5 is complete.
+
+Milestone 12.5 Package 1 completed the evidence-based opening progression audit through `e746b37f254e4d4d35bab1bd359aed2be38f1a3a`. The audit is recorded in `documentation/07-development-path/m12-5-opening-progression-audit.md`; focused existing-behavior proof passed 38 tests / 443 assertions. It confirmed that Packages 2-5 remain necessary with narrowed ownership and introduced no M13 gameplay or generic story-state architecture.
 
 Milestone 10 closed after Package 10 manual UAT acceptance through `d97bcb52c4b834cf72a68d827eac8e196c05adbb`.
 
@@ -42,20 +44,18 @@ Milestone 13 then owns Swamp content, the first combat encounters with Archivist
 - Preserve the accepted M12 onboarding architecture. Do not add generic `story_progress`, chapter counters, `has_seen_dialogue`, tutorial-history, or a catch-all progression store.
 - Prefer the smallest durable result already represented by accepted progression concepts: permanent region/system/capability unlocks, unique rewards, Codex knowledge where genuinely player-facing, and replayable/eligible dialogue.
 - Player-facing narrative transitions matter. Do not collapse every story beat into invisible boss rewards merely because the resulting durable unlock can be granted transactionally.
-- Exact implementation package boundaries after Package 1 must be based on the audit of current source/content, not assumptions from older prototype behavior or chat history.
+- Exact implementation package boundaries after Package 1 are based on the completed audit, not assumptions from older prototype behavior or chat history.
 - Do not begin M13 implementation until M12.5 manual UAT is explicitly accepted.
 
 ### Package Queue
 
-1. **Opening progression implementation audit.** Current. Trace the actual fresh-player path from M12 onboarding through Farm and Mountains against the canonical story document. Inventory current authored content, unlock/reward ownership, dialogue presentation, Shop availability, region availability, first-victory behavior, Phaser routing, and tests. Produce a concrete discrepancy/correction plan; make no broad production rewrite merely to match an assumed design.
-2. **Farm access and Tooth Collector rescue correction.** Planned from Package 1 audit. Make Farm's onboarding grant a durable region unlock; author the Whim's rescue mission and name the Tooth Collector. Preserve the first Mudking victory's existing Shop unlock, make the rescue/follow-up reload safe, and retain repeat Farm behavior.
-3. **Post-Farm Whim and Mountains unlock correction.** Planned from Package 1 audit. Remove the Mountains unlock from the Farm boss; add a server-gated Camp Whim beat after rescue that establishes the Wrong Machine search and grants Mountains through existing reward/unlock authority.
-4. **Mountains trail and Archivist introduction.** Planned from Package 1 audit. Add the Wrong Machine trail and first direct Archivist dialogue through the existing run dialogue/Codex path. Retain kobold-only combat before Swamp.
-5. **Mountains boss and visible Swamp handoff.** Planned from Package 1 audit. Make first boss victory establish the Machine's movement and grant a Swamp region unlock. Show Swamps as unlocked while entry waits for Milestone 13 gameplay; leave Wrong Machine access locked and add no Swamp run or enemies.
+1. **Opening progression implementation audit.** Complete. Audited current registration/onboarding, Farm, Shop, Mountains, client routing, reward/unlock ownership, dialogue durability, region projection, and tests. Findings are recorded in `documentation/07-development-path/m12-5-opening-progression-audit.md`; Packages 2-5 remain necessary with distinct owners.
+2. **Farm access and Tooth Collector rescue correction.** Current. Make Farm's onboarding grant a durable region unlock; author the Whim's rescue mission and name the Tooth Collector. Preserve the first Mudking victory's existing Shop unlock, make the rescue/follow-up reload safe, and retain repeat Farm behavior.
+3. **Post-Farm Whim and Mountains unlock correction.** Planned. Remove the Mountains unlock from the Farm boss; add a server-gated Camp Whim beat after rescue that establishes the Wrong Machine search and grants Mountains through existing reward/unlock authority.
+4. **Mountains trail and Archivist introduction.** Planned. Add the Wrong Machine trail and first direct Archivist dialogue through the existing run dialogue/Codex path. Retain kobold-only combat before Swamp.
+5. **Mountains boss and visible Swamp handoff.** Planned. Make first boss victory establish the Machine's movement and grant a Swamp region unlock. Show Swamps as unlocked while entry waits for Milestone 13 gameplay; leave Wrong Machine access locked and add no Swamp run or enemies.
 6. **Integrated opening-arc verification and technical closure.** Planned. Prove fresh-account and returning/reload flows across Mystic Cave -> Farm -> Tooth Collector/Shop -> Whim -> Mountains -> Archivist -> Mountains boss -> Swamp available, including idempotency/reconnect/revision/secrecy and regression coverage.
 7. **Focused manual UAT before M13.** Planned. Manually verify the corrected opening progression and explicitly accept the handoff state before reactivating M13.
-
-Package count and boundaries may be consolidated after Package 1 if the audit proves some planned corrections are already correct or can be safely delivered together. Do not create work solely to preserve this provisional package count.
 
 ### Required Handoff State to Milestone 13
 
@@ -84,6 +84,5 @@ Milestone 13 remains the Swamp and parity milestone after M12.5 acceptance. Its 
 
 - M12.5 is a correction/alignment milestone created after the opening story became explicit. It does not retroactively mark M12 UAT as failed.
 - M13 Package 1 was planned but the coding agent had not started it when M12.5 was inserted. No M13 implementation needs to be unwound.
-- Package 1 must consult current source/tests as implementation evidence and current canonical docs as requirements. Prototype material is historical evidence only.
-- Do not promote directly from Package 1 audit into speculative fixes without recording the actual discrepancies and updating later package scopes if needed.
+- Package 1 audit found Farm is currently globally exposed as a starting-region exception, Farm boss currently grants both Shop and Mountains, Mountains contains no narrative dialogue, and Swamp has no current visible/unlocked handoff. Those are intentional correction targets, not regressions discovered after Package 1.
 - Package 7 is the explicit manual UAT gate. Do not reactivate M13 until the user explicitly accepts M12.5 UAT.
