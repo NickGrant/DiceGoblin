@@ -2,83 +2,75 @@
 
 ## Milestone 12 - Mystic Cave and Onboarding
 
-### Milestone 12 Package 5 - Phaser onboarding presentation and fresh-player routing
+### Milestone 12 Package 6 - Mystic Cave/onboarding integrated verification and technical closure
 
 **Status:** In Progress
 **Priority:** High
 
 #### Problem
-Packages 1-4 established the authoritative Mystic Cave onboarding lifecycle end to end: ordered Whim dialogue/Codex knowledge, atomic Basic Goblin starting-Warband provisioning, `complete` derived from durable unit ownership, and normal bootstrap/Farm eligibility after completion. Those server/runtime contracts are not yet presented as a player-facing onboarding flow in Phaser. Package 5 must mount the Mystic Cave onboarding experience in the persistent game client and route fresh, interrupted, ready-to-provision, completed, and returning players from authoritative state without creating client-local tutorial authority.
+Packages 1-5 now implement the complete fresh-player Mystic Cave onboarding slice: canonical authored onboarding state, ordered Whim dialogue/Codex progression, atomic Basic Goblin starting-Warband provisioning, knowledge-only Wrong Machine introduction, transition into normal Camp/Farm authority, and Phaser presentation/routing driven by server state. Before manual UAT, Package 6 must verify the slice as one integrated lifecycle and close any concrete technical defects without expanding the architecture or pulling Milestone 13 work forward.
 
 #### Accepted baseline
 - Package 1 is approved through correction evidence `3f7ab2ac9450faa4087108111844d67f2cc4123a` (implementation `4d2e32c68fa3accba7c4f4d93467015806bc17c2`, correction `fb6414d12848ae37b3150a8cf9a35dbabffcec24`).
 - Package 2 is approved through evidence `ba0eecb88cc1ac1a0925c8dc49ab0ca836914a02` (implementation `7661b012aeb5eb58a99c751d0d1eaf6157e89fae`).
 - Package 3 is approved through evidence `2ef9aeca75280b7279c5f4bea4ae6260bcd7932a` (implementation `978db58e030b00f339574778ad8a7ce6072a31a4`).
 - Package 4 is approved through evidence `045c5446b7bb6c016c530461e040ab38177706f0` (implementation `1f1be8cffa6492960befb9c680294e464175da49`).
-- `GET /api/v1/onboarding` is authoritative for `required`, `in_progress`, `ready_to_provision`, and `complete`, and exposes only the current player-safe dialogue identity when applicable.
-- Existing dialogue read/completion contracts execute the current Whim conversation and grant meaningful Codex knowledge through normal authority.
-- Existing provisioning is the separate authenticated, CSRF-protected, idempotent mutation that turns `ready_to_provision` into a valid starting Warband; unit ownership then makes onboarding `complete`.
-- Existing bootstrap exposes the active squad, Farm availability, revision, and normal gameplay state needed after completion.
-- Package 4 proved no additional transition endpoint, completion flag, or runtime projection is required.
-- Wrong Machine onboarding is knowledge-only. `capability.wrong_machine_access`, physical possession, reconstruction, Swamp/Frog Kin, and later provenance remain deferred.
-- Phaser is the gameplay client and Angular remains the host/auth/account shell.
-- The major game-wide visual/UI overhaul remains deferred; this package still must be responsive, legible, and usable under the accepted viewport model.
+- Package 5 is approved through evidence `fc1c5cff8888a0e5a8b3b717077958dec061f2d0` (implementation `11b27b5cd646733b498b8f9f6f84e9fbe052ef5d`).
+- Backend/MySQL remains authoritative for onboarding state, dialogue eligibility, Codex ownership, provisioning, unit/squad state, revision, idempotency, and normal run eligibility.
+- Phaser presentation is transient orchestration over those authorities; no client tutorial index, local-storage completion flag, or generic history/progression state exists.
+- Wrong Machine onboarding is knowledge-only. Access/reconstruction, physical possession/provenance, Swamp/Frog Kin, and Milestone 13 expansion remain deferred.
+- Package 7 is the explicit manual UAT gate; Package 6 must not mark Milestone 12 complete or activate Milestone 13.
 
 #### Purpose
-Create the player-facing Mystic Cave onboarding presentation and fresh-player routing in the persistent Phaser runtime. The client must render and execute the authoritative current onboarding state, survive reload/reconnect, provision only when the server says `ready_to_provision`, and enter the existing Camp/Farm lifecycle once the server says `complete`. This is presentation/orchestration over accepted backend authority, not a new progression system.
+Perform integrated technical closure of the Mystic Cave onboarding slice before manual UAT. Exercise the real lifecycle and its recovery boundaries across backend, API/runtime, Phaser routing, responsive presentation, and transition into the existing core loop. Fix only defects demonstrated by this verification. Prefer strengthened integration/regression proof over new abstractions or state.
 
-#### Canonical Package 5 semantics
-1. **Server state chooses the route.** On game entry/reconciliation, read authoritative onboarding state. `required`/`in_progress` route to Mystic Cave interaction presentation; `ready_to_provision` routes to the provisioning step; `complete` routes to the established normal Camp/game state. Do not infer completion from local storage, scene history, cached dialogue, or client-owned flags.
-2. **Current interaction only.** For dialogue states, render only the current dialogue identified by the authoritative onboarding response and fetched through the existing dialogue contract. Do not embed the onboarding step sequence or future dialogue IDs in Phaser.
-3. **Normal dialogue mutation.** Submit choices through the existing dialogue completion API with normal idempotency/reconciliation behavior. After success, refresh authoritative onboarding/Codex state rather than locally advancing a tutorial index.
-4. **Provisioning remains explicit and separate.** At `ready_to_provision`, present the player-facing establishment/provision action and call the existing provisioning mutation. Do not synthesize the starting unit client-side or couple provisioning to dialogue completion.
-5. **Complete means normal gameplay.** After provisioning/reconciliation returns `complete`, transition into the existing Camp/Farm lifecycle using the persistent runtime and bootstrap state. Do not create a second post-tutorial home screen or onboarding-only Camp state.
-6. **Reconnect/resume.** Reload at `required`, `in_progress`, `ready_to_provision`, or `complete` must reproduce the correct presentation from backend authority. A failed/read-retry state must not corrupt or skip onboarding.
-7. **Stale response safety.** Follow existing revision/cache reconciliation rules. Older onboarding/dialogue/provision responses must not overwrite newer authoritative state or route a player backward/forward incorrectly.
-8. **Wrong Machine boundary.** Presentation may show the authored Wrong Machine knowledge/dialogue, but must not imply possession/access, expose reconstruction controls, or introduce Swamp/Frog Kin mechanics.
-9. **Responsive behavior.** Implement the onboarding surface under the accepted Phaser responsive model: logical 1600x900; Compact when CSS height <=599 or safe logical width <1440; Wide when safe width >=1920 and CSS height >=720; Standard otherwise. Verify 844x390, 1600x900, 2560x1080, and 390x844 portrait. Portrait touch gameplay remains blocked by the rotate-device treatment while preserving state.
-10. **Persistent runtime ownership.** Reuse the accepted `GameRuntime`/scene/cache/navigation/input/responsive boundaries. Do not introduce Angular gameplay ownership or a parallel onboarding state manager.
-11. **No tutorial history.** Do not add local-storage tutorial completion, `has_seen_dialogue`, generic story/history state, client-authored progression, or another durable marker.
-12. **Visual scope discipline.** Use the current accepted visual language/assets where available and create only the minimal onboarding-specific presentation needed. Do not turn Package 5 into the deferred broad visual overhaul.
+#### Canonical Package 6 semantics
+1. **End-to-end lifecycle.** Verify a fresh player can progress `required` -> `in_progress` -> `ready_to_provision` -> `complete` through the accepted dialogue and provisioning mutations, then enter normal Camp/Farm play.
+2. **Authority remains singular.** No test or correction may introduce a second onboarding-completion marker, tutorial history, client-authored progression, or duplicate dialogue/provisioning authority.
+3. **Reconnect/reload.** Verify durable recovery at each onboarding state and after completion. Re-entry must derive the same route from authoritative reads without transient session/scene history.
+4. **Idempotency and ambiguous retries.** Verify dialogue and provisioning exact-key replay/ambiguous retry behavior across the integrated client/server path, including no duplicate Codex, units, dice, squads, rewards, or revision effects.
+5. **Stale-response safety.** Verify older reads/mutations cannot overwrite or route against newer authoritative revision/state.
+6. **Cross-player isolation.** One player's knowledge, provisioning, or completion must not alter another player's onboarding state or eligibility.
+7. **Secrecy/safe projection.** Browser-visible onboarding/dialogue/bootstrap contracts must reveal only current player-safe state. Future authored steps, reward/event internals, hidden prerequisites, and deferred Wrong Machine/Swamp mechanics remain private.
+8. **Wrong Machine boundary.** Owning Wrong Machine Codex knowledge or completing onboarding must not grant `capability.wrong_machine_access`, reconstruction authority, physical machine state, or Swamp/Frog Kin progression.
+9. **Returning-player compatibility.** Existing unit owners remain `complete` and enter normal gameplay without onboarding knowledge backfill or mutation.
+10. **Core-loop regression.** The provisioned starting Warband must continue to satisfy existing Farm run-start rules, and existing Camp/Codex/Objectives/Warband/run/battle routing must remain intact.
+11. **Responsive closure.** Reconfirm Compact 844x390, Standard 1600x900, Wide 2560x1080, and portrait 390x844 behavior, including state-preserving rotate-device blocking.
+12. **Scope discipline.** Correct demonstrated integration defects only. Do not broaden visual polish, add speculative systems, or implement Milestone 13 content.
 
-#### Required implementation inventory
-Before changing the client, inspect the persistent `GameRuntime`, GameScene/Camp routing, bootstrap/cache/revision handling, dialogue API/runtime methods, onboarding API/runtime methods, provisioning API/runtime methods, responsive coordinator/viewport rules, deterministic capture hooks, and existing loading/error/retry patterns. Reuse existing primitives wherever possible.
+#### Required verification inventory
+Review the accepted package implementations as one path: registration/bootstrap, onboarding read, dialogue read/completion, Codex ownership, provisioning, revision/idempotency receipts, active squad/bootstrap reconciliation, BootScene route selection, `OnboardingFlow`, Mystic Cave scene presentation, viewport/portrait gate, Camp transition, and Farm run start. Inspect browser contracts for accidental private-data leakage and verify no duplicate durable state was introduced across Packages 1-5.
 
 #### Minimum proof
-1. A fresh player entering the game is routed to the first Mystic Cave Whim interaction from authoritative `required` state.
-2. Completing the first conversation refreshes authority and presents the second conversation from `in_progress`; no client tutorial index advances it.
-3. A reload after the first conversation resumes the second interaction.
-4. Completing final knowledge presents the provisioning step from `ready_to_provision`, with no automatic provisioning.
-5. Provisioning calls the existing mutation once and reconciles to `complete` with the server-provided starting Warband/bootstrap state.
-6. A reload at `ready_to_provision` remains on provisioning; a reload after completion enters normal Camp/gameplay.
-7. Existing returning/completed players bypass Mystic Cave onboarding and continue into normal gameplay without knowledge backfill.
-8. Dialogue/provision failure provides a usable retry path without local progress corruption or duplicate grants.
-9. Stale/out-of-order client responses cannot route the player contrary to newer revision/authoritative state.
-10. Wrong Machine presentation grants/shows knowledge only and exposes no access/reconstruction behavior.
-11. Compact, Standard, Wide, and portrait-blocked states are legible and preserve interaction state appropriately.
-12. Existing Camp, Codex, Objectives, Warband, run, and battle routing remain regression-safe.
+1. Brand-new player completes the full onboarding path and reaches normal Camp/Farm state.
+2. Reload/resume works independently at `required`, `in_progress`, `ready_to_provision`, and `complete`.
+3. Exact-key dialogue replay cannot duplicate Codex/revision effects; ambiguous retry retains the original key.
+4. Exact-key provisioning replay cannot duplicate unit/die/squad/revision effects; ambiguous retry retains the original key.
+5. Distinct-key attempts after accepted progression cannot replay past onboarding work or duplicate provisioning.
+6. Stale/out-of-order reads and revision regressions fail closed without corrupting the client route.
+7. Cross-player isolation holds for onboarding knowledge, current step, and provisioning.
+8. Returning players with units remain complete without Codex backfill.
+9. Wrong Machine knowledge exists independently from access/reconstruction; no deferred Swamp/Frog Kin state is exposed or granted.
+10. Browser-safe contracts expose only current interaction/state and no private authored sequence/reward internals.
+11. Completed onboarding bootstrap contains the valid active starting squad and Farm remains startable through normal rules.
+12. Existing Camp, Codex, Objectives, Warband, Run, and Battle behavior remains regression-safe.
+13. Required responsive captures remain legible and deterministic, including portrait blocking.
+14. Full package quality gates pass from the final Package 6 head.
 
 #### Verification
-Add focused Phaser/runtime/API tests for authoritative route selection, dialogue refresh, provisioning separation, reload/resume, completed-player bypass, retry/error handling, and stale-response protection. Add deterministic captures for the onboarding surface at the required viewport matrix, including portrait rotate-device behavior. Run applicable `agent/QUALITY_GATES.md` checks and full `npm run verify:package -- --continue-on-failure`.
+Add or consolidate focused integration tests only where Packages 1-5 leave a meaningful lifecycle/recovery boundary unproven. Avoid redundant assertions that merely restate lower-level unit tests. Run all applicable `agent/QUALITY_GATES.md` checks and full `npm run verify:package -- --continue-on-failure`. Re-run deterministic onboarding captures at 844x390, 1600x900, 2560x1080, and 390x844 plus a post-onboarding Camp route capture. If a concrete defect is found, fix it narrowly and include regression proof.
 
 #### Scope exclusions
-- new backend onboarding/progression authority unless a concrete integration defect proves one is required;
+- manual UAT itself;
+- Milestone 12 completion or Milestone 13 activation;
+- Swamp/Frog Kin gameplay;
+- Wrong Machine physical access/reconstruction/theft/recovery;
 - new tutorial/history/story/completion flags;
-- client-local durable onboarding state;
-- physical Wrong Machine access/reconstruction;
-- Swamp/Frog Kin implementation or Wrong Machine theft/recovery;
-- broad Camp/game visual redesign;
-- Milestone 13+ work.
+- generic progression state;
+- broad visual redesign/polish;
+- speculative refactors not required by demonstrated integration defects.
 
 #### Completion evidence required
-Record implementation SHA; client/runtime inventory and reuse decisions; exact authoritative route mapping for all onboarding statuses; dialogue/provisioning orchestration; revision/cache/stale-response behavior; reload/reconnect/retry evidence; returning-player bypass; Wrong Machine knowledge-only confirmation; responsive/capture evidence at 844x390, 1600x900, 2560x1080, and 390x844; focused tests; full package gates; and confirmation no local tutorial authority or deferred visual/M13 scope was introduced.
+Record final implementation/correction SHA(s); integrated lifecycle inventory; any defects found and narrow fixes; fresh-player end-to-end evidence; reload/reconnect/idempotency/stale-response/cross-player evidence; safe-projection/secrecy proof; returning-player and normal-core-loop regression evidence; explicit Wrong Machine knowledge/access separation; responsive capture results; focused test counts; and complete package-gate results.
 
-Leave Package 5 **In Progress** for architectural review. Do not promote Package 6 automatically from the coding agent.
-
-#### Package 5 implementation evidence (`11b27b5cd646733b498b8f9f6f84e9fbe052ef5d`)
-
-- `BootScene` now reads authoritative onboarding after the existing content/bootstrap startup. `required` and `in_progress` enter the Phaser Mystic Cave scene with only the server-selected dialogue; `ready_to_provision` enters its separate establishment action; `complete` enters the existing Camp, Run, or Battle scene according to persistent bootstrap state. Returning players need no knowledge backfill or client tutorial marker. Angular remains the host.
-- The runtime-owned transient `OnboardingFlow` composes existing strict onboarding, dialogue, provisioning, and bootstrap API contracts. Dialogue choices use retained idempotency keys and the normal completion/revision/Codex reconciliation path; successful choices re-read onboarding and bootstrap rather than incrementing a client step. Provisioning is never automatic and refreshes bootstrap before routing to Camp. Ambiguous mutations retain their keys for retry; failed reads show a retry action. Generation checks discard older reads; minimum revision, active-squad, content/account identity, and completed-dialogue checks fail closed on stale or contradictory responses.
-- The Phaser surface presents authored Whim dialogue and knowledge-only Wrong Machine wording without reconstruction controls, physical access, or Swamp/Frog Kin content. It reuses the accepted progression surface and viewport/portrait gate. No backend endpoint, durable client onboarding state, local-storage flag, tutorial history, or broader visual/Milestone 13 work was added.
-- Focused runtime tests cover the four reload states, server-selected advancement, explicit provisioning, completed-player routing, ambiguous dialogue/provision retries, failed read retry, stale reads, revision jumps, and stale current-dialogue rejection. Layout tests cover Compact 844x390, Standard 1600x900, Wide 2560x1080, and portrait 390x844. Deterministic captures: `artifacts/screenshots/onboarding-compact.png`, `onboarding-standard.png`, `onboarding-wide.png` (second dialogue), `onboarding-ready.png`, `onboarding-portrait.png` (rotate gate), and `camp-after-onboarding.png` (normal route); all capture commands passed. The portrait overlay now gives a scene-neutral instruction.
-- Full `npm run verify:package -- --continue-on-failure` passed: 710 backend tests / 5,781 assertions; 464 frontend tests; LLM/context, docs lint, PHP syntax, content validation, frontend build, bundle, and diff whitespace. A final test-only read-retry case passed in the subsequent frontend suite. Package 5 remains **In Progress** for architectural review.
+Leave Package 6 **In Progress** for architectural review. Do not activate Package 7 automatically from the coding agent.
