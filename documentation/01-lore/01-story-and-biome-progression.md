@@ -1,7 +1,7 @@
 ---
 Title: "Dice Goblins - Story and Biome Progression"
 Status: Canonical
-Last Updated: 2026-10-31
+Last Updated: 2026-11-01
 Owner: Narrative Design
 Depends On:
   - documentation/01-lore/00-world-and-lore.md
@@ -56,13 +56,16 @@ Canonical consequences:
 
 The Farm boss reward and the Mountains unlock are therefore related story progression, but implementations should preserve the player-facing return/conversation beat rather than collapsing the entire narrative into an unexplained boss reward when presentation work exists for it.
 
-### 3. Mountains and the Wrong Machine Trail
+### 3. Mountains, the Archivist, and the Wrong Machine Trail
 
 The Mountains continue the search for the Wrong Machine. The kobolds provide the next link in the trail rather than the Machine itself.
 
-During the Mountains chapter, the player learns that the Wrong Machine has already been moved. Defeating the Mountains boss establishes that it was taken to the Swamps and unlocks the Swamps as the next destination.
+During the Mountains chapter, the player speaks directly with The Archivist for the first time. This is the Archivist's introduction to the player-facing story: The Archivist becomes aware of the returned goblins and can begin treating the player as an anomaly or threat, but the player does not yet fight the Archivist's troops here as part of the opening escalation.
+
+The player also learns that the Wrong Machine has already been moved. Defeating the Mountains boss establishes that it was taken to the Swamps and unlocks the Swamps as the next destination.
 
 Canonical consequences:
+- the Mountains contain the player's first direct conversation with The Archivist;
 - the Mountains reveal that the Wrong Machine is no longer there;
 - first Mountains boss victory establishes the Swamps as the Machine's current destination;
 - the Swamps become available;
@@ -70,16 +73,16 @@ Canonical consequences:
 
 Exact kobold responsibility, motive, and custody details may be expanded in authored dialogue, but they must not contradict the core fact that the player follows the Machine's trail from Mountains to Swamps.
 
-### 4. Swamps, the Archivist, and Recovery of the Wrong Machine
+### 4. Swamps, the Archivist's Troops, and Recovery of the Wrong Machine
 
-The player's first visit to the Swamps is the first direct encounter with The Archivist.
+The Swamps escalate the conflict introduced by the Mountains conversation. During the player's first Swamp progression, the player encounters The Archivist's troops and fights Order-aligned units directly for the first time.
 
-This is the Archivist's introduction to the player-facing story. Earlier lore may establish the Archivist's existence or historical role, but normal campaign presentation must not stage a direct player/Archivist encounter before this Swamp introduction unless this document is deliberately revised.
+This is the first gameplay demonstration that The Archivist has moved beyond conversation/observation and is willing to deploy forces against the returned goblins. Swamp content should preserve that escalation: the Archivist is personally introduced in the Mountains, while the Archivist's troops make their combat debut in the Swamps.
 
 The player continues through the Swamps and confronts its boss. The first successful Swamp boss victory recovers the Wrong Machine and grants permanent access to it.
 
 Canonical consequences:
-- first Swamp visit introduces The Archivist directly;
+- the Swamps introduce combat against The Archivist's troops/Order-aligned units for the first time;
 - first Swamp boss victory grants `capability.wrong_machine_access` through the normal permanent reward/unlock architecture;
 - repeat boss victories do not grant duplicate machine access;
 - the Wrong Machine becomes available for its accepted reconstruction gameplay;
@@ -109,16 +112,18 @@ The implementation should persist the smallest durable gameplay result needed fo
 2. **The Whim -> Basic Goblins.** Player receives the first Warband and Farm access.
 3. **Farm -> Mudking.** First victory rescues the Tooth Collector and unlocks the Shop.
 4. **Return -> The Whim.** The Whim sends the player after the missing Wrong Machine; Mountains unlock.
-5. **Mountains -> boss.** Player learns the Machine was moved to the Swamps; Swamps unlock.
-6. **First Swamp visit.** The player encounters The Archivist directly for the first time.
-7. **Swamp -> boss.** First victory recovers/unlocks the Wrong Machine.
-8. **First Wrong Machine use.** The player performs their first reconstruction/use.
-9. **Return -> The Whim.** The Whim encourages wider exploration and the broader map opens.
+5. **Mountains -> The Archivist.** The player speaks directly with The Archivist for the first time while following the Wrong Machine trail.
+6. **Mountains -> boss.** Player learns the Machine was moved to the Swamps; Swamps unlock.
+7. **Swamps -> Archivist troops.** The player encounters and fights The Archivist's Order-aligned forces for the first time.
+8. **Swamps -> boss.** First victory recovers/unlocks the Wrong Machine.
+9. **First Wrong Machine use.** The player performs their first reconstruction/use.
+10. **Return -> The Whim.** The Whim encourages wider exploration and the broader map opens.
 
 ## Development Constraints
 
 - New story content must not bypass or reorder the opening progression without an explicit canonical update.
-- Do not introduce The Archivist directly to the player before the first Swamp visit.
+- The player's first direct conversation with The Archivist occurs in the Mountains.
+- Combat against The Archivist's troops/Order-aligned units is introduced in the Swamps, not the Mountains.
 - Do not grant Wrong Machine access before the first successful Swamp boss victory.
 - Do not open the broader post-Swamp map merely because the Swamp was discovered or completed; the intended story beat follows the player's first Wrong Machine use and subsequent Whim dialogue.
 - Region/system unlocks should use existing permanent unlock/reward/capability authority where semantically appropriate.
