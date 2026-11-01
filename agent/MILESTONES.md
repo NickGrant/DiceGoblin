@@ -2,64 +2,62 @@
 
 Read this for sequencing/planning or when closing/promoting an execution package. Normal implementation should use `agent/ISSUES.md` instead.
 
-## Milestone 12 - Mystic Cave and Onboarding
+## Milestone 13 - Swamp and Parity Audit
 
-**Status:** Complete
-
-The user accepted Package 7 UAT as good enough on 2026-10-31. Package review/promotion remains pending; Milestone 13 has not been activated.
+**Status:** Active
 
 ### Related Issues
-- Milestone 12 Package 7 - Focused manual UAT before Milestone 13
+- Milestone 13 Package 1 - Canonical Swamp and Frogmen authored-content foundation
 
-Milestones 1-11 are complete and passed their required manual UAT.
+Milestones 1-12 are complete and passed their required manual UAT.
 
 Milestone 10 closed after Package 10 manual UAT acceptance through `d97bcb52c4b834cf72a68d827eac8e196c05adbb`.
 
-Milestone 11 closed after Package 9 focused manual UAT acceptance on 2026-10-31. The accepted Milestone 11 baseline includes Codex ownership/read/presentation, knowledge-aware replayable dialogue, objective/bounty authored state and authoritative gameplay-fact progress, automatic completion/reward finalization, Phaser Objectives presentation, the Farm Scout and Mudking production dialogue/Codex paths added during UAT, production Farm objectives, dotted-dialogue local routing correction, and the end-of-milestone retirement of obsolete prototype code. Final cleanup verification passed at `03df62b39715e835d31d2642441b0be4186a94f8` with 689 backend tests / 5,605 assertions and 446 frontend tests. The user explicitly accepted renewed Milestone 11 UAT on 2026-10-31.
+Milestone 11 closed after Package 9 focused manual UAT acceptance on 2026-10-31. Its accepted baseline includes Codex ownership/read/presentation, knowledge-aware replayable dialogue, objectives/bounties, authoritative gameplay-fact progress, automatic completion/reward finalization, production Farm dialogue/Codex/objectives, dotted-dialogue routing correction, and retirement of obsolete prototype paths.
+
+Milestone 12 closed after Package 7 focused manual UAT acceptance on 2026-10-31. Packages 1-6 established and technically closed the authoritative Mystic Cave onboarding lifecycle. UAT then identified and corrected two concrete presentation/gameplay defects: the starting Warband now provisions four authored Basic Goblins in valid frontline/backline positions rather than one unit, and normal unit creation now assigns generated personal names rather than unit-type labels. The user explicitly accepted the corrected UAT on 2026-10-31. Accepted UAT corrections are through `c40959b37fe2d08a4b01fc8673b103a5ab8fe2b9`.
 
 The major game-wide visual/UI overhaul remains intentionally deferred.
 
 ### Outcome
 
-Establish the fresh-player Mystic Cave onboarding slice and introduce The Whim and the Wrong Machine through normal gameplay, while reusing the accepted vNext architecture rather than creating a parallel tutorial system:
-- a canonical authored onboarding flow for a fresh player;
-- Mystic Cave as the special onboarding biome associated with The Whim and Basic Goblin establishment;
-- player-safe, reconnect-safe presentation through the existing Phaser/runtime/API boundaries;
-- provisioning/unlock consequences expressed through existing authoritative reward/unlock/player-state systems where semantically valid;
-- Wrong Machine introduction without moving its later Swamp theft/restoration gameplay into this milestone;
-- explicit transition from onboarding into the established Camp/Farm core loop.
+Make the Swamps/frogmen/Frog Kin the third playable authored region and use it as the repeatability/parity proof for the completed vNext gameplay architecture:
+- canonical Swamp region, Frogmen enemies, encounters, boss, rewards, knowledge, and progression authored through current JSON/content boundaries;
+- a complete Swamp run through the same authoritative graph, combat, event/reward, persistence, reconnect, and terminal lifecycle used by Farm and Mountains;
+- Frog Kin integrated through the accepted Kin/Wrong Machine reconstruction architecture rather than a parallel lineage system;
+- intentional use of the encounter-depth systems already introduced for Shrine/Chaos/hazard/multi-step interactions where appropriate for Swamp design;
+- explicit audit of preserved prototype gameplay behavior, retaining only behavior still intended for vNext and recording durable decisions canonically;
+- third-region proof that no Farm-, Mountains-, or Swamp-specific architectural branch is required.
 
-Swamp/Frog Kin and third-region parity remain Milestone 13. Hardening/cutover remains Milestone 14.
+Hardening/cutover remains Milestone 14. Island through Savanna and The Library remain future content production rather than vNext-overhaul prerequisites.
 
 ### Architectural Direction
 
 - Follow `documentation/07-development-path/vnext-game-overhaul.md` for milestone order and `agent/CONTEXT_ROUTER.md` for narrow canonical authorities.
-- Mystic Cave is a special biome: Chaos beings/The Whim establish Basic Goblin rather than an enemy-derived kin.
-- Reuse accepted authored-content, dialogue/Codex, reward/unlock, API, storage, client-runtime, responsive, revision, and idempotency boundaries where semantically valid.
-- Do not introduce a generic tutorial-history, story-flag, `has_seen_dialogue`, generic progression, or catch-all state layer. Persist only durable state required by the actual onboarding mechanics.
-- Backend/MySQL remains authoritative for durable player state, eligibility, provisioning, unlocks/rewards, revision, and idempotency.
-- Phaser remains the gameplay client; Angular remains the host/auth/account shell.
+- `documentation/07-development-path/01-base-game-content-roster.md` canonically assigns Swamps -> Frogmen -> Frog Kin. Transitional content documents are design references only until their details are authored into canonical JSON.
+- Reuse accepted region/run graph, combat, event/reward, Codex/dialogue/objective, Kin/Wrong Machine, economy, progression, API, storage, Phaser runtime, responsive, revision, and idempotency boundaries.
+- Backend/MySQL remains authoritative for durable player state and mutations. Phaser remains the gameplay client; Angular remains the host/auth/account shell.
 - Authored definitions belong in canonical content JSON rather than SQL or client constants.
-- Prototype source/tests remain migration evidence only after the Milestone 11 cleanup; do not restore retired prototype architecture to implement onboarding.
-- Wrong Machine introduction in Milestone 12 must not contradict its later Swamp provenance/restoration path. Do not implement Swamp/Frog Kin expansion early.
-- Final visual polish remains deferred; onboarding must nevertheless be responsive, legible, and usable.
+- Do not treat prototype Swamp details, exact tuning, or historical Wrong Machine custody/recovery behavior as canonical merely because they existed previously. Resolve concrete Swamp requirements against current accepted vNext systems and record durable decisions in current repository authorities.
+- Do not introduce a region-specific service/controller/state model when the accepted generic region/run architecture can express the behavior.
+- Final game-wide visual polish remains deferred; new Swamp surfaces/assets must still be usable and responsive.
 
 ### Package Queue
 
-1. **Canonical onboarding flow and authored-content foundation.** Approved through correction evidence `3f7ab2ac9450faa4087108111844d67f2cc4123a` (implementation `4d2e32c68fa3accba7c4f4d93467015806bc17c2`, canonical-content correction `fb6414d12848ae37b3150a8cf9a35dbabffcec24`).
-2. **Authoritative fresh-player onboarding/provisioning transaction.** Approved through evidence `ba0eecb88cc1ac1a0925c8dc49ab0ca836914a02` (implementation `7661b012aeb5eb58a99c751d0d1eaf6157e89fae`).
-3. **Mystic Cave interaction/dialogue sequence.** Approved through evidence `2ef9aeca75280b7279c5f4bea4ae6260bcd7932a` (implementation `978db58e030b00f339574778ad8a7ce6072a31a4`).
-4. **Wrong Machine introduction and onboarding transition.** Approved through evidence `045c5446b7bb6c016c530461e040ab38177706f0` (implementation `1f1be8cffa6492960befb9c680294e464175da49`).
-5. **Phaser onboarding presentation and fresh-player routing.** Approved through evidence `fc1c5cff8888a0e5a8b3b717077958dec061f2d0` (implementation `11b27b5cd646733b498b8f9f6f84e9fbe052ef5d`).
-6. **Mystic Cave/onboarding integrated verification and technical closure.** Approved through evidence `7c8f2e66df222d1035bba0ae33eb5cbb44220b94` (technical-closure implementation `3f148166a247df80e8839ac48d4b71488f6610de`).
-7. **Focused manual UAT before Milestone 13.** User accepted UAT as good enough on 2026-10-31 after correction of the four-unit starting formation and generated unit names. Package review/promotion remains pending; Milestone 13 has not been activated.
+1. **Canonical Swamp and Frogmen authored-content foundation.** Current. Establish the current Swamp region identity, Frogmen enemy/combat roster, boss identity, authored progression relationships, and the minimum canonical content required for later Swamp packages without implementing the full run lifecycle early.
+2. **Swamp run graph and encounter-depth content.** Planned. Author the branch-capable Swamp graph and region-appropriate Combat/Loot/Rest/Hazard/Shrine/Chaos/dialogue interactions through the accepted generic node architecture.
+3. **Swamp boss, terminal rewards, and progression lifecycle.** Planned. Complete authoritative boss/Exit behavior, finalized rewards, region progression consequences, reconnect/idempotency, and normal terminal reconciliation.
+4. **Frog Kin and Wrong Machine integration.** Planned. Add Frog Kin to the accepted reconstruction/lineage model and resolve only the current Swamp/Wrong Machine capability or narrative consequences actually required by canonical gameplay.
+5. **Phaser Swamp presentation and third-region routing.** Planned. Ensure Camp/Run/Battle/dialogue/encounter presentation handles the third region through existing runtime boundaries with responsive and reconnect-safe behavior.
+6. **Preserved-gameplay parity audit.** Planned. Compare the implemented vNext core loop against intentionally preserved gameplay rules and identify only concrete missing behavior that belongs before cutover; record durable keep/change/drop decisions in canonical repository documentation.
+7. **Swamp/parity integrated verification and technical closure.** Planned. Prove the third-region lifecycle, Frog Kin integration, secrecy/security, idempotency/reconnect behavior, responsive presentation, and absence of region-specific architectural forks.
+8. **Focused manual UAT before Milestone 14.** Planned. Manually verify the complete Swamp/Frog Kin path and accepted parity corrections before hardening/cutover begins.
 
 ### Sequencing Notes
 
-- Package 1 established the accepted onboarding state model: ordered meaningful Codex knowledge for in-progress state, `ready_to_provision` when all onboarding knowledge is owned but no unit exists, and any owned unit as the durable completion marker for the current vNext lifecycle. Mystic Cave has no normal run generator; Basic Goblin establishment is not kin restoration; Wrong Machine onboarding is knowledge-only and location-neutral, with later Swamp provenance/access preserved.
-- Package 2 established the atomic starting Warband transition: one authored Basic Goblin Bruiser with a loaded basic melee attack and compatible d6 in an active one-unit squad. The authenticated, CSRF-protected, idempotent mutation commits unit/die/loadout/squad/revision/receipt together; exact-key replay is stable, distinct-key retry after completion cannot duplicate assets, and rollback leaves the player recoverably `ready_to_provision`.
-- Package 3 established server-side onboarding dialogue eligibility through the existing dialogue/Codex pipeline. Only the current authored Whim conversation is readable/completable; future and past onboarding dialogues fail closed under new keys, exact-key replay remains stable after advancement, and the final knowledge step ends at `ready_to_provision` without provisioning or Wrong Machine access.
-- Package 4 proved the accepted onboarding + bootstrap contracts already provide the complete transition authority: final knowledge yields `ready_to_provision`; provisioning yields `complete`, an active starting squad, and normal Farm run eligibility; reconnect and returning players derive the same state without backfill. Wrong Machine knowledge remains separate from access/reconstruction, and no additional transition endpoint or completion state was needed.
-- Package 5 mounted the authoritative onboarding lifecycle in the persistent Phaser runtime. Boot routing now follows server onboarding state; dialogue and provisioning remain separate authoritative mutations with retained idempotency keys and fresh reconciliation; stale responses fail closed; completed/returning players enter the existing Camp/Run/Battle lifecycle; responsive onboarding presentation is verified across Compact, Standard, Wide, and portrait-blocked viewports without client-local tutorial state.
-- Package 6 closed technical verification without finding a production architecture defect. The integrated backend lifecycle now begins through real local registration/session/CSRF, proves `required` -> `in_progress` -> `ready_to_provision` -> `complete`, validates the resulting Basic Goblin squad and normal Farm start, and reconfirms secrecy, Wrong Machine separation, retry/reload/stale-response/cross-player coverage, and responsive presentation.
-- Package 7 is the explicit manual UAT gate. Do not begin Milestone 13 or mark Milestone 12 complete until the user explicitly accepts UAT.
+- Milestone 12 established server-authoritative onboarding with no tutorial-history state. The accepted starting Warband is four Basic Goblins: two Bruisers in frontline positions 2 and 5 and two Marksmen in backline positions 0 and 3, each with its authored basic ability and compatible cardboard d6. Unit creation uses the shared normal creation boundary and generates personal names for onboarding, Shop acquisition, and Kin reconstruction.
+- Mystic Cave Wrong Machine knowledge does not itself grant `capability.wrong_machine_access`, physical possession, reconstruction authority, or Swamp progression. Milestone 13 must preserve that separation unless a concrete Swamp mechanic explicitly grants an accepted capability through the existing unlock model.
+- Swamps are the third-region repeatability proof, not an invitation to fork region architecture. Any apparent need for Swamp-specific infrastructure must be justified against the accepted generic run/event/combat/content systems before implementation.
+- Shrine and Chaos node vocabulary was intentionally left test-only until Swamp content required it; Package 2 is the natural place to promote only the semantics actually used by the authored Swamp graph.
+- Package 6 owns the explicit parity audit. Do not use prototype implementation shape as authority; use it only as behavioral evidence and reconcile any retained behavior into current canonical docs/content.
+- Package 8 is the explicit manual UAT gate. Do not begin Milestone 14 or mark Milestone 13 complete until the user explicitly accepts UAT.
