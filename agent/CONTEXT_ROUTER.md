@@ -15,6 +15,7 @@ Use this only when the current issue/source does not make the required authority
 | Currency/economy | `documentation/07-development-path/vnext-currency-economy-model.md` |
 | Energy | `documentation/07-development-path/vnext-energy-model.md` |
 | Progression/Codex/objectives | `documentation/07-development-path/vnext-progression-state-model.md` |
+| Story/biome narrative progression and story-gated unlock order | `documentation/01-lore/01-story-and-biome-progression.md` |
 | Preserved gameplay/combat rule | `documentation/02-systems/README.md`, then one relevant system doc |
 | Visual direction | `documentation/04-ux/01-visual-design-guide.md` |
 | Product terminology/core loop | `documentation/00-overview/02-glossary.md` and, only if needed, `01-core-gameplay-loop.md` |
