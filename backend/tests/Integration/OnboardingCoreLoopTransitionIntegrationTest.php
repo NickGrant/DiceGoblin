@@ -8,6 +8,7 @@ use DateTimeZone;
 use DiceGoblins\Application\Commands\ReconstructionException;
 use DiceGoblins\Application\Commands\RunStartException;
 use DiceGoblins\Content\ContentRegistry;
+use DiceGoblins\Controllers\AuthController;
 use DiceGoblins\Controllers\ControllerServiceFactory;
 use DiceGoblins\Controllers\DialogueController;
 use DiceGoblins\Controllers\OnboardingController;
@@ -20,10 +21,8 @@ final class OnboardingCoreLoopTransitionIntegrationTest extends IntegrationTestC
   public function testWhimKnowledgeProvisioningAndNormalFarmStartRemainSeparate(): void
   {
     $content = $this->content();
-    $userId = $this->user();
-    $_SESSION['user_id'] = $userId;
-    $_SESSION['csrf_token'] = 'transition-csrf';
-    $_SERVER['HTTP_X_CSRF_TOKEN'] = 'transition-csrf';
+    $userId = $this->registeredUser();
+    $_SERVER['HTTP_X_CSRF_TOKEN'] = (string)$_SESSION['csrf_token'];
     $onboarding = new OnboardingController($content);
     $dialogue = new DialogueController($content);
     $now = new DateTimeImmutable('now', new DateTimeZone('UTC'));
@@ -146,6 +145,22 @@ final class OnboardingCoreLoopTransitionIntegrationTest extends IntegrationTestC
     $id = (new UserRepository($this->pdo))->createUser('Onboarding Transition Test', null);
     $this->trackUserId($id);
     $this->pdo?->prepare('INSERT INTO user_state (user_id, energy_current) VALUES (?, 50)')->execute([$id]);
+    return $id;
+  }
+
+  private function registeredUser(): int
+  {
+    $this->setJsonBody([
+      'email' => 'onboarding-' . bin2hex(random_bytes(6)) . '@example.test',
+      'password' => 'onboarding-test-password',
+      'display_name' => 'New Warchief',
+    ]);
+    $response = $this->invoke(fn() => (new AuthController())->localRegister());
+    $this->assertSame(201, $response['status']);
+    $id = (int)($_SESSION['user_id'] ?? 0);
+    $this->assertGreaterThan(0, $id);
+    $this->assertNotEmpty($_SESSION['csrf_token'] ?? null);
+    $this->trackUserId($id);
     return $id;
   }
 
