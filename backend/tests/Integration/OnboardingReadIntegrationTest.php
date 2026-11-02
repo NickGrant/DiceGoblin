@@ -24,28 +24,24 @@ final class OnboardingReadIntegrationTest extends IntegrationTestCase
 
     $codex = new UserCodexRepository($this->pdo);
     $codex->insertIfAbsent($user, 'codex.mystic_cave.whim_arrival');
-    $this->assertSame('in_progress', $query->execute($user)['status']);
-    $this->assertSame('dialogue.mystic_cave.wrong_machine', $query->execute($user)['dialogue_id']);
-    $this->assertSame('in_progress', $this->query()->execute($user)['status']);
-
-    $codex->insertIfAbsent($user, 'codex.mystic_cave.wrong_machine');
+    $this->assertSame('ready_to_provision', $query->execute($user)['status']);
     $this->assertSame('ready_to_provision', $this->query()->execute($user)['status']);
     $this->assertNull($this->query()->execute($user)['dialogue_id']);
+    $this->assertSame(['codex.mystic_cave.whim_arrival'], $codex->listIdsForUser($user));
 
     $this->pdo?->prepare("INSERT INTO `unit_instances` (`user_id`, `unit_type_id`, `kin_id`, `display_name`, `level`, `xp`, `lifecycle_status`)
       VALUES (?, 'unit_type.bruiser', 'kin.goblin', 'Veteran', 1, 0, 'active')")->execute([$user]);
     $this->assertSame('complete', $this->query()->execute($user)['status']);
   }
 
-  public function testReturningUnitOwnerNeedsNoKnowledgeBackfillAndCorruptSequenceFails(): void
+  public function testReturningUnitOwnerNeedsNoKnowledgeBackfillAndUnrelatedKnowledgeDoesNotAdvance(): void
   {
     $returning = $this->user(); $corrupt = $this->user();
     $this->pdo?->prepare("INSERT INTO `unit_instances` (`user_id`, `unit_type_id`, `kin_id`, `display_name`, `level`, `xp`, `lifecycle_status`)
       VALUES (?, 'unit_type.bruiser', 'kin.goblin', 'Veteran', 1, 0, 'active')")->execute([$returning]);
     $this->assertSame('complete', $this->query()->execute($returning)['status']);
-    (new UserCodexRepository($this->pdo))->insertIfAbsent($corrupt, 'codex.mystic_cave.wrong_machine');
-    $this->expectException(RuntimeException::class);
-    $this->query()->execute($corrupt);
+    (new UserCodexRepository($this->pdo))->insertIfAbsent($corrupt, 'codex.farm.old_paths');
+    $this->assertSame('required', $this->query()->execute($corrupt)['status']);
   }
 
   public function testAuthenticatedEndpointProjectsOnlyCurrentStage(): void

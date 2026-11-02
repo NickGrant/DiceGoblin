@@ -21,7 +21,8 @@ final class OnboardingContentValidationTest extends TestCase
       array_column($flow['starting_warband']['units'], 'unit_type_id'));
     $this->assertSame([2, 5, 0, 3], array_column($flow['starting_warband']['units'], 'position'));
     $this->assertSame('region.mystic_cave', $flow['region_id']);
-    $this->assertNotEmpty($flow['steps']);
+    $this->assertSame([['encounter_id' => 'encounter.mystic_cave.whim_arrival',
+      'knowledge_id' => 'codex.mystic_cave.whim_arrival']], $flow['steps']);
     $projected = (new ClientContentProjector())->project($content);
     $encoded = json_encode($projected, JSON_THROW_ON_ERROR);
     foreach (['onboarding.mystic_cave', 'region.mystic_cave', 'dialogue.mystic_cave',
@@ -49,7 +50,7 @@ final class OnboardingContentValidationTest extends TestCase
   {
     $definitions = CanonicalContentFixture::definitions();
     foreach ($definitions as &$definition) {
-      if ($definition['id'] !== 'reward_definition.mystic_cave.wrong_machine') continue;
+      if ($definition['id'] !== 'reward_definition.mystic_cave.whim_arrival') continue;
       $definition['entries'][0]['reward_type'] = 'unlock';
       $definition['entries'][0]['config'] = ['unlock_id' => 'unlock.capability.wrong_machine_access'];
       break;
@@ -99,7 +100,6 @@ final class OnboardingContentValidationTest extends TestCase
     return [
       ['region_id', 'region.missing'],
       ['starting_kin_id', 'kin.pig'],
-      ['machine_capability_id', 'capability.missing'],
       ['encounter_id', 'encounter.missing'],
       ['knowledge_id', 'codex.missing'],
     ];

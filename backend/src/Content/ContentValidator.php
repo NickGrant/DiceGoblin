@@ -433,10 +433,6 @@ final class ContentValidator
             throw new ContentValidationException("{$id} {$where} configuration is invalid.");
           }
         }
-        $machine = $this->requireReferenceType($definitions, $id, 'machine_capability_id', $definition['machine_capability_id'], 'capability');
-        if ($machine['id'] !== 'capability.wrong_machine_access' || $machine['kind'] !== 'feature_access') {
-          throw new ContentValidationException("{$id} must reference the existing Wrong Machine identity.");
-        }
         $priorKnowledge = [];
         foreach ($definition['steps'] as $step) {
           $encounter = $this->requireReferenceType($definitions, $id, 'steps.encounter_id', $step['encounter_id'], 'encounter');
@@ -576,9 +572,9 @@ final class ContentValidator
   private function validateOnboardingFlow(array $definition, string $location): void
   {
     $this->requireExactFieldSet($definition,
-      ['id', 'type', 'region_id', 'starting_kin_id', 'starting_warband', 'machine_capability_id', 'steps'], [], $location);
+      ['id', 'type', 'region_id', 'starting_kin_id', 'starting_warband', 'steps'], [], $location);
     $this->requireNamespace($definition, 'onboarding.', $location);
-    foreach (['region_id' => 'region.', 'starting_kin_id' => 'kin.', 'machine_capability_id' => 'capability.'] as $field => $namespace) {
+    foreach (['region_id' => 'region.', 'starting_kin_id' => 'kin.'] as $field => $namespace) {
       $this->requireStableIdWithNamespace($definition, $field, $namespace, $location);
     }
     $starting = $definition['starting_warband'];

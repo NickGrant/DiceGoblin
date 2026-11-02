@@ -47,8 +47,9 @@ final class OnboardingCoreLoopTransitionIntegrationTest extends IntegrationTestC
       $result = $this->invoke(fn() => $dialogue->complete($conversation['id']));
       $this->assertSame(200, $result['status']);
       $this->assertSame($step['knowledge_id'], $result['body']['data']['knowledge']['codex_id']);
-      $this->assertSame($index === 0 ? 'in_progress' : 'ready_to_provision', $this->status($onboarding)['status']);
+      $this->assertSame('ready_to_provision', $this->status($onboarding)['status']);
     }
+    $this->assertSame(0, (int)$this->scalar("SELECT COUNT(*) FROM user_codex_ownership WHERE user_id = ? AND codex_id = 'codex.mystic_cave.wrong_machine'", [$userId]));
 
     $this->assertNull($this->services($content)['gameBootstrapQuery']->execute($userId, $now)['active_squad']);
     $this->assertSame(0, (int)$this->scalar('SELECT COUNT(*) FROM user_unlocks WHERE user_id = ?', [$userId]));
@@ -67,6 +68,7 @@ final class OnboardingCoreLoopTransitionIntegrationTest extends IntegrationTestC
     $this->assertContains('region.the_farm', $bootstrap['progression']['available_region_ids']);
     $this->assertContains('unlock.region.the_farm', $bootstrap['progression']['unlock_ids']);
     $this->assertNotContains('unlock.capability.wrong_machine_access', $bootstrap['progression']['unlock_ids']);
+    $this->assertSame(['codex.mystic_cave.whim_arrival'], (new UserCodexRepository($this->pdo))->listIdsForUser($userId));
     $this->assertSame($bootstrap, $this->services($content)['gameBootstrapQuery']->execute($userId, $now));
     $this->assertSame('complete', $this->status(new OnboardingController($content))['status']);
     $this->assertReconstructionUnavailable($userId, $content);

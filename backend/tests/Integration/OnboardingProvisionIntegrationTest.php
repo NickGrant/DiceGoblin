@@ -63,6 +63,7 @@ final class OnboardingProvisionIntegrationTest extends IntegrationTestCase
       ));
     }
     $this->assertSame(['unlock.region.the_farm'], (new UserUnlockRepository($this->pdo))->listIdsForUser($user));
+    $this->assertSame(0, (int)$this->scalar("SELECT COUNT(*) FROM user_codex_ownership WHERE user_id = ? AND codex_id = 'codex.mystic_cave.wrong_machine'", [$user]));
     $this->assertSame(0, (int)$this->scalar('SELECT COUNT(*) FROM unit_promotions WHERE unit_id IN (?, ?, ?, ?)',
       array_map('intval', $first['unit_ids'])));
     $this->assertSame(0, (int)$this->scalar('SELECT COUNT(*) FROM unit_instances WHERE user_id = ?', [$other]));
@@ -83,13 +84,12 @@ final class OnboardingProvisionIntegrationTest extends IntegrationTestCase
     $this->assertSame('active', $run['run']['status']);
   }
 
-  public function testRequiredInProgressAndReturningPlayersCannotProvision(): void
+  public function testRequiredAndReturningPlayersCannotProvision(): void
   {
-    $required = $this->user(); $inProgress = $this->user(); $returning = $this->user();
-    (new UserCodexRepository($this->pdo))->insertIfAbsent($inProgress, 'codex.mystic_cave.whim_arrival');
+    $required = $this->user(); $returning = $this->user();
     $this->pdo?->prepare("INSERT INTO unit_instances (user_id, unit_type_id, kin_id, display_name, level, xp, lifecycle_status)
       VALUES (?, 'unit_type.bruiser', 'kin.goblin', 'Veteran', 1, 0, 'active')")->execute([$returning]);
-    foreach ([$required, $inProgress, $returning] as $user) {
+    foreach ([$required, $returning] as $user) {
       try { $this->command()->execute($user, [], 'onboard-gated-1'); $this->fail('Expected provisioning to be gated.'); }
       catch (OnboardingProvisionException $e) { $this->assertSame('onboarding_not_ready', $e->errorCode); }
       $this->assertSame(0, (int)$this->scalar('SELECT COUNT(*) FROM idempotency_requests WHERE user_id = ?', [$user]));

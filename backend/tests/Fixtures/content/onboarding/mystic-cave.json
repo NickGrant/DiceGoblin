@@ -13,23 +13,11 @@
       "body": "The Whim gives the new warchief a Basic Goblin Warband and sends them to the Farm to rescue the Tooth Collector, the Whim's friend, from the Mudking."
     },
     {
-      "id": "codex.mystic_cave.wrong_machine",
-      "type": "codex_entry",
-      "title": "The Wrong Machine",
-      "body": "The Wrong Machine can rebuild goblins from Raw Chaos. Knowing of it does not mean it is within reach."
-    },
-    {
       "id": "reward_definition.mystic_cave.whim_arrival",
       "type": "reward_definition",
       "entries": [{"key": "knowledge", "probability_basis_points": 10000, "reward_type": "codex", "config": {"codex_id": "codex.mystic_cave.whim_arrival"}}]
     },
     {"id": "event.mystic_cave.whim_arrival", "type": "event", "reward_definition_id": "reward_definition.mystic_cave.whim_arrival"},
-    {
-      "id": "reward_definition.mystic_cave.wrong_machine",
-      "type": "reward_definition",
-      "entries": [{"key": "knowledge", "probability_basis_points": 10000, "reward_type": "codex", "config": {"codex_id": "codex.mystic_cave.wrong_machine"}}]
-    },
-    {"id": "event.mystic_cave.wrong_machine", "type": "event", "reward_definition_id": "reward_definition.mystic_cave.wrong_machine"},
     {
       "id": "dialogue.mystic_cave.whim_arrival",
       "type": "dialogue",
@@ -37,15 +25,7 @@
       "body": "A calm voice greets you from the cave's shifting light. It calls itself the Whim and says you are a goblin with a chance to choose what comes next.",
       "choices": [{"id": "listen", "label": "Listen to the Whim", "response": "The Whim gathers your first goblins and asks you to visit the Farm. Defeat the Mudking and bring the Tooth Collector home.", "required_codex_ids": [], "event_id": "event.mystic_cave.whim_arrival"}]
     },
-    {
-      "id": "dialogue.mystic_cave.wrong_machine",
-      "type": "dialogue",
-      "title": "A Machine with a Name",
-      "body": "The Whim conjures a fleeting image and names what it shows: the Wrong Machine. It can rebuild goblins from Raw Chaos. Knowing its name does not give you the machine or a way to use it yet.",
-      "choices": [{"id": "remember", "label": "Remember the machine", "response": "You remember its name for later. First, the Tooth Collector needs rescue from the Mudking at the Farm.", "required_codex_ids": ["codex.mystic_cave.whim_arrival"], "event_id": "event.mystic_cave.wrong_machine"}]
-    },
     {"id": "encounter.mystic_cave.whim_arrival", "type": "encounter", "kind": "non_combat", "family": "dialogue", "region_id": "region.mystic_cave", "prompt": "Will you listen?", "dialogue_id": "dialogue.mystic_cave.whim_arrival"},
-    {"id": "encounter.mystic_cave.wrong_machine", "type": "encounter", "kind": "non_combat", "family": "dialogue", "region_id": "region.mystic_cave", "prompt": "What is the Wrong Machine?", "dialogue_id": "dialogue.mystic_cave.wrong_machine"},
     {
       "id": "onboarding.mystic_cave",
       "type": "onboarding_flow",
@@ -57,10 +37,8 @@
         {"unit_type_id": "unit_type.marksman", "ability_id": "ability.basic_attack_ranged", "dice_profile_id": "dice_profile.cardboard_plain", "die_size": 6, "position": 0},
         {"unit_type_id": "unit_type.marksman", "ability_id": "ability.basic_attack_ranged", "dice_profile_id": "dice_profile.cardboard_plain", "die_size": 6, "position": 3}
       ]},
-      "machine_capability_id": "capability.wrong_machine_access",
       "steps": [
-        {"encounter_id": "encounter.mystic_cave.whim_arrival", "knowledge_id": "codex.mystic_cave.whim_arrival"},
-        {"encounter_id": "encounter.mystic_cave.wrong_machine", "knowledge_id": "codex.mystic_cave.wrong_machine"}
+        {"encounter_id": "encounter.mystic_cave.whim_arrival", "knowledge_id": "codex.mystic_cave.whim_arrival"}
       ]
     }
   ]

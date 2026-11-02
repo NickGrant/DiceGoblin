@@ -23,14 +23,12 @@ final class OnboardingDialogueIntegrationTest extends IntegrationTestCase
     $_SERVER['HTTP_X_CSRF_TOKEN'] = 'onboarding-csrf';
 
     $first = $this->visibleStep($content, $flow['steps'][0]);
-    $second = $this->visibleStep($content, $flow['steps'][1]);
     $this->assertSame('required', $this->invoke(fn() => $onboarding->status())['body']['data']['status']);
     $firstRead = $this->invoke(fn() => $dialogue->read($first['dialogue_id']));
     $this->assertSame(200, $firstRead['status']);
     $this->assertSame(['id', 'title', 'body', 'choices'], array_keys($firstRead['body']['data']));
     $this->assertSame([$first['choice_id']], array_column($firstRead['body']['data']['choices'], 'id'));
-    $this->assertSame(404, $this->invoke(fn() => $dialogue->read($second['dialogue_id']))['status']);
-    $this->assertSame(404, $this->complete($dialogue, $second, 'future-step-1')['status']);
+    $this->assertSame(404, $this->invoke(fn() => $dialogue->read('dialogue.mystic_cave.wrong_machine'))['status']);
     $this->assertSame(0, (int)$this->scalar('SELECT COUNT(*) FROM user_codex_ownership WHERE user_id = ?', [$user]));
     $this->assertSame(1, (int)$this->scalar('SELECT player_revision FROM user_state WHERE user_id = ?', [$user]));
 
@@ -42,34 +40,28 @@ final class OnboardingDialogueIntegrationTest extends IntegrationTestCase
     $this->assertSame($firstResult['body'], $this->complete($dialogue, $first, 'first-step-1')['body']);
     $this->assertSame(404, $this->complete($dialogue, $first, 'first-step-new-key')['status']);
     $next = $this->invoke(fn() => $onboarding->status())['body']['data'];
-    $this->assertSame('in_progress', $next['status']);
-    $this->assertSame($second['dialogue_id'], $next['dialogue_id']);
+    $this->assertSame('ready_to_provision', $next['status']);
+    $this->assertNull($next['dialogue_id']);
     $this->assertSame($next, $this->invoke(fn() => $onboarding->status())['body']['data']);
     $this->assertSame(404, $this->invoke(fn() => $dialogue->read($first['dialogue_id']))['status']);
-    $this->assertSame(200, $this->invoke(fn() => $dialogue->read($second['dialogue_id']))['status']);
 
     $_SESSION['user_id'] = $other;
     $this->assertSame('required', $this->invoke(fn() => $onboarding->status())['body']['data']['status']);
-    $this->assertSame(404, $this->complete($dialogue, $second, 'other-future-1')['status']);
+    $this->assertSame(404, $this->invoke(fn() => $dialogue->read('dialogue.mystic_cave.wrong_machine'))['status']);
     $this->assertSame(0, (int)$this->scalar('SELECT COUNT(*) FROM user_codex_ownership WHERE user_id = ?', [$other]));
     $_SESSION['user_id'] = $user;
 
-    $final = $this->complete($dialogue, $second, 'final-step-1');
-    $this->assertSame(200, $final['status']);
-    $this->assertSame($flow['steps'][1]['knowledge_id'], $final['body']['data']['knowledge']['codex_id']);
-    $this->assertSame('granted', $final['body']['data']['knowledge']['outcome']);
-    $this->assertSame(3, $final['body']['data']['player_revision']);
-    $this->assertSame($final['body'], $this->complete($dialogue, $second, 'final-step-1')['body']);
     $this->assertSame('ready_to_provision', $this->invoke(fn() => $onboarding->status())['body']['data']['status']);
-    $this->assertSame(2, (int)$this->scalar('SELECT COUNT(*) FROM user_codex_ownership WHERE user_id = ?', [$user]));
-    $this->assertSame(2, (int)$this->scalar('SELECT COUNT(*) FROM resolved_events WHERE user_id = ?', [$user]));
-    $this->assertSame(2, (int)$this->scalar('SELECT COUNT(*) FROM idempotency_requests WHERE user_id = ?', [$user]));
+    $this->assertSame(1, (int)$this->scalar('SELECT COUNT(*) FROM user_codex_ownership WHERE user_id = ?', [$user]));
+    $this->assertSame(0, (int)$this->scalar("SELECT COUNT(*) FROM user_codex_ownership WHERE user_id = ? AND codex_id = 'codex.mystic_cave.wrong_machine'", [$user]));
+    $this->assertSame(1, (int)$this->scalar('SELECT COUNT(*) FROM resolved_events WHERE user_id = ?', [$user]));
+    $this->assertSame(1, (int)$this->scalar('SELECT COUNT(*) FROM idempotency_requests WHERE user_id = ?', [$user]));
     $this->assertSame(0, (int)$this->scalar('SELECT COUNT(*) FROM unit_instances WHERE user_id = ?', [$user]));
     $this->assertSame(0, (int)$this->scalar('SELECT COUNT(*) FROM user_unlocks WHERE user_id = ?', [$user]));
-    $this->assertSame(3, (int)$this->scalar('SELECT player_revision FROM user_state WHERE user_id = ?', [$user]));
+    $this->assertSame(2, (int)$this->scalar('SELECT player_revision FROM user_state WHERE user_id = ?', [$user]));
   }
 
-  public function testMalformedAndCorruptSequenceFailsWithoutRewardOrReceipt(): void
+  public function testMalformedAndUnknownKnowledgeFailsWithoutRewardOrReceipt(): void
   {
     $content = $this->content(); $flow = $content->onboardingFlow();
     $user = $this->user(); $_SESSION['user_id'] = $user;
@@ -79,7 +71,7 @@ final class OnboardingDialogueIntegrationTest extends IntegrationTestCase
     $this->assertSame(404, $this->invoke(fn() => $dialogue->read('dialogue.missing'))['status']);
     $invalid = $this->complete($dialogue, ['dialogue_id' => $first['dialogue_id'], 'choice_id' => 'missing'], 'bad-choice-1');
     $this->assertSame(404, $invalid['status']);
-    (new UserCodexRepository($this->pdo))->insertIfAbsent($user, $flow['steps'][1]['knowledge_id']);
+    (new UserCodexRepository($this->pdo))->insertIfAbsent($user, 'codex.unknown');
     $this->assertSame(500, $this->invoke(fn() => $dialogue->read($first['dialogue_id']))['status']);
     $this->assertSame(500, $this->complete($dialogue, $first, 'corrupt-step-1')['status']);
     $this->assertSame(0, (int)$this->scalar('SELECT COUNT(*) FROM resolved_events WHERE user_id = ?', [$user]));
