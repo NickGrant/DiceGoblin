@@ -23,12 +23,15 @@ final class DialogueContentValidationTest extends TestCase
     $this->assertStringNotContainsString($dialogue['id'], $encoded);
     $this->assertStringNotContainsString('required_codex_ids', $encoded);
     $this->assertStringNotContainsString('event.dialogue_farm_scout_paths', $encoded);
+    $this->assertTrue($content->dialogue('dialogue.mountains_archivist')['run_only']);
+    $this->assertStringNotContainsString('dialogue.mountains_archivist', $encoded);
+    $this->assertStringNotContainsString('codex.mountains_archivist', $encoded);
   }
 
   public function testMalformedDialogueAndReferencesFailValidation(): void
   {
     foreach (['bad_id', 'extra', 'duplicate_choice', 'bad_choice', 'empty_label', 'unknown_codex',
-      'unknown_event', 'wrong_reward', 'unknown_reward_codex', 'null_event'] as $case) {
+      'unknown_event', 'wrong_reward', 'unknown_reward_codex', 'null_event', 'invalid_run_only'] as $case) {
       $definitions = $this->definitions();
       foreach ($definitions as &$definition) {
         if ($definition['id'] === 'dialogue.camp.farm_scout') {
@@ -40,6 +43,7 @@ final class DialogueContentValidationTest extends TestCase
           if ($case === 'unknown_codex') $definition['choices'][1]['required_codex_ids'] = ['codex.unknown'];
           if ($case === 'unknown_event') $definition['choices'][0]['event_id'] = 'event.unknown';
           if ($case === 'null_event') $definition['choices'][0]['event_id'] = null;
+          if ($case === 'invalid_run_only') $definition['run_only'] = false;
         }
         if ($definition['id'] === 'reward_definition.dialogue_farm_scout_paths') {
           if ($case === 'wrong_reward') {

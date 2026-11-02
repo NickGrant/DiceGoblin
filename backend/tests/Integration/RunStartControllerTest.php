@@ -138,7 +138,7 @@ final class RunStartControllerTest extends IntegrationTestCase
     $this->assertSame('active', $persisted['status'] ?? null);
     $runId = (int)$run['id'];
     $nodeCount = (int)$this->scalar('SELECT COUNT(*) FROM `run_nodes` WHERE `run_id` = ?', [$runId]);
-    $this->assertContains($nodeCount, [11, 12]);
+    $this->assertContains($nodeCount, [13, 14]);
     $this->assertContains((int)$this->scalar('SELECT COUNT(*) FROM (SELECT `from_node_id` FROM `run_edges` WHERE `run_id` = ? GROUP BY `from_node_id` HAVING COUNT(*) > 1) AS `splits`', [$runId]), [3, 4]);
     $current = ControllerServiceFactory::buildContentAware($this->pdo)['currentRunQuery']->execute($userId);
     $this->assertCount($nodeCount, $current['run']['nodes']);
@@ -406,14 +406,16 @@ final class RunStartControllerTest extends IntegrationTestCase
     $this->assertSame(3, $first['player_revision']);
     $runId = (int)$first['run']['id'];
     $nodes = $this->rows('SELECT `node_index`, `node_type_id`, `encounter_id`, `event_id`, `status` FROM `run_nodes` WHERE `run_id` = ? ORDER BY `node_index`', [$runId]);
-    $this->assertSame(range(0, 8), array_map('intval', array_column($nodes, 'node_index')));
+    $this->assertSame(range(0, 10), array_map('intval', array_column($nodes, 'node_index')));
     $this->assertSame(['run_node_type.combat', 'run_node_type.loot', 'run_node_type.combat', 'run_node_type.rest',
-      'run_node_type.combat', 'run_node_type.boss', 'run_node_type.exit', 'run_node_type.hazard', 'run_node_type.hazard'], array_column($nodes, 'node_type_id'));
-    $this->assertSame(['available', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked'], array_column($nodes, 'status'));
+      'run_node_type.combat', 'run_node_type.boss', 'run_node_type.exit', 'run_node_type.hazard', 'run_node_type.hazard',
+      'run_node_type.dialogue', 'run_node_type.dialogue'], array_column($nodes, 'node_type_id'));
+    $this->assertSame(['available', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked'], array_column($nodes, 'status'));
     $this->assertSame(['encounter.mountains_kobold_combat_1', null, 'encounter.mountains_kobold_combat_2', 'encounter.mountains_rest',
       'encounter.mountains_kobold_combat_3', 'encounter.mountains_kobold_boss_1', null,
-      'encounter.mountains_loose_scree', 'encounter.mountains_rockfall'], array_column($nodes, 'encounter_id'));
-    $this->assertSame([null, 'event.mountains_loot_completed', null, null, null, 'event.mountains_boss_completed', null, null, null],
+      'encounter.mountains_loose_scree', 'encounter.mountains_rockfall',
+      'encounter.mountains_kobold_trail', 'encounter.mountains_archivist'], array_column($nodes, 'encounter_id'));
+    $this->assertSame([null, 'event.mountains_loot_completed', null, null, null, 'event.mountains_boss_completed', null, null, null, null, null],
       array_column($nodes, 'event_id'));
     $this->assertSame(5, (int)$this->scalar('SELECT COUNT(*) FROM `run_unit_state` WHERE `run_id` = ?', [$runId]));
     $this->assertSame(1, $this->runCount($userId));

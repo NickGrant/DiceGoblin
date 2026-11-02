@@ -9,6 +9,16 @@
       "id": "event.mountains_boss_completed",
       "type": "event",
       "reward_definition_id": "reward_definition.mountains_boss_completed"
+    },
+    {
+      "id": "event.mountains_kobold_trail",
+      "type": "event",
+      "reward_definition_id": "reward_definition.mountains_kobold_trail"
+    },
+    {
+      "id": "event.mountains_archivist",
+      "type": "event",
+      "reward_definition_id": "reward_definition.mountains_archivist"
     }
   ]
 }

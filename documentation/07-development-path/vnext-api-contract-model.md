@@ -78,6 +78,8 @@ Bootstrap should not include every owned unit, every die, the complete Codex, al
 
 The post-Farm Whim dialogue read and completion use the normal dialogue endpoints. Its completion response includes the public Codex knowledge and Mountains unlock outcomes; the client refreshes bootstrap before showing Mountains as available. Exact-key replay returns the finalized response even after the dialogue is no longer eligible for a new request.
 
+Authored `run_only` dialogue is readable only through the available dialogue encounter in the player's authoritative current-run projection. The ordinary dialogue read/completion endpoints reject it by ID; the run-node resolution command owns its choice, Codex reward, revision, and exact-key replay. This keeps the Mountains trail and Archivist conversation tied to their reached run nodes across reconnects.
+
 ## Lazy Domain Queries
 
 Large or screen-specific data should be loaded on demand by game domain rather than by UI widget or Phaser screen implementation.

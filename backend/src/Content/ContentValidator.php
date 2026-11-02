@@ -552,7 +552,10 @@ final class ContentValidator
   /** @param array<string,mixed> $definition */
   private function validateDialogue(array $definition, string $location): void
   {
-    $this->requireExactFieldSet($definition, ['id', 'type', 'title', 'body', 'choices'], [], $location);
+    $this->requireExactFieldSet($definition, ['id', 'type', 'title', 'body', 'choices'], ['run_only'], $location);
+    if (array_key_exists('run_only', $definition) && $definition['run_only'] !== true) {
+      throw new ContentValidationException("{$location} run_only must be true when present.");
+    }
     $this->requireNamespace($definition, 'dialogue.', $location);
     $this->requireBoundedNonEmptyString($definition, 'title', 120, $location);
     $this->requireBoundedNonEmptyString($definition, 'body', 2000, $location);

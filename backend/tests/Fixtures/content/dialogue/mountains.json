@@ -1,0 +1,50 @@
+{
+  "definitions": [
+    {
+      "id": "dialogue.mountains_kobold_trail",
+      "type": "dialogue",
+      "run_only": true,
+      "title": "The Kobold Trail",
+      "body": "A kobold courier watches your warband pick through a broken supply crate. The deep wheel ruts and scattered machine fittings are fresh. 'We carried a humming load over the high pass,' the courier says. 'It is already gone from this camp.'",
+      "choices": [{
+        "id": "follow_tracks",
+        "label": "Follow the wheel ruts",
+        "response": "The tracks confirm the Wrong Machine passed through the kobold camp, but the crate and its cargo have moved on. You follow the trail deeper into the Mountains.",
+        "required_codex_ids": [],
+        "event_id": "event.mountains_kobold_trail"
+      }]
+    },
+    {
+      "id": "encounter.mountains_kobold_trail",
+      "type": "encounter",
+      "kind": "non_combat",
+      "family": "dialogue",
+      "region_id": "region.mountains",
+      "prompt": "What do you make of the kobold tracks?",
+      "dialogue_id": "dialogue.mountains_kobold_trail"
+    },
+    {
+      "id": "dialogue.mountains_archivist",
+      "type": "dialogue",
+      "run_only": true,
+      "title": "The Archivist",
+      "body": "At the pass, the Archivist steps from a page of ordered script. 'The Whim's goblins have returned,' the Archivist says to you. 'The Grand Library keeps dangerous possibilities from becoming disasters. I will not let your warband reclaim the Wrong Machine.'",
+      "choices": [{
+        "id": "ask_about_machine",
+        "label": "Ask where the Machine went",
+        "response": "'The kobolds have already moved it beyond this pass,' the Archivist replies. 'You are following an absence.' The page folds shut before you can press for its destination.",
+        "required_codex_ids": ["codex.mountains_kobold_trail"],
+        "event_id": "event.mountains_archivist"
+      }]
+    },
+    {
+      "id": "encounter.mountains_archivist",
+      "type": "encounter",
+      "kind": "non_combat",
+      "family": "dialogue",
+      "region_id": "region.mountains",
+      "prompt": "The Archivist addresses your warband.",
+      "dialogue_id": "dialogue.mountains_archivist"
+    }
+  ]
+}

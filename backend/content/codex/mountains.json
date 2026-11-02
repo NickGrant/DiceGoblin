@@ -1,0 +1,16 @@
+{
+  "definitions": [
+    {
+      "id": "codex.mountains_kobold_trail",
+      "type": "codex_entry",
+      "title": "The Kobold Trail",
+      "body": "Fresh wheel ruts and machine fittings show that kobolds moved the Wrong Machine through their mountain camp. It is no longer there; the trail continues deeper into the Mountains."
+    },
+    {
+      "id": "codex.mountains_archivist",
+      "type": "codex_entry",
+      "title": "The Archivist",
+      "body": "The Archivist of the Grand Library spoke directly to the returned goblins in the Mountains. The Archivist intends to keep the Wrong Machine from the warband and confirmed that the kobolds moved it beyond the pass, but withheld its destination."
+    }
+  ]
+}

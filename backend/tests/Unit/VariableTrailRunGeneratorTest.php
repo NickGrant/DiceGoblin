@@ -31,7 +31,7 @@ final class VariableTrailRunGeneratorTest extends TestCase
     ] as $choose) {
       $graph = (new VariableTrailRunGenerator(choose: $choose))->generate($definition);
       (new GeneratedRunGraphValidator())->assertValid($graph);
-      $this->assertContains(count($graph['nodes']), [11, 12]);
+      $this->assertContains(count($graph['nodes']), [13, 14]);
       $this->assertCount(count($graph['nodes']) - 1, $graph['edges']);
       $this->assertSame('run_node_type.exit', $graph['nodes'][6]['node_type_id']);
       $outgoing = array_count_values(array_column($graph['edges'], 'from_node_index'));

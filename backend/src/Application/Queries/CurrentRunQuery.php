@@ -172,7 +172,7 @@ final class CurrentRunQuery
               throw new CurrentRunIntegrityException('Dialogue encounter state is invalid.');
             }
             try {
-              $dialogue = $this->dialogues->execute($userId, $encounter['dialogue_id']);
+              $dialogue = $this->dialogues->executeForAvailableRunNode($userId, $encounter['dialogue_id']);
             } catch (\Throwable $e) {
               throw new CurrentRunIntegrityException('Dialogue encounter is invalid.', 0, $e);
             }

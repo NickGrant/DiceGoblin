@@ -41,6 +41,7 @@ final class DialogueAvailabilityPolicy
     }
     try { $dialogue = $this->content->dialogue($dialogueId); }
     catch (ContentValidationException) { return true; }
+    if (($dialogue['run_only'] ?? false) === true) return false;
     foreach ($dialogue['choices'] as $choice) {
       if (!isset($choice['event_id'])) continue;
       $event = $this->content->event($choice['event_id']);

@@ -26,6 +26,26 @@
           "config": { "target_scope": "participating_units", "amount": 16 }
         }
       ]
+    },
+    {
+      "id": "reward_definition.mountains_kobold_trail",
+      "type": "reward_definition",
+      "entries": [{
+        "key": "knowledge",
+        "probability_basis_points": 10000,
+        "reward_type": "codex",
+        "config": { "codex_id": "codex.mountains_kobold_trail" }
+      }]
+    },
+    {
+      "id": "reward_definition.mountains_archivist",
+      "type": "reward_definition",
+      "entries": [{
+        "key": "knowledge",
+        "probability_basis_points": 10000,
+        "reward_type": "codex",
+        "config": { "codex_id": "codex.mountains_archivist" }
+      }]
     }
   ]
 }

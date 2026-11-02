@@ -59,16 +59,30 @@
           "node_type_id": "run_node_type.hazard",
           "encounter_id": "encounter.mountains_rockfall",
           "position": { "column": 3, "row": 2 }
+    },
+    {
+      "key": "kobold_trail",
+      "node_type_id": "run_node_type.dialogue",
+      "encounter_id": "encounter.mountains_kobold_trail",
+      "position": { "column": 1, "row": 2 }
+    },
+    {
+      "key": "archivist",
+      "node_type_id": "run_node_type.dialogue",
+      "encounter_id": "encounter.mountains_archivist",
+      "position": { "column": 6, "row": 2 }
         }
       ],
       "edges": [
-        { "from": "combat_1", "to": "loot" },
+    { "from": "combat_1", "to": "kobold_trail" },
+    { "from": "kobold_trail", "to": "loot" },
         { "from": "loot", "to": "combat_2" },
         { "from": "combat_2", "to": "rest" },
         { "from": "rest", "to": "loose_scree" },
         { "from": "loose_scree", "to": "combat_3" },
         { "from": "combat_2", "to": "rockfall" },
-        { "from": "combat_3", "to": "boss" },
+    { "from": "combat_3", "to": "archivist" },
+    { "from": "archivist", "to": "boss" },
         { "from": "boss", "to": "exit" }
       ],
       "variable_trails": {

@@ -23,6 +23,17 @@ final class DialogueQuery
     if (!$this->availability->allows($userId, $dialogueId)) {
       throw new DialogueUnavailableException('Dialogue is unavailable.');
     }
+    return $this->project($userId, $dialogueId);
+  }
+  /** Called only after CurrentRunQuery verifies an available dialogue node owned by this player.
+   * @return array{id:string,title:string,body:string,choices:list<array{id:string,label:string}>} */
+  public function executeForAvailableRunNode(int $userId, string $dialogueId): array
+  {
+    return $this->project($userId, $dialogueId);
+  }
+  /** @return array{id:string,title:string,body:string,choices:list<array{id:string,label:string}>} */
+  private function project(int $userId, string $dialogueId): array
+  {
     try { $dialogue = $this->content->dialogue($dialogueId); }
     catch (ContentValidationException) { throw new DialogueUnavailableException('Dialogue is unavailable.'); }
     $owned = [];

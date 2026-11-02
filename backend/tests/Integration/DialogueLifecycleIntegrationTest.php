@@ -149,7 +149,7 @@ final class DialogueLifecycleIntegrationTest extends IntegrationTestCase
     $onboardingIds = array_map(fn(array $step): string => $content->encounter($step['encounter_id'])['dialogue_id'],
       $content->onboardingFlow()['steps']);
     foreach ($content->definitionsOfType('dialogue') as $dialogue) {
-      if (in_array($dialogue['id'], $onboardingIds, true)) continue;
+      if (in_array($dialogue['id'], $onboardingIds, true) || ($dialogue['run_only'] ?? false)) continue;
       foreach ($dialogue['choices'] as $choice) {
         if (!isset($choice['event_id']) || $choice['required_codex_ids'] !== []) continue;
         $event = $content->event($choice['event_id']);

@@ -11,8 +11,10 @@ use DiceGoblins\Application\Commands\ResolveRunNodeCommand;
 use DiceGoblins\Application\Commands\RunStartException;
 use DiceGoblins\Application\Commands\RunNodeResolutionException;
 use DiceGoblins\Application\Commands\RunNodeResolutionIntegrityException;
+use DiceGoblins\Application\Commands\DialogueCompletionException;
 use DiceGoblins\Application\Queries\CurrentRunQuery;
 use DiceGoblins\Application\Queries\CurrentRunIntegrityException;
+use DiceGoblins\Application\Queries\DialogueUnavailableException;
 use DiceGoblins\Application\Queries\UnitDetailQuery;
 use DiceGoblins\Application\Rewards\RewardApplicationService;
 use DiceGoblins\Application\Rewards\VictoryItemDropPolicy;
@@ -41,6 +43,7 @@ use DiceGoblins\Repositories\RunNodeResolutionRepository;
 use DiceGoblins\Repositories\RunPersistenceRepository;
 use DiceGoblins\Repositories\SquadRepository;
 use DiceGoblins\Repositories\UserUnlockRepository;
+use DiceGoblins\Repositories\UserCodexRepository;
 use DiceGoblins\Repositories\UserItemRepository;
 use DiceGoblins\Repositories\WarbandDiceRepository;
 use DiceGoblins\Repositories\WarbandFixtureRepository;
@@ -107,8 +110,9 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
     $this->assertNull($postFarm['active_run']);
     $this->assertNotContains('unlock.region.mountains', $postFarm['progression']['unlock_ids']);
     $this->assertSame(['region.the_farm'], $postFarm['progression']['available_region_ids']);
-    // Package 3 owns the Whim grant; this fixture unlocks Mountains solely to exercise its existing run.
+    // Package 3 owns the Whim grant; seed its durable result to exercise the Mountains run.
     (new UserUnlockRepository($this->pdo))->insertIfAbsent($userId, 'unlock.region.mountains');
+    (new UserCodexRepository($this->pdo))->insertIfAbsent($userId, 'codex.camp.wrong_machine_search');
 
     $mountainsProgressBefore = $this->unitProgress($userId);
     $mountainsTeethBefore = (int)$postFarm['player']['teeth'];
@@ -120,31 +124,56 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
     $current = $services['currentRunQuery']->execute($userId)['run'];
     $nodeIds = array_map('intval', array_column($current['nodes'], 'id'));
     $this->assertSame('region.mountains', $current['region_id']);
-    $this->assertSame(range(0, 8), array_column($current['nodes'], 'node_index'));
-    $this->assertSame([0, 1, 2, 3, 5, 6, 7, 4, 3], array_column(array_column($current['nodes'], 'position'), 'column'));
+    foreach (['dialogue.mountains_kobold_trail', 'dialogue.mountains_archivist'] as $dialogueId) {
+      try {
+        $services['dialogueQuery']->execute($userId, $dialogueId);
+        $this->fail('Run-only dialogue was readable through the ordinary dialogue endpoint.');
+      } catch (DialogueUnavailableException) { $this->addToAssertionCount(1); }
+    }
+    try {
+      $services['completeDialogueCommand']->execute($userId, 'dialogue.mountains_archivist', 'ask_about_machine', 'outside-run');
+      $this->fail('Archivist dialogue completed outside its run node.');
+    } catch (DialogueCompletionException $e) { $this->assertSame('dialogue_choice_unavailable', $e->errorCode); }
+    $this->assertSame(range(0, 10), array_column($current['nodes'], 'node_index'));
+    $this->assertSame([0, 1, 2, 3, 5, 6, 7, 4, 3, 1, 6], array_column(array_column($current['nodes'], 'position'), 'column'));
     $this->assertSame([
       'run_node_type.combat', 'run_node_type.loot', 'run_node_type.combat', 'run_node_type.rest',
       'run_node_type.combat', 'run_node_type.boss', 'run_node_type.exit', 'run_node_type.hazard', 'run_node_type.hazard',
+      'run_node_type.dialogue', 'run_node_type.dialogue',
     ], array_column($current['nodes'], 'node_type_id'));
     $this->assertSame([
       'encounter.mountains_kobold_combat_1', null, 'encounter.mountains_kobold_combat_2', 'encounter.mountains_rest',
       'encounter.mountains_kobold_combat_3', 'encounter.mountains_kobold_boss_1', null,
       'encounter.mountains_loose_scree', 'encounter.mountains_rockfall',
+      'encounter.mountains_kobold_trail', 'encounter.mountains_archivist',
     ], array_column($this->rows(
       'SELECT `encounter_id` FROM `run_nodes` WHERE `run_id` = ? ORDER BY `node_index`', [$runId]), 'encounter_id'));
     $this->assertSame([
       null, 'event.mountains_loot_completed', null, null, null, 'event.mountains_boss_completed', null, null, null,
+      null, null,
     ], array_column($this->rows(
       'SELECT `event_id` FROM `run_nodes` WHERE `run_id` = ? ORDER BY `node_index`', [$runId]), 'event_id'));
-    $this->assertCount(8, $current['edges']);
-    $this->assertSame(['available', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked'],
+    $this->assertCount(10, $current['edges']);
+    $this->assertSame(['available', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked'],
       array_column($current['nodes'], 'status'));
 
     $command = $services['resolveRunNodeCommand'];
     $combatOne = $command->execute($userId, $runId, $nodeIds[0], 'mountains-combat-1');
-    $this->assertBattleResolution($combatOne, $runId, $nodeIds[0], $nodeIds[1]);
+    $this->assertBattleResolution($combatOne, $runId, $nodeIds[0], $nodeIds[9]);
     $this->assertSame([['item_id' => 'item.kobold_scale', 'quantity' => 1, 'owned_after' => 1]], $combatOne['item_grants']);
-    $this->assertStatuses($runId, ['completed', 'available', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked']);
+    $this->assertStatuses($runId, ['completed', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked', 'available', 'locked']);
+
+    $restoredTrail = ControllerServiceFactory::buildContentAware($this->pdo)['currentRunQuery']->execute($userId)['run'];
+    $this->assertSame([(string)$nodeIds[9]], $restoredTrail['available_node_ids']);
+    $trailRevision = (int)$this->scalar('SELECT `player_revision` FROM `user_state` WHERE `user_id` = ?', [$userId]);
+    $trail = $command->execute($userId, $runId, $nodeIds[9], 'mountains-trail',
+      ['encounter_id' => 'encounter.mountains_kobold_trail', 'action_id' => 'follow_tracks']);
+    $this->assertSame(['dialogue', [(string)$nodeIds[1]], $trailRevision + 1],
+      [$trail['resolution_type'], $trail['newly_available_node_ids'], $trail['player_revision']]);
+    $this->assertSame('codex.mountains_kobold_trail', $trail['knowledge']['codex_id']);
+    $this->assertSame($trail, $command->execute($userId, $runId, $nodeIds[9], 'mountains-trail',
+      ['encounter_id' => 'encounter.mountains_kobold_trail', 'action_id' => 'follow_tracks']));
+    $this->assertSame($trailRevision + 1, (int)$this->scalar('SELECT `player_revision` FROM `user_state` WHERE `user_id` = ?', [$userId]));
 
     $loot = $command->execute($userId, $runId, $nodeIds[1], 'mountains-loot');
     $this->assertSame([8, $mountainsTeethBefore + 8, [(string)$nodeIds[2]]], [
@@ -204,8 +233,19 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
     $this->assertArrayNotHasKey('interaction', $afterScree['nodes'][7]);
     $this->assertStringNotContainsString('damage_random_participating_unit', json_encode($afterScree, JSON_THROW_ON_ERROR));
     $combatThree = $command->execute($userId, $runId, $nodeIds[4], 'mountains-combat-3');
-    $this->assertBattleResolution($combatThree, $runId, $nodeIds[4], $nodeIds[5]);
+    $this->assertBattleResolution($combatThree, $runId, $nodeIds[4], $nodeIds[10]);
     $this->assertSame([['item_id' => 'item.kobold_scale', 'quantity' => 1, 'owned_after' => 3]], $combatThree['item_grants']);
+    $restoredArchivist = ControllerServiceFactory::buildContentAware($this->pdo)['currentRunQuery']->execute($userId)['run'];
+    $this->assertSame([(string)$nodeIds[10]], $restoredArchivist['available_node_ids']);
+    $archivistRevision = (int)$this->scalar('SELECT `player_revision` FROM `user_state` WHERE `user_id` = ?', [$userId]);
+    $archivist = $command->execute($userId, $runId, $nodeIds[10], 'mountains-archivist',
+      ['encounter_id' => 'encounter.mountains_archivist', 'action_id' => 'ask_about_machine']);
+    $this->assertSame(['dialogue', [(string)$nodeIds[5]], $archivistRevision + 1],
+      [$archivist['resolution_type'], $archivist['newly_available_node_ids'], $archivist['player_revision']]);
+    $this->assertSame('codex.mountains_archivist', $archivist['knowledge']['codex_id']);
+    $this->assertSame($archivist, $command->execute($userId, $runId, $nodeIds[10], 'mountains-archivist',
+      ['encounter_id' => 'encounter.mountains_archivist', 'action_id' => 'ask_about_machine']));
+    $this->assertSame($archivistRevision + 1, (int)$this->scalar('SELECT `player_revision` FROM `user_state` WHERE `user_id` = ?', [$userId]));
     $boss = $command->execute($userId, $runId, $nodeIds[5], 'mountains-boss');
     $this->assertBattleResolution($boss, $runId, $nodeIds[5], $nodeIds[6], 'boss');
     $this->assertSame([['item_id' => 'item.chief_engineer_lens', 'quantity' => 1, 'owned_after' => 1]], $boss['item_grants']);
@@ -233,12 +273,31 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
     $exitReplay = $command->execute($userId, $runId, $nodeIds[6], 'mountains-exit');
     $this->assertSame($exit, $exitReplay);
     $this->assertSame('completed', $this->scalar('SELECT `status` FROM `runs` WHERE `id` = ?', [$runId]));
+    $this->assertSame('1', (string)$this->scalar(
+      "SELECT COUNT(*) FROM `user_codex_ownership` WHERE `user_id` = ? AND `codex_id` = 'codex.mountains_kobold_trail'", [$userId]));
+    $this->assertSame('1', (string)$this->scalar(
+      "SELECT COUNT(*) FROM `user_codex_ownership` WHERE `user_id` = ? AND `codex_id` = 'codex.mountains_archivist'", [$userId]));
     $this->assertSame('0', (string)$this->scalar(
       "SELECT COUNT(*) FROM `user_unlocks` WHERE `user_id` = ? AND `unlock_id` = 'unlock.region.swamps'", [$userId]));
+    $this->assertSame('0', (string)$this->scalar(
+      "SELECT COUNT(*) FROM `user_unlocks` WHERE `user_id` = ? AND `unlock_id` = 'unlock.capability.wrong_machine_access'", [$userId]));
     $final = $services['gameBootstrapQuery']->execute($userId, $now);
     $this->assertNull($final['active_run']);
     $this->assertSame(['region.the_farm', 'region.mountains'], $final['progression']['available_region_ids']);
     $this->assertNotContains('unlock.region.swamps', $final['progression']['unlock_ids']);
+    $repeat = $services['startRunCommand']->execute($userId, ['region_id' => 'region.mountains'], 'mountains-repeat-start');
+    $this->assertSame('region.mountains', $repeat['run']['region_id']);
+    $repeatNodes = $services['currentRunQuery']->execute($userId)['run']['nodes'];
+    $this->assertCount(11, $repeatNodes);
+    $repeatRunId = (int)$repeat['run']['id'];
+    $command->execute($userId, $repeatRunId, (int)$repeatNodes[0]['id'], 'mountains-repeat-combat');
+    $repeatTrailRevision = (int)$this->scalar('SELECT `player_revision` FROM `user_state` WHERE `user_id` = ?', [$userId]);
+    $repeatTrail = $command->execute($userId, $repeatRunId, (int)$repeatNodes[9]['id'], 'mountains-repeat-trail',
+      ['encounter_id' => 'encounter.mountains_kobold_trail', 'action_id' => 'follow_tracks']);
+    $this->assertSame(['outcome' => 'already_owned', 'codex_id' => 'codex.mountains_kobold_trail'], $repeatTrail['knowledge']);
+    $this->assertSame($repeatTrailRevision + 1, $repeatTrail['player_revision']);
+    $this->assertSame('1', (string)$this->scalar(
+      "SELECT COUNT(*) FROM `user_codex_ownership` WHERE `user_id` = ? AND `codex_id` = 'codex.mountains_kobold_trail'", [$userId]));
     $this->assertSame($mountainsTeethBefore + 8, $final['player']['teeth']);
     $this->assertSame($progressAfter, $this->unitProgress($userId));
   }
@@ -254,7 +313,7 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
     $this->assertSame(['combat', 'defeat', 'failed', []], [
       $result['resolution_type'], $result['battle']['outcome'], $result['run']['status'], $result['newly_available_node_ids'],
     ]);
-    $this->assertSame(['completed', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked'],
+    $this->assertSame(['completed', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked'],
       array_column($this->rows('SELECT `status` FROM `run_nodes` WHERE `run_id` = ? ORDER BY `node_index`', [$runId]), 'status'));
   }
 
@@ -382,6 +441,8 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
     [$runId, $nodeIds] = $this->persistMountainsRun($userId, $fixture);
     $this->pdo?->prepare("UPDATE `run_nodes` SET `status` = 'completed', `completed_at` = '2026-09-20 11:00:00'
       WHERE `run_id` = ? AND `node_index` < 5")->execute([$runId]);
+    $this->pdo?->prepare("UPDATE `run_nodes` SET `status` = 'completed', `completed_at` = '2026-09-20 11:00:00'
+      WHERE `run_id` = ? AND `node_index` = 10")->execute([$runId]);
     $this->pdo?->prepare("UPDATE `run_nodes` SET `status` = 'available' WHERE `id` = ?")->execute([$nodeIds[5]]);
     $before = $this->unitProgress($userId);
 
