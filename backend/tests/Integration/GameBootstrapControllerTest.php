@@ -48,10 +48,10 @@ final class GameBootstrapControllerTest extends IntegrationTestCase
     $this->assertSame(true, $data['session']['authenticated'] ?? null);
     $this->assertIsString($data['session']['csrf_token'] ?? null);
     $this->assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/', (string)($data['server_time'] ?? ''));
-    $this->assertSame($this->contentRegistry()->revision(), $data['content_revision'] ?? null);
+    $this->assertSame(ContentRegistry::loadConfigured()->revision(), $data['content_revision'] ?? null);
     $this->assertSame([
       'unlock_ids' => [],
-      'available_region_ids' => ['region.the_farm'],
+      'available_region_ids' => [],
     ], $data['progression'] ?? null);
     $this->assertArrayHasKey('active_squad', $data);
     $this->assertNull($data['active_squad']);
@@ -102,7 +102,7 @@ final class GameBootstrapControllerTest extends IntegrationTestCase
       $response['body']['data']['progression']['unlock_ids'] ?? null,
     );
     $this->assertSame(
-      ['region.the_farm', 'region.mountains'],
+      ['region.mountains'],
       $response['body']['data']['progression']['available_region_ids'] ?? null,
     );
     $this->assertSame($beforeState, $this->playerStateRow($userId));

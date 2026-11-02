@@ -8,6 +8,7 @@ use DiceGoblins\Application\WarbandContentGuard;
 use DiceGoblins\Application\WarbandIntegrityException;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Repositories\WarbandFixtureRepository;
+use DiceGoblins\Repositories\UserUnlockRepository;
 use PDO;
 use Throwable;
 
@@ -95,6 +96,7 @@ final class ProvisionWarbandFixtureCommand
           $this->repository->insertSquadUnit($squadId, $unitIds[$unitKey], $position);
         }
       }
+      (new UserUnlockRepository($this->pdo))->insertIfAbsent($userId, 'unlock.region.the_farm');
       $playerRevision = $this->repository->setActiveSquadAndIncrementRevision($userId, $squadIds['raiders']);
 
       if ($this->beforeCommit !== null) {

@@ -121,7 +121,7 @@ try {
     || (int)$state['runs'] !== 0
     || (int)$state['items'] !== 0
     || (int)$state['objectives'] !== 0
-    || (int)$state['unlocks'] !== 0
+    || (int)$state['unlocks'] !== ($freshOnboarding ? 0 : 1)
     || (int)$state['resolved_events'] !== 0
     || (int)$state['idempotency_requests'] !== 0) {
     throw new RuntimeException('UAT account reset verification failed.');
@@ -142,7 +142,7 @@ try {
       'runs' => 0,
       'items' => 0,
       'objectives' => 0,
-      'unlocks' => 0,
+      'unlocks' => (int)$state['unlocks'],
       'resolved_events' => 0,
       'idempotency_requests' => 0,
       'player_revision' => $freshOnboarding ? 1 : 2,

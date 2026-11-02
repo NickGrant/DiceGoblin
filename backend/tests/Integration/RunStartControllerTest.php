@@ -298,11 +298,13 @@ final class RunStartControllerTest extends IntegrationTestCase
   public function testNoActiveSquadEmptySquadAndForeignActiveSquadFailSafely(): void
   {
     $noSquad = $this->createAccount('run-no-squad@example.test');
+    (new UserUnlockRepository($this->pdo))->insertIfAbsent($noSquad, 'unlock.region.the_farm');
     $noSquadResponse = $this->httpCommand($noSquad, ['region_id' => 'region.the_farm'], 'no-squad-key');
     $this->assertSame(409, $noSquadResponse['status']);
     $this->assertSame('active_squad_required', $noSquadResponse['body']['error']['code'] ?? null);
 
     $empty = $this->createAccount('run-empty-squad@example.test');
+    (new UserUnlockRepository($this->pdo))->insertIfAbsent($empty, 'unlock.region.the_farm');
     $emptySquad = $this->insertSquad($empty, 'Empty');
     $this->setActiveSquad($empty, $emptySquad);
     $emptyResponse = $this->httpCommand($empty, ['region_id' => 'region.the_farm'], 'empty-squad-key');
@@ -310,6 +312,7 @@ final class RunStartControllerTest extends IntegrationTestCase
     $this->assertSame('active_squad_empty', $emptyResponse['body']['error']['code'] ?? null);
 
     $owner = $this->createAccount('run-foreign-active-owner@example.test');
+    (new UserUnlockRepository($this->pdo))->insertIfAbsent($owner, 'unlock.region.the_farm');
     $other = $this->createAccount('run-foreign-active-other@example.test');
     $foreignSquad = $this->insertSquad($other, 'Secret Squad');
     $this->setActiveSquad($owner, $foreignSquad);

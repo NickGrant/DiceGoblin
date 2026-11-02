@@ -277,10 +277,10 @@ export function parseGameBootstrapEnvelope(value: unknown): GameBootstrapData {
   if (!hasExactKeys(progression, ['unlock_ids', 'available_region_ids'])) {
     throw new BootstrapContractError("Bootstrap field 'progression' is malformed.");
   }
-  if (!Array.isArray(availableRegionIds) || availableRegionIds.length === 0
+  if (!Array.isArray(availableRegionIds)
     || availableRegionIds.some((id) => typeof id !== 'string' || !/^region\.[a-z][a-z0-9_]*$/.test(id))
     || new Set(availableRegionIds).size !== availableRegionIds.length) {
-    throw new BootstrapContractError("Bootstrap field 'available_region_ids' must be a non-empty unique region ID array.");
+    throw new BootstrapContractError("Bootstrap field 'available_region_ids' must be a unique region ID array.");
   }
 
   const parsed: GameBootstrapData = {
@@ -326,6 +326,9 @@ export function parseGameBootstrapEnvelope(value: unknown): GameBootstrapData {
 
   if (parsed.active_run && (!parsed.active_squad || parsed.active_squad.id !== parsed.active_run.squad_id)) {
     throw new BootstrapContractError('Active run and active squad disagree. Reload authoritative state.');
+  }
+  if (parsed.active_squad && parsed.progression.available_region_ids.length === 0) {
+    throw new BootstrapContractError('A provisioned warband must have an available region. Reload authoritative state.');
   }
 
   if (

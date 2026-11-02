@@ -12,6 +12,7 @@
         }
       ]
     },
+    {"id":"reward_definition.dialogue_tooth_collector","type":"reward_definition","entries":[{"key":"knowledge","probability_basis_points":10000,"reward_type":"codex","config":{"codex_id":"codex.farm.tooth_collector_rescued"}}]},
     {
       "id": "reward_definition.dialogue_mudking",
       "type": "reward_definition",

@@ -5,6 +5,7 @@
       "type": "event",
       "reward_definition_id": "reward_definition.dialogue_farm_scout_paths"
     },
+    {"id":"event.dialogue_tooth_collector","type":"event","reward_definition_id":"reward_definition.dialogue_tooth_collector"},
     {
       "id": "event.dialogue_mudking",
       "type": "event",

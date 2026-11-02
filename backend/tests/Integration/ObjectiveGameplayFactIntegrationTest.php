@@ -70,10 +70,12 @@ final class ObjectiveGameplayFactIntegrationTest extends IntegrationTestCase
       ['encounter_id' => 'encounter.the_farm_rest', 'action_id' => 'rest']);
     $command->execute($user, $runId, $ids[4], 'objective-boss');
     $this->assertSame([1, 0, 1], $this->counts($query, $user));
-    $exit = $command->execute($user, $runId, $ids[5], 'objective-exit');
+    $command->execute($user, $runId, $ids[5], 'objective-tooth-collector',
+      ['encounter_id' => 'encounter.the_farm_tooth_collector', 'action_id' => 'hear_thanks']);
+    $exit = $command->execute($user, $runId, $ids[6], 'objective-exit');
     $this->assertSame('completed', $exit['run']['status']);
     $this->assertSame([1, 1, 1], $this->counts($query, $user));
-    $this->assertSame($exit, $command->execute($user, $runId, $ids[5], 'objective-exit'));
+    $this->assertSame($exit, $command->execute($user, $runId, $ids[6], 'objective-exit'));
     $this->assertSame([1, 1, 1], $this->counts($query, $user));
     $dialogue = $services['completeDialogueCommand'];
     $first = $dialogue->execute($user, 'dialogue.camp.farm_scout', 'hear_paths', 'objective-dialogue-one');
@@ -231,10 +233,12 @@ final class ObjectiveGameplayFactIntegrationTest extends IntegrationTestCase
       ['encounter_id' => 'encounter.the_farm_rest', 'action_id' => 'rest']);
     $command->execute($user, $runId, $ids[4], 'objective-completion-exit-boss');
     $this->assertSame('unstarted', $query->execute($user)['objectives'][0]['status']);
-    $result = $command->execute($user, $runId, $ids[5], 'objective-completion-exit');
+    $command->execute($user, $runId, $ids[5], 'objective-completion-tooth-collector',
+      ['encounter_id' => 'encounter.the_farm_tooth_collector', 'action_id' => 'hear_thanks']);
+    $result = $command->execute($user, $runId, $ids[6], 'objective-completion-exit');
     $this->assertSame('completed', $query->execute($user)['objectives'][0]['status']);
     $this->assertTrue((new UserCodexRepository($this->pdo))->owns($user, 'codex.farm.old_paths'));
-    $this->assertSame($result, $command->execute($user, $runId, $ids[5], 'objective-completion-exit'));
+    $this->assertSame($result, $command->execute($user, $runId, $ids[6], 'objective-completion-exit'));
     $this->assertSame('1', (string)$this->scalar("SELECT COUNT(*) FROM `resolved_events` WHERE `user_id` = ? AND `source_type` = 'objective_completion'", [$user]));
   }
 

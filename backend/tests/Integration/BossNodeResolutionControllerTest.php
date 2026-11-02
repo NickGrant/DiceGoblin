@@ -46,7 +46,7 @@ final class BossNodeResolutionControllerTest extends IntegrationTestCase
 {
 
   /** @dataProvider mountainsOwnershipProvider */
-  public function testFarmBossVictoryAppliesXpMountainsAndUnlocksOnlyExitExactlyOnce(bool $preOwned): void
+  public function testFarmBossVictoryGrantsShopAndOpensDurableToothCollectorFollowup(bool $preOwned): void
   {
     $services = ControllerServiceFactory::buildContentAware($this->pdo);
     $userId = $services['accountCreationService']->createLocal(
@@ -83,13 +83,12 @@ final class BossNodeResolutionControllerTest extends IntegrationTestCase
     $first = $this->resolve($userId, $runId, $bossId, 'boss-resolve-key');
     $this->assertSame(200, $first['status'], json_encode($first['body']));
     $data = $first['body']['data'];
-    $this->assertSame('dialogue.farm.mudking_merchant_freed', $data['first_victory_dialogue_id']);
+    $this->assertArrayNotHasKey('first_victory_dialogue_id', $data);
     $this->assertSame(['boss', 'victory', 'active'], [$data['resolution_type'], $data['battle']['outcome'], $data['run']['status']]);
     $this->assertSame([(string)$exitId], $data['newly_available_node_ids']);
     $this->assertSame($revision + 1, $data['player_revision']);
-    $this->assertEquals([['unlock_id' => 'unlock.capability.shop_access', 'outcome' => 'granted'],
-      ['unlock_id' => 'unlock.region.mountains',
-        'outcome' => $preOwned ? 'already_owned' : 'granted']], $data['rewards']['unlocks']);
+    $this->assertEquals([['unlock_id' => 'unlock.capability.shop_access', 'outcome' => 'granted']],
+      $data['rewards']['unlocks']);
     $this->assertSame(array_map('strval', array_column($unitsBefore, 'id')),
       array_column($data['rewards']['unit_xp'], 'unit_id'));
     $this->assertSame(array_fill(0, count($unitsBefore), 16), array_column($data['rewards']['unit_xp'], 'amount'));
@@ -97,7 +96,7 @@ final class BossNodeResolutionControllerTest extends IntegrationTestCase
     $this->assertSame([1, 90, 2, 6], [$firstTransition['level_before'], $firstTransition['xp_before'],
       $firstTransition['level_after'], $firstTransition['xp_after']]);
     $this->assertSame(1, (int)$this->scalar('SELECT COUNT(*) FROM `battles` WHERE `run_id` = ? AND `run_node_id` = ?', [$runId, $bossId]));
-    $this->assertSame(1, (int)$this->scalar("SELECT COUNT(*) FROM `user_unlocks` WHERE `user_id` = ? AND `unlock_id` = 'unlock.region.mountains'", [$userId]));
+    $this->assertSame($preOwned ? 1 : 0, (int)$this->scalar("SELECT COUNT(*) FROM `user_unlocks` WHERE `user_id` = ? AND `unlock_id` = 'unlock.region.mountains'", [$userId]));
     $this->assertSame('applied', $this->scalar("SELECT `status` FROM `resolved_events` WHERE `user_id` = ? AND `event_id` = 'event.farm_boss_completed'", [$userId]));
     $this->assertSame(['completed', 'available'], array_column($this->rows(
       'SELECT `status` FROM `run_nodes` WHERE `id` IN (?, ?) ORDER BY `node_index`', [$bossId, $exitId]), 'status'));
@@ -114,6 +113,10 @@ final class BossNodeResolutionControllerTest extends IntegrationTestCase
       $currentData['run']['status'], $currentNodes[(string)$bossId]['status'],
       $currentNodes[(string)$bossId]['battle_id'], $currentNodes[(string)$exitId]['status'],
     ]);
+    $this->assertSame('encounter.the_farm_tooth_collector',
+      $currentNodes[(string)$exitId]['interaction']['encounter_id']);
+    $this->assertSame('The Tooth Collector Is Safe',
+      $currentNodes[(string)$exitId]['interaction']['title']);
     $persistedHp = $this->rows('SELECT `unit_id`, `current_hp` FROM `run_unit_state` WHERE `run_id` = ? ORDER BY `unit_id`', [$runId]);
     $this->assertSame(array_map(static fn(array $row): array => [
       'unit_id' => (string)$row['unit_id'], 'current_hp' => (int)$row['current_hp'],
@@ -132,6 +135,14 @@ final class BossNodeResolutionControllerTest extends IntegrationTestCase
       JOIN `run_unit_state` rus ON rus.`unit_id` = ui.`id` AND rus.`run_id` = ? WHERE ui.`user_id` = ? ORDER BY ui.`id`', [$runId, $userId]));
     $different = $this->resolve($userId, $runId, $bossId, 'boss-other-key');
     $this->assertSame([409, 'run_node_already_resolved'], [$different['status'], $different['body']['error']['code'] ?? null]);
+    $command = ControllerServiceFactory::buildContentAware($this->pdo)['resolveRunNodeCommand'];
+    $request = ['encounter_id' => 'encounter.the_farm_tooth_collector', 'action_id' => 'hear_thanks'];
+    $followup = $command->execute($userId, $runId, $exitId, 'tooth-collector-followup', $request);
+    $this->assertSame('codex.farm.tooth_collector_rescued', $followup['knowledge']['codex_id']);
+    $this->assertSame($data['player_revision'] + 1, $followup['player_revision']);
+    $this->assertSame($followup, $command->execute($userId, $runId, $exitId,
+      'tooth-collector-followup', $request));
+    $this->assertSame(1, (int)$this->scalar("SELECT COUNT(*) FROM user_codex_ownership WHERE user_id = ? AND codex_id = 'codex.farm.tooth_collector_rescued'", [$userId]));
   }
 
   public function mountainsOwnershipProvider(): array
@@ -231,7 +242,7 @@ final class BossNodeResolutionControllerTest extends IntegrationTestCase
     $this->assertSame($snapshot, $this->stateSnapshot($userId, $runId));
     $this->assertSame('1', $snapshot['battles']);
     $this->assertSame('1', $snapshot['resolved_events']);
-    $this->assertSame('1', $snapshot['mountains']);
+    $this->assertSame('0', $snapshot['mountains']);
     $this->assertSame('available', $this->scalar('SELECT `status` FROM `run_nodes` WHERE `id` = ?', [$exitId]));
   }
 

@@ -38,9 +38,15 @@
           "position": { "column": 4, "row": 1 }
         },
         {
+          "key": "tooth_collector",
+          "node_type_id": "run_node_type.dialogue",
+          "encounter_id": "encounter.the_farm_tooth_collector",
+          "position": { "column": 5, "row": 1 }
+        },
+        {
           "key": "exit",
           "node_type_id": "run_node_type.exit",
-          "position": { "column": 5, "row": 1 }
+          "position": { "column": 6, "row": 1 }
         }
       ],
       "edges": [
@@ -48,7 +54,8 @@
         { "from": "loot", "to": "dialogue" },
         { "from": "dialogue", "to": "rest" },
         { "from": "rest", "to": "boss" },
-        { "from": "boss", "to": "exit" }
+        { "from": "boss", "to": "tooth_collector" },
+        { "from": "tooth_collector", "to": "exit" }
       ]
     }
   ]

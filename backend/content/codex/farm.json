@@ -6,6 +6,7 @@
       "title": "The Mudking",
       "body": "The Mudking rules the Farm's muddy paths and rallies the boars that defend them."
     },
+    {"id":"codex.farm.tooth_collector_rescued","type":"codex_entry","title":"The Tooth Collector Is Safe","body":"Defeating the Mudking freed the Tooth Collector, the Whim's friend. The Tooth Collector now runs the Shop in Camp."},
     {
       "id": "codex.farm.old_paths",
       "type": "codex_entry",

@@ -1,5 +1,6 @@
 {
   "definitions": [
+    {"id":"unlock.region.the_farm","type":"unlock","target_type":"region","target_id":"region.the_farm"},
     {
       "id": "unlock.region.mountains",
       "type": "unlock",

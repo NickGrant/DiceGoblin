@@ -145,8 +145,15 @@ final class RunNodeResolutionRepository
         (SELECT COUNT(*) FROM `run_edges` WHERE `run_id` = ? AND `to_node_id` = ?) AS `incoming_count`,
         (SELECT COUNT(*) FROM `run_edges` edge
           JOIN `run_nodes` parent ON parent.`run_id` = edge.`run_id` AND parent.`id` = edge.`from_node_id`
-          WHERE edge.`run_id` = ? AND edge.`to_node_id` = ? AND parent.`node_type_id` = 'run_node_type.boss'
-            AND parent.`status` = 'completed') AS `boss_parent_count`");
+          WHERE edge.`run_id` = ? AND edge.`to_node_id` = ? AND parent.`status` = 'completed'
+            AND (parent.`node_type_id` = 'run_node_type.boss' OR
+              (parent.`node_type_id` = 'run_node_type.dialogue' AND EXISTS (
+                SELECT 1 FROM `run_edges` prior_edge
+                JOIN `run_nodes` boss ON boss.`run_id` = prior_edge.`run_id`
+                  AND boss.`id` = prior_edge.`from_node_id`
+                WHERE prior_edge.`run_id` = edge.`run_id` AND prior_edge.`to_node_id` = parent.`id`
+                  AND boss.`node_type_id` = 'run_node_type.boss' AND boss.`status` = 'completed'
+              )))) AS `boss_parent_count`");
     $stmt->execute([$runId, $nodeId, $runId, $nodeId, $runId, $nodeId]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     return is_array($row) && (int)$row['outgoing_count'] === 0 && (int)$row['incoming_count'] === 1

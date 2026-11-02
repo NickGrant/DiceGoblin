@@ -1186,12 +1186,6 @@ export class BattleScene extends RuntimeScene {
   private loadState: 'loading' | 'retryable' | 'integrity-error' | 'invalid-marker' | 'playing' | 'complete' = 'loading';
   private continueState: 'idle' | 'submitting' | 'error' = 'idle';
   private continueMessage = '';
-  private bossConversation: DialogueRead | null = null;
-  private bossConversationLoad: 'idle' | 'loading' | 'error' | 'ready' = 'idle';
-  private bossConversationResult: DialogueCompletion | null = null;
-  private readonly bossConversationAttempt = new RetainedMutationAttempt<{
-    readonly dialogueId: string; readonly choiceId: string;
-  }, DialogueCompletion>();
   private message = 'Loading retained playback…';
   private timer: Phaser.Time.TimerEvent | null = null;
   private unsubscribeViewport: (() => void) | null = null;
@@ -1258,8 +1252,6 @@ export class BattleScene extends RuntimeScene {
   async continueAfterBattle(): Promise<void> {
     if (this.controller?.snapshot.state !== 'complete' || this.continueState === 'submitting'
       || this.runtimeViewport.snapshot.portraitGateActive) return;
-    if (this.runtimeStartup.battlePresentation.resolution?.resolutionType === 'boss'
-      && this.runtimeStartup.battlePresentation.resolution.firstVictoryDialogueId && !this.bossConversationResult) return;
     const marker = this.runtimeStartup.battlePresentation.marker;
     const content = this.runtimeStartup.contentRegistry;
     if (!marker || !content) {
@@ -1271,8 +1263,7 @@ export class BattleScene extends RuntimeScene {
     try {
       const result = await this.runtimeStartup.apiClient.getCurrentRun(content);
       const minimumPlayerRevision = Math.max(this.controller.result.playerRevision,
-        this.runtimeStartup.battlePresentation.resolution?.playerRevision ?? 0,
-        this.bossConversationResult?.playerRevision ?? 0);
+        this.runtimeStartup.battlePresentation.resolution?.playerRevision ?? 0);
       const currentRun = this.runtimeStartup.store.reconcileBattleReturn(result, { ...marker, minimumPlayerRevision });
       this.runtimeStartup.battlePresentation.clear();
       this.continueState = 'idle'; this.continueMessage = '';
@@ -1290,9 +1281,6 @@ export class BattleScene extends RuntimeScene {
     this.loadState = 'loading';
     this.continueState = 'idle';
     this.continueMessage = '';
-    this.bossConversation = null;
-    this.bossConversationLoad = 'idle';
-    this.bossConversationResult = null;
     this.message = 'Loading retained playback…';
   }
 
@@ -1330,44 +1318,10 @@ export class BattleScene extends RuntimeScene {
     const state: string = this.controller.snapshot.state;
     if (state === 'complete') {
       this.loadState = 'complete'; this.host()?.setAttribute('data-battle-playback', 'complete');
-      void this.loadBossConversation(); return;
+      return;
     }
     this.timer = this.time.delayedCall(this.controller.durationFor(event), () => { this.timer = null; this.scheduleNext(); });
     if (this.runtimeViewport.snapshot.portraitGateActive) { this.controller.pause(); this.timer.paused = true; }
-  }
-
-  private async loadBossConversation(): Promise<void> {
-    const resolution = this.runtimeStartup.battlePresentation.resolution;
-    if (resolution?.resolutionType !== 'boss' || !resolution.firstVictoryDialogueId
-      || this.bossConversationLoad === 'loading' || this.bossConversationLoad === 'ready') return;
-    this.bossConversationLoad = 'loading'; this.render();
-    try {
-      this.bossConversation = await this.runtimeStartup.apiClient.getDialogue(resolution.firstVictoryDialogueId);
-      this.bossConversationLoad = 'ready';
-    } catch {
-      this.bossConversationLoad = 'error';
-      this.continueMessage = 'The merchant conversation could not be loaded. Retry to continue safely.';
-    }
-    this.render();
-  }
-
-  async completeBossConversation(): Promise<void> {
-    const dialogue = this.bossConversation;
-    const choice = dialogue?.choices[0];
-    const bootstrap = this.runtimeStartup.store.bootstrap;
-    if (!dialogue || !choice || !bootstrap || this.bossConversationResult) return;
-    this.bossConversationAttempt.begin(dialogue.id, { dialogueId: dialogue.id, choiceId: choice.id });
-    this.continueMessage = 'Freeing the merchant…'; this.render();
-    const outcome = await this.bossConversationAttempt.submit((request, key) =>
-      this.runtimeStartup.apiClient.completeDialogue(request.dialogueId, request.choiceId, bootstrap.session.csrf_token, key));
-    if (outcome.kind === 'success') {
-      this.bossConversationResult = outcome.result;
-      this.runtimeStartup.store.markObjectivesStale();
-      if (outcome.result.knowledge?.outcome === 'granted') this.runtimeStartup.store.markCodexStale();
-      this.continueMessage = outcome.result.response;
-    } else if (outcome.kind === 'ambiguous') this.continueMessage = 'The response is uncertain. Retry the same conversation.';
-    else if (outcome.kind === 'rejected') this.continueMessage = 'The conversation could not be completed. Try again.';
-    this.render();
   }
 
   private render(): void {
@@ -1427,36 +1381,13 @@ export class BattleScene extends RuntimeScene {
       { color: '#d1c7ac', fontFamily: 'system-ui, sans-serif', fontSize: compact ? '18px' : '15px', align: 'center',
         lineSpacing: compact ? 2 : 1, wordWrap: { width: safe.width - 100 } }).setOrigin(0.5); root.add(factText);
     if (completed) {
-      const pendingMerchant = this.runtimeStartup.battlePresentation.resolution?.resolutionType === 'boss'
-        && !!this.runtimeStartup.battlePresentation.resolution.firstVictoryDialogueId && !this.bossConversationResult;
-      if (pendingMerchant && this.bossConversation) {
-        const dialogue = this.bossConversation;
-        const panel = this.add.graphics();
-        const panelWidth = Math.min(760, safe.width - 120);
-        const panelY = safe.y + (compact ? 105 : 115);
-        panel.fillStyle(0x162a32, 0.97); panel.fillRoundedRect(safe.x + (safe.width - panelWidth) / 2, panelY, panelWidth, 205, 18);
-        panel.lineStyle(3, 0xc9972b); panel.strokeRoundedRect(safe.x + (safe.width - panelWidth) / 2, panelY, panelWidth, 205, 18);
-        const story = this.add.text(safe.x + safe.width / 2, panelY + 18,
-          `${dialogue.title}\n${dialogue.body}`, { color: '#f5e8c8', fontFamily: 'Georgia, serif',
-            fontSize: compact ? '21px' : '19px', align: 'center', wordWrap: { width: panelWidth - 36 }, lineSpacing: 9 }).setOrigin(0.5, 0);
-        root.add([panel, story]);
-      }
       const feedback = this.add.text(safe.x + safe.width / 2, safe.bottom - (compact ? 105 : 108), this.continueMessage,
         { color: this.continueState === 'error' ? '#ffb0a7' : '#d1c7ac', fontFamily: 'system-ui, sans-serif',
           fontSize: compact ? '18px' : '15px', align: 'center', wordWrap: { width: Math.min(760, safe.width - 100) } }).setOrigin(0.5); root.add(feedback);
-      const enabled = this.continueState !== 'submitting' && !snapshot.portraitGateActive
-        && this.bossConversationAttempt.state !== 'submitting';
+      const enabled = this.continueState !== 'submitting' && !snapshot.portraitGateActive;
       this.addBattleButton(root, safe.x + safe.width / 2, safe.bottom - 55,
-        pendingMerchant ? this.bossConversationLoad === 'error' ? 'RETRY CONVERSATION'
-          : this.bossConversationLoad === 'loading' ? 'LOADING CONVERSATION…'
-            : this.bossConversationAttempt.state === 'submitting' ? 'SPEAKING…'
-              : this.bossConversationAttempt.state === 'retryable' ? 'RETRY FREE MERCHANT'
-                : 'FREE MERCHANT'
-          : this.continueState === 'submitting' ? 'SYNCHRONIZING…' : this.continueState === 'error' ? 'RETRY CONTINUE' : 'CONTINUE',
-        () => { if (pendingMerchant) {
-          if (this.bossConversationLoad === 'error') void this.loadBossConversation();
-          else if (this.bossConversationLoad === 'ready') void this.completeBossConversation();
-        } else void this.continueAfterBattle(); }, enabled && (!pendingMerchant || this.bossConversationLoad !== 'loading'));
+        this.continueState === 'submitting' ? 'SYNCHRONIZING...' : this.continueState === 'error' ? 'RETRY CONTINUE' : 'CONTINUE',
+        () => void this.continueAfterBattle(), enabled);
       this.host()?.setAttribute('data-battle-result', String(state.outcome));
       this.host()?.setAttribute('data-battle-continue', this.continueState);
     }

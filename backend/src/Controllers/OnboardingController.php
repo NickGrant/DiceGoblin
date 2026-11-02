@@ -17,6 +17,7 @@ use DiceGoblins\Http\JsonRequestBody;
 use DiceGoblins\Repositories\IdempotencyRequestRepository;
 use DiceGoblins\Repositories\SquadRepository;
 use DiceGoblins\Repositories\UserCodexRepository;
+use DiceGoblins\Repositories\UserUnlockRepository;
 use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Repositories\WarbandDiceRepository;
 use DiceGoblins\Repositories\WarbandUnitRepository;
@@ -81,7 +82,7 @@ final class OnboardingController
       $query = new OnboardingQuery($units, new UserCodexRepository($pdo), $state, $content);
       $command = new ProvisionStartingWarbandCommand($pdo, $state, new IdempotencyRequestRepository($pdo),
         $query, new NormalUnitCreationService($units, $content), $units, new WarbandDiceRepository($pdo),
-        new SquadRepository($pdo), $content);
+        new SquadRepository($pdo), new UserUnlockRepository($pdo), $content);
       $key = $_SERVER['HTTP_IDEMPOTENCY_KEY'] ?? null;
       $result = $command->execute($userId, $body, is_string($key) ? $key : null);
       Response::json(['ok' => true, 'data' => $result]);

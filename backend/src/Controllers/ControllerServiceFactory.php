@@ -292,7 +292,7 @@ final class ControllerServiceFactory
         [
           $combatNodeHandler,
           new BossNodeResolutionHandler($combatNodeHandler, $nodeResolutionRepository, $unitRepository, $unlockRepository,
-            $rewardApplication, null, null, null, $content),
+            $rewardApplication),
           new LootNodeResolutionHandler($nodeResolutionRepository, $unitRepository, $unlockRepository, $rewardApplication),
           new RestNodeResolutionHandler($nodeResolutionRepository, $unitRepository, $content, new BaseLevelStatResolver()),
           new HazardNodeResolutionHandler($nodeResolutionRepository, $unitRepository, $content, new BaseLevelStatResolver()),

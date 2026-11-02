@@ -49,18 +49,21 @@ If the player already owns an unlock and that unlock is rolled again, the reward
 
 vNext does not require a separate generic `region complete` progression state for current gameplay.
 
-If defeating a region boss should open the next biome, the boss-node completion event should award the next region unlock directly.
+If defeating a region boss should open the next biome, the boss-node completion event may award the next region unlock directly. The opening progression has a different authored order: completing the Whim's onboarding grants Farm access; first Mudking victory grants Shop access and leads to the Tooth Collector rescue conversation. Mountains remain locked until the later post-Farm Whim beat.
 
 Example:
 
 ```text
-Mudking boss node completed
+Whim onboarding completed
         |
         v
-farm_boss_completed
+Basic Goblin Warband and Farm unlock granted atomically
         |
-        +--> normal rewards
-        +--> 100% Mountains unlock
+        v
+Mudking boss node completed
+        |
+        +--> normal rewards and Shop access
+        +--> durable Tooth Collector rescue dialogue node
 ```
 
 A separate Farm-completed record should only be introduced later if a concrete feature needs completion history itself, such as completion counts, difficulty-specific clears, first-clear timestamps, ranks, or achievements.
@@ -144,7 +147,7 @@ Owning any unit instance is the durable completion marker for the current vNext 
 
 The Mystic Cave region has an authored identity but no ordinary run generator. Its flow references `kin.goblin` for Basic Goblin establishment, not a kin restoration recipe, and the existing Wrong Machine capability only as an introduction identity. Actual Wrong Machine access and its later Swamp provenance remain governed by the established unlock/reconstruction systems. No tutorial flag, story-history table, or new account bootstrap path is needed.
 
-When all authored onboarding knowledge is owned and no unit exists, one idempotent server transaction provisions the flow's authored starting Warband: two tier-one Basic Goblin Bruisers in front positions 2 and 5, and two tier-one Basic Goblin Marksmen in back positions 0 and 3. Each unit receives its configured active ability and bound die, and all four join the active squad. The unit ownership completion marker, squad activation, player revision, and finalized receipt commit together. The receipt identifies all four units and dice. A new request after completion cannot provision again; exact-key replay returns the stored result.
+When all authored onboarding knowledge is owned and no unit exists, one idempotent server transaction provisions the flow's authored starting Warband: two tier-one Basic Goblin Bruisers in front positions 2 and 5, and two tier-one Basic Goblin Marksmen in back positions 0 and 3. Each unit receives its configured active ability and bound die, and all four join the active squad. The Farm region unlock, unit ownership completion marker, squad activation, player revision, and finalized receipt commit together. The receipt identifies all four units and dice. A new request after completion cannot provision again; exact-key replay returns the stored result. Existing players who completed onboarding before the Farm unlock grant receive that unlock through the one-time Farm access reconciliation; ordinary run entry always requires owned region access.
 
 ## Bounties and Objectives
 

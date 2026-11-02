@@ -10,6 +10,7 @@ use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Repositories\IdempotencyRequestRepository;
 use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Repositories\SquadRepository;
+use DiceGoblins\Repositories\UserUnlockRepository;
 use DiceGoblins\Repositories\WarbandDiceRepository;
 use DiceGoblins\Repositories\WarbandUnitRepository;
 use DiceGoblins\Support\ClientSafeInteger;
@@ -30,6 +31,7 @@ final class ProvisionStartingWarbandCommand
     private readonly WarbandUnitRepository $units,
     private readonly WarbandDiceRepository $dice,
     private readonly SquadRepository $squads,
+    private readonly UserUnlockRepository $unlocks,
     private readonly ContentRegistry $content,
     private readonly ?Closure $beforeCommit = null,
   ) {}
@@ -79,6 +81,10 @@ final class ProvisionStartingWarbandCommand
       }
       $squadId = $this->squads->create($userId, $starting['squad_name']);
       $this->squads->replaceFormation($squadId, $formation);
+      $this->content->unlock('unlock.region.the_farm');
+      if (!$this->unlocks->insertIfAbsent($userId, 'unlock.region.the_farm')) {
+        throw new RuntimeException('Starting Farm access was already granted.');
+      }
       $revision = $this->playerState->setActiveSquadAndIncrementRevision($userId, $squadId);
       if ($revision !== $state['player_revision'] + 1 || $revision > ClientSafeInteger::MAXIMUM) {
         throw new RuntimeException('Player revision transition is incoherent.');

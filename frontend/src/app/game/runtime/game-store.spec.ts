@@ -195,7 +195,13 @@ describe('GameStore Warband cache', () => {
       .toThrowError(BootstrapContractError);
   });
 
-  it('requires a non-empty unique canonical authoritative region-availability list', () => {
+  it('accepts no region before onboarding and requires unique canonical region IDs', () => {
+    expect(parseGameBootstrapEnvelope({ ok: true, data: { ...bootstrap(null), progression: {
+      unlock_ids: [], available_region_ids: [],
+    } } }).progression.available_region_ids).toEqual([]);
+    expect(() => parseGameBootstrapEnvelope({ ok: true, data: { ...bootstrap(), progression: {
+      unlock_ids: [], available_region_ids: [],
+    } } })).toThrowError(BootstrapContractError);
     const valid = parseGameBootstrapEnvelope({ ok: true, data: { ...bootstrap(), progression: {
       unlock_ids: ['unlock.region.mountains'],
       available_region_ids: ['region.the_farm', 'region.mountains'],
@@ -203,7 +209,7 @@ describe('GameStore Warband cache', () => {
     expect(valid.progression.available_region_ids).toEqual(['region.the_farm', 'region.mountains']);
     expect(valid.progression.unlock_ids).toEqual(['unlock.region.mountains']);
 
-    for (const available_region_ids of [undefined, null, [], ['region.the_farm', 'region.the_farm'],
+    for (const available_region_ids of [undefined, null, ['region.the_farm', 'region.the_farm'],
       ['the_farm'], ['region.TheFarm'], ['region.the_farm', 1]]) {
       expect(() => parseGameBootstrapEnvelope({ ok: true, data: { ...bootstrap(), progression: {
         unlock_ids: ['unlock.region.mountains'], available_region_ids,

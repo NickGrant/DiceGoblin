@@ -30,12 +30,12 @@ final class OnboardingCoreLoopTransitionIntegrationTest extends IntegrationTestC
     $this->assertSame('required', $this->status($onboarding)['status']);
     $before = $this->services($content)['gameBootstrapQuery']->execute($userId, $now);
     $this->assertNull($before['active_squad']);
-    $this->assertContains('region.the_farm', $before['progression']['available_region_ids']);
+    $this->assertSame([], $before['progression']['available_region_ids']);
     try {
       $this->services($content)['startRunCommand']->execute($userId, ['region_id' => 'region.the_farm'], 'before-squad');
       $this->fail('Farm start must require an active squad.');
     } catch (RunStartException $e) {
-      $this->assertSame('active_squad_required', $e->errorCode);
+      $this->assertSame('run_region_locked', $e->errorCode);
     }
 
     foreach ($content->onboardingFlow()['steps'] as $index => $step) {
@@ -65,6 +65,7 @@ final class OnboardingCoreLoopTransitionIntegrationTest extends IntegrationTestC
     $this->assertSame($provision['body']['data']['active_squad_id'], $bootstrap['active_squad']['id']);
     $this->assertCount(4, $bootstrap['active_squad']['units']);
     $this->assertContains('region.the_farm', $bootstrap['progression']['available_region_ids']);
+    $this->assertContains('unlock.region.the_farm', $bootstrap['progression']['unlock_ids']);
     $this->assertNotContains('unlock.capability.wrong_machine_access', $bootstrap['progression']['unlock_ids']);
     $this->assertSame($bootstrap, $this->services($content)['gameBootstrapQuery']->execute($userId, $now));
     $this->assertSame('complete', $this->status(new OnboardingController($content))['status']);
@@ -132,7 +133,7 @@ final class OnboardingCoreLoopTransitionIntegrationTest extends IntegrationTestC
     } catch (ReconstructionException $e) {
       $this->assertSame('reconstruction_unavailable', $e->errorCode);
     }
-    $this->assertSame(0, (int)$this->scalar('SELECT COUNT(*) FROM user_unlocks WHERE user_id = ?', [$userId]));
+    $this->assertSame(0, (int)$this->scalar("SELECT COUNT(*) FROM user_unlocks WHERE user_id = ? AND unlock_id = 'unlock.capability.wrong_machine_access'", [$userId]));
   }
 
   private function statusKey(int $userId): string

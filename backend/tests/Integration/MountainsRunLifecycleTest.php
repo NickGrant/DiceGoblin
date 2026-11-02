@@ -60,7 +60,7 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
       $this->pdo, null, null, $this->fixedResolver('victory'), new FixedGraphRunGenerator());
     $now = new DateTimeImmutable('2026-09-20 12:00:00', new DateTimeZone('UTC'));
     $bootstrap = $services['gameBootstrapQuery']->execute($userId, $now);
-    $this->assertSame([], $bootstrap['progression']['unlock_ids']);
+    $this->assertSame(['unlock.region.the_farm'], $bootstrap['progression']['unlock_ids']);
     $this->assertSame(['region.the_farm'], $bootstrap['progression']['available_region_ids']);
     $this->assertNull($bootstrap['active_run']);
 
@@ -88,8 +88,7 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
     $farmBoss = $services['resolveRunNodeCommand']->execute(
       $userId, $farmRunId, $farmNodeIds[4], 'integrated-farm-boss');
     $this->assertBattleResolution($farmBoss, $farmRunId, $farmNodeIds[4], $farmNodeIds[5], 'boss');
-    $this->assertSame([['outcome' => 'granted', 'unlock_id' => 'unlock.capability.shop_access'],
-      ['outcome' => 'granted', 'unlock_id' => 'unlock.region.mountains']],
+    $this->assertSame([['outcome' => 'granted', 'unlock_id' => 'unlock.capability.shop_access']],
       $farmBoss['rewards']['unlocks']);
     $this->assertSame([
       ['item_id' => 'item.mudking_crown_fragment', 'quantity' => 1, 'owned_after' => 1],
@@ -97,14 +96,19 @@ final class MountainsRunLifecycleTest extends IntegrationTestCase
     ], $farmBoss['item_grants']);
     $this->assertSame($farmBoss, $services['resolveRunNodeCommand']->execute(
       $userId, $farmRunId, $farmNodeIds[4], 'integrated-farm-boss'));
+    $collector = $services['resolveRunNodeCommand']->execute($userId, $farmRunId, $farmNodeIds[5],
+      'integrated-farm-collector', ['encounter_id' => 'encounter.the_farm_tooth_collector', 'action_id' => 'hear_thanks']);
+    $this->assertSame('codex.farm.tooth_collector_rescued', $collector['knowledge']['codex_id']);
     $farmExit = $services['resolveRunNodeCommand']->execute(
-      $userId, $farmRunId, $farmNodeIds[5], 'integrated-farm-exit');
+      $userId, $farmRunId, $farmNodeIds[6], 'integrated-farm-exit');
     $this->assertSame('completed', $farmExit['run']['status']);
 
     $postFarm = $services['gameBootstrapQuery']->execute($userId, $now);
     $this->assertNull($postFarm['active_run']);
-    $this->assertContains('unlock.region.mountains', $postFarm['progression']['unlock_ids']);
-    $this->assertSame(['region.the_farm', 'region.mountains'], $postFarm['progression']['available_region_ids']);
+    $this->assertNotContains('unlock.region.mountains', $postFarm['progression']['unlock_ids']);
+    $this->assertSame(['region.the_farm'], $postFarm['progression']['available_region_ids']);
+    // Package 3 owns the Whim grant; this fixture unlocks Mountains solely to exercise its existing run.
+    (new UserUnlockRepository($this->pdo))->insertIfAbsent($userId, 'unlock.region.mountains');
 
     $mountainsProgressBefore = $this->unitProgress($userId);
     $mountainsTeethBefore = (int)$postFarm['player']['teeth'];

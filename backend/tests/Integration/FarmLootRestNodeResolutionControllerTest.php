@@ -39,11 +39,11 @@ final class FarmLootRestNodeResolutionControllerTest extends IntegrationTestCase
     $before = $this->state($userId);
     $eventsBefore = $this->rows('SELECT `id`, `result_json` FROM `resolved_events` WHERE `user_id` = ? ORDER BY `id`', [$userId]);
 
-    $first = $this->httpResolve($userId, $runId, $nodes[5], 'exit-resolve-key');
+    $first = $this->httpResolve($userId, $runId, $nodes[6], 'exit-resolve-key');
 
     $this->assertSame(200, $first['status'], json_encode($first['body']));
     $data = $first['body']['data'];
-    $this->assertSame(['exit', (string)$nodes[5], [], (string)$runId, 'completed'], [
+    $this->assertSame(['exit', (string)$nodes[6], [], (string)$runId, 'completed'], [
       $data['resolution_type'] ?? null, $data['node']['id'] ?? null, $data['newly_available_node_ids'] ?? null,
       $data['run']['id'] ?? null, $data['run']['status'] ?? null,
     ]);
@@ -57,10 +57,10 @@ final class FarmLootRestNodeResolutionControllerTest extends IntegrationTestCase
       $this->rows('SELECT `id`, `result_json` FROM `resolved_events` WHERE `user_id` = ? ORDER BY `id`', [$userId]));
     $snapshot = $this->snapshot($userId, $runId);
 
-    $replay = $this->httpResolve($userId, $runId, $nodes[5], 'exit-resolve-key');
+    $replay = $this->httpResolve($userId, $runId, $nodes[6], 'exit-resolve-key');
     $this->assertSame($first['body'], $replay['body']);
     $this->assertSame($snapshot, $this->snapshot($userId, $runId));
-    $different = $this->httpResolve($userId, $runId, $nodes[5], 'exit-other-key');
+    $different = $this->httpResolve($userId, $runId, $nodes[6], 'exit-other-key');
     $this->assertSame([409, 'run_node_already_resolved'], [$different['status'], $different['body']['error']['code'] ?? null]);
 
     $_SESSION['user_id'] = $userId;
@@ -73,7 +73,8 @@ final class FarmLootRestNodeResolutionControllerTest extends IntegrationTestCase
     $bootstrapData = $bootstrap['body']['data'];
     $this->assertNull($bootstrapData['active_run']);
     $this->assertNotNull($bootstrapData['active_squad']);
-    $this->assertContains('unlock.region.mountains', $bootstrapData['progression']['unlock_ids']);
+    $this->assertContains('unlock.capability.shop_access', $bootstrapData['progression']['unlock_ids']);
+    $this->assertNotContains('unlock.region.mountains', $bootstrapData['progression']['unlock_ids']);
     $expected = $this->rows('SELECT ui.`id`, ui.`level`, ui.`xp` FROM `unit_instances` ui
       JOIN `run_unit_state` rus ON rus.`unit_id` = ui.`id` AND rus.`run_id` = ?
       WHERE ui.`user_id` = ? ORDER BY ui.`id`', [$runId, $userId]);
@@ -86,9 +87,9 @@ final class FarmLootRestNodeResolutionControllerTest extends IntegrationTestCase
   {
     [$userId, $runId, $nodes] = $this->readyExit('exit-generic');
     $this->pdo?->prepare("UPDATE `runs` SET `region_id` = 'region.mountains' WHERE `id` = ?")->execute([$runId]);
-    $this->pdo?->prepare('UPDATE `run_nodes` SET `node_index` = 9 WHERE `id` = ?')->execute([$nodes[5]]);
+    $this->pdo?->prepare('UPDATE `run_nodes` SET `node_index` = 9 WHERE `id` = ?')->execute([$nodes[6]]);
 
-    $response = $this->httpResolve($userId, $runId, $nodes[5], 'exit-generic-key');
+    $response = $this->httpResolve($userId, $runId, $nodes[6], 'exit-generic-key');
 
     $this->assertSame(200, $response['status'], json_encode($response['body']));
     $this->assertSame(['exit', 'completed', []], [
@@ -101,9 +102,9 @@ final class FarmLootRestNodeResolutionControllerTest extends IntegrationTestCase
   public function testInvalidExitIdentityFailsWithoutMutation(): void
   {
     [$userId, $runId, $nodes] = $this->readyExit('exit-invalid');
-    $this->pdo?->prepare("UPDATE `run_nodes` SET `event_id` = 'event.farm_loot_completed' WHERE `id` = ?")->execute([$nodes[5]]);
+    $this->pdo?->prepare("UPDATE `run_nodes` SET `event_id` = 'event.farm_loot_completed' WHERE `id` = ?")->execute([$nodes[6]]);
     $before = $this->snapshot($userId, $runId);
-    $response = $this->httpResolve($userId, $runId, $nodes[5], 'exit-invalid-key');
+    $response = $this->httpResolve($userId, $runId, $nodes[6], 'exit-invalid-key');
     $this->assertSame([500, 'run_data_integrity_error'], [$response['status'], $response['body']['error']['code'] ?? null]);
     $this->assertSame($before, $this->snapshot($userId, $runId));
   }
@@ -114,27 +115,26 @@ final class FarmLootRestNodeResolutionControllerTest extends IntegrationTestCase
     [$userId, $runId, $nodes] = $this->readyExit('exit-structure-' . $defect);
     if ($defect === 'encounter') {
       $this->pdo?->prepare("UPDATE `run_nodes` SET `encounter_id` = 'encounter.the_farm_mud_boss_1' WHERE `id` = ?")
-        ->execute([$nodes[5]]);
+        ->execute([$nodes[6]]);
     } elseif ($defect === 'outgoing') {
       $this->pdo?->prepare('INSERT INTO `run_edges` (`run_id`, `from_node_id`, `to_node_id`) VALUES (?, ?, ?)')
-        ->execute([$runId, $nodes[5], $nodes[0]]);
+        ->execute([$runId, $nodes[6], $nodes[0]]);
     } elseif ($defect === 'multiple_incoming') {
       $this->pdo?->prepare('INSERT INTO `run_edges` (`run_id`, `from_node_id`, `to_node_id`) VALUES (?, ?, ?)')
-        ->execute([$runId, $nodes[2], $nodes[5]]);
+        ->execute([$runId, $nodes[2], $nodes[6]]);
     } elseif ($defect === 'non_boss_parent') {
-      $this->pdo?->prepare('DELETE FROM `run_edges` WHERE `run_id` = ? AND `to_node_id` = ?')->execute([$runId, $nodes[5]]);
+      $this->pdo?->prepare('DELETE FROM `run_edges` WHERE `run_id` = ? AND `to_node_id` = ?')->execute([$runId, $nodes[6]]);
       $this->pdo?->prepare('INSERT INTO `run_edges` (`run_id`, `from_node_id`, `to_node_id`) VALUES (?, ?, ?)')
-        ->execute([$runId, $nodes[2], $nodes[5]]);
+        ->execute([$runId, $nodes[2], $nodes[6]]);
     } else {
       $this->pdo?->prepare("UPDATE `run_nodes` SET `status` = 'available', `completed_at` = NULL WHERE `id` = ?")
         ->execute([$nodes[4]]);
     }
     $before = $this->snapshot($userId, $runId);
 
-    $response = $this->httpResolve($userId, $runId, $nodes[5], 'exit-structure-key');
+    $response = $this->httpResolve($userId, $runId, $nodes[6], 'exit-structure-key');
 
-    $expected = $defect === 'incomplete_boss_parent'
-      ? [409, 'run_node_unavailable'] : [500, 'run_data_integrity_error'];
+    $expected = [500, 'run_data_integrity_error'];
     $this->assertSame($expected, [$response['status'], $response['body']['error']['code'] ?? null]);
     $this->assertSame($before, $this->snapshot($userId, $runId));
   }
@@ -160,7 +160,7 @@ final class FarmLootRestNodeResolutionControllerTest extends IntegrationTestCase
       new class implements Clock { public function now(): DateTimeImmutable { return new DateTimeImmutable('2026-09-19 12:00:00'); } },
       static function(): void { throw new RuntimeException('Injected before-commit failure.'); });
     try {
-      $command->execute($userId, $runId, $nodes[5], 'exit-rollback-key');
+      $command->execute($userId, $runId, $nodes[6], 'exit-rollback-key');
       $this->fail('Expected injected before-commit failure.');
     } catch (RuntimeException $e) {
       $this->assertSame('Injected before-commit failure.', $e->getMessage());
@@ -448,7 +448,7 @@ final class FarmLootRestNodeResolutionControllerTest extends IntegrationTestCase
   {
     [$userId] = $this->fixtureAccount($prefix);
     [$runId, $nodes] = $this->startRun($userId, $prefix . '-start');
-    foreach ([0 => 'combat', 1 => 'loot', 2 => 'dialogue', 3 => 'rest', 4 => 'boss'] as $index => $suffix) {
+    foreach ([0 => 'combat', 1 => 'loot', 2 => 'dialogue', 3 => 'rest', 4 => 'boss', 5 => 'tooth-collector'] as $index => $suffix) {
       $response = $this->httpResolve($userId, $runId, $nodes[$index], $prefix . '-' . $suffix);
       $this->assertSame(200, $response['status'], json_encode($response['body']));
     }
@@ -532,8 +532,10 @@ final class FarmLootRestNodeResolutionControllerTest extends IntegrationTestCase
     $encounterId = $this->scalar('SELECT `encounter_id` FROM `run_nodes` WHERE `id` = ?', [$nodeId]);
     $body = $request ?? ($encounterId === 'encounter.the_farm_scout'
       ? ['encounter_id' => $encounterId, 'action_id' => 'hear_paths']
-      : (in_array($encounterId, ['encounter.the_farm_rest', 'encounter.mountains_rest'], true)
-        ? ['encounter_id' => $encounterId, 'action_id' => 'rest'] : null));
+      : ($encounterId === 'encounter.the_farm_tooth_collector'
+        ? ['encounter_id' => $encounterId, 'action_id' => 'hear_thanks']
+        : (in_array($encounterId, ['encounter.the_farm_rest', 'encounter.mountains_rest'], true)
+          ? ['encounter_id' => $encounterId, 'action_id' => 'rest'] : null)));
     $_SERVER['DICE_GOBLINS_TEST_RAW_BODY'] = $body === null ? '' : json_encode($body, JSON_THROW_ON_ERROR);
     return $this->invoke(fn() => (new RunController())->resolveNode((string)$runId, (string)$nodeId));
   }

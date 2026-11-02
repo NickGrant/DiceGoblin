@@ -14,9 +14,9 @@ final class RegionAvailabilityPolicyTest extends TestCase
   {
     $policy = new RegionAvailabilityPolicy($this->content());
 
-    $this->assertSame(['region.start'], $policy->availableRegionIds([]));
+    $this->assertSame([], $policy->availableRegionIds([]));
     $this->assertSame(
-      ['region.start', 'region.alpha', 'region.second'],
+      ['region.alpha', 'region.second'],
       $policy->availableRegionIds(['unlock.path.second', 'unlock.odd_alpha_name', 'unlock.region.unknown']),
     );
     $this->assertFalse($policy->isPlayable('region.unplayable'));

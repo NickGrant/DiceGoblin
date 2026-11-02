@@ -5,8 +5,11 @@ namespace DiceGoblins\Tests\Integration;
 
 use DiceGoblins\Application\Commands\IdempotencyConflictException;
 use DiceGoblins\Application\Commands\OnboardingProvisionException;
+use DiceGoblins\Application\Commands\RunStartException;
 use DiceGoblins\Application\Commands\ProvisionStartingWarbandCommand;
 use DiceGoblins\Application\NormalUnitCreationService;
+use DiceGoblins\Application\FarmAccessReconciler;
+use DiceGoblins\Application\Commands\ProvisionWarbandFixtureCommand;
 use DiceGoblins\Application\Queries\OnboardingQuery;
 use DiceGoblins\Application\Queries\UnitDetailQuery;
 use DiceGoblins\Content\ContentRegistry;
@@ -17,7 +20,9 @@ use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Repositories\SquadRepository;
 use DiceGoblins\Repositories\UserCodexRepository;
 use DiceGoblins\Repositories\UserRepository;
+use DiceGoblins\Repositories\UserUnlockRepository;
 use DiceGoblins\Repositories\WarbandDiceRepository;
+use DiceGoblins\Repositories\WarbandFixtureRepository;
 use DiceGoblins\Repositories\WarbandUnitRepository;
 use DiceGoblins\Tests\Support\IntegrationTestCase;
 use RuntimeException;
@@ -57,7 +62,7 @@ final class OnboardingProvisionIntegrationTest extends IntegrationTestCase
         [(int)$first['active_squad_id'], $member['position']],
       ));
     }
-    $this->assertSame(0, (int)$this->scalar('SELECT COUNT(*) FROM user_unlocks WHERE user_id = ?', [$user]));
+    $this->assertSame(['unlock.region.the_farm'], (new UserUnlockRepository($this->pdo))->listIdsForUser($user));
     $this->assertSame(0, (int)$this->scalar('SELECT COUNT(*) FROM unit_promotions WHERE unit_id IN (?, ?, ?, ?)',
       array_map('intval', $first['unit_ids'])));
     $this->assertSame(0, (int)$this->scalar('SELECT COUNT(*) FROM unit_instances WHERE user_id = ?', [$other]));
@@ -142,6 +147,31 @@ final class OnboardingProvisionIntegrationTest extends IntegrationTestCase
     $this->command()->execute($user, [], 'onboard-conflict');
   }
 
+  public function testExistingUnitOwnerReceivesFarmAccessOnceWithoutGrantingFreshAccount(): void
+  {
+    $returning = $this->user(); $fresh = $this->user();
+    (new ProvisionWarbandFixtureCommand($this->pdo, new WarbandFixtureRepository($this->pdo),
+      $this->content()))->execute($returning);
+    $this->pdo?->prepare("DELETE FROM user_unlocks WHERE user_id = ? AND unlock_id = 'unlock.region.the_farm'")
+      ->execute([$returning]);
+    $services = ControllerServiceFactory::buildContentAware($this->pdo,
+      ControllerServiceFactory::buildCore($this->pdo), $this->content());
+    try {
+      $services['startRunCommand']->execute($returning, ['region_id' => 'region.the_farm'], 'reconciled-farm-start');
+      $this->fail('Farm start bypassed its missing unlock.');
+    } catch (RunStartException $e) { $this->assertSame('run_region_locked', $e->errorCode); }
+    $reconciler = new FarmAccessReconciler($this->pdo, new PlayerStateRepository($this->pdo),
+      new WarbandUnitRepository($this->pdo), new UserUnlockRepository($this->pdo), $this->content());
+    $this->assertFalse($reconciler->reconcile($fresh));
+    $this->assertSame([], (new UserUnlockRepository($this->pdo))->listIdsForUser($fresh));
+    $this->assertTrue($reconciler->reconcile($returning));
+    $this->assertFalse($reconciler->reconcile($returning));
+    $this->assertSame(['unlock.region.the_farm'], (new UserUnlockRepository($this->pdo))->listIdsForUser($returning));
+    $this->assertSame(3, (new PlayerStateRepository($this->pdo))->getPlayerState($returning)['player_revision']);
+    $this->assertSame('active', $services['startRunCommand']->execute($returning,
+      ['region_id' => 'region.the_farm'], 'reconciled-farm-start')['run']['status']);
+  }
+
   private function user(): int
   {
     $id = (new UserRepository($this->pdo))->createUser('Onboarding Provision Test', null);
@@ -172,6 +202,7 @@ final class OnboardingProvisionIntegrationTest extends IntegrationTestCase
     $content = $this->content(); $units = new WarbandUnitRepository($this->pdo);
     return new ProvisionStartingWarbandCommand($this->pdo, new PlayerStateRepository($this->pdo),
       new IdempotencyRequestRepository($this->pdo), $this->query(), new NormalUnitCreationService($units, $content),
-      $units, new WarbandDiceRepository($this->pdo), new SquadRepository($this->pdo), $content, $beforeCommit);
+      $units, new WarbandDiceRepository($this->pdo), new SquadRepository($this->pdo),
+      new UserUnlockRepository($this->pdo), $content, $beforeCommit);
   }
 }

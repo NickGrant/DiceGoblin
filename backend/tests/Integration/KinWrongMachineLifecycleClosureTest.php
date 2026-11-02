@@ -34,6 +34,7 @@ final class KinWrongMachineLifecycleClosureTest extends IntegrationTestCase
     $unlocks = new UserUnlockRepository($this->pdo);
     $this->assertTrue($unlocks->insertIfAbsent($userId, 'unlock.capability.wrong_machine_access'));
     $this->assertTrue($unlocks->insertIfAbsent($userId, 'unlock.unit_type.bruiser'));
+    $this->assertTrue($unlocks->insertIfAbsent($userId, 'unlock.region.mountains'));
 
     // The player starts with fixture Warband assets; Raw Chaos is earned through the production salvage command.
     $fixture = new WarbandFixtureRepository($this->pdo);
@@ -132,7 +133,7 @@ final class KinWrongMachineLifecycleClosureTest extends IntegrationTestCase
       $results[$index] = $services['resolveRunNodeCommand']->execute($userId, (int)$start['run']['id'],
         (int)$node['id'], 'kin-closure-node-' . $key . '-' . $index, $interaction);
     }
-    $this->assertSame('completed', $results[$regionId === 'region.mountains' ? 6 : 5]['run']['status']);
+    $this->assertSame('completed', $results[6]['run']['status']);
     ksort($results);
     return $results;
   }

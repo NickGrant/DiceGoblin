@@ -14,17 +14,6 @@ describe('run node resolution contracts', () => {
     const leaked = structuredClone(value); leaked.data.event_id = 'event.dialogue_farm_scout_paths';
     expect(() => parseRunNodeResolutionEnvelope(leaked)).toThrowError(RunNodeResolutionContractError);
   });
-  it('allows first-victory dialogue only with a newly granted Shop unlock', () => {
-    const value: any = envelope();
-    value.data.resolution_type = 'boss';
-    value.data.rewards = { unit_xp: [{ unit_id: '21', amount: 16, level_before: 1, xp_before: 90,
-      level_after: 2, xp_after: 6 }], unlocks: [{ unlock_id: 'unlock.capability.shop_access', outcome: 'granted' }] };
-    value.data.first_victory_dialogue_id = 'dialogue.farm.mudking_merchant_freed';
-    const parsed = parseRunNodeResolutionEnvelope(value);
-    expect(parsed.resolutionType === 'boss' && parsed.firstVictoryDialogueId).toBe('dialogue.farm.mudking_merchant_freed');
-    value.data.rewards.unlocks[0].outcome = 'already_owned';
-    expect(() => parseRunNodeResolutionEnvelope(value)).toThrowError(RunNodeResolutionContractError);
-  });
   it('parses an intermediate receipt without treating its node as completed', () => {
     const value: any = { ok: true, data: { resolution_type: 'interaction_step',
       encounter_id: 'encounter.test_contextual_shrine', action_id: 'offer_wick', step_id: 'kindled',

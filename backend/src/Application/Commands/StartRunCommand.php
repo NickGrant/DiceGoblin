@@ -137,11 +137,9 @@ final class StartRunCommand
     if (!$this->regionAvailability->isPlayable($regionId)) {
       throw new RunStartException('run_region_unsupported', 'The requested region is unavailable.', 422);
     }
-    if ($regionId !== $this->content->startingRegionId()) {
-      $available = $this->regionAvailability->availableRegionIds($this->unlocks->listIdsForUser($userId, true));
-      if (!in_array($regionId, $available, true)) {
-        throw new RunStartException('run_region_locked', 'The requested region is locked.', 403);
-      }
+    $available = $this->regionAvailability->availableRegionIds($this->unlocks->listIdsForUser($userId, true));
+    if (!in_array($regionId, $available, true)) {
+      throw new RunStartException('run_region_locked', 'The requested region is locked.', 403);
     }
   }
 }

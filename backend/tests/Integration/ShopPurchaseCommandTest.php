@@ -307,7 +307,9 @@ final class ShopPurchaseCommandTest extends IntegrationTestCase
 
   public function testPurchasedUnconfiguredUnitCannotStartRun(): void
   {
-    $content = $this->content(); $userId = $this->user(30); (new UserUnlockRepository($this->pdo))->insertIfAbsent($userId, 'unlock.unit_type.bruiser');
+    $content = $this->content(); $userId = $this->user(30); $unlocks = new UserUnlockRepository($this->pdo);
+    $unlocks->insertIfAbsent($userId, 'unlock.unit_type.bruiser');
+    $unlocks->insertIfAbsent($userId, 'unlock.region.the_farm');
     $result = $this->command($content)->execute($userId, $this->request('shop_offer.unit', 13), 'unit-run-key');
     $unitId = (int)$result['output']['unit']['id'];
     $this->pdo?->prepare('INSERT INTO `squads` (`user_id`, `name`) VALUES (?, ?)')->execute([$userId, 'Unconfigured']);

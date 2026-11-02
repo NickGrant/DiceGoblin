@@ -315,7 +315,7 @@ final class RunContentValidationTest extends TestCase
       'duplicate edge' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['edges'][1] = $definition['edges'][0]), 'duplicate edge'],
       'disconnected exit' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => array_pop($definition['edges'])), 'disconnected'],
       'missing boss' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['nodes'][4]['node_type_id'] = 'run_node_type.combat'), 'encounter kind does not match'],
-      'missing exit' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['nodes'][5]['node_type_id'] = 'run_node_type.loot'), 'exactly one run_node_type.exit'],
+      'missing exit' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['nodes'][6]['node_type_id'] = 'run_node_type.loot'), 'exactly one run_node_type.exit'],
       'non-linear Farm path' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['edges'][2] = ['from' => 'rest', 'to' => 'exit']), 'disconnected'],
       'bad coordinate' => [fn(array &$definitions) => $this->mutate($definitions, 'run_generation.the_farm', fn(array &$definition) => $definition['nodes'][0]['position']['column'] = 1.5), 'position.column'],
     ];

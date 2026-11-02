@@ -24,7 +24,6 @@ export interface CombatRunNodeResolutionResult extends ResolutionBase {
 
 export interface BossRunNodeResolutionResult extends ResolutionBase {
   readonly resolutionType: 'boss';
-  readonly firstVictoryDialogueId?: string;
   readonly battle: CombatRunNodeResolutionResult['battle'];
   readonly terminalPlayerHp: Readonly<Record<string, number>>;
   readonly itemGrants?: CombatRunNodeResolutionResult['itemGrants'];
@@ -273,14 +272,8 @@ function parseCombat(data: Record<string, unknown>): CombatRunNodeResolutionResu
 function parseBoss(data: Record<string, unknown>): BossRunNodeResolutionResult {
   exact(data, ['resolution_type', 'battle', 'node', 'newly_available_node_ids', 'terminal_player_hp', 'rewards', 'run', 'player_revision',
     ...(Object.hasOwn(data, 'applied_modifiers') ? ['applied_modifiers'] : []),
-    ...(Object.hasOwn(data, 'item_grants') ? ['item_grants'] : []),
-    ...(Object.hasOwn(data, 'first_victory_dialogue_id') ? ['first_victory_dialogue_id'] : [])], 'Boss resolution data');
+    ...(Object.hasOwn(data, 'item_grants') ? ['item_grants'] : [])], 'Boss resolution data');
   const facts = parseBattleFacts(data);
-  const firstVictoryDialogueId = data['first_victory_dialogue_id'];
-  if (firstVictoryDialogueId !== undefined && (facts.battle.outcome !== 'victory'
-    || typeof firstVictoryDialogueId !== 'string'
-    || !/^dialogue\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/.test(firstVictoryDialogueId)))
-    throw new RunNodeResolutionContractError('Boss first victory dialogue is invalid.');
   if (data['rewards'] === null) {
     if (facts.battle.outcome === 'victory') throw new RunNodeResolutionContractError('Boss victory rewards are missing.');
     return Object.freeze({ resolutionType: 'boss', ...facts, rewards: null });
@@ -317,10 +310,8 @@ function parseBoss(data: Record<string, unknown>): BossRunNodeResolutionResult {
     priorUnlockId = currentUnlockId;
     return Object.freeze({ unlockId: currentUnlockId, outcome: row['outcome'] });
   });
-  if (firstVictoryDialogueId !== undefined && !unlocks.some((row) => row.unlockId === 'unlock.capability.shop_access' && row.outcome === 'granted'))
-    throw new RunNodeResolutionContractError('Boss first victory dialogue requires newly granted Shop access.');
   return Object.freeze({ resolutionType: 'boss', ...facts, rewards: Object.freeze({ unitXp: Object.freeze(unitXp),
-    unlocks: Object.freeze(unlocks) }), ...(firstVictoryDialogueId ? { firstVictoryDialogueId } : {}) });
+    unlocks: Object.freeze(unlocks) }) });
 }
 
 function parseLoot(data: Record<string, unknown>): LootRunNodeResolutionResult {

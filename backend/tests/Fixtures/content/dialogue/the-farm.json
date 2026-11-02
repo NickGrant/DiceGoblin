@@ -34,7 +34,7 @@
       "id": "dialogue.farm.mudking_first",
       "type": "dialogue",
       "title": "The Mudking",
-      "body": "The Mudking bars the path. Behind him, a captive merchant calls from a crooked cage. Mudking says the road and everyone on it belong to him.",
+      "body": "The Mudking bars the path. Behind him, the Tooth Collector, the Whim's friend, calls from a crooked cage. Mudking says the road and everyone on it belong to him.",
       "choices": [
         {
           "id": "challenge",
@@ -46,16 +46,17 @@
       ]
     },
     {
-      "id": "dialogue.farm.mudking_merchant_freed",
+      "id": "dialogue.farm.tooth_collector",
       "type": "dialogue",
-      "title": "The Merchant Is Free",
-      "body": "Mudking falls. He grumbles that the cage key is under his throne, and the merchant calls out for help.",
+      "title": "The Tooth Collector Is Safe",
+      "body": "The Mudking's defeat freed the Tooth Collector. The Whim's friend thanks your warband and has brought a Shop to Camp.",
       "choices": [
         {
-          "id": "free_merchant",
-          "label": "Free the merchant",
-          "response": "You open the cage. The merchant thanks the warband and promises to bring a Shop to Camp.",
-          "required_codex_ids": []
+          "id": "hear_thanks",
+          "label": "Speak with the Tooth Collector",
+          "response": "The Tooth Collector thanks you for the rescue and promises to keep the Shop stocked in Camp.",
+          "required_codex_ids": [],
+          "event_id": "event.dialogue_tooth_collector"
         }
       ]
     },
@@ -63,7 +64,7 @@
       "id": "dialogue.farm.mudking_return",
       "type": "dialogue",
       "title": "The Mudking Returns",
-      "body": "Mudking recognizes the warband. The merchant is safe in Camp now, but Mudking still claims the road as his own.",
+      "body": "Mudking recognizes the warband. The Tooth Collector is safe in Camp now, but Mudking still claims the road as his own.",
       "choices": [
         {
           "id": "challenge",

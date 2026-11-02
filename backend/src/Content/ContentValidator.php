@@ -391,8 +391,8 @@ final class ContentValidator
         $this->requireReferenceType($definitions, $id, 'region_id', $definition['region_id'], 'region');
         if (isset($definition['visit_unlock_id'])) {
           $this->requireReferenceType($definitions, $id, 'visit_unlock_id', $definition['visit_unlock_id'], 'unlock');
-          foreach (['first_visit_dialogue_id', 'return_visit_dialogue_id', 'first_victory_dialogue_id'] as $field) {
-            $this->requireReferenceType($definitions, $id, $field, $definition[$field], 'dialogue');
+          foreach (['first_visit_dialogue_id', 'return_visit_dialogue_id'] as $field) {
+            if (isset($definition[$field])) $this->requireReferenceType($definitions, $id, $field, $definition[$field], 'dialogue');
           }
         }
         if (($definition['family'] ?? null) === 'dialogue') {
@@ -1237,13 +1237,14 @@ final class ContentValidator
     }
     $this->requireExactFieldSet($definition,
       ['id', 'type', 'kind', 'region_id', 'display_name', 'description', 'difficulty', 'combatants'],
-      ['first_visit_dialogue_id', 'return_visit_dialogue_id', 'first_victory_dialogue_id', 'visit_unlock_id'], $location);
-    $dialogueFields = ['first_visit_dialogue_id', 'return_visit_dialogue_id', 'first_victory_dialogue_id', 'visit_unlock_id'];
+      ['first_visit_dialogue_id', 'return_visit_dialogue_id', 'visit_unlock_id'], $location);
+    $dialogueFields = ['first_visit_dialogue_id', 'return_visit_dialogue_id', 'visit_unlock_id'];
     $present = array_intersect($dialogueFields, array_keys($definition));
-    if ($present !== [] && (count($present) !== count($dialogueFields) || $definition['kind'] !== 'boss')) {
+    if ($present !== [] && (count($present) !== count($dialogueFields)
+      || $definition['kind'] !== 'boss')) {
       throw new ContentValidationException("{$location} Boss dialogue contract is incomplete.");
     }
-    foreach (['first_visit_dialogue_id', 'return_visit_dialogue_id', 'first_victory_dialogue_id'] as $field) {
+    foreach (['first_visit_dialogue_id', 'return_visit_dialogue_id'] as $field) {
       if (isset($definition[$field])) $this->requireStableIdWithNamespace($definition, $field, 'dialogue.', $location);
     }
     if (isset($definition['visit_unlock_id'])) $this->requireStableIdWithNamespace($definition, 'visit_unlock_id', 'unlock.', $location);
