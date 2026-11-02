@@ -56,6 +56,7 @@ export interface GameBootstrapData {
   readonly progression: {
     readonly unlock_ids: readonly string[];
     readonly available_region_ids: readonly string[];
+    readonly unlocked_region_ids?: readonly string[];
     readonly camp_whim_dialogue_id?: string | null;
   };
   readonly active_squad: GameBootstrapActiveSquad | null;
@@ -275,7 +276,9 @@ export function parseGameBootstrapEnvelope(value: unknown): GameBootstrapData {
   const progression = recordField(data, 'progression');
   const unlockIds = progression['unlock_ids'];
   const availableRegionIds = progression['available_region_ids'];
-  if (!hasExactKeys(progression, ['unlock_ids', 'available_region_ids', 'camp_whim_dialogue_id'])) {
+  const unlockedRegionIds = progression['unlocked_region_ids'];
+  if (!hasExactKeys(progression, ['unlock_ids', 'available_region_ids', 'camp_whim_dialogue_id',
+    ...(Object.hasOwn(progression, 'unlocked_region_ids') ? ['unlocked_region_ids'] : [])])) {
     throw new BootstrapContractError("Bootstrap field 'progression' is malformed.");
   }
   const campWhimDialogueId = progression['camp_whim_dialogue_id'];
@@ -287,6 +290,12 @@ export function parseGameBootstrapEnvelope(value: unknown): GameBootstrapData {
     || availableRegionIds.some((id) => typeof id !== 'string' || !/^region\.[a-z][a-z0-9_]*$/.test(id))
     || new Set(availableRegionIds).size !== availableRegionIds.length) {
     throw new BootstrapContractError("Bootstrap field 'available_region_ids' must be a unique region ID array.");
+  }
+  if (unlockedRegionIds !== undefined && (!Array.isArray(unlockedRegionIds)
+    || unlockedRegionIds.some((id) => typeof id !== 'string' || !/^region\.[a-z][a-z0-9_]*$/.test(id))
+    || new Set(unlockedRegionIds).size !== unlockedRegionIds.length
+    || availableRegionIds.some((id) => !unlockedRegionIds.includes(id)))) {
+    throw new BootstrapContractError("Bootstrap field 'unlocked_region_ids' must include available regions exactly once.");
   }
 
   const parsed: GameBootstrapData = {
@@ -325,6 +334,7 @@ export function parseGameBootstrapEnvelope(value: unknown): GameBootstrapData {
               );
             })(),
       available_region_ids: [...availableRegionIds],
+      unlocked_region_ids: unlockedRegionIds === undefined ? [...availableRegionIds] : [...unlockedRegionIds],
       camp_whim_dialogue_id: campWhimDialogueId,
     },
     active_squad: parseActiveSquad(data['active_squad']),

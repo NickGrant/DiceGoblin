@@ -68,6 +68,7 @@ describe('CampScreen', () => {
       regions: {
         'region.the_farm': { id: 'region.the_farm', display_name: 'The Farm', art_key: 'farm' },
         'region.mountains': { id: 'region.mountains', display_name: 'Mountains', art_key: 'mountains' },
+        'region.swamps': { id: 'region.swamps', display_name: 'Swamps', art_key: 'swamps' },
       }, kin: {}, unit_types: {}, abilities: {}, dice_materials: {}, dice_aspects: {}, dice_profiles: {}, run_node_types: {}, items: {}, unit_promotions: {}, academy_upgrades: {}, shop_offers: {} } });
   }
 
@@ -256,6 +257,25 @@ describe('CampScreen', () => {
     resumeScreen.create();
     expect(resumeHarness.textValues).toContain('RESUME MOUNTAINS  ›');
     expect(resumeHarness.textValues).not.toContain('RESUME FARM  ›');
+  });
+
+  it('shows an unlocked Swamp destination without offering a Swamp run', () => {
+    const base = bootstrap();
+    const data = { ...base, progression: {
+      unlock_ids: ['unlock.region.mountains', 'unlock.region.swamps'],
+      available_region_ids: ['region.the_farm', 'region.mountains'],
+      unlocked_region_ids: ['region.the_farm', 'region.mountains', 'region.swamps'],
+      camp_whim_dialogue_id: null,
+    } };
+    const view = createCampViewModel(storeWith(data), content());
+    expect(view.availableRegions.map((region) => region.id)).toEqual(['region.the_farm', 'region.mountains']);
+    expect(view.unlockedRegions.at(-1)).toEqual({ id: 'region.swamps', displayName: 'Swamps', playable: false });
+    const harness = sceneHarness();
+    const screen = new CampScreen(harness.scene, storeWith(data), new RuntimeViewport(), undefined, undefined, undefined, content());
+    screen.create();
+    expect(harness.textValues).toContain('SWAMPS\nPATH FOUND');
+    screen.selectRegion('region.swamps');
+    expect(screen.selectedRunRegionId).toBe('region.the_farm');
   });
 
   it('is a GameScene-owned screen boundary rather than another Phaser Scene', () => {

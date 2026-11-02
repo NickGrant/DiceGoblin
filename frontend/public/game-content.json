@@ -1,5 +1,5 @@
 {
-    "revision": "cf7cb66998698d206c06d37d80338f9f25b24b9c7aeebd699f9ac687c13ccbf5",
+    "revision": "e1c70bdd7b9f4bb7e056f7f3986a5923d09a30c458851cf75638a2a7adb3d7a5",
     "content": {
         "gameplay": {
             "run_energy_cost": 10
@@ -9,6 +9,11 @@
                 "id": "region.mountains",
                 "display_name": "Mountains",
                 "art_key": "mountains"
+            },
+            "region.swamps": {
+                "id": "region.swamps",
+                "display_name": "Swamps",
+                "art_key": "swamps"
             },
             "region.the_farm": {
                 "id": "region.the_farm",

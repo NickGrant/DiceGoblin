@@ -207,7 +207,21 @@ describe('GameStore Warband cache', () => {
       available_region_ids: ['region.the_farm', 'region.mountains'], camp_whim_dialogue_id: null,
     } } });
     expect(valid.progression.available_region_ids).toEqual(['region.the_farm', 'region.mountains']);
+    expect(valid.progression.unlocked_region_ids).toEqual(['region.the_farm', 'region.mountains']);
     expect(valid.progression.unlock_ids).toEqual(['unlock.region.mountains']);
+    const swamp = parseGameBootstrapEnvelope({ ok: true, data: { ...bootstrap(), progression: {
+      unlock_ids: ['unlock.region.mountains', 'unlock.region.swamps'],
+      available_region_ids: ['region.the_farm', 'region.mountains'],
+      unlocked_region_ids: ['region.the_farm', 'region.mountains', 'region.swamps'],
+      camp_whim_dialogue_id: null,
+    } } });
+    expect(swamp.progression.unlocked_region_ids).toContain('region.swamps');
+    expect(swamp.progression.available_region_ids).not.toContain('region.swamps');
+    for (const unlocked_region_ids of [['region.swamps'], ['region.the_farm', 'region.the_farm'], ['swamps']]) {
+      expect(() => parseGameBootstrapEnvelope({ ok: true, data: { ...bootstrap(), progression: {
+        unlock_ids: [], available_region_ids: ['region.the_farm'], unlocked_region_ids, camp_whim_dialogue_id: null,
+      } } })).toThrowError(BootstrapContractError);
+    }
     const pending = parseGameBootstrapEnvelope({ ok: true, data: { ...bootstrap(), progression: {
       unlock_ids: ['unlock.capability.shop_access'], available_region_ids: ['region.the_farm'],
       camp_whim_dialogue_id: 'dialogue.camp.whim_machine_search',

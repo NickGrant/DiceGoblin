@@ -23,6 +23,16 @@ final class RegionAvailabilityPolicy
   /** @param list<string> $ownedUnlockIds @return list<string> */
   public function availableRegionIds(array $ownedUnlockIds): array
   {
+    return $this->regionIds($ownedUnlockIds, true);
+  }
+  /** @param list<string> $ownedUnlockIds @return list<string> */
+  public function unlockedRegionIds(array $ownedUnlockIds): array
+  {
+    return $this->regionIds($ownedUnlockIds, false);
+  }
+  /** @param list<string> $ownedUnlockIds @return list<string> */
+  private function regionIds(array $ownedUnlockIds, bool $playableOnly): array
+  {
     $available = [];
     foreach ($ownedUnlockIds as $unlockId) {
       try {
@@ -32,7 +42,7 @@ final class RegionAvailabilityPolicy
       }
       if (($unlock['target_type'] ?? null) !== 'region') continue;
       $regionId = (string)($unlock['target_id'] ?? '');
-      if ($this->isPlayable($regionId)) $available[$regionId] = true;
+      if (!$playableOnly || $this->isPlayable($regionId)) $available[$regionId] = true;
     }
 
     $remaining = array_keys($available);

@@ -6,6 +6,12 @@
       "type": "unlock",
       "target_type": "region",
       "target_id": "region.mountains"
+    },
+    {
+      "id": "unlock.region.swamps",
+      "type": "unlock",
+      "target_type": "region",
+      "target_id": "region.swamps"
     }
   ]
 }

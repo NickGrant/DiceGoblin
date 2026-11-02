@@ -139,6 +139,11 @@ Tooth Collector rescue dialogue completed
 Post-Farm Whim dialogue completed
         +--> Wrong Machine search knowledge
         +--> Mountains unlock
+        |
+        v
+Mountains boss first victory
+        +--> Swamp destination knowledge
+        +--> Swamp region unlock, visible before its run is playable
 ```
 
 ## UI-Initiated Transactions

@@ -45,6 +45,28 @@
       "region_id": "region.mountains",
       "prompt": "The Archivist addresses your warband.",
       "dialogue_id": "dialogue.mountains_archivist"
+    },
+    {
+      "id": "dialogue.mountains_swamp_handoff",
+      "type": "dialogue",
+      "run_only": true,
+      "title": "The Warchief's Chart",
+      "body": "The defeated kobold warchief's chart marks the Wrong Machine's route out of the Mountains and into the Swamps. The Machine is not here. Your warband has found its next destination, not the Machine itself.",
+      "choices": [{
+        "id": "follow_swamp_trail",
+        "label": "Mark the route to the Swamps",
+        "response": "The Swamps are now on your map. The search for the Wrong Machine continues there.",
+        "required_codex_ids": ["codex.mountains_machine_in_swamps"]
+      }]
+    },
+    {
+      "id": "encounter.mountains_swamp_handoff",
+      "type": "encounter",
+      "kind": "non_combat",
+      "family": "dialogue",
+      "region_id": "region.mountains",
+      "prompt": "Read the defeated warchief's chart.",
+      "dialogue_id": "dialogue.mountains_swamp_handoff"
     }
   ]
 }

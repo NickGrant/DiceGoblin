@@ -46,25 +46,26 @@ final class FixedGraphRunGeneratorTest extends TestCase
       ->runGenerationForRegion('region.mountains');
     $graph = (new FixedGraphRunGenerator())->generate($definition);
 
-    $this->assertSame(range(0, 10), array_column($graph['nodes'], 'node_index'));
+    $this->assertSame(range(0, 11), array_column($graph['nodes'], 'node_index'));
     $this->assertSame([
       'run_node_type.combat', 'run_node_type.loot', 'run_node_type.combat', 'run_node_type.rest',
       'run_node_type.combat', 'run_node_type.boss', 'run_node_type.exit',
-      'run_node_type.hazard', 'run_node_type.hazard', 'run_node_type.dialogue', 'run_node_type.dialogue',
+      'run_node_type.hazard', 'run_node_type.hazard', 'run_node_type.dialogue', 'run_node_type.dialogue', 'run_node_type.dialogue',
     ], array_column($graph['nodes'], 'node_type_id'));
     $this->assertSame([
       'encounter.mountains_kobold_combat_1', null, 'encounter.mountains_kobold_combat_2',
       'encounter.mountains_rest', 'encounter.mountains_kobold_combat_3',
       'encounter.mountains_kobold_boss_1', null, 'encounter.mountains_loose_scree',
       'encounter.mountains_rockfall', 'encounter.mountains_kobold_trail', 'encounter.mountains_archivist',
+      'encounter.mountains_swamp_handoff',
     ], array_column($graph['nodes'], 'encounter_id'));
     $this->assertSame([null, 'event.mountains_loot_completed', null, null, null,
-      'event.mountains_boss_completed', null, null, null, null, null], array_column($graph['nodes'], 'event_id'));
+      'event.mountains_boss_completed', null, null, null, null, null, null], array_column($graph['nodes'], 'event_id'));
     $this->assertSame(['available', 'locked', 'locked', 'locked', 'locked', 'locked', 'locked',
-      'locked', 'locked', 'locked', 'locked'],
+      'locked', 'locked', 'locked', 'locked', 'locked'],
       array_column($graph['nodes'], 'status'));
-    $this->assertSame([0, 9, 1, 2, 3, 7, 2, 4, 10, 5], array_column($graph['edges'], 'from_node_index'));
-    $this->assertSame([9, 1, 2, 3, 7, 4, 8, 10, 5, 6], array_column($graph['edges'], 'to_node_index'));
+    $this->assertSame([0, 9, 1, 2, 3, 7, 2, 4, 10, 5, 11], array_column($graph['edges'], 'from_node_index'));
+    $this->assertSame([9, 1, 2, 3, 7, 4, 8, 10, 5, 11, 6], array_column($graph['edges'], 'to_node_index'));
   }
 
   /** @dataProvider invalidGraphProvider */

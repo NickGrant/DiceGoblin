@@ -25,7 +25,7 @@ final class ClientContentProjector
       'revision' => $registry->revision(),
       'content' => [
         'gameplay' => $this->projectGameplay($registry),
-        'regions' => $this->projectPlayableRegions($registry),
+        'regions' => $this->projectVisibleRegions($registry),
         'kin' => $this->projectType($registry, 'kin', self::KIN_FIELDS),
         'unit_types' => $this->projectType($registry, 'unit_type', self::UNIT_TYPE_FIELDS),
         'abilities' => $this->projectType($registry, 'ability', self::ABILITY_FIELDS),
@@ -48,12 +48,12 @@ final class ClientContentProjector
   }
 
   /** @return array<string, array<string, mixed>> */
-  private function projectPlayableRegions(ContentRegistry $registry): array
+  private function projectVisibleRegions(ContentRegistry $registry): array
   {
     $projected = [];
     $allowlist = array_flip(self::REGION_FIELDS);
     foreach ($registry->definitionsOfType('region') as $id => $definition) {
-      if (!isset($definition['run_generation_id'])) continue;
+      if (!isset($definition['run_generation_id']) && ($definition['navigation_visible'] ?? false) !== true) continue;
       $projected[$id] = array_intersect_key($definition, $allowlist);
     }
     ksort($projected, SORT_STRING);

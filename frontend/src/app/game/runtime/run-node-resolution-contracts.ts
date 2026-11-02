@@ -33,6 +33,7 @@ export interface BossRunNodeResolutionResult extends ResolutionBase {
     readonly unitXp: readonly { readonly unitId: string; readonly amount: number; readonly levelBefore: number;
       readonly xpBefore: number; readonly levelAfter: number; readonly xpAfter: number }[];
     readonly unlocks: readonly { readonly unlockId: string; readonly outcome: 'granted' | 'already_owned' }[];
+    readonly knowledge: readonly { readonly codexId: string; readonly outcome: 'granted' | 'already_owned' }[];
   };
 }
 
@@ -279,7 +280,8 @@ function parseBoss(data: Record<string, unknown>): BossRunNodeResolutionResult {
     return Object.freeze({ resolutionType: 'boss', ...facts, rewards: null });
   }
   if (facts.battle.outcome !== 'victory') throw new RunNodeResolutionContractError('Failed Boss battle cannot grant rewards.');
-  const rewards = object(data['rewards'], 'Boss rewards'); exact(rewards, ['unit_xp', 'unlocks'], 'Boss rewards');
+  const rewards = object(data['rewards'], 'Boss rewards');
+  exact(rewards, ['unit_xp', 'unlocks', ...(Object.hasOwn(rewards, 'knowledge') ? ['knowledge'] : [])], 'Boss rewards');
   if (!Array.isArray(rewards['unit_xp']) || rewards['unit_xp'].length === 0) throw new RunNodeResolutionContractError('Boss XP rewards are invalid.');
   let priorUnitId: string | null = null;
   const unitXp = rewards['unit_xp'].map((value) => {
@@ -310,8 +312,21 @@ function parseBoss(data: Record<string, unknown>): BossRunNodeResolutionResult {
     priorUnlockId = currentUnlockId;
     return Object.freeze({ unlockId: currentUnlockId, outcome: row['outcome'] });
   });
+  if (rewards['knowledge'] !== undefined && !Array.isArray(rewards['knowledge']))
+    throw new RunNodeResolutionContractError('Boss knowledge rewards are invalid.');
+  let priorCodexId: string | null = null;
+  const knowledge = (rewards['knowledge'] as unknown[] | undefined ?? []).map((value) => {
+    const row = object(value, 'Boss knowledge reward'); exact(row, ['codex_id', 'outcome'], 'Boss knowledge reward');
+    const codexId = row['codex_id'];
+    if (typeof codexId !== 'string' || !/^codex\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/.test(codexId)
+      || (priorCodexId !== null && codexId <= priorCodexId)
+      || (row['outcome'] !== 'granted' && row['outcome'] !== 'already_owned'))
+      throw new RunNodeResolutionContractError('Boss knowledge reward is invalid.');
+    priorCodexId = codexId;
+    return Object.freeze({ codexId, outcome: row['outcome'] });
+  });
   return Object.freeze({ resolutionType: 'boss', ...facts, rewards: Object.freeze({ unitXp: Object.freeze(unitXp),
-    unlocks: Object.freeze(unlocks) }) });
+    unlocks: Object.freeze(unlocks), knowledge: Object.freeze(knowledge) }) });
 }
 
 function parseLoot(data: Record<string, unknown>): LootRunNodeResolutionResult {

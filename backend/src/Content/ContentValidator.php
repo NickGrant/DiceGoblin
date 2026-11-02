@@ -519,7 +519,10 @@ final class ContentValidator
   /** @param array<string, mixed> $definition */
   private function validateRegion(array $definition, string $location): void
   {
-    $this->requireExactFieldSet($definition, ['id', 'type', 'display_name', 'art_key'], ['run_generation_id'], $location);
+    $this->requireExactFieldSet($definition, ['id', 'type', 'display_name', 'art_key'], ['run_generation_id', 'navigation_visible'], $location);
+    if (array_key_exists('navigation_visible', $definition) && $definition['navigation_visible'] !== true) {
+      throw new ContentValidationException("{$location} navigation_visible must be true when present.");
+    }
     $this->requireNamespace($definition, 'region.', $location);
     $this->requireNonEmptyString($definition, 'display_name', $location);
     $this->requireNonEmptyString($definition, 'art_key', $location);

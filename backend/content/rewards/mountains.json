@@ -23,29 +23,56 @@
           "key": "xp",
           "probability_basis_points": 10000,
           "reward_type": "unit_xp",
-          "config": { "target_scope": "participating_units", "amount": 16 }
+          "config": {
+            "target_scope": "participating_units",
+            "amount": 16
+          }
+        },
+        {
+          "key": "machine_destination",
+          "probability_basis_points": 10000,
+          "reward_type": "codex",
+          "config": {
+            "codex_id": "codex.mountains_machine_in_swamps"
+          }
+        },
+        {
+          "key": "swamp_access",
+          "probability_basis_points": 10000,
+          "reward_type": "unlock",
+          "config": {
+            "unlock_id": "unlock.region.swamps"
+          }
         }
       ]
     },
     {
       "id": "reward_definition.mountains_kobold_trail",
       "type": "reward_definition",
-      "entries": [{
-        "key": "knowledge",
-        "probability_basis_points": 10000,
-        "reward_type": "codex",
-        "config": { "codex_id": "codex.mountains_kobold_trail" }
-      }]
+      "entries": [
+        {
+          "key": "knowledge",
+          "probability_basis_points": 10000,
+          "reward_type": "codex",
+          "config": {
+            "codex_id": "codex.mountains_kobold_trail"
+          }
+        }
+      ]
     },
     {
       "id": "reward_definition.mountains_archivist",
       "type": "reward_definition",
-      "entries": [{
-        "key": "knowledge",
-        "probability_basis_points": 10000,
-        "reward_type": "codex",
-        "config": { "codex_id": "codex.mountains_archivist" }
-      }]
+      "entries": [
+        {
+          "key": "knowledge",
+          "probability_basis_points": 10000,
+          "reward_type": "codex",
+          "config": {
+            "codex_id": "codex.mountains_archivist"
+          }
+        }
+      ]
     }
   ]
 }

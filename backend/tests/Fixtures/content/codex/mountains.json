@@ -11,6 +11,12 @@
       "type": "codex_entry",
       "title": "The Archivist",
       "body": "The Archivist of the Grand Library spoke directly to the returned goblins in the Mountains. The Archivist intends to keep the Wrong Machine from the warband and confirmed that the kobolds moved it beyond the pass, but withheld its destination."
+    },
+    {
+      "id": "codex.mountains_machine_in_swamps",
+      "type": "codex_entry",
+      "title": "The Machine's Swamp Trail",
+      "body": "The defeated kobold warchief's chart shows that the Wrong Machine was moved out of the Mountains into the Swamps. The warband knows where to search next, but has not recovered the Machine."
     }
   ]
 }

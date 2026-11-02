@@ -77,6 +77,7 @@ final class GameBootstrapQuery
       'progression' => [
         'unlock_ids' => $unlockIds,
         'available_region_ids' => $this->regionAvailability->availableRegionIds($unlockIds),
+        'unlocked_region_ids' => $this->regionAvailability->unlockedRegionIds($unlockIds),
         'camp_whim_dialogue_id' => $this->dialogueAvailability->pendingCampWhimDialogueId($userId),
       ],
       'active_squad' => $this->activeSquad->execute(

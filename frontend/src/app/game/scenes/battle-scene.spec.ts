@@ -83,7 +83,7 @@ describe('BattleScene retained playback lifecycle', () => {
     const { scene, startup } = await harness(true);
     const result = bossResolutionForPresentation();
     startup.battlePresentation.retainResolution({ ...result,
-      rewards: { unitXp: [{ unitId: '11', amount: 37, levelBefore: 2, xpBefore: 80, levelAfter: 2, xpAfter: 117 }], unlocks: [] } });
+      rewards: { unitXp: [{ unitId: '11', amount: 37, levelBefore: 2, xpBefore: 80, levelAfter: 2, xpAfter: 117 }], unlocks: [], knowledge: [] } });
     await completePlayback(scene);
     expect(scene.bossRewardSummary).toBe('Unit 11: +37 XP');
   });
@@ -295,7 +295,7 @@ function bossResolutionForPresentation() {
     newlyAvailableNodeIds: ['11'], terminalPlayerHp: { '11': 7 },
     run: { id: '41', status: 'active' as const, endedAt: null },
     rewards: { unitXp: [{ unitId: '11', amount: 16, levelBefore: 1, xpBefore: 90, levelAfter: 2, xpAfter: 6 }],
-      unlocks: [{ unlockId: 'unlock.region.mountains', outcome: 'granted' as const }] }, playerRevision: 8 };
+      unlocks: [{ unlockId: 'unlock.region.mountains', outcome: 'granted' as const }], knowledge: [] }, playerRevision: 8 };
 }
 
 function preCombatRun(): CurrentRun {

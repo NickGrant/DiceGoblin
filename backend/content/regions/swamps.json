@@ -1,0 +1,9 @@
+{
+  "definitions": [{
+    "id": "region.swamps",
+    "type": "region",
+    "display_name": "Swamps",
+    "art_key": "swamps",
+    "navigation_visible": true
+  }]
+}

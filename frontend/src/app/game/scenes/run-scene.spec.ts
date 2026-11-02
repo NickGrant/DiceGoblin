@@ -743,7 +743,7 @@ function bossResolutionSuccess() {
     node: { id: '13', status: 'completed' as const, completedAt: '2026-09-16T12:03:00Z' },
     newlyAvailableNodeIds: ['14'], terminalPlayerHp: { '11': 9 }, run: { id: '41', status: 'active' as const, endedAt: null },
     rewards: { unitXp: [{ unitId: '11', amount: 16, levelBefore: 1, xpBefore: 90, levelAfter: 2, xpAfter: 6 }],
-      unlocks: [{ unlockId: 'unlock.region.mountains', outcome: 'granted' as const }] }, playerRevision: 9 };
+      unlocks: [{ unlockId: 'unlock.region.mountains', outcome: 'granted' as const }], knowledge: [] }, playerRevision: 9 };
 }
 
 function lootResolutionSuccess() {

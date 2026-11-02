@@ -11,7 +11,7 @@ final class BossRewardProjector
   /**
    * @param list<int|string> $participatingUnitIds
    * @return array{unit_xp:list<array{unit_id:string,amount:int,level_before:int,xp_before:int,level_after:int,xp_after:int}>,
-   *   unlocks:list<array{unlock_id:string,outcome:string}>}
+    *   unlocks:list<array{unlock_id:string,outcome:string}>, knowledge:list<array{codex_id:string,outcome:string}>}
    */
   public function project(FinalizedRewardResult $result, array $participatingUnitIds): array
   {
@@ -23,9 +23,10 @@ final class BossRewardProjector
 
     $xp = [];
     $unlocks = [];
+    $knowledge = [];
     foreach ($result->entries() as $entry) {
       $type = $entry['reward_type'];
-      if (!in_array($type, ['unit_xp', 'unlock'], true)) {
+      if (!in_array($type, ['unit_xp', 'unlock', 'codex'], true)) {
         throw new RunNodeResolutionIntegrityException('Boss reward type is unsupported.');
       }
       if ($entry['outcome'] === 'not_rolled') continue;
@@ -60,6 +61,15 @@ final class BossRewardProjector
         continue;
       }
 
+      if ($type === 'codex') {
+        $codexId = $grant['codex_id'] ?? null;
+        if (!is_string($codexId) || isset($knowledge[$codexId])
+          || !in_array($entry['outcome'], ['granted', 'already_owned'], true)) {
+          throw new RunNodeResolutionIntegrityException('Boss knowledge reward is invalid.');
+        }
+        $knowledge[$codexId] = ['codex_id' => $codexId, 'outcome' => $entry['outcome']];
+        continue;
+      }
       $unlockId = $grant['unlock_id'];
       if (isset($unlocks[$unlockId])) {
         throw new RunNodeResolutionIntegrityException('Boss unlock rewards are duplicated.');
@@ -71,6 +81,7 @@ final class BossRewardProjector
       throw new RunNodeResolutionIntegrityException('Boss XP rewards are incomplete.');
     }
     uksort($unlocks, 'strcmp');
-    return ['unit_xp' => array_values($xp), 'unlocks' => array_values($unlocks)];
+    uksort($knowledge, 'strcmp');
+    return ['unit_xp' => array_values($xp), 'unlocks' => array_values($unlocks), 'knowledge' => array_values($knowledge)];
   }
 }

@@ -25,6 +25,7 @@ final class BossRewardProjectorTest extends TestCase
         ['unit_id' => '11', 'amount' => 37, 'level_before' => 1, 'xp_before' => 0, 'level_after' => 1, 'xp_after' => 37],
       ],
       'unlocks' => [],
+      'knowledge' => [],
     ], (new BossRewardProjector())->project($result, [11, 2]));
   }
 
@@ -41,6 +42,18 @@ final class BossRewardProjectorTest extends TestCase
       ['unlock_id' => 'unlock.region.aaa', 'outcome' => 'granted'],
       ['unlock_id' => 'unlock.region.zzz', 'outcome' => 'already_owned'],
     ], $projected['unlocks']);
+  }
+
+  public function testProjectsOneTimeBossKnowledgeWithoutExposingPrivateRewardFacts(): void
+  {
+    $result = $this->result([
+      $this->xpEntry(0, 'xp', 1, [['unit_id' => '2', 'level_before' => 1, 'xp_before' => 0, 'level_after' => 1, 'xp_after' => 1]]),
+      ['entry_index' => 1, 'key' => 'destination', 'reward_type' => 'codex', 'probability_basis_points' => 10000,
+        'roll' => 1, 'outcome' => 'already_owned', 'grant' => ['codex_id' => 'codex.mountains_machine_in_swamps']],
+    ]);
+    $projected = (new BossRewardProjector())->project($result, [2]);
+    $this->assertSame([['codex_id' => 'codex.mountains_machine_in_swamps', 'outcome' => 'already_owned']], $projected['knowledge']);
+    $this->assertArrayNotHasKey('roll', $projected['knowledge'][0]);
   }
 
   public function testRejectsUnsupportedRewardTypeAndNonParticipantXp(): void

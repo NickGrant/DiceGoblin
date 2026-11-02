@@ -122,7 +122,7 @@ final class KinWrongMachineLifecycleClosureTest extends IntegrationTestCase
     $current = $services['currentRunQuery']->execute($userId)['run'];
     $this->assertSame($regionId, $current['region_id']);
     $results = [];
-    $route = $regionId === 'region.mountains' ? [0, 9, 1, 2, 8, 3, 7, 4, 10, 5, 6] : array_keys($current['nodes']);
+    $route = $regionId === 'region.mountains' ? [0, 9, 1, 2, 8, 3, 7, 4, 10, 5, 11, 6] : array_keys($current['nodes']);
     foreach ($route as $index) {
       $node = $current['nodes'][$index];
       $availableNode = $services['currentRunQuery']->execute($userId)['run']['nodes'][$index];

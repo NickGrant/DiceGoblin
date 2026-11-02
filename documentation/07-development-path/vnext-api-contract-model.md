@@ -63,6 +63,7 @@ Bootstrap should include at least:
   - current `player_revision`
 - progression summary:
   - currently owned/unlocked stable IDs needed to determine major game availability
+  - separate owned destination IDs and currently playable region IDs, so a future region can be visible without permitting run start
   - the currently eligible Camp Whim dialogue ID, or null, after durable Tooth Collector rescue
 - active-run summary, when one exists:
   - run ID
@@ -79,6 +80,8 @@ Bootstrap should not include every owned unit, every die, the complete Codex, al
 The post-Farm Whim dialogue read and completion use the normal dialogue endpoints. Its completion response includes the public Codex knowledge and Mountains unlock outcomes; the client refreshes bootstrap before showing Mountains as available. Exact-key replay returns the finalized response even after the dialogue is no longer eligible for a new request.
 
 Authored `run_only` dialogue is readable only through the available dialogue encounter in the player's authoritative current-run projection. The ordinary dialogue read/completion endpoints reject it by ID; the run-node resolution command owns its choice, Codex reward, revision, and exact-key replay. This keeps the Mountains trail and Archivist conversation tied to their reached run nodes across reconnects.
+
+Bootstrap `progression.unlocked_region_ids` contains owned destination regions; `available_region_ids` contains the owned regions with authored run generation. Camp may display an unlocked future destination but offers run entry only for an available region. The first Mountains boss result includes public Codex and Swamp unlock outcomes; a reached post-boss run dialogue presents the authored destination revelation. Reload retains both durable results, while a Swamp run request fails until a canonical generator exists.
 
 ## Lazy Domain Queries
 

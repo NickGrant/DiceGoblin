@@ -215,12 +215,14 @@ describe('run node resolution contracts', () => {
     const boss = { ok: true, data: { ...envelope().data, resolution_type: 'boss', rewards: {
       unit_xp: [{ unit_id: '21', amount: 16, level_before: 1, xp_before: 90, level_after: 2, xp_after: 6 }],
       unlocks: [{ unlock_id: 'unlock.region.mountains', outcome: 'granted' }],
+      knowledge: [{ codex_id: 'codex.mountains_machine_in_swamps', outcome: 'granted' }],
     } } };
     const parsed = parseRunNodeResolutionEnvelope(boss);
     expect(parsed.resolutionType).toBe('boss');
     if (parsed.resolutionType !== 'boss' || !parsed.rewards) throw new Error('Expected Boss rewards.');
     expect(parsed.rewards.unitXp[0]).toEqual(jasmine.objectContaining({ unitId: '21', amount: 16, levelAfter: 2, xpAfter: 6 }));
     expect(parsed.rewards.unlocks).toEqual([{ unlockId: 'unlock.region.mountains', outcome: 'granted' }]);
+    expect(parsed.rewards.knowledge).toEqual([{ codexId: 'codex.mountains_machine_in_swamps', outcome: 'granted' }]);
     const xpOnly = structuredClone(boss); xpOnly.data.rewards.unit_xp[0] = {
       unit_id: '21', amount: 37, level_before: 2, xp_before: 80, level_after: 2, xp_after: 117,
     }; xpOnly.data.rewards.unlocks = [];
@@ -239,6 +241,10 @@ describe('run node resolution contracts', () => {
     expect(() => parseRunNodeResolutionEnvelope(unsortedUnlock)).toThrowError(RunNodeResolutionContractError);
     const privateUnlock = structuredClone(boss); privateUnlock.data.rewards.unlocks[0].roll = 1;
     expect(() => parseRunNodeResolutionEnvelope(privateUnlock)).toThrowError(RunNodeResolutionContractError);
+    const duplicateKnowledge = structuredClone(boss); duplicateKnowledge.data.rewards.knowledge.push(duplicateKnowledge.data.rewards.knowledge[0]);
+    expect(() => parseRunNodeResolutionEnvelope(duplicateKnowledge)).toThrowError(RunNodeResolutionContractError);
+    const privateKnowledge = structuredClone(boss); privateKnowledge.data.rewards.knowledge[0].roll = 1;
+    expect(() => parseRunNodeResolutionEnvelope(privateKnowledge)).toThrowError(RunNodeResolutionContractError);
     const failedWithRewards = structuredClone(boss); failedWithRewards.data.battle.outcome = 'defeat';
     failedWithRewards.data.run = { id: '41', status: 'failed', ended_at: '2026-09-16T12:00:00Z' };
     expect(() => parseRunNodeResolutionEnvelope(failedWithRewards)).toThrowError(RunNodeResolutionContractError);

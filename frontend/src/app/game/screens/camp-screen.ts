@@ -29,6 +29,7 @@ export interface CampViewModel {
   readonly hasActiveRun: boolean;
   readonly hasActiveSquad: boolean;
   readonly availableRegions: readonly { readonly id: string; readonly displayName: string; readonly artKey: string }[];
+  readonly unlockedRegions: readonly { readonly id: string; readonly displayName: string; readonly playable: boolean }[];
   readonly activeRunRegionName: string | null;
   readonly wrongMachineAccess: boolean;
   readonly campWhimDialogueId: string | null;
@@ -78,6 +79,12 @@ export function createCampViewModel(store: GameStore, content: ClientContentRegi
     if (!region) throw new CampStateUnavailableError(`Available region '${regionId}' is absent from projected content.`);
     return { id: region.id, displayName: region.display_name, artKey: region.art_key };
   });
+  const playableIds = new Set(bootstrap.progression.available_region_ids);
+  const unlockedRegions = (bootstrap.progression.unlocked_region_ids ?? bootstrap.progression.available_region_ids).map((regionId) => {
+    const region = content.getRegion(regionId);
+    if (!region) throw new CampStateUnavailableError(`Unlocked region '${regionId}' is absent from projected content.`);
+    return { id: region.id, displayName: region.display_name, playable: playableIds.has(region.id) };
+  });
   const activeRunRegion = bootstrap.active_run ? content.getRegion(bootstrap.active_run.region_id) : undefined;
   if (bootstrap.active_run && !activeRunRegion) {
     throw new CampStateUnavailableError(`Active region '${bootstrap.active_run.region_id}' is absent from projected content.`);
@@ -96,6 +103,7 @@ export function createCampViewModel(store: GameStore, content: ClientContentRegi
     hasActiveRun: bootstrap.active_run !== null,
     hasActiveSquad: bootstrap.active_squad !== null,
     availableRegions,
+    unlockedRegions,
     activeRunRegionName: activeRunRegion?.display_name ?? null,
     wrongMachineAccess: bootstrap.progression.unlock_ids.includes('unlock.capability.wrong_machine_access'),
     campWhimDialogueId: bootstrap.progression.camp_whim_dialogue_id ?? null,
@@ -407,17 +415,17 @@ export class CampScreen implements GameSceneScreen {
   }
 
   private addRegionSelector(root: Phaser.GameObjects.Container, layout: CampLayout, view: CampViewModel): void {
-    if (view.hasActiveRun || view.availableRegions.length < 2) return;
+    if (view.hasActiveRun || view.unlockedRegions.length < 2) return;
     const gap = 12;
-    const width = (layout.regionSelector.width - gap * (view.availableRegions.length - 1)) / view.availableRegions.length;
-    view.availableRegions.forEach((region, index) => {
+    const width = (layout.regionSelector.width - gap * (view.unlockedRegions.length - 1)) / view.unlockedRegions.length;
+    view.unlockedRegions.forEach((region, index) => {
       const bounds = box(layout.regionSelector.x + index * (width + gap), layout.regionSelector.y,
         width, layout.regionSelector.height);
       const selected = region.id === this.selectedRegionId;
-      const enabled = this.startState !== 'submitting' && this.startState !== 'retryable'
+      const enabled = region.playable && this.startState !== 'submitting' && this.startState !== 'retryable'
         && this.startState !== 'recovery-required';
       const button = this.scene.add.graphics();
-      button.fillStyle(selected ? 0x8f3e2e : 0x5b4631, 1);
+      button.fillStyle(selected ? 0x8f3e2e : region.playable ? 0x5b4631 : 0x395553, 1);
       button.fillRoundedRect(bounds.x, bounds.y, bounds.width, bounds.height, 12);
       button.lineStyle(selected ? 4 : 2, 0xc9972b, 1);
       button.strokeRoundedRect(bounds.x, bounds.y, bounds.width, bounds.height, 12);
@@ -427,8 +435,10 @@ export class CampScreen implements GameSceneScreen {
         actionCursor(button);
       }
       const label = this.scene.add.text(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2,
-        region.displayName.toUpperCase(), { color: '#fff4d3', fontFamily: 'system-ui, sans-serif',
-          fontSize: layout.mode === 'compact' ? '20px' : '15px', fontStyle: 'bold' }).setOrigin(0.5);
+        region.playable ? region.displayName.toUpperCase() : `${region.displayName.toUpperCase()}\nPATH FOUND`,
+        { color: '#fff4d3', fontFamily: 'system-ui, sans-serif',
+          fontSize: region.playable ? layout.mode === 'compact' ? '20px' : '15px' : '13px',
+          fontStyle: 'bold', align: 'center' }).setOrigin(0.5);
       root.add([button, label]);
     });
   }
