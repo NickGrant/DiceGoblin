@@ -2,76 +2,73 @@
 
 ## Milestone 12.5 - Opening Narrative Progression Alignment
 
-### Milestone 12.5 Package 4 - Mountains trail and Archivist introduction
+### Milestone 12.5 Package 5 - Mountains boss and visible Swamp handoff
 
 **Status:** In Progress
 **Priority:** High
 
 #### Problem
-Packages 2-3 now align the opening through the Mountains unlock. The Tooth Collector is rescued from the Mudking, Shop access is durable, and the server-gated post-Farm Whim interaction introduces the missing Wrong Machine, points the player toward the kobolds, and grants `unlock.region.mountains`.
+Package 4 now carries the Wrong Machine investigation through the Mountains and introduces The Archivist directly before the existing kobold boss. The boss conclusion still does not perform the canonical handoff: first successful Mountains boss victory must establish that the Wrong Machine was moved to the Swamps and grant durable Swamp region access.
 
-The Mountains themselves still lack the canonical narrative continuation. The player must follow the Wrong Machine trail there and have the first direct conversation with The Archivist during the Mountains arc. This is a narrative/content correction inside the existing Mountains run architecture, not a new progression subsystem. Package 5 separately owns the Mountains boss conclusion that establishes the Machine's movement to Swamps and grants Swamp access.
+Milestone 13 owns actual Swamp gameplay. Package 5 therefore needs to represent Swamps as the next unlocked destination without making a Swamp run startable before its content exists.
 
 #### Canonical target
-- A player enters Mountains already knowing from The Whim that the Wrong Machine is missing and kobolds are the lead.
-- Mountains gameplay advances that investigation through authored, player-facing narrative content integrated into the existing run graph/dialogue/Codex architecture.
-- The player's **first direct conversation with The Archivist occurs in Mountains**.
-- The Archivist is introduced as the Order-aligned antagonist through conversation, not combat.
-- Mountains combat remains kobold-only for this opening arc. The player does **not** fight Archivist/Order troops here; their first combat appearance is reserved for Swamp/M13.
-- Package 4 does not yet unlock Swamps or grant Wrong Machine access. Package 5 owns the boss-resolution/Swamp handoff.
+- The player reaches the Mountains boss after learning that the Wrong Machine passed through the kobolds and after directly meeting The Archivist.
+- First successful Mountains boss victory establishes that the Wrong Machine was moved to the Swamps.
+- That first victory grants `unlock.region.swamps` exactly once through normal reward/unlock authority.
+- Swamps become visible/unlocked in player-facing progression after the boss conclusion.
+- Swamp run entry remains unavailable until Milestone 13 supplies the canonical Swamp run/content implementation; an owned future-region unlock must not manufacture a missing run generator.
+- `capability.wrong_machine_access` remains absent. The player knows where to search next but has not recovered the Machine.
+- No Archivist/Order combat troops, Frogmen, Frog Kin, or other Swamp gameplay are introduced here.
 
 #### Accepted baseline
-- Package 3 is accepted through implementation `01da731f7faef5ccd202a475a15f3289f0af44eb` and evidence `362a77d45022f72b8fc625062149f5cb3c39ade9`.
-- `codex.camp.wrong_machine_search` records that The Whim has told the player the Wrong Machine is missing and kobolds in Mountains are the lead.
-- `unlock.region.mountains` is granted only by completing the post-Farm Whim beat.
-- Mountains already use the generic run graph/encounter/combat architecture and kobold combat roster. Preserve that architecture.
-- Wrong Machine capability access remains absent.
-- `documentation/01-lore/01-story-and-biome-progression.md` owns the narrative order.
+- Package 4 is accepted through implementation `ae75a0a2b1c2e1cf544998135aa2fe1db761cda7` and evidence `cf9b99cba3f2aab7acb48a95fe6d6df11a228a6b`.
+- Mountains contain `codex.mountains_kobold_trail` and `codex.mountains_archivist` through run-only dialogue nodes.
+- The Archivist conversation withholds the Machine's destination so the boss conclusion can own the Swamp revelation.
+- Mountains combat remains kobold-only.
+- The existing Mountains boss reward is XP-only at the Package 4 baseline.
+- No Swamp unlock or Wrong Machine capability is currently granted.
 
 #### Required implementation
-1. **Mountains investigation content.** Author the minimum Mountains dialogue/Codex/encounter content needed to make the Wrong Machine investigation legible during a run. Build on the existing search knowledge rather than repeating The Whim's exposition verbatim.
-2. **First Archivist conversation.** Add a direct player-facing conversation with The Archivist in Mountains through the existing dialogue/encounter path. This is the canonical first direct meeting with The Archivist. The content should establish the antagonist and advance the Wrong Machine trail without prematurely resolving the Swamp destination if that revelation belongs to Package 5's boss conclusion.
-3. **Run-graph integration.** Place the narrative beats into the existing Mountains run graph using generic node/encounter architecture. Preserve valid branching/reachability/terminal semantics and existing combat/reward behavior except where the narrative insertion necessarily changes graph topology.
-4. **Knowledge durability.** Use Codex only for meaningful retained knowledge the player has actually learned. Dialogue/reload behavior must remain server-authoritative and recoverable through current run state; do not add generic seen/history flags.
-5. **Archivist presentation identity.** Reuse the canonical Archivist identity/lore and accepted asset fallback conventions. Do not create a second antagonist identity or reinterpret the Archivist as a Mountains combatant.
-6. **Kobold-only combat boundary.** Do not add Archivist/Order troops, Frogmen, or other Swamp/M13 enemies to Mountains. Existing Mountains combat encounters remain kobold-aligned. The Archivist's presence here is conversational/narrative only.
-7. **No premature Swamp handoff.** Do not grant `unlock.region.swamps`, expose a startable Swamp run, grant `capability.wrong_machine_access`, or imply the player has recovered the Wrong Machine. Package 5 owns the Mountains boss conclusion and visible Swamp handoff.
-8. **Revision/idempotency/reload.** Any dialogue completion rewards/knowledge must retain exact-key replay, player-revision, unique reward, and reconnect semantics. Existing run-state restoration must preserve available narrative nodes without client-local story state.
-9. **Safe projection.** Browser-facing content/state may expose the narrative the player has reached, but must not leak the Package 5 boss reward/Swamp unlock, future Swamp topology, Wrong Machine recovery mechanics, or M13 content.
-10. **Package boundary.** Do not implement Swamp unlock/presentation, Archivist troop combat, Wrong Machine recovery/access/reconstruction, Frog Kin, first reconstruction follow-up, broader-map opening, or M13 parity work.
+1. **Boss conclusion knowledge.** Author the minimum player-facing result needed for first Mountains boss victory to establish that the Wrong Machine was moved to the Swamps. Use meaningful Codex/dialogue/reward concepts already accepted; do not add generic story flags or history state.
+2. **Durable Swamp unlock.** Add `unlock.region.swamps` through canonical authored progression/reward content and grant it on the first successful Mountains boss resolution through existing unique reward semantics.
+3. **First/repeat semantics.** The Swamp unlock and any one-time retained revelation must be unique/idempotent. Repeat Mountains boss victories remain valid but do not restage the discovery as new or duplicate progression.
+4. **Visible but not startable.** Project the owned Swamp region appropriately so Camp/map progression can show it as unlocked/next. Do not create a fake/placeholder Swamp run graph solely to make start authorization pass. Starting Swamps before M13 content exists must fail safely/authoritatively.
+5. **No Wrong Machine recovery.** Do not grant `unlock.capability.wrong_machine_access`, reconstruct kin, or imply that the player possesses/controls the Machine. The result is location knowledge plus access to the next region only.
+6. **M13 boundary.** Do not add Swamp encounters, Frogmen, Archivist/Order troops, Swamp boss behavior, Frog Kin, reconstruction, first Machine-use follow-up, or broader-map opening.
+7. **Revision/idempotency/reload.** Preserve player revision, exact-key replay, reward uniqueness, reconnect/reload, and repeat-run semantics. A reload after the first boss victory must preserve the Swamp unlock/revelation.
+8. **Safe projection.** Browser-facing state may reveal that Swamps are unlocked and that the Machine was moved there, but must not leak future Swamp topology, enemies, boss rewards, Wrong Machine recovery mechanics, or M13-only content.
 
 #### Architectural constraints
-- Follow `agent/CONTEXT_ROUTER.md`; use canonical story, progression, authored-content, reward/unlock, API, storage, Phaser/runtime, and testing authorities.
-- Backend/MySQL remains authoritative; Phaser renders/routs from authoritative run/dialogue state.
-- Authored narrative belongs in canonical JSON.
-- Reuse the accepted dialogue/Codex and run-node systems. Do not add a Mountains-specific story service/controller/repository or generic story-history layer.
-- Keep content validation structural/semantic; avoid broad literal-copy tests.
-- Preserve the graph rules: all nodes reachable, one reachable terminal Exit, correct available/completed/locked frontier behavior, and deterministic encounter resolution.
-- Preserve existing Mountains repeatability. One-time knowledge rewards may no-op on repeat ownership, but repeat runs must remain valid.
+- `documentation/01-lore/01-story-and-biome-progression.md` owns the narrative order.
+- Follow `agent/CONTEXT_ROUTER.md` for progression, rewards/unlocks, authored content, API/storage, Phaser/runtime, and testing authority.
+- Backend/MySQL remains authoritative; Phaser renders authoritative progression state.
+- Authored identities/content belong in canonical JSON.
+- Reuse the existing boss reward, unique reward, region unlock, Codex, bootstrap/projection, and run-start boundaries.
+- Do not add a generic story/progression store.
+- Do not weaken run-start authorization merely because the Swamp unlock can now be owned before its run implementation exists.
 
 #### Minimum proof
-1. A player with Mountains access can start a Mountains run through existing region authority.
-2. The run contains a coherent Wrong Machine investigation path using existing generic node/encounter architecture.
-3. The player can directly converse with The Archivist in Mountains, and the dialogue is inaccessible outside the appropriate run state/path.
-4. Reload/reconnect while a Mountains narrative node is available restores it from authoritative current-run state.
-5. Any retained knowledge is granted once and exact-key replay does not duplicate it or revision changes.
-6. Mountains combatants remain kobold-only; no Archivist/Order troop combat is introduced.
-7. No Swamp region unlock/startability is granted by Package 4.
+1. Before successful Mountains boss completion, `unlock.region.swamps` is absent and Swamps are not projected as unlocked.
+2. First successful Mountains boss completion grants the Swamp revelation/knowledge as designed and `unlock.region.swamps` exactly once.
+3. Exact-key replay returns the original result without duplicate unlock/knowledge/revision mutation.
+4. Repeat Mountains runs/boss victories remain valid and do not duplicate the one-time progression result.
+5. Reload/reconnect preserves the durable Swamp unlock and retained revelation.
+6. Swamps are visible/unlocked in appropriate player-facing progression after the boss.
+7. Attempting to start a Swamp run before M13 gameplay exists fails safely and does not create/mutate a run.
 8. `capability.wrong_machine_access` remains absent.
-9. Existing Mountains graph/combat/boss/repeat behavior remains valid pending Package 5's explicit boss-handoff change.
-10. Farm/Whim/Mountains-unlock regressions continue to pass.
-11. No Frog Kin, Swamp/Frogmen, broader-map opening, or M13 parity behavior is introduced.
+9. Mountains combat remains kobold-only; no Archivist/Order troops or Frogmen are introduced.
+10. No Frog Kin, reconstruction, broader-map opening, or other M13 gameplay is introduced.
+11. Existing Farm/Post-Farm Whim/Mountains narrative, boss, repeatability, region authority, reward/idempotency, and client projection regressions pass.
 
 #### Verification
-Run focused backend tests for Mountains graph generation/resolution, dialogue eligibility/completion in run context, Codex/reward idempotency, reconnect/current-run restoration, combat roster boundaries, region authorization, and revision behavior. Run focused frontend tests for Mountains run dialogue presentation/routing if client behavior changes. Run applicable `agent/QUALITY_GATES.md` checks and full `npm run verify:package -- --continue-on-failure` because this package changes production authored content/run behavior.
+Run focused backend tests for Mountains boss first/repeat resolution, reward uniqueness, Codex/unlock state, exact-key replay, revision, bootstrap/region projection, reload, and rejected Swamp run start without a generator. Run focused frontend tests for region/Camp projection if client behavior changes. Run applicable `agent/QUALITY_GATES.md` checks and full `npm run verify:package -- --continue-on-failure` because this package changes production progression/content.
 
 #### Scope exclusions
-- changes to accepted Mystic Cave/Farm/Tooth Collector/Post-Farm Whim progression except regression fixes;
-- Swamp region unlock or visible handoff;
-- changes to the Mountains boss terminal reward that reveal/unlock Swamps (Package 5);
-- Archivist/Order combat troops;
-- Swamp/Frogmen content;
-- Wrong Machine capability access or reconstruction;
+- Swamp run graph or playable Swamp content;
+- Frogmen or Archivist/Order combat troops;
+- Swamp boss behavior;
+- Wrong Machine capability access/recovery/reconstruction;
 - Frog Kin;
 - first Wrong Machine-use follow-up;
 - broader-map opening;
@@ -79,14 +76,6 @@ Run focused backend tests for Mountains graph generation/resolution, dialogue el
 - M13 parity work or M14 hardening.
 
 #### Completion evidence required
-Record implementation SHA(s); authored Mountains dialogue/Codex/encounter/run-graph paths changed; exact narrative placement and first Archivist conversation; proof the dialogue is run-state gated/reload safe; any knowledge reward identities; proof Mountains combat remains kobold-only; proof Swamp/Wrong Machine access remain absent; exact-key/revision/repeat results; focused backend/frontend counts; content revision if changed; and full package-gate results.
+Record implementation SHA(s); exact Mountains boss reward/content and Swamp identity paths changed; how the boss establishes the Swamp destination; proof `unlock.region.swamps` is first-victory/idempotent; how unlocked-but-not-yet-playable Swamp projection works; proof Swamp start fails safely without M13 content; proof Wrong Machine access remains absent; exact-key/revision/repeat/reload results; focused backend/frontend counts; content revision if changed; and full package-gate results.
 
-#### Implementation evidence (awaiting architectural review)
-- Implementation `ae75a0a2b1c2e1cf544998135aa2fe1db761cda7`. Authored dialogue and non-combat encounters in `backend/content/dialogue/mountains.json`, retained knowledge in `backend/content/codex/mountains.json`, events/rewards in `backend/content/{events,rewards}/mountains.json`, and nodes/edges in `backend/content/run-generation/mountains.json`; test fixtures mirror these files. Client content revision: `cf7cb66998698d206c06d37d80338f9f25b24b9c7aeebd699f9ac687c13ccbf5`.
-- The required route is first kobold combat -> `kobold_trail` dialogue -> loot/remaining kobold route -> third kobold combat -> `archivist` dialogue -> existing kobold boss -> Exit. The courier's tracks establish that the Machine passed through the camp and moved on. The Archivist then speaks directly to the warband for the first time, identifies the Grand Library's opposition, and withholds the destination. The boss reward remains XP only for Package 5.
-- Both dialogues use authored `run_only` and the existing dialogue run-node handler. `DialogueAvailabilityPolicy` denies ordinary dialogue read/completion by ID; `CurrentRunQuery` projects their title/body/choices only from an owned available run node. The Mountains lifecycle test restores each available node through a newly built service, rejects ordinary access, and proves authoritative choice resolution. `DialogueQuery` and `ContentValidator` own the narrow run-only contract; the API contract document records it.
-- `event.mountains_kobold_trail` grants `codex.mountains_kobold_trail`; `event.mountains_archivist` grants `codex.mountains_archivist`. Each is meaningful learned information. The lifecycle test proves one revision increment per completion, exact-key response replay without a second revision, unique Codex ownership, and `already_owned` knowledge on a repeat Mountains run. Existing run-start and boss/repeat tests remain passing.
-- All four authored Mountains combat nodes still use only `enemy_unit_type.kobold_{shieldbearer,skirmisher,sharpshooter,warchief}`. No Package 4 event/reward grants `unlock.region.swamps` or `unlock.capability.wrong_machine_access`; the lifecycle test asserts both remain absent after boss completion. Static client content contains no Mountains dialogue/Codex, Swamp, or machine-access identities; only reached run interaction state exposes dialogue.
-- Focused backend: affected Mountains/graph/run-start/reconstruction tests **55 tests/642 assertions**; Mountains lifecycle **5/180**, ordinary dialogue lifecycle **6/72**, dialogue content validation **3/24**. Existing Phaser run-dialogue presentation is reused without client code changes; full frontend suite **469 tests** passed. Full `npm run verify:package -- --continue-on-failure`: **PASS**, backend **713 tests/5,914 assertions**; frontend, content, production build, bundle, LLM/context, docs lint, PHP syntax, and diff checks passed. Summary: `artifacts/verification/package-summary.json`.
-
-Leave Package 4 **In Progress** for architectural review. Do not activate Package 5 automatically from the coding agent.
+Leave Package 5 **In Progress** for architectural review. Do not activate Package 6 automatically from the coding agent.
