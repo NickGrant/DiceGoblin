@@ -1,0 +1,1 @@
+{"definitions":[{"id":"reward_definition.camp.whim_machine_search","type":"reward_definition","entries":[{"key":"knowledge","probability_basis_points":10000,"reward_type":"codex","config":{"codex_id":"codex.camp.wrong_machine_search"}},{"key":"mountains","probability_basis_points":10000,"reward_type":"unlock","config":{"unlock_id":"unlock.region.mountains"}}]}]}

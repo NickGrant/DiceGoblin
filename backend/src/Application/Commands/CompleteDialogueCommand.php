@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace DiceGoblins\Application\Commands;
 
-use DiceGoblins\Application\OnboardingDialogueGuard;
+use DiceGoblins\Application\DialogueAvailabilityPolicy;
 use DiceGoblins\Application\Rewards\RewardApplicationService;
 use DiceGoblins\Application\Objectives\ObjectiveProgressService;
 use DiceGoblins\Content\ContentRegistry;
@@ -29,11 +29,11 @@ final class CompleteDialogueCommand
     private readonly IdempotencyRequestRepository $receipts,
     private readonly RewardApplicationService $rewards,
     private readonly ContentRegistry $content,
-    private readonly OnboardingDialogueGuard $onboarding,
+    private readonly DialogueAvailabilityPolicy $availability,
     private readonly ?ObjectiveProgressService $objectives = null,
   ) {}
 
-  /** @return array{dialogue_id:string,choice_id:string,response:string,knowledge:?array{codex_id:string,outcome:string},player_revision:int} */
+  /** @return array<string,mixed> */
   public function execute(int $userId, string $dialogueId, string $choiceId, ?string $providedKey): array
   {
     if (preg_match('/^dialogue\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/D', $dialogueId) !== 1
@@ -52,7 +52,7 @@ final class CompleteDialogueCommand
         $this->pdo->commit();
         return $prior['result'];
       }
-      if (!$this->onboarding->allows($userId, $dialogueId)) {
+      if (!$this->availability->allows($userId, $dialogueId)) {
         throw new DialogueCompletionException('dialogue_choice_unavailable', 404);
       }
       if ($state['teeth'] < 0 || $state['raw_chaos'] < 0 || $state['player_revision'] < 0
@@ -72,14 +72,25 @@ final class CompleteDialogueCommand
         if (!in_array($required, $owned, true)) throw new DialogueCompletionException('dialogue_choice_unavailable', 404);
       }
       $knowledge = null;
+      $unlock = null;
       $revision = $state['player_revision'];
       $revisionChanged = false;
       if (isset($choice['event_id'])) {
         $event = $this->content->event($choice['event_id']);
         $reward = $this->content->rewardDefinition($event['reward_definition_id']);
-        if (count($reward['entries']) !== 1 || $reward['entries'][0]['reward_type'] !== 'codex'
+        if (!in_array(count($reward['entries']), [1, 2], true) || $reward['entries'][0]['reward_type'] !== 'codex'
           || $reward['entries'][0]['probability_basis_points'] !== 10000) {
           throw new DialogueCompletionIntegrityException('Dialogue reward is incoherent.');
+        }
+        if (count($reward['entries']) === 2 && ($reward['entries'][1]['reward_type'] !== 'unlock'
+          || $reward['entries'][1]['probability_basis_points'] !== 10000)) {
+          throw new DialogueCompletionIntegrityException('Dialogue unlock reward is incoherent.');
+        }
+        if ($dialogueId === DialogueAvailabilityPolicy::POST_FARM_WHIM_DIALOGUE_ID
+          && (count($reward['entries']) !== 2
+            || $reward['entries'][0]['config']['codex_id'] !== 'codex.camp.wrong_machine_search'
+            || $reward['entries'][1]['config']['unlock_id'] !== 'unlock.region.mountains')) {
+          throw new DialogueCompletionIntegrityException('Whim progression reward is incoherent.');
         }
         $unlocks = $this->unlocks->listIdsForUser($userId, true);
         $sourceId = hash('sha256', $key . ':' . $dialogueId . ':' . $choiceId);
@@ -87,13 +98,23 @@ final class CompleteDialogueCommand
           new RewardContext($state['teeth'], $state['raw_chaos'], [], $unlocks, $owned));
         $entry = $result->entries()[0] ?? null;
         $codexId = $reward['entries'][0]['config']['codex_id'];
-        if (count($result->entries()) !== 1 || $entry['reward_type'] !== 'codex'
+        if (count($result->entries()) !== count($reward['entries']) || $entry['reward_type'] !== 'codex'
           || !in_array($entry['outcome'], ['granted', 'already_owned'], true)
           || $entry['grant']['codex_id'] !== $codexId || !$this->codex->owns($userId, $codexId)) {
           throw new DialogueCompletionIntegrityException('Dialogue knowledge grant is incoherent.');
         }
         $knowledge = ['codex_id' => $codexId, 'outcome' => $entry['outcome']];
-        if ($entry['outcome'] === 'granted') {
+        if (count($reward['entries']) === 2) {
+          $unlockEntry = $result->entries()[1] ?? null;
+          $unlockId = $reward['entries'][1]['config']['unlock_id'];
+          if ($unlockEntry === null || $unlockEntry['reward_type'] !== 'unlock'
+            || !in_array($unlockEntry['outcome'], ['granted', 'already_owned'], true)
+            || $unlockEntry['grant']['unlock_id'] !== $unlockId || !$this->unlocks->owns($userId, $unlockId)) {
+            throw new DialogueCompletionIntegrityException('Dialogue unlock grant is incoherent.');
+          }
+          $unlock = ['unlock_id' => $unlockId, 'outcome' => $unlockEntry['outcome']];
+        }
+        if ($entry['outcome'] === 'granted' || ($unlock['outcome'] ?? null) === 'granted') {
           if ($revision === ClientSafeInteger::MAXIMUM) throw new DialogueCompletionIntegrityException('Player revision overflow.');
           $revision = $this->players->incrementRevision($userId);
           $revisionChanged = true;
@@ -106,7 +127,8 @@ final class CompleteDialogueCommand
         $revision = $this->players->incrementRevision($userId);
       }
       $receipt = ['dialogue_id' => $dialogueId, 'choice_id' => $choiceId,
-        'response' => $choice['response'], 'knowledge' => $knowledge, 'player_revision' => $revision];
+        'response' => $choice['response'], 'knowledge' => $knowledge,
+        ...($unlock !== null ? ['unlock' => $unlock] : []), 'player_revision' => $revision];
       $this->receipts->insertFinalized($userId, $key, self::OPERATION, $hash, $receipt);
       $stored = $this->receipts->getForUser($userId, $key);
       if ($stored === null) throw new DialogueCompletionIntegrityException('Dialogue receipt is unavailable.');
@@ -129,7 +151,9 @@ final class CompleteDialogueCommand
       throw new IdempotencyConflictException('Idempotency key was already used for another request.');
     }
     $result = $receipt['result'];
-    if (!$this->exact($result, ['dialogue_id', 'choice_id', 'response', 'knowledge', 'player_revision'])
+    $hasUnlock = array_key_exists('unlock', $result);
+    if (!$this->exact($result, ['dialogue_id', 'choice_id', 'response', 'knowledge', 'player_revision',
+      ...($hasUnlock ? ['unlock'] : [])])
       || $result['dialogue_id'] !== $dialogueId || $result['choice_id'] !== $choiceId
       || !is_string($result['response']) || trim($result['response']) === ''
       || strlen($result['response']) > 2000
@@ -147,6 +171,23 @@ final class CompleteDialogueCommand
         throw new DialogueCompletionIntegrityException('Persisted dialogue knowledge is invalid.');
       }
       $this->content->codexEntry($knowledge['codex_id']);
+    }
+    $whimUnlockId = $hasUnlock && is_array($result['unlock']) ? ($result['unlock']['unlock_id'] ?? null) : null;
+    if ($dialogueId === DialogueAvailabilityPolicy::POST_FARM_WHIM_DIALOGUE_ID
+      && (!$hasUnlock || ($knowledge['codex_id'] ?? null) !== 'codex.camp.wrong_machine_search'
+        || $whimUnlockId !== 'unlock.region.mountains')) {
+      throw new DialogueCompletionIntegrityException('Persisted Whim progression result is invalid.');
+    }
+    if ($hasUnlock) {
+      $unlock = $result['unlock'];
+      if (!is_array($unlock) || array_is_list($unlock) || !$this->exact($unlock, ['unlock_id', 'outcome'])
+        || !is_string($unlock['unlock_id'])
+        || preg_match('/^unlock\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/D', $unlock['unlock_id']) !== 1
+        || !in_array($unlock['outcome'], ['granted', 'already_owned'], true)
+        || !$this->unlocks->owns($userId, $unlock['unlock_id'])) {
+        throw new DialogueCompletionIntegrityException('Persisted dialogue unlock is invalid.');
+      }
+      $this->content->unlock($unlock['unlock_id']);
     }
   }
 

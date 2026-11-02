@@ -58,7 +58,7 @@ final class OnboardingContentValidationTest extends TestCase
     unset($definition);
 
     $this->expectException(ContentValidationException::class);
-    $this->expectExceptionMessage('dialogue reward must be one guaranteed Codex entry');
+    $this->expectExceptionMessage('dialogue reward must begin with one guaranteed Codex entry');
     (new ContentValidator())->validate([['path' => 'test.json', 'document' => ['definitions' => $definitions]]]);
   }
 

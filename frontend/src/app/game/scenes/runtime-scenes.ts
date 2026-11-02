@@ -5,6 +5,8 @@ import { GameStore, parseGameBootstrapEnvelope } from '../runtime/game-store';
 import { RuntimeStartup, RuntimeStartupSnapshot } from '../runtime/runtime-startup';
 import { RuntimeViewport } from '../runtime/runtime-viewport';
 import { CampScreen } from '../screens/camp-screen';
+import { PostFarmWhimScreen } from '../screens/post-farm-whim-screen';
+import { PostFarmWhimFlow } from '../runtime/post-farm-whim-flow';
 import { GameSceneScreen, GameScreenKey, GameScreenNavigator } from '../screens/game-screen-navigation';
 import { WarbandScreen, WarbandTab } from '../screens/warband-screen';
 import { SquadEditorDraft } from '../screens/squad-editor-model';
@@ -214,10 +216,11 @@ export class GameScene extends RuntimeScene {
       openWrongMachine: () => void,
       openCodex: () => void,
       openObjectives: () => void,
+      openWhim: (dialogueId: string) => void,
     ) => GameSceneScreen = (scene, store, viewport, openWarband, enterRun, startup, openShop, openInventory, openAcademy,
-      openWrongMachine, openCodex, openObjectives) => new CampScreen(
+      openWrongMachine, openCodex, openObjectives, openWhim) => new CampScreen(
       scene, store, viewport, openWarband, enterRun, startup.apiClient, startup.contentRegistry,
-      () => crypto.randomUUID(), openShop, openInventory, openAcademy, openWrongMachine, openCodex, openObjectives,
+      () => crypto.randomUUID(), openShop, openInventory, openAcademy, openWrongMachine, openCodex, openObjectives, openWhim,
     ),
     private readonly createWarbandScreen: (
       scene: Phaser.Scene,
@@ -334,6 +337,12 @@ export class GameScene extends RuntimeScene {
     this.activateScreen('camp');
   }
 
+  showWhim(dialogueId: string): void {
+    if (this.runtimeStartup.store.bootstrap?.progression.camp_whim_dialogue_id !== dialogueId) return;
+    this.navigator.navigate('whim');
+    this.activateScreen('whim');
+  }
+
   showWarband(): void {
     this.navigator.navigate('warband');
     this.activateScreen('warband');
@@ -379,7 +388,7 @@ export class GameScene extends RuntimeScene {
   }
 
   private completeBackNavigation(): void {
-    if (!['warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'codex', 'objectives'].includes(this.activeScreen?.key ?? '')) return;
+    if (!['whim', 'warband', 'shop', 'inventory', 'academy', 'wrong-machine', 'codex', 'objectives'].includes(this.activeScreen?.key ?? '')) return;
     this.activateScreen(this.navigator.back('camp'));
   }
 
@@ -404,6 +413,10 @@ export class GameScene extends RuntimeScene {
         (squad, action) => this.showSquadEditor(squad, action), initialTab,
         (unitId) => this.showUnitConfiguration(unitId),
       );
+    } else if (screen === 'whim') {
+      this.activeScreen = new PostFarmWhimScreen(this, this.runtimeViewport,
+        new PostFarmWhimFlow(this.runtimeStartup.apiClient, this.runtimeStartup.store),
+        () => this.completeBackNavigation());
     } else if (screen === 'shop') {
       if (!this.runtimeStartup.contentRegistry) { this.scene.start(BOOT_SCENE_KEY); return; }
       this.activeScreen = this.createShopScreen(
@@ -437,6 +450,7 @@ export class GameScene extends RuntimeScene {
         this, this.runtimeStartup.store, this.runtimeViewport, () => this.showWarband(),
         () => this.scene.start(RUN_SCENE_KEY), this.runtimeStartup, () => this.showShop(), () => this.showInventory(),
         () => this.showAcademy(), () => this.showWrongMachine(), () => this.showCodex(), () => this.showObjectives(),
+        (dialogueId) => this.showWhim(dialogueId),
       );
     }
     (this.sys as Phaser.Scenes.Systems & { game?: Phaser.Game }).game?.canvas.parentElement

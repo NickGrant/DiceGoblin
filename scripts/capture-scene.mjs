@@ -266,14 +266,16 @@ async function installGameFixtureRoutes(page, options) {
         server_time: '2026-09-11T00:00:00Z',
         content_revision: revision,
         progression: {
-          unlock_ids: [...(isOnboardingScene || options.progressionState === 'locked' ? []
+    unlock_ids: [...(isOnboardingScene || options.progressionState === 'locked' ? []
+      : options.progressionState === 'whim-pending' ? ['unlock.region.the_farm', 'unlock.capability.shop_access']
             : ['unlock.region.mountains', 'unlock.capability.wrong_machine_access', 'unlock.capability.shop_access']),
             ...(scene === 'academy' || options.progressionState === 'owned'
               ? ['unlock.capability.academy_access'] : []),
             ...(scene === 'wrong-machine' && options.progressionState === 'owned'
               ? ['unlock.kin.pig', 'unlock.kin.lizard_kin'] : [])],
-          available_region_ids: isOnboardingScene || options.progressionState === 'locked'
+    available_region_ids: isOnboardingScene || options.progressionState === 'locked' || options.progressionState === 'whim-pending'
             ? ['region.the_farm'] : ['region.the_farm', 'region.mountains'],
+    camp_whim_dialogue_id: options.progressionState === 'whim-pending' ? 'dialogue.camp.whim_machine_search' : null,
         },
         active_squad: isOnboardingScene ? null : {
           id: '301', name: 'Bogbreakers', is_active: true, formation: activeFormation,

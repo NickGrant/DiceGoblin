@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace DiceGoblins\Application\Queries;
 
-use DiceGoblins\Application\OnboardingDialogueGuard;
+use DiceGoblins\Application\DialogueAvailabilityPolicy;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Content\ContentValidationException;
 use DiceGoblins\Repositories\UserCodexRepository;
@@ -14,13 +14,13 @@ final class DialogueQuery
   public function __construct(
     private readonly UserCodexRepository $ownership,
     private readonly ContentRegistry $content,
-    private readonly OnboardingDialogueGuard $onboarding,
+    private readonly DialogueAvailabilityPolicy $availability,
   ) {}
 
   /** @return array{id:string,title:string,body:string,choices:list<array{id:string,label:string}>} */
   public function execute(int $userId, string $dialogueId): array
   {
-    if (!$this->onboarding->allows($userId, $dialogueId)) {
+    if (!$this->availability->allows($userId, $dialogueId)) {
       throw new DialogueUnavailableException('Dialogue is unavailable.');
     }
     try { $dialogue = $this->content->dialogue($dialogueId); }

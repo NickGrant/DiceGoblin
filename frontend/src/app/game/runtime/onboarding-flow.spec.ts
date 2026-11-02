@@ -19,7 +19,7 @@ function bootstrap(revision: number, active = false): GameBootstrapData {
       next_regeneration_at: null, fully_regenerated_at: null } },
     session: { authenticated: true, csrf_token: 'csrf' }, server_time: '2026-01-01T00:00:00Z',
     content_revision: 'a'.repeat(64), progression: { unlock_ids: active ? ['unlock.region.the_farm'] : [],
-      available_region_ids: active ? ['region.the_farm'] : [] },
+      available_region_ids: active ? ['region.the_farm'] : [], camp_whim_dialogue_id: null },
     active_squad: active ? { id: '31', name: 'First Warband', is_active: true,
       formation: ['11', null, null, null, null, null, null, null, null], units: [{ id: '11', display_name: 'Grub',
         unit_type_id: 'unit_type.bruiser', kin_id: 'kin.goblin', level: 1, xp: 0, lifecycle_status: 'active' }] } : null,

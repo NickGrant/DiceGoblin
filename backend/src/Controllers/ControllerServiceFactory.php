@@ -39,7 +39,7 @@ use DiceGoblins\Application\Combat\CombatSnapshotAssembler;
 use DiceGoblins\Application\Commands\UnitConfigurationSupport;
 use DiceGoblins\Application\RegionAvailabilityPolicy;
 use DiceGoblins\Application\NormalUnitCreationService;
-use DiceGoblins\Application\OnboardingDialogueGuard;
+use DiceGoblins\Application\DialogueAvailabilityPolicy;
 use DiceGoblins\Application\UnitTypeAvailabilityPolicy;
 use DiceGoblins\Application\UnitPromotionPolicy;
 use DiceGoblins\Application\Commands\UpdateSquadCommand;
@@ -173,8 +173,8 @@ final class ControllerServiceFactory
     $activeRunSummary = new ActiveRunSummaryQuery($runRepository, $content);
     $unlockRepository = new UserUnlockRepository($pdo);
     $codexRepository = new UserCodexRepository($pdo);
-    $onboardingGuard = new OnboardingDialogueGuard(new OnboardingQuery($unitRepository, $codexRepository,
-      $core['playerStateRepo'], $content), $content);
+    $dialogueAvailability = new DialogueAvailabilityPolicy(new OnboardingQuery($unitRepository, $codexRepository,
+      $core['playerStateRepo'], $content), $content, $codexRepository, $unlockRepository);
     $itemRepository = new UserItemRepository($pdo);
     $regionAvailability = new RegionAvailabilityPolicy($content);
     $unitTypeAvailability = new UnitTypeAvailabilityPolicy($content);
@@ -199,7 +199,7 @@ final class ControllerServiceFactory
 
     return array_merge($core, [
       'contentRegistry' => $content,
-      'dialogueQuery' => new DialogueQuery($codexRepository, $content, $onboardingGuard),
+      'dialogueQuery' => new DialogueQuery($codexRepository, $content, $dialogueAvailability),
       'warbandUnitRepository' => $unitRepository,
       'warbandDiceRepository' => $diceRepository,
       'squadRepository' => $squadRepository,
@@ -221,6 +221,7 @@ final class ControllerServiceFactory
         new EnergyCalculator(),
         $activeSquadQuery,
         $activeRunSummary,
+        $dialogueAvailability,
       ),
       'unitCollectionQuery' => new UnitCollectionQuery($unitRepository, $content),
       'unitDetailQuery' => $unitDetailQuery,
@@ -241,7 +242,7 @@ final class ControllerServiceFactory
       ),
       'completeDialogueCommand' => new CompleteDialogueCommand(
         $pdo, $core['playerStateRepo'], $codexRepository, $unlockRepository,
-        $idempotencyRepository, $rewardApplication, $content, $onboardingGuard, $objectiveProgress,
+        $idempotencyRepository, $rewardApplication, $content, $dialogueAvailability, $objectiveProgress,
       ),
       'reconstructKinCommand' => new ReconstructKinCommand(
         $pdo, $core['playerStateRepo'], $idempotencyRepository, $itemRepository, $unlockRepository,
@@ -267,7 +268,7 @@ final class ControllerServiceFactory
       'renameUnitCommand' => new RenameUnitCommand($pdo, $core['playerStateRepo'], $unitRepository, $unitConfigurationSupport),
       'replaceUnitLoadoutCommand' => new ReplaceUnitLoadoutCommand($pdo, $core['playerStateRepo'], $unitRepository, $unitConfigurationSupport, $activeRunPolicy),
       'currentRunQuery' => new CurrentRunQuery($runRepository, $core['playerStateRepo'], $content, $runModifierRepository,
-        $itemRepository, new DialogueQuery($codexRepository, $content, $onboardingGuard), $unlockRepository),
+        $itemRepository, new DialogueQuery($codexRepository, $content, $dialogueAvailability), $unlockRepository),
       'abandonRunCommand' => new AbandonRunCommand($pdo, $core['playerStateRepo'], $runRepository, $content, new SystemClock()),
       'startRunCommand' => new StartRunCommand(
         $pdo,

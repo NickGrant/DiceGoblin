@@ -64,7 +64,8 @@ final class CodexRewardIntegrationTest extends IntegrationTestCase
     $this->assertSame('already_owned', $duplicate->entries()[0]['outcome']);
     $this->assertSame('1', (string)$this->scalar('SELECT COUNT(*) FROM `user_codex_ownership` WHERE `user_id` = ?', [$first]));
     $this->assertSame('2', (string)$this->scalar('SELECT COUNT(*) FROM `resolved_events` WHERE `user_id` = ?', [$first]));
-    $this->assertNotNull((new CodexQuery(new UserCodexRepository($this->pdo), $content))->execute($first)['entries'][0]['body']);
+    $ownedEntries = (new CodexQuery(new UserCodexRepository($this->pdo), $content))->execute($first)['entries'];
+    $this->assertNotNull($ownedEntries[array_search('codex.farm.mudking', array_column($ownedEntries, 'id'), true)]['body']);
     $this->assertSame(null, $query->execute($second)['entries'][0]['body']);
     $this->assertFalse($query->execute($second)['entries'][0]['owned']);
   }
@@ -99,7 +100,8 @@ final class CodexRewardIntegrationTest extends IntegrationTestCase
     $_SESSION['user_id'] = $first;
     $owner = $this->invoke(fn() => $controller->catalog());
     $this->assertSame(200, $owner['status']);
-    $this->assertTrue($owner['body']['data']['entries'][0]['owned']);
+    $ownerEntries = $owner['body']['data']['entries'];
+    $this->assertTrue($ownerEntries[array_search('codex.farm.mudking', array_column($ownerEntries, 'id'), true)]['owned']);
     $_SESSION['user_id'] = $second;
     $other = $this->invoke(fn() => $controller->catalog());
     $this->assertSame(200, $other['status']);

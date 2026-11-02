@@ -63,6 +63,7 @@ Bootstrap should include at least:
   - current `player_revision`
 - progression summary:
   - currently owned/unlocked stable IDs needed to determine major game availability
+  - the currently eligible Camp Whim dialogue ID, or null, after durable Tooth Collector rescue
 - active-run summary, when one exists:
   - run ID
   - region ID
@@ -74,6 +75,8 @@ Bootstrap should include at least:
 - session/system metadata required by Phaser, including current CSRF/session information and deployed content/application version where useful.
 
 Bootstrap should not include every owned unit, every die, the complete Codex, all saved squads, all objectives, Shop stock, Academy catalog, Wrong Machine state, a full active-run graph, or battle playback unless a concrete initial-screen requirement later proves one of those belongs there.
+
+The post-Farm Whim dialogue read and completion use the normal dialogue endpoints. Its completion response includes the public Codex knowledge and Mountains unlock outcomes; the client refreshes bootstrap before showing Mountains as available. Exact-key replay returns the finalized response even after the dialogue is no longer eligible for a new request.
 
 ## Lazy Domain Queries
 

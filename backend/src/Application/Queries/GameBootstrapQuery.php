@@ -7,6 +7,7 @@ use DateTimeImmutable;
 use DateTimeZone;
 use DiceGoblins\Application\RegionAvailabilityPolicy;
 use DiceGoblins\Application\PermanentCapabilityPolicy;
+use DiceGoblins\Application\DialogueAvailabilityPolicy;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Domain\Energy\EnergyCalculator;
 use DiceGoblins\Repositories\PlayerStateRepository;
@@ -26,6 +27,7 @@ final class GameBootstrapQuery
     private readonly EnergyCalculator $energyCalculator,
     private readonly ActiveSquadQuery $activeSquad,
     private readonly ActiveRunSummaryQuery $activeRun,
+    private readonly DialogueAvailabilityPolicy $dialogueAvailability,
   ) {}
 
   /** @return array<string,mixed> */
@@ -75,6 +77,7 @@ final class GameBootstrapQuery
       'progression' => [
         'unlock_ids' => $unlockIds,
         'available_region_ids' => $this->regionAvailability->availableRegionIds($unlockIds),
+        'camp_whim_dialogue_id' => $this->dialogueAvailability->pendingCampWhimDialogueId($userId),
       ],
       'active_squad' => $this->activeSquad->execute(
         $userId,

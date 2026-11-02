@@ -298,11 +298,18 @@ final class ContentValidator
           if (!array_key_exists('event_id', $choice)) continue;
           $event = $this->requireReferenceType($definitions, $id, 'choices.event_id', $choice['event_id'], 'event');
           $reward = $this->requireReferenceType($definitions, $choice['event_id'], 'reward_definition_id', $event['reward_definition_id'], 'reward_definition');
-          if (count($reward['entries']) !== 1 || $reward['entries'][0]['reward_type'] !== 'codex'
+          if (!in_array(count($reward['entries']), [1, 2], true) || $reward['entries'][0]['reward_type'] !== 'codex'
             || $reward['entries'][0]['probability_basis_points'] !== 10000) {
-            throw new ContentValidationException("{$id} dialogue reward must be one guaranteed Codex entry.");
+            throw new ContentValidationException("{$id} dialogue reward must begin with one guaranteed Codex entry.");
           }
           $this->requireReferenceType($definitions, $id, 'choices.event_id reward', $reward['entries'][0]['config']['codex_id'], 'codex_entry');
+          if (count($reward['entries']) === 2) {
+            $unlock = $reward['entries'][1];
+            if ($unlock['reward_type'] !== 'unlock' || $unlock['probability_basis_points'] !== 10000) {
+              throw new ContentValidationException("{$id} additional dialogue reward must be one guaranteed unlock.");
+            }
+            $this->requireReferenceType($definitions, $id, 'choices.event_id unlock', $unlock['config']['unlock_id'], 'unlock');
+          }
         }
       }
 

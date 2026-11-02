@@ -15,6 +15,7 @@ export interface DialogueCompletion {
   readonly choiceId: string;
   readonly response: string;
   readonly knowledge: { readonly codexId: string; readonly outcome: 'granted' | 'already_owned' } | null;
+  readonly unlock?: { readonly unlockId: string; readonly outcome: 'granted' | 'already_owned' };
   readonly playerRevision: number;
 }
 
@@ -24,6 +25,7 @@ export class DialogueContractError extends Error {
 
 const dialogueIdPattern = /^dialogue\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/;
 const codexIdPattern = /^codex\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/;
+const unlockIdPattern = /^unlock\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/;
 const choiceIdPattern = /^[a-z][a-z0-9_]*$/;
 
 function record(value: unknown): value is Record<string, unknown> {
@@ -66,7 +68,8 @@ export function parseDialogueReadEnvelope(value: unknown, requestedId: string): 
 
 export function parseDialogueCompletionEnvelope(value: unknown, dialogueId: string, choiceId: string): DialogueCompletion {
   if (!record(value) || !exact(value, ['ok', 'data']) || value['ok'] !== true
-    || !record(value['data']) || !exact(value['data'], ['dialogue_id', 'choice_id', 'response', 'knowledge', 'player_revision'])) {
+    || !record(value['data']) || !exact(value['data'], ['dialogue_id', 'choice_id', 'response', 'knowledge', 'player_revision',
+      ...(Object.hasOwn(value['data'], 'unlock') ? ['unlock'] : [])])) {
     throw new DialogueContractError('Dialogue completion envelope is invalid.');
   }
   const data = value['data'];
@@ -82,8 +85,16 @@ export function parseDialogueCompletionEnvelope(value: unknown, dialogueId: stri
     || (knowledge['outcome'] !== 'granted' && knowledge['outcome'] !== 'already_owned'))) {
     throw new DialogueContractError('Dialogue knowledge result is invalid.');
   }
+  const unlock = data['unlock'];
+  if (unlock !== undefined && (!record(unlock) || !exact(unlock, ['unlock_id', 'outcome'])
+    || typeof unlock['unlock_id'] !== 'string' || !unlockIdPattern.test(unlock['unlock_id'])
+    || (unlock['outcome'] !== 'granted' && unlock['outcome'] !== 'already_owned'))) {
+    throw new DialogueContractError('Dialogue unlock result is invalid.');
+  }
   return Object.freeze({ dialogueId, choiceId, response: data['response'],
     knowledge: knowledge === null ? null : Object.freeze({ codexId: (knowledge as Record<string, string>)['codex_id'],
       outcome: (knowledge as Record<string, 'granted' | 'already_owned'>)['outcome'] }),
+    ...(unlock === undefined ? {} : { unlock: Object.freeze({ unlockId: (unlock as Record<string, string>)['unlock_id'],
+      outcome: (unlock as Record<string, 'granted' | 'already_owned'>)['outcome'] }) }),
     playerRevision: data['player_revision'] as number });
 }

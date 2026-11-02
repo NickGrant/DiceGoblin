@@ -64,9 +64,19 @@ Mudking boss node completed
         |
         +--> normal rewards and Shop access
         +--> durable Tooth Collector rescue dialogue node
+        |
+        v
+Tooth Collector rescue knowledge owned
+        +--> Camp Whim conversation becomes available
+        |
+        v
+Whim explains the missing Wrong Machine and the kobold lead
+        +--> search knowledge and Mountains unlock in one completion
 ```
 
 A separate Farm-completed record should only be introduced later if a concrete feature needs completion history itself, such as completion counts, difficulty-specific clears, first-clear timestamps, ranks, or achievements.
+
+The Camp Whim interaction is eligible only while the player owns Shop access and Tooth Collector rescue knowledge but has not yet learned the search or unlocked Mountains. Its dialogue completion grants meaningful search knowledge and Mountains access together through the existing reward transaction. The client sees only the current eligible dialogue ID, never future rewards or prerequisite identities. Wrong Machine capability access remains locked.
 
 ## Kin Restoration and Ownership
 

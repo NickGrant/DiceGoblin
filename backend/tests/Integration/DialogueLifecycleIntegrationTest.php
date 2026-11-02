@@ -9,7 +9,7 @@ use DiceGoblins\Application\Commands\DialogueCompletionIntegrityException;
 use DiceGoblins\Application\Commands\IdempotencyConflictException;
 use DiceGoblins\Application\Queries\DialogueQuery;
 use DiceGoblins\Application\Queries\OnboardingQuery;
-use DiceGoblins\Application\OnboardingDialogueGuard;
+use DiceGoblins\Application\DialogueAvailabilityPolicy;
 use DiceGoblins\Application\Rewards\RewardApplicationService;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Controllers\DialogueController;
@@ -222,9 +222,10 @@ final class DialogueLifecycleIntegrationTest extends IntegrationTestCase
     return new DialogueQuery(new UserCodexRepository($this->pdo), $content, $this->guard($content));
   }
 
-  private function guard(ContentRegistry $content): OnboardingDialogueGuard
+  private function guard(ContentRegistry $content): DialogueAvailabilityPolicy
   {
-    return new OnboardingDialogueGuard(new OnboardingQuery(new WarbandUnitRepository($this->pdo),
-      new UserCodexRepository($this->pdo), new PlayerStateRepository($this->pdo), $content), $content);
+    return new DialogueAvailabilityPolicy(new OnboardingQuery(new WarbandUnitRepository($this->pdo),
+      new UserCodexRepository($this->pdo), new PlayerStateRepository($this->pdo), $content), $content,
+      new UserCodexRepository($this->pdo), new UserUnlockRepository($this->pdo));
   }
 }

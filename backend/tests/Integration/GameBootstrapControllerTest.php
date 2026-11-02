@@ -52,6 +52,7 @@ final class GameBootstrapControllerTest extends IntegrationTestCase
     $this->assertSame([
       'unlock_ids' => [],
       'available_region_ids' => [],
+      'camp_whim_dialogue_id' => null,
     ], $data['progression'] ?? null);
     $this->assertArrayHasKey('active_squad', $data);
     $this->assertNull($data['active_squad']);

@@ -9,7 +9,7 @@ use DiceGoblins\Application\Commands\IdempotencyConflictException;
 use DiceGoblins\Application\Commands\IdempotencyKeyException;
 use DiceGoblins\Application\Queries\DialogueQuery;
 use DiceGoblins\Application\Queries\OnboardingQuery;
-use DiceGoblins\Application\OnboardingDialogueGuard;
+use DiceGoblins\Application\DialogueAvailabilityPolicy;
 use DiceGoblins\Application\Queries\DialogueUnavailableException;
 use DiceGoblins\Content\ContentRegistry;
 use DiceGoblins\Controllers\Concerns\RequiresCsrf;
@@ -17,6 +17,7 @@ use DiceGoblins\Core\Db;
 use DiceGoblins\Core\Response;
 use DiceGoblins\Http\JsonRequestBody;
 use DiceGoblins\Repositories\UserCodexRepository;
+use DiceGoblins\Repositories\UserUnlockRepository;
 use DiceGoblins\Repositories\PlayerStateRepository;
 use DiceGoblins\Repositories\WarbandUnitRepository;
 use Throwable;
@@ -36,8 +37,8 @@ final class DialogueController
     try {
       $content = $this->content ?? ContentRegistry::loadConfigured();
       $codex = new UserCodexRepository($pdo);
-      $guard = new OnboardingDialogueGuard(new OnboardingQuery(new WarbandUnitRepository($pdo), $codex,
-        new PlayerStateRepository($pdo), $content), $content);
+      $guard = new DialogueAvailabilityPolicy(new OnboardingQuery(new WarbandUnitRepository($pdo), $codex,
+        new PlayerStateRepository($pdo), $content), $content, $codex, new UserUnlockRepository($pdo));
       $result = (new DialogueQuery($codex, $content, $guard))->execute($userId, (string)$dialogueId);
       Response::json(['ok' => true, 'data' => $result]);
     } catch (DialogueUnavailableException) {

@@ -59,6 +59,30 @@ final class DialogueContentValidationTest extends TestCase
     }
   }
 
+  public function testPostFarmWhimDialogueRequiresGuaranteedKnowledgeAndUnlockRewards(): void
+  {
+    $content = ContentRegistry::load(dirname(__DIR__, 2) . '/tests/Fixtures/content');
+    $this->assertSame('dialogue.camp.whim_machine_search', $content->dialogue('dialogue.camp.whim_machine_search')['id']);
+    foreach (['chance', 'wrong_type', 'unknown_unlock'] as $case) {
+      $definitions = $this->definitions();
+      foreach ($definitions as &$definition) {
+        if ($definition['id'] !== 'reward_definition.camp.whim_machine_search') continue;
+        if ($case === 'chance') $definition['entries'][1]['probability_basis_points'] = 9000;
+        if ($case === 'wrong_type') {
+          $definition['entries'][1]['reward_type'] = 'currency';
+          $definition['entries'][1]['config'] = ['currency_id' => 'teeth', 'amount' => 1];
+        }
+        if ($case === 'unknown_unlock') $definition['entries'][1]['config']['unlock_id'] = 'unlock.region.unknown';
+        break;
+      }
+      unset($definition);
+      try {
+        (new ContentValidator())->validate([['path' => 'test.json', 'document' => ['definitions' => $definitions]]]);
+        $this->fail("Expected {$case} to fail.");
+      } catch (ContentValidationException) { $this->addToAssertionCount(1); }
+    }
+  }
+
   /** @return list<array<string,mixed>> */
   private function definitions(): array
   {

@@ -34,6 +34,19 @@ describe('Dialogue browser contract', () => {
     ]) expect(() => parseDialogueCompletionEnvelope(value, id, choice)).toThrowError(DialogueContractError);
   });
 
+  it('accepts one public dialogue unlock outcome without exposing reward internals', () => {
+    const search = { ...completion, data: { ...completion.data,
+      unlock: { unlock_id: 'unlock.region.mountains', outcome: 'granted' } } };
+    expect(parseDialogueCompletionEnvelope(search, id, choice).unlock).toEqual({
+      unlockId: 'unlock.region.mountains', outcome: 'granted',
+    });
+    for (const unlock of [null, { unlock_id: 'unlock.region.mountains', outcome: 'not_rolled' },
+      { unlock_id: 'unlock.region.mountains', outcome: 'granted', probability: 10000 }]) {
+      expect(() => parseDialogueCompletionEnvelope({ ...search, data: { ...search.data, unlock } }, id, choice))
+        .toThrowError(DialogueContractError);
+    }
+  });
+
   it('uses authenticated API reads, CSRF mutation, and retained exact-key retry', async () => {
     const calls: { url: string; init: RequestInit }[] = [];
     let completionCalls = 0;

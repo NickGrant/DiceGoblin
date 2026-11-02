@@ -97,6 +97,9 @@ final class BossNodeResolutionControllerTest extends IntegrationTestCase
       $firstTransition['level_after'], $firstTransition['xp_after']]);
     $this->assertSame(1, (int)$this->scalar('SELECT COUNT(*) FROM `battles` WHERE `run_id` = ? AND `run_node_id` = ?', [$runId, $bossId]));
     $this->assertSame($preOwned ? 1 : 0, (int)$this->scalar("SELECT COUNT(*) FROM `user_unlocks` WHERE `user_id` = ? AND `unlock_id` = 'unlock.region.mountains'", [$userId]));
+    $bootstrapQuery = ControllerServiceFactory::buildContentAware($this->pdo)['gameBootstrapQuery'];
+    $now = new DateTimeImmutable('now', new DateTimeZone('UTC'));
+    $this->assertNull($bootstrapQuery->execute($userId, $now)['progression']['camp_whim_dialogue_id']);
     $this->assertSame('applied', $this->scalar("SELECT `status` FROM `resolved_events` WHERE `user_id` = ? AND `event_id` = 'event.farm_boss_completed'", [$userId]));
     $this->assertSame(['completed', 'available'], array_column($this->rows(
       'SELECT `status` FROM `run_nodes` WHERE `id` IN (?, ?) ORDER BY `node_index`', [$bossId, $exitId]), 'status'));
@@ -143,6 +146,8 @@ final class BossNodeResolutionControllerTest extends IntegrationTestCase
     $this->assertSame($followup, $command->execute($userId, $runId, $exitId,
       'tooth-collector-followup', $request));
     $this->assertSame(1, (int)$this->scalar("SELECT COUNT(*) FROM user_codex_ownership WHERE user_id = ? AND codex_id = 'codex.farm.tooth_collector_rescued'", [$userId]));
+    $this->assertSame($preOwned ? null : 'dialogue.camp.whim_machine_search',
+      $bootstrapQuery->execute($userId, $now)['progression']['camp_whim_dialogue_id']);
   }
 
   public function mountainsOwnershipProvider(): array

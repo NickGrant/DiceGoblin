@@ -57,7 +57,7 @@ describe('RuntimeStartup', () => {
         session: { authenticated: true, csrf_token: 'csrf-test' },
         server_time: '2026-09-11T00:01:00Z',
         content_revision: contentRevision,
-        progression: { unlock_ids: [], available_region_ids: ['region.the_farm'] },
+      progression: { unlock_ids: [], available_region_ids: ['region.the_farm'], camp_whim_dialogue_id: null },
         active_squad: null,
         active_run: null,
       },

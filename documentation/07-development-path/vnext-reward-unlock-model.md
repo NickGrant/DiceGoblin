@@ -120,7 +120,7 @@ Boss nodes can therefore own end-of-run rewards and unlocks without requiring a 
 For example:
 
 ```text
-Farm boss node completed
+Mudking boss node completed
         |
         v
 farm_boss_completed event
@@ -130,6 +130,14 @@ farm_boss_completed event
         +--> item reward
         +--> unit chance
         +--> die chance
+        +--> Shop access
+        |
+        v
+Tooth Collector rescue dialogue completed
+        |
+        v
+Post-Farm Whim dialogue completed
+        +--> Wrong Machine search knowledge
         +--> Mountains unlock
 ```
 

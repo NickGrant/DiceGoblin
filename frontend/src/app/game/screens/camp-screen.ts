@@ -31,6 +31,7 @@ export interface CampViewModel {
   readonly availableRegions: readonly { readonly id: string; readonly displayName: string; readonly artKey: string }[];
   readonly activeRunRegionName: string | null;
   readonly wrongMachineAccess: boolean;
+  readonly campWhimDialogueId: string | null;
   readonly shopAccess: boolean;
   readonly academyAccess: boolean;
 }
@@ -97,6 +98,7 @@ export function createCampViewModel(store: GameStore, content: ClientContentRegi
     availableRegions,
     activeRunRegionName: activeRunRegion?.display_name ?? null,
     wrongMachineAccess: bootstrap.progression.unlock_ids.includes('unlock.capability.wrong_machine_access'),
+    campWhimDialogueId: bootstrap.progression.camp_whim_dialogue_id ?? null,
     shopAccess: bootstrap.progression.unlock_ids.includes('unlock.capability.shop_access'),
     academyAccess: bootstrap.progression.unlock_ids.includes('unlock.capability.academy_access'),
   };
@@ -199,6 +201,7 @@ export class CampScreen implements GameSceneScreen {
     private readonly openWrongMachine: () => void = () => undefined,
     private readonly openCodex: () => void = () => undefined,
     private readonly openObjectives: () => void = () => undefined,
+    private readonly openWhim: (dialogueId: string) => void = () => undefined,
   ) {}
 
   static preload(scene: Phaser.Scene): void {
@@ -304,7 +307,15 @@ export class CampScreen implements GameSceneScreen {
     this.addCampDestinationButton(root, layout.codexButton, 'CODEX', this.openCodex, layout);
     this.addCampDestinationButton(root, layout.objectivesButton, 'OBJECTIVES', this.openObjectives, layout);
     this.addRegionSelector(root, layout, view);
-    this.addRunButton(root, layout, view);
+    const runBounds = view.campWhimDialogueId
+      ? box(layout.runButton.x, layout.runButton.y, (layout.runButton.width - 12) / 2, layout.runButton.height)
+      : layout.runButton;
+    this.addRunButton(root, layout, view, runBounds);
+    if (view.campWhimDialogueId) {
+      const whimBounds = box(runBounds.right + 12, layout.runButton.y, runBounds.width, layout.runButton.height);
+      this.addCampDestinationButton(root, whimBounds, 'WHIM',
+        () => this.openWhim(view.campWhimDialogueId!), layout);
+    }
     const divider = this.scene.add.graphics();
     divider.lineStyle(4, 0x8a5a34, 0.7);
     divider.lineBetween(layout.panel.x + 72, layout.dividerY, layout.panel.right - 72, layout.dividerY);
@@ -422,8 +433,8 @@ export class CampScreen implements GameSceneScreen {
     });
   }
 
-  private addRunButton(root: Phaser.GameObjects.Container, layout: CampLayout, view: CampViewModel): void {
-    const region = layout.runButton;
+  private addRunButton(root: Phaser.GameObjects.Container, layout: CampLayout, view: CampViewModel,
+    region: Bounds = layout.runButton): void {
     const button = this.scene.add.graphics();
     const disabled = !view.hasActiveRun && (!view.hasActiveSquad
       || this.startState === 'submitting' || this.startState === 'recovery-required');
@@ -437,17 +448,25 @@ export class CampScreen implements GameSceneScreen {
       button.on('pointerup', () => view.hasActiveRun ? this.resumeRun() : void this.startRun());
     }
     const retry = this.startState === 'retryable';
+    const splitForWhim = view.campWhimDialogueId !== null;
     const selectedRegionName = view.availableRegions.find((region) => region.id === this.selectedRegionId)?.displayName ?? 'RUN';
     const activeRegionName = view.activeRunRegionName ?? 'RUN';
-    const label = view.hasActiveRun ? `RESUME ${activeRegionName.toUpperCase()}  ›` : retry ? `RETRY ${selectedRegionName.toUpperCase()}`
-      : this.startState === 'submitting' ? 'STARTING…'
-      : this.startState === 'recovery-required' ? 'RELOAD TO RECOVER' : `START ${selectedRegionName.toUpperCase()}  ›`;
+    const label = view.hasActiveRun ? splitForWhim ? 'RESUME RUN  ›' : `RESUME ${activeRegionName.toUpperCase()}  ›`
+      : retry ? splitForWhim ? 'RETRY RUN' : `RETRY ${selectedRegionName.toUpperCase()}`
+        : this.startState === 'submitting' ? 'STARTING…'
+          : this.startState === 'recovery-required' ? 'RELOAD TO RECOVER'
+            : splitForWhim ? 'START RUN  ›' : `START ${selectedRegionName.toUpperCase()}  ›`;
     const action = this.scene.add.text(region.x + region.width / 2, region.y + region.height * 0.38, label, {
       color: '#fff4d3', fontFamily: 'system-ui, sans-serif', fontSize: layout.mode === 'compact' ? '30px' : '22px', fontStyle: 'bold',
     }).setOrigin(0.5);
+    const detailText = splitForWhim
+      ? view.hasActiveRun ? 'Active run' : this.startMessage || `${view.runEnergyCost} Energy`
+      : view.hasActiveRun ? 'Your active run is waiting.' : this.startMessage || `Costs ${view.runEnergyCost} Energy · ${view.energyText} available`;
     const detail = this.scene.add.text(region.x + region.width / 2, region.y + region.height * 0.73,
-      view.hasActiveRun ? 'Your active run is waiting.' : this.startMessage || `Costs ${view.runEnergyCost} Energy · ${view.energyText} available`, {
-        color: '#f5dca4', fontFamily: 'system-ui, sans-serif', fontSize: layout.mode === 'compact' ? '18px' : '14px',
+      detailText, {
+        color: '#f5dca4', fontFamily: 'system-ui, sans-serif',
+        fontSize: splitForWhim ? '14px' : layout.mode === 'compact' ? '18px' : '14px',
+        align: 'center', wordWrap: { width: region.width - 8 },
       }).setOrigin(0.5);
     root.add([button, action, detail]);
   }

@@ -51,7 +51,7 @@ describe('CampScreen', () => {
       session: { authenticated: true, csrf_token: 'not-for-camp' },
       server_time: '2026-09-11T00:00:00Z',
       content_revision: 'a'.repeat(64),
-      progression: { unlock_ids: [], available_region_ids: ['region.the_farm'] },
+      progression: { unlock_ids: [], available_region_ids: ['region.the_farm'], camp_whim_dialogue_id: null },
       active_squad: null,
       active_run: null,
     };
@@ -81,8 +81,10 @@ describe('CampScreen', () => {
     });
   }
 
-  function sceneHarness(): { scene: Phaser.Scene; textValues: string[]; interactiveCount: () => number } {
+  function sceneHarness(): { scene: Phaser.Scene; textValues: string[]; interactiveCount: () => number;
+    clicks: Array<() => void> } {
     const textValues: string[] = [];
+    const clicks: Array<() => void> = [];
     let interactiveCount = 0;
     const chain = (): Record<string, unknown> => {
       const value: Record<string, unknown> = {};
@@ -90,10 +92,14 @@ describe('CampScreen', () => {
         'fillRoundedRect', 'fillTriangle', 'lineStyle', 'lineBetween', 'strokeCircle', 'strokeRoundedRect', 'setInteractive', 'on', 'setOrigin',
         'setDisplaySize', 'setAlpha']) value[method] = jasmine.createSpy(method).and.returnValue(value);
       value['setInteractive'] = jasmine.createSpy('setInteractive').and.callFake(() => { interactiveCount += 1; return value; });
+      value['on'] = jasmine.createSpy('on').and.callFake((event: string, action: () => void) => {
+        if (event === 'pointerup') clicks.push(action);
+        return value;
+      });
       value['add'] = jasmine.createSpy('add').and.returnValue(value);
       return value;
     };
-    return { textValues, interactiveCount: () => interactiveCount, scene: { add: {
+    return { textValues, clicks, interactiveCount: () => interactiveCount, scene: { add: {
       container: () => chain(), graphics: () => chain(), image: () => chain(),
       text: (_x: number, _y: number, value: string) => { textValues.push(value); return chain(); },
     } } as unknown as Phaser.Scene };
@@ -120,6 +126,29 @@ describe('CampScreen', () => {
     expect(view.energyNormalMaximum).toBe(50);
     expect(view.energyText).toBe('57 / 50');
     expect(view.isEnergyOvercap).toBeTrue();
+  });
+
+  it('shows the server-projected Whim action beside Run across viewport layouts and routes its exact dialogue', () => {
+    const data = bootstrap();
+    const pending = { ...data, progression: { ...data.progression,
+      camp_whim_dialogue_id: 'dialogue.camp.whim_machine_search' } };
+    const view = createCampViewModel(storeWith(pending), content());
+    expect(view.campWhimDialogueId).toBe('dialogue.camp.whim_machine_search');
+    const harness = sceneHarness();
+    const opened: string[] = [];
+    const screen = new CampScreen(harness.scene, storeWith(pending), new RuntimeViewport(),
+      undefined, undefined, undefined, content(), undefined, undefined, undefined, undefined,
+      undefined, undefined, undefined, (id) => opened.push(id));
+    screen.create();
+    expect(harness.textValues.some((value) => value.includes('WHIM'))).toBeTrue();
+    expect(harness.textValues).toContain('START RUN  ›');
+    harness.clicks.at(-1)?.();
+    expect(opened).toEqual(['dialogue.camp.whim_machine_search']);
+    screen.reflow(viewportSnapshot(390, 844));
+    expect(harness.textValues.some((value) => value.includes('WHIM'))).toBeTrue();
+    expect(screen.layout?.runButton.width).toBeGreaterThan(0);
+    screen.destroy();
+    expect(createCampViewModel(storeWith(data), content()).campWhimDialogueId).toBeNull();
   });
 
   it('changes Camp output when authoritative fixture values change', () => {
@@ -198,7 +227,7 @@ describe('CampScreen', () => {
   it('rejects server availability that is absent from projected content', () => {
     const data = bootstrap();
     const store = storeWith({ ...data, progression: {
-      unlock_ids: ['unlock.region.missing'], available_region_ids: ['region.the_farm', 'region.missing'],
+      unlock_ids: ['unlock.region.missing'], available_region_ids: ['region.the_farm', 'region.missing'], camp_whim_dialogue_id: null,
     } });
     expect(() => createCampViewModel(store, content())).toThrowError(CampStateUnavailableError);
   });
@@ -206,7 +235,7 @@ describe('CampScreen', () => {
   it('renders authored region choices and dynamic Mountains start/resume labels', () => {
     const available = bootstrap();
     const unlocked = { ...available, progression: {
-      unlock_ids: ['unlock.region.mountains'], available_region_ids: ['region.the_farm', 'region.mountains'],
+      unlock_ids: ['unlock.region.mountains'], available_region_ids: ['region.the_farm', 'region.mountains'], camp_whim_dialogue_id: null,
     } };
     const startHarness = sceneHarness();
     const startScreen = new CampScreen(startHarness.scene, storeWith(unlocked), new RuntimeViewport(),

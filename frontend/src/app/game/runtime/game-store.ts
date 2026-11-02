@@ -56,6 +56,7 @@ export interface GameBootstrapData {
   readonly progression: {
     readonly unlock_ids: readonly string[];
     readonly available_region_ids: readonly string[];
+    readonly camp_whim_dialogue_id?: string | null;
   };
   readonly active_squad: GameBootstrapActiveSquad | null;
   readonly active_run: GameBootstrapActiveRun | null;
@@ -274,8 +275,13 @@ export function parseGameBootstrapEnvelope(value: unknown): GameBootstrapData {
   const progression = recordField(data, 'progression');
   const unlockIds = progression['unlock_ids'];
   const availableRegionIds = progression['available_region_ids'];
-  if (!hasExactKeys(progression, ['unlock_ids', 'available_region_ids'])) {
+  if (!hasExactKeys(progression, ['unlock_ids', 'available_region_ids', 'camp_whim_dialogue_id'])) {
     throw new BootstrapContractError("Bootstrap field 'progression' is malformed.");
+  }
+  const campWhimDialogueId = progression['camp_whim_dialogue_id'];
+  if (campWhimDialogueId !== null && (typeof campWhimDialogueId !== 'string'
+    || !/^dialogue\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$/.test(campWhimDialogueId))) {
+    throw new BootstrapContractError("Bootstrap field 'camp_whim_dialogue_id' is invalid.");
   }
   if (!Array.isArray(availableRegionIds)
     || availableRegionIds.some((id) => typeof id !== 'string' || !/^region\.[a-z][a-z0-9_]*$/.test(id))
@@ -319,6 +325,7 @@ export function parseGameBootstrapEnvelope(value: unknown): GameBootstrapData {
               );
             })(),
       available_region_ids: [...availableRegionIds],
+      camp_whim_dialogue_id: campWhimDialogueId,
     },
     active_squad: parseActiveSquad(data['active_squad']),
     active_run: parseActiveRun(data['active_run']),
