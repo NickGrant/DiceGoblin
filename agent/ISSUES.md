@@ -2,100 +2,86 @@
 
 ## Milestone 12.5 - Opening Narrative Progression Alignment
 
-### Milestone 12.5 Package 2 - Farm access and Tooth Collector rescue correction
+### Milestone 12.5 Package 3 - Post-Farm Whim and Mountains unlock correction
 
 **Status:** In Progress
 **Priority:** High
 
 #### Problem
-Package 1 audited the real opening implementation and confirmed two Farm-level discrepancies that should be corrected before the post-Farm Whim/Mountains work begins:
+Package 2 corrected the onboarding/Farm boundary. Initial Mystic Cave onboarding now establishes the Basic Goblin Warband, Farm access, and the Tooth Collector rescue mission without prematurely introducing the Wrong Machine. First Mudking victory rescues the Tooth Collector and grants Shop access, while Mountains remain locked.
 
-1. Farm is currently a global `starting_region_id` exception. It is listed in fresh bootstrap before the Whim onboarding has established the first Warband, and `StartRunCommand` bypasses normal region-unlock authority for it. Canonically, The Whim establishes the goblins and grants Farm access.
-2. First Mudking victory already grants Shop access exactly once, but the captive is only represented as an unnamed merchant and the first-victory follow-up is tied to transient boss-resolution presentation. Canonically, the player rescues the Tooth Collector from the Mudking; that rescue must remain understandable/recoverable across reload rather than depending on client-local transient state.
+The canonical next beat is currently missing: after the Tooth Collector is recovered, the player must return to/interact with The Whim in Camp. The Whim introduces the missing Wrong Machine search, points the player toward the kobolds in the Mountains, and the completion of that player-facing beat unlocks Mountains. Mountains must not become available merely because the Farm boss was defeated or Shop access exists.
 
-Package 1 evidence is recorded in `documentation/07-development-path/m12-5-opening-progression-audit.md`. Package 2 corrects only this Farm/onboarding boundary. Package 3 owns the later Whim return and Mountains unlock.
+Package 3 owns this post-Farm Whim transition only. Package 4 owns Mountains trail content and the first direct Archivist conversation.
 
 #### Canonical target
-- Fresh player: The Whim is the only meaningful gameplay interaction during onboarding.
-- The Whim turns the player from Chaos into goblin form, establishes the four-unit Basic Goblin Warband, sends the player to rescue the Tooth Collector from the Mudking, and grants Farm access.
-- First Mudking victory rescues the Tooth Collector and grants Shop access.
-- The rescue/follow-up remains recoverable after reload/reconnect until the required player-facing beat is completed.
-- Repeat Mudking victories do not duplicate Shop access or replay a one-time rescue as though it happened again.
-- Mountains remain locked throughout Package 2. Package 3 will move that unlock to the post-Farm Whim beat.
+- Before Tooth Collector rescue/follow-up, no post-Farm Wrong Machine search is available and Mountains remain locked.
+- After the Tooth Collector rescue is durably established, Camp exposes an appropriate Whim interaction.
+- The Whim explains that the Wrong Machine is missing and directs the player to investigate the kobolds/Mountains.
+- Completing the authoritative Whim beat grants meaningful retained knowledge for the search and `unlock.region.mountains` exactly once.
+- Mountains become visible/available only after that player-facing beat completes.
+- Reload/reconnect before completing the beat restores its availability; reload after completion preserves Mountains access without replaying the interaction as required progression.
+- Wrong Machine capability access remains locked. The player is learning/searching for the machine, not obtaining or using it.
 
 #### Accepted baseline
-- M12 onboarding remains server-authoritative and accepted. Do not replace its ordered Codex/onboarding state model or unit-ownership completion marker.
-- Starting Warband remains four Basic Goblins: Bruisers in positions 2 and 5, Marksmen in positions 0 and 3, with shared generated personal names.
-- Shop access is already enforced authoritatively by `unlock.capability.shop_access`; preserve that authority and the locked Shop read/purchase behavior.
-- Permanent unlock/reward application is unique/idempotent. Repeat reward application must remain safe.
-- Farm currently grants `unlock.capability.shop_access` and `unlock.region.mountains` together on first boss resolution. Package 2 must preserve Shop but remove the premature Mountains grant so Mountains remains locked for Package 3.
-- Current Farm first-victory follow-up is not reload durable because Phaser relies on the in-memory boss resolution. Correct this through existing durable server-owned concepts; do not persist client presentation state.
-- `documentation/01-lore/01-story-and-biome-progression.md` owns the narrative order.
+- Package 2 is accepted through implementation `e373512194628aa227589d5bde297fa65aa3cc24`, narrative correction `868e75bb09b92b0f03657a7b2de846dde43d5fec`, and evidence `4a173da769a7e49239168d29522f1e5c3aa5eb8c`.
+- Farm access is `unlock.region.the_farm` and uses normal region authority.
+- Tooth Collector rescue is represented by the post-Mudking Farm dialogue/Codex path and is reload safe.
+- Shop access remains `unlock.capability.shop_access`, granted by first successful Mudking boss resolution.
+- Farm boss no longer grants `unlock.region.mountains`.
+- Initial Mystic Cave onboarding has one Whim knowledge step and does not author/grant the former pre-Farm Wrong Machine knowledge path.
+- Unit ownership remains the onboarding completion marker; do not reopen onboarding architecture.
 
 #### Required implementation
-1. **Durable Farm access from onboarding.** Replace the global starting-region exception with normal durable Farm region-unlock authority granted as part of the successful onboarding/provisioning transition. The grant must be atomic/idempotent with the accepted onboarding intent and must not create a second bootstrap/tutorial path.
-2. **Fresh bootstrap semantics.** Before onboarding completion, Farm must not be exposed as an available/unlocked region merely because it is configured as the starting region. It is acceptable for a fresh player's region list to be empty while onboarding owns routing. Update the strict client contract only as narrowly as needed to permit that legitimate pre-onboarding state.
-3. **Run-entry authority.** Farm run entry after onboarding must use the same durable region-access authority as ordinary regions rather than a hard-coded starting-region bypass. Returning players who already have the accepted completed onboarding state must not be stranded; handle compatibility through the smallest explicit migration/reconciliation mechanism consistent with current storage/progression architecture, not a permanent Farm special case.
-4. **Whim rescue mission copy/content.** Update the onboarding Whim presentation so the opening assignment is to visit the Mudking and rescue The Whim's friend, the Tooth Collector. Do not make the opening onboarding grant Wrong Machine access or turn the Wrong Machine search into the current mission; that search belongs after Farm in Package 3.
-5. **Tooth Collector identity.** Replace the generic/unnamed captive merchant presentation with the Tooth Collector in canonical Farm dialogue/encounter/Codex content where appropriate. Keep teeth as ordinary monster currency and the Shop as the resulting persistent economy surface.
-6. **First Mudking victory.** Preserve the existing unique Shop capability reward, but remove `unlock.region.mountains` from the Farm boss reward. First victory must represent/rescue the Tooth Collector; repeat victories must not re-grant Shop or restage the rescue as new.
-7. **Reload-safe rescue follow-up.** Make any required post-victory Tooth Collector conversation recoverable from authoritative durable state after reload/reconnect. Prefer meaningful Codex knowledge and existing dialogue/reward eligibility concepts where they fit. Do not add generic `has_seen_dialogue`, story flags, chapter state, or client-local durable state.
-8. **Package boundary.** Do not implement the post-Farm Whim Wrong Machine search or Mountains unlock in this package. The end state is intentionally: Farm completed/rescuable, Tooth Collector rescued, Shop available, Mountains still locked.
-9. **Revision/idempotency.** New/changed mutations must retain current player-revision and exact-key replay semantics. Retry/reconnect must not duplicate unlocks, Codex ownership, rewards, units, or conversations.
-10. **Safe projection.** Browser-facing state may expose the player's resulting Farm/Shop/knowledge state but must not leak future Mountains/Swamp rewards or private prerequisites.
+1. **Author the post-Farm Whim beat.** Add canonical authored dialogue/encounter/event/reward/Codex content as needed for The Whim to introduce the missing Wrong Machine search after the Tooth Collector rescue. The copy should establish that the Wrong Machine is missing and that the kobolds/Mountains are the next lead. Do not imply the player already has access to or control of the machine.
+2. **Server-owned eligibility.** The interaction must be unavailable before the durable Tooth Collector rescue result and available afterward until completed. Do not rely on a client-only condition. Use accepted progression/dialogue/Codex/unlock concepts and the smallest authoritative eligibility mechanism. Do not add generic story flags, chapter counters, `has_seen_dialogue`, or catch-all history state.
+3. **Mountains grant.** Completion of the Whim progression beat must grant `unlock.region.mountains` through normal unique reward/unlock authority in the same idempotent player intention that completes the beat. Do not restore Mountains to the Farm boss reward and do not grant Mountains merely on Shop ownership/bootstrap read.
+4. **Meaningful knowledge.** Record only player-facing knowledge that matters for the continuing search. If a Wrong Machine/search Codex entry is authored, it should represent what the Whim has now actually told the player at this point in the story. Do not resurrect the removed pre-Farm Mystic Cave onboarding step.
+5. **Camp presentation/routing.** Expose the eligible Whim interaction from Camp through the existing Phaser/runtime architecture. Backend state remains authoritative; Phaser must not invent eligibility or persist completion locally. Preserve current responsive/portrait behavior and existing Camp system affordances.
+6. **Reload/reconnect.** If the player becomes eligible and reloads before completing the Whim beat, the interaction remains available. After successful completion, Mountains remain available from durable unlock state and the required progression interaction is no longer pending. Exact-key replay returns the original result without duplicate Codex/unlock/revision mutation.
+7. **Safe projection.** Client-facing state may reveal the eligible/current Whim interaction and resulting Mountains availability, but must not leak Mountains future topology/rewards, Swamp unlock details, Wrong Machine recovery mechanics, or private prerequisites.
+8. **Package boundary.** Do not add Mountains run dialogue, Archivist presentation, Swamp identity/unlock, Archivist/Order troops, Wrong Machine access/reconstruction, Frog Kin, or broader-map opening. Those remain Packages 4-5/M13.
 
 #### Architectural constraints
-- Use current reward/unlock, dialogue/Codex, onboarding, region availability, API/storage, and Phaser runtime boundaries.
-- Backend/MySQL remains authoritative. Phaser renders/routs from authoritative state; Angular remains the host.
-- Authored content belongs in canonical JSON.
-- Do not add a generic story/progression history store.
-- Do not reintroduce prototype `seen` dialogue state.
-- Do not weaken Shop authorization or region-start authorization to make presentation easier.
-- Avoid content-literal test sprawl. Test semantic transitions and authority; let structural content validation own catalog integrity.
+- `documentation/01-lore/01-story-and-biome-progression.md` owns narrative order.
+- Follow `agent/CONTEXT_ROUTER.md` for progression, authored content, reward/unlock, API/storage, Phaser/runtime, and testing authorities.
+- Backend/MySQL remains authoritative. Phaser is the gameplay client; Angular remains host/auth/account shell.
+- Reuse existing permanent unlock/reward semantics for `unlock.region.mountains`.
+- Prefer meaningful Codex ownership as retained knowledge where appropriate, but do not use Codex as a disguised generic story-history ledger.
+- Ordinary dialogue must not become globally readable/completable merely because its ID is known if it owns progression. Enforce the post-Farm eligibility boundary server-side.
+- Do not add a parallel story-state subsystem.
+- Preserve player-revision, exact-key idempotency, and stale-response reconciliation semantics.
 
 #### Minimum proof
-1. Fresh registration/onboarding does not expose Farm as unlocked before the Whim/provisioning transition.
-2. Successful onboarding/provisioning atomically leaves the player with the accepted four-unit Warband, active squad, and durable Farm region access.
-3. Farm start succeeds because of that durable access, not a starting-region exception.
-4. Returning/previously accepted players are not stranded by the Farm-access correction.
-5. Before first Mudking victory, Shop remains locked and Tooth Collector is not represented as already rescued.
-6. First Mudking victory grants Shop access exactly once, represents the Tooth Collector rescue, and does **not** grant Mountains.
-7. Reload/reconnect after the victory can recover any required one-time Tooth Collector follow-up from authoritative state; it does not depend on the original in-memory battle resolution.
-8. Repeat Mudking victory/replay does not duplicate Shop access, rescue knowledge, or one-time rescue presentation.
-9. Mountains remain locked and unavailable at Package 2 completion.
-10. Wrong Machine access remains absent; no Swamp/Frog Kin/Archivist-troop behavior is introduced.
-11. Existing onboarding, Farm run, Shop, reward/idempotency, dialogue/Codex, and client routing regressions pass.
+1. A provisioned player before Tooth Collector rescue cannot access/complete the post-Farm Whim progression beat and cannot start Mountains.
+2. First Mudking victory still grants Shop but not Mountains.
+3. Completing the Tooth Collector rescue/follow-up makes the post-Farm Whim beat authoritatively eligible.
+4. Reload/reconnect while that beat is pending restores it from server-owned state.
+5. Completing the Whim beat grants the intended search knowledge and `unlock.region.mountains` exactly once.
+6. Mountains becomes available/startable because the durable region unlock now exists.
+7. Exact-key replay/retry does not duplicate knowledge, unlocks, or revision changes.
+8. Reload after completion preserves Mountains access and does not require replaying the progression conversation.
+9. `capability.wrong_machine_access` remains absent.
+10. No Mountains Archivist content, Swamp content, Frog Kin, Order troops, or broader-map opening is introduced.
+11. Existing onboarding, Farm, Tooth Collector, Shop, dialogue/Codex, region-start, Camp/runtime, revision, and idempotency regressions pass.
 
 #### Verification
-Run focused tests covering onboarding bootstrap/provisioning, region availability/start authorization, Farm boss first/repeat resolution, Shop locked/unlocked behavior, dialogue/Codex reload continuity, exact-key replay, player revision, and Phaser onboarding/Camp/run presentation affected by the contract change. Run applicable `agent/QUALITY_GATES.md` checks and `npm run verify:package -- --continue-on-failure` because this package changes production gameplay behavior/content.
+Run focused backend tests for dialogue eligibility/completion, Tooth Collector prerequisite, reward/unlock application, region availability/start authorization, exact-key replay, revision, and reload/reconnect. Run focused frontend tests for Camp Whim presentation/routing, authoritative refresh/reconciliation, and affected responsive/portrait behavior. Run applicable `agent/QUALITY_GATES.md` checks and full `npm run verify:package -- --continue-on-failure` because this package changes production progression/content/client behavior.
 
 #### Scope exclusions
-- post-Farm Whim interaction that starts the Wrong Machine search;
-- Mountains unlock/grant (other than removing the premature Farm-boss grant);
-- Mountains narrative/dialogue changes;
-- Archivist introduction;
+- changes to the accepted starting Warband/Farm provisioning flow;
+- changes to Tooth Collector rescue or Shop grant except regressions necessary to support the eligibility prerequisite;
+- Mountains run graph narrative changes;
+- first direct Archivist conversation;
 - Swamp identity/unlock/presentation;
-- Swamp/Frogmen/Archivist troop content;
-- Wrong Machine access/reconstruction;
+- Archivist/Order combat troops;
+- Wrong Machine capability access or reconstruction;
 - Frog Kin;
 - broader-map opening;
 - broad visual redesign;
 - M13 parity work or M14 hardening.
 
 #### Completion evidence required
-Record implementation SHA(s); exact onboarding/Farm/reward/dialogue/content paths changed; how durable Farm access is granted and how existing players remain valid; proof the starting-region bypass is removed or no longer authoritative; Tooth Collector authored identity/rescue path; proof Shop is first-victory gated and Mountains is no longer granted by Farm; reload/reconnect proof for the rescue follow-up; first/repeat/idempotency/revision results; focused backend/frontend test counts; content revision if changed; and full package-gate results.
+Record implementation SHA(s); exact authored content and backend/client paths changed; the authoritative prerequisite used for Whim eligibility; how the interaction is surfaced in Camp; the event/reward path that grants Mountains; retained knowledge identity and semantics; proof of pending reload recovery and post-completion durability; exact-key replay/revision results; focused backend/frontend counts; content revision if changed; and full package-gate results.
 
-Leave Package 2 **In Progress** for architectural review. Do not activate Package 3 automatically from the coding agent.
-
-#### Implementation evidence (awaiting architectural review)
-- Implementation: `e373512` (verified working tree before this evidence note). Package remains **In Progress**.
-- Farm authority: `ProvisionStartingWarbandCommand` grants `unlock.region.the_farm` in the same transaction as four units, active squad, revision, and idempotency receipt. `RegionAvailabilityPolicy` and `StartRunCommand` now require owned region access, including Farm. Fresh bootstrap lists no available region. `backend/bin/reconcile-farm-access.php --apply` grants Farm once to existing unit owners and advances their revision once; integration coverage proves an unprovisioned player remains unchanged and a second reconciliation is inert.
-- Rescue: `backend/content/onboarding/mystic-cave.json` assigns Tooth Collector rescue; Farm encounter/dialogue/Codex/event/reward/run-generation JSON names the Tooth Collector and places a server-persisted dialogue node after the Mudking. Current-run query restores that available node after reconnect; completion grants rescue knowledge once. Boss reward retains one-time Shop access and removes Mountains. Repeat boss and exact-key replay cannot duplicate Shop or knowledge. Client battle presentation no longer depends on transient first-victory dialogue state.
-- Contract and content: `frontend/src/app/game/runtime/game-store.ts` accepts an empty region list only without an active squad. `frontend/src/app/game/runtime/run-node-resolution-contracts.ts` removes the transient first-victory dialogue field. Canonical and fixture content, generated `frontend/public/game-content.json`, and the progression state model were updated. Content revision: `4ca665964a26d6832d730c693d66c09c73e743a5e9c33bae0cec9f60b9e59a0d`.
-- Proof: focused affected backend classes: 43 tests / 454 assertions; bootstrap class: 7 tests / 55 assertions. Full `npm run verify:package -- --continue-on-failure`: **PASS**; backend 712 tests / 5,867 assertions, frontend 463 tests, plus context, docs, PHP syntax, content, production build, bundle, and diff checks. New reconciliation command passed `php -l`. Summary: `artifacts/verification/package-summary.json`.
-
-#### Narrative sequencing correction evidence (awaiting architectural review)
-- Correction SHA: `868e75b`. Initial Mystic Cave onboarding now has one Whim knowledge step, `codex.mystic_cave.whim_arrival`. Completing its dialogue reaches `ready_to_provision` directly. The pre-Farm Wrong Machine dialogue, encounter, event, reward, Codex entry, and onboarding machine-capability reference were removed. Package 3 still owns the post-Farm Whim introduction and Mountains unlock.
-- Fresh-flow proof: onboarding dialogue/read/provision/core-loop tests verify the Whim choice, exact-key replay, four-unit Warband and durable Farm unlock, with zero `codex.mystic_cave.wrong_machine` ownership and no Wrong Machine access. The removed dialogue returns 404. Farm, Tooth Collector, Shop, Mountains-lock, and region-authority coverage remains in the focused run.
-- Focused affected backend run: 115 tests / 1,055 assertions. Frontend onboarding flow and full frontend suite: 463 tests passed. Corrected content revision: `e48ff055688425789035a8e7b72cb624ee356955946972c3af43385f1df009d1`.
-- Full `npm run verify:package -- --continue-on-failure`: **PASS** on 2026-11-02; backend 711 tests / 5,853 assertions, frontend 463 tests, plus context, docs, PHP syntax, content, production build, bundle, and diff checks. Summary: `artifacts/verification/package-summary.json`. Package 2 remains **In Progress** for architectural review.
+Leave Package 3 **In Progress** for architectural review. Do not activate Package 4 automatically from the coding agent.
