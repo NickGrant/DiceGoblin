@@ -7,7 +7,7 @@ Read this for sequencing/planning or when closing/promoting an execution package
 **Status:** Active
 
 ### Related Issues
-- Milestone 12.5 Package 6 - Integrated opening-arc verification and technical closure
+- Milestone 12.5 Package 7 - Focused manual UAT before M13
 
 Milestones 1-12 are complete and passed their required manual UAT. Milestone 13 planning exists but implementation has not started and is deferred until Milestone 12.5 is complete.
 
@@ -20,6 +20,8 @@ Milestone 12.5 Package 3 completed the post-Farm Whim transition through impleme
 Milestone 12.5 Package 4 completed the Mountains investigation and first Archivist conversation through implementation `ae75a0a2b1c2e1cf544998135aa2fe1db761cda7`, with evidence through `cf9b99cba3f2aab7acb48a95fe6d6df11a228a6b`. The Mountains run now contains a kobold-trail investigation and the canonical first direct Archivist conversation as run-state-gated dialogue nodes. Mountains combat remains kobold-only, retained knowledge is idempotent/reload-safe, and neither Swamp access nor Wrong Machine capability access is granted. Full verification passed: backend 713 tests / 5,914 assertions and frontend 469 tests.
 
 Milestone 12.5 Package 5 completed the Mountains boss/Swamp destination handoff through implementation `d8698d695f46ddeb57616535a5ac11dafd9f1720`, with evidence through `1f7470fd591e9ce32e08244be8aa3d8c1730bf3f`. First successful Mountains boss completion records the Swamp destination and grants `unlock.region.swamps` through normal unique reward authority. Swamps are projected as unlocked/visible but remain non-playable without a run generator; rejected Swamp start does not mutate run state. Wrong Machine capability remains absent and no Swamp gameplay was introduced. Full verification passed: backend 714 tests / 5,937 assertions and frontend 470 tests.
+
+Milestone 12.5 Package 6 completed integrated opening-arc verification through test implementation `f0d7a8e99a0d2192a05c4bceccfcc6ffbf1b6b5b` and evidence `77d75330c4618e909b6921cd62214fbb365cf0a6`. A real fresh-account lifecycle proves registration/onboarding -> four-unit Warband/Farm -> Mudking/Tooth Collector/Shop -> post-Farm Whim/Mountains -> kobold trail/Archivist -> Mountains boss/Swamp handoff, including reload restoration, exact-key replay/revision stability, repeat Mountains progression, and the M13 boundary. No production composition defect was found. Full verification passed: backend 715 tests / 6,045 assertions and frontend 470 tests.
 
 After M12 acceptance, the opening campaign sequence was clarified and recorded canonically in `documentation/01-lore/01-story-and-biome-progression.md`. Because Farm and Mountains were implemented before that narrative sequence became canonical, this milestone aligns the existing opening progression before Swamp/M13 work begins. This does not reopen or invalidate M12's accepted onboarding architecture.
 
@@ -55,8 +57,8 @@ Milestone 13 then owns Swamp content, the first combat encounters with Archivist
 3. **Post-Farm Whim and Mountains unlock correction.** Complete.
 4. **Mountains trail and Archivist introduction.** Complete.
 5. **Mountains boss and visible Swamp handoff.** Complete. First Mountains boss victory grants durable Swamp destination knowledge and `unlock.region.swamps`; Swamps are visible as unlocked while run entry remains unsupported until M13, and Wrong Machine access remains locked.
-6. **Integrated opening-arc verification and technical closure.** Current. Prove the complete corrected opening path and handoff across fresh-account, reload/reconnect, replay/idempotency, revision, projection, authorization, and package-boundary cases. Correct only integration defects discovered by this proof; do not expand narrative/gameplay scope.
-7. **Focused manual UAT before M13.** Planned. Manually verify the corrected opening progression and explicitly accept the handoff state before reactivating M13.
+6. **Integrated opening-arc verification and technical closure.** Complete. The complete corrected opening path composes through real fresh-account authority with reload/reconnect, replay/idempotency, revision, repeat-run, projection, authorization, and M13-boundary proof; no production defect required correction.
+7. **Focused manual UAT before M13.** Current. Manually verify the corrected opening progression and explicitly accept the handoff state before reactivating M13.
 
 ### Required Handoff State to Milestone 13
 
@@ -85,5 +87,5 @@ Milestone 13 remains the Swamp and parity milestone after M12.5 acceptance:
 
 - M12.5 is a correction/alignment milestone created after the opening story became explicit. It does not retroactively mark M12 UAT as failed.
 - M13 Package 1 was planned but the coding agent had not started it when M12.5 was inserted. No M13 implementation needs to be unwound.
-- Packages 2-5 now implement the corrected opening progression through the visible/unlocked but non-playable Swamp handoff. Package 6 is integration/closure proof only before manual UAT.
+- Packages 2-6 now implement and technically verify the corrected opening progression through the visible/unlocked but non-playable Swamp handoff.
 - Package 7 is the explicit manual UAT gate. Do not reactivate M13 until the user explicitly accepts M12.5 UAT.
