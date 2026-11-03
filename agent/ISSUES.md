@@ -2,93 +2,47 @@
 
 ## Milestone 12.5 - Opening Narrative Progression Alignment
 
-### Milestone 12.5 Package 6 - Integrated opening-arc verification and technical closure
+### Milestone 12.5 Package 7 - Focused manual UAT before M13
 
 **Status:** In Progress
 **Priority:** High
 
 #### Problem
-Packages 2-5 now implement the corrected opening progression in their individual ownership areas. Before manual UAT, the complete path must be exercised as one authoritative lifecycle to prove that those independently accepted transitions compose correctly across registration, onboarding, Farm, Tooth Collector/Shop, post-Farm Whim, Mountains narrative, Mountains boss, and the visible-but-non-playable Swamp handoff.
+Packages 2-5 implement the corrected opening narrative progression and Package 6 proves that the complete lifecycle composes technically from a fresh account through the visible/unlocked but non-playable Swamp handoff. Milestone 12.5 still requires explicit player-facing manual acceptance before M13 can begin.
 
-Package 6 is an integration and technical-closure package. It should add the minimum end-to-end/focused proof needed to expose cross-package defects and correct only defects demonstrated by that proof. It must not become another narrative/content expansion package.
+This package is the manual UAT gate. It must validate the actual opening experience and narrative order rather than introduce new gameplay. Milestone 13 remains deferred until the user explicitly accepts this UAT.
 
-#### Canonical target
-A fresh player can progress through the complete M12.5 opening arc:
-- initial Whim onboarding establishes the four-unit Basic Goblin Warband and durable Farm access;
-- Farm/Mudking victory rescues the Tooth Collector and grants Shop access, with reload-safe rescue follow-up;
-- the server-gated Camp Whim beat introduces the missing Wrong Machine search and grants Mountains access;
-- Mountains advances the trail, includes the first direct Archivist conversation, and keeps combat kobold-only;
-- first Mountains boss victory establishes the Machine's movement to Swamps and grants durable `unlock.region.swamps`;
-- Swamps are visible/unlocked but cannot start until M13 supplies gameplay;
-- `unlock.capability.wrong_machine_access` remains absent and no M13 gameplay has occurred.
+#### Accepted technical baseline
+- Package 2: Farm/onboarding and Tooth Collector correction accepted through evidence `4a173da769a7e49239168d29522f1e5c3aa5eb8c`.
+- Package 3: post-Farm Whim/Mountains transition accepted through evidence `362a77d45022f72b8fc625062149f5cb3c39ade9`.
+- Package 4: Mountains trail/first Archivist conversation accepted through evidence `cf9b99cba3f2aab7acb48a95fe6d6df11a228a6b`.
+- Package 5: Mountains boss/Swamp handoff accepted through evidence `1f7470fd591e9ce32e08244be8aa3d8c1730bf3f`.
+- Package 6: integrated opening-arc verification accepted through test implementation `f0d7a8e99a0d2192a05c4bceccfcc6ffbf1b6b5b` and evidence `77d75330c4618e909b6921cd62214fbb365cf0a6`. Full verification passed at backend 715 tests / 6,045 assertions and frontend 470 tests; no production composition defect was found.
 
-#### Accepted baseline
-- Package 2 accepted through implementation `e373512194628aa227589d5bde297fa65aa3cc24`, correction `868e75bb09b92b0f03657a7b2de846dde43d5fec`, evidence `4a173da769a7e49239168d29522f1e5c3aa5eb8c`.
-- Package 3 accepted through implementation `01da731f7faef5ccd202a475a15f3289f0af44eb`, evidence `362a77d45022f72b8fc625062149f5cb3c39ade9`.
-- Package 4 accepted through implementation `ae75a0a2b1c2e1cf544998135aa2fe1db761cda7`, evidence `cf9b99cba3f2aab7acb48a95fe6d6df11a228a6b`.
-- Package 5 accepted through implementation `d8698d695f46ddeb57616535a5ac11dafd9f1720`, evidence `1f7470fd591e9ce32e08244be8aa3d8c1730bf3f`.
-- Package 5 full verification passed at backend 714 tests / 5,937 assertions and frontend 470 tests.
+#### UAT target
+Manually experience the canonical opening in order:
+1. A fresh player begins with The Whim as the only meaningful opening interaction.
+2. The Whim establishes the player/Basic Goblins, provides the four-unit starting Warband, grants Farm access, and directs the player to the Mudking/Tooth Collector rescue without introducing the Wrong Machine prematurely.
+3. The Farm run reaches the Mudking; first victory grants Shop access and leads to the Tooth Collector rescue/follow-up.
+4. After the rescue, the Camp Whim interaction introduces the missing Wrong Machine search, points toward kobolds/Mountains, and unlocks Mountains.
+5. The Mountains run advances the Wrong Machine trail and contains the player's first direct conversation with The Archivist. Mountains combat remains kobold-only.
+6. First Mountains boss victory establishes that the Machine was moved to the Swamps; the post-boss handoff makes Swamps visible/unlocked.
+7. Swamps appear as the next found destination but remain disabled/non-startable because M13 gameplay is not implemented.
+8. The player has not recovered the Wrong Machine, fought Order/Archivist troops, reconstructed Frog Kin, or opened the broader map.
 
-#### Required implementation
-1. **Integrated fresh-account proof.** Exercise the opening lifecycle from real registration/session/bootstrap through onboarding/provisioning, Farm, Tooth Collector rescue/follow-up, Camp Whim, Mountains run narrative/boss, and final Swamp projection. Prefer real public application boundaries and existing commands/controllers over directly seeding intermediate progression state.
-2. **Transition assertions.** At each boundary prove the durable authority changes only when intended: Farm after provisioning; Shop/rescue after Mudking; Mountains/search knowledge after Whim; Mountains narrative knowledge through reached run nodes; Swamp unlock/destination after Mountains boss.
-3. **Reload/reconnect proof.** Rebuild services/session/bootstrap at meaningful pending boundaries and prove server-owned state restores the next required interaction without client-local history: Tooth Collector follow-up, post-Farm Whim, Mountains narrative nodes, post-boss chart/Swamp handoff as applicable.
-4. **Replay/idempotency/revision proof.** Exercise representative exact-key retries and repeat-run/reward cases across the integrated lifecycle. Confirm original responses are stable, unique rewards remain unique, and player revision does not increment on exact-key replay.
-5. **Authorization/projection proof.** Verify available playable regions and unlocked destination regions remain distinct. Farm/Mountains become startable only through their durable unlocks; Swamps become unlocked/visible after Mountains boss but remain rejected by run start without M13 run content, with no energy/run/revision mutation from the rejected start.
-6. **Narrative boundary proof.** Confirm the opening path does not expose the Wrong Machine search before the post-Farm Whim beat; first direct Archivist conversation occurs in Mountains; Mountains combat is kobold-only; no Archivist/Order combat occurs before Swamp; and Swamp destination knowledge does not imply Machine possession.
-7. **M13 boundary proof.** At final handoff assert `unlock.capability.wrong_machine_access` absent, no Frog Kin reconstruction, no Swamp run/encounters/enemies, and no broader-map opening.
-8. **Technical correction only.** If the integrated proof exposes a real composition defect, fix the smallest owning architecture/content path and record it. Do not introduce speculative cleanup, generic story state, new narrative beats, or M13 gameplay.
-9. **Client integration regression.** Verify Camp/routing projection across the relevant authoritative states, including unlocked-but-disabled Swamps and existing responsive/portrait behavior. Add new deterministic captures only if needed to prove a changed or previously unverified state.
-10. **Documentation closure.** Update package evidence and any canonical architecture docs only where the integrated proof reveals a durable contract that is not already recorded. Do not duplicate package history into unrelated docs.
+#### Manual checks
+- Verify dialogue order, wording, and transitions feel coherent and do not expose later information early.
+- Verify the four starting Goblins and their formation appear as accepted in M12 UAT.
+- Verify Camp progression visibly changes at the expected points: Farm, Shop, Whim/Mountains, then Swamps PATH FOUND.
+- Verify Tooth Collector identity/rescue is clear after Mudking.
+- Verify The Archivist's Mountains appearance reads as the first direct meeting and not as a combat encounter.
+- Verify the Mountains boss/chart handoff clearly communicates location knowledge rather than Wrong Machine possession.
+- Verify Swamps cannot be entered yet and that this disabled state is understandable rather than appearing broken.
+- Verify no obvious responsive/layout regression at representative desktop/compact sizes used during normal play.
+- Reload at one or more pending narrative transitions if useful and confirm the required interaction remains available.
 
-#### Architectural constraints
-- Follow `agent/CONTEXT_ROUTER.md` and the canonical story/progression/reward/API/storage/Phaser/testing documents it routes to.
-- Backend/MySQL remains authoritative. Phaser renders/routes authoritative state; Angular remains host/auth/account shell.
-- Do not add generic story/chapter/seen/history state.
-- Do not weaken region-start authorization or create placeholder Swamp gameplay.
-- Do not reopen accepted Warband, Farm, Shop, Whim, Mountains, or reward architecture unless integration proof demonstrates a defect.
-- Prefer lifecycle/integration tests over duplicated literal content assertions.
+#### Defect handling
+If UAT exposes a concrete defect, record the observed behavior and expected behavior here, make the smallest owning correction, rerun focused/full verification as appropriate, and repeat the affected UAT portion. Do not expand into M13 gameplay or unrelated polish.
 
-#### Minimum proof
-1. Real fresh registration begins in Whim onboarding with Farm not prematurely available.
-2. Provisioning creates the accepted four-unit Warband/active squad and durable Farm unlock.
-3. Farm is startable; Shop and Mountains are not yet available.
-4. First Mudking victory plus required follow-up durably establishes Tooth Collector rescue and Shop, but not Mountains.
-5. Reload before post-Farm Whim completion restores that pending interaction.
-6. Completing Whim grants search knowledge and Mountains once; Mountains becomes startable.
-7. Mountains run reaches kobold trail then first direct Archivist dialogue through authoritative run state; combat remains kobold-only.
-8. Reload at representative Mountains narrative state restores the available node/dialogue.
-9. First Mountains boss grants Swamp destination knowledge and `unlock.region.swamps` once; Wrong Machine capability remains absent.
-10. Post-boss reload projects Swamps as unlocked/visible but not available/startable.
-11. Rejected Swamp start creates no run and spends/mutates nothing.
-12. Representative exact-key replays do not duplicate rewards or revisions; repeat Mountains progression remains valid with already-owned unique results.
-13. No Frog Kin, Swamp enemies/graph, Order troop combat, Wrong Machine recovery, or broader-map opening exists at handoff.
-14. Existing package-focused regressions and full package quality gates pass.
-
-#### Verification
-Run a focused integrated lifecycle suite plus the affected onboarding, Farm, Shop, dialogue/Codex, region/run, Mountains, reward/unlock, idempotency/revision, bootstrap, and Phaser runtime/Camp regressions. Run applicable `agent/QUALITY_GATES.md` checks and full `npm run verify:package -- --continue-on-failure`.
-
-#### Scope exclusions
-- new story beats or dialogue beyond corrections required by demonstrated integration defects;
-- Swamp run graph/playable content;
-- Frogmen or Archivist/Order combat troops;
-- Swamp boss behavior;
-- Wrong Machine capability access/recovery/reconstruction;
-- Frog Kin;
-- first Wrong Machine-use follow-up;
-- broader-map opening;
-- broad visual redesign;
-- M13 parity work or M14 hardening.
-
-#### Completion evidence required
-Record implementation/test SHA(s); exact integration test path(s); lifecycle boundaries exercised; any defects found and smallest corrections made; reload/reconnect checkpoints; replay/revision evidence; final unlock/knowledge state; proof Swamp is unlocked but unsupported for start; proof M13-only state/content remains absent; focused backend/frontend counts; any deterministic captures reviewed; and full package-gate results.
-
-Leave Package 6 **In Progress** for architectural review. Do not activate Package 7 automatically from the coding agent.
-
-#### Package 6 implementation evidence (2026-11-02)
-- **Implementation/test SHA:** `f0d7a8e` (`backend/tests/Integration/OpeningArcLifecycleIntegrationTest.php`). One fresh registration/session and public bootstrap lifecycle runs through real onboarding dialogue/provision commands, Farm start and Mudking/Tooth Collector resolution, the server-gated Camp Whim completion, Mountains run nodes and boss, the chart handoff, and final public bootstrap. No production composition defect was found; no gameplay/content path changed.
-- **Authority at boundaries:** fresh account has no squad or playable region; provisioning creates four active squad units and only Farm access; first Mudking victory grants Shop; Tooth Collector follow-up records rescue before post-Farm Whim is offered; Whim grants the search Codex and Mountains; reached Mountains trail/Archivist nodes grant their Codex entries; first Mountains boss grants the Swamp destination Codex and durable Swamp unlock. Mountains combat encounters in the integrated run contain only kobold enemies. Before Whim, the search Codex is absent; before the Mountains boss, Swamp destination knowledge is absent.
-- **Reload/reconnect:** rebuilding content-aware services restores pending Tooth Collector follow-up, pending post-Farm Whim, the Mountains trail and Archivist nodes, and the post-boss chart node. Final HTTP bootstrap shows Farm and Mountains playable, Swamps unlocked/visible but outside `available_region_ids`.
-- **Replay/revision:** same-key provisioning, Farm boss, Whim, Mountains trail, and Mountains boss return the original result with unchanged revision. A second Mountains run reaches the trail, Archivist, and boss with already-owned unique knowledge/unlock outcomes; Swamp ownership and destination knowledge remain single rows.
-- **M13 boundary:** rejected Swamp start returns `run_region_unsupported` without a run, energy spend, or revision change. Final unlocks are exactly Farm, Shop, Mountains, and Swamps; Wrong Machine capability and initial-onboarding Wrong Machine knowledge are absent. No Frog Kin unit/reconstruction recipe, Swamp run graph/encounter, Frog/Order enemy content, or broader-map unlock is present at handoff.
-- **Verification:** integrated test 1 test / 107 assertions; affected backend classes 16 tests / 434 assertions. `npm run verify:package -- --continue-on-failure` passed at implementation SHA `f0d7a8e`: backend 715 tests / 6,045 assertions, frontend 470 tests; frontend build, bundle, content, PHP syntax, docs, LLM/context, and diff checks passed (`artifacts/verification/package-summary.json`). Existing Camp, region routing, compact layout, and portrait-gate tests ran in the frontend suite. No new deterministic capture was needed because Package 6 changed no visual/client code.
+#### Completion gate
+Package 7 and Milestone 12.5 complete only after the user explicitly accepts the manual UAT. Do not reactivate or implement M13 before that acceptance.
